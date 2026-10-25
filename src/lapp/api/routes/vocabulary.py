@@ -394,7 +394,7 @@ def delete_vocabulary(vocabulary_id: str):
     else:
         return jsonify({'error': 'Vocabulary not found'}), 404
     
-@bp.route('/score/', methods=['POST'])
+@bp.route('/score', methods=['POST'])
 @login_required
 def score_vocabulary():
     """Score a vocabulary.
