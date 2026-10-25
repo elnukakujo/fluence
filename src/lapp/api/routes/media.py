@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, send_from_directory, abort, current_app
+from werkzeug.exceptions import HTTPException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -50,7 +51,9 @@ def serve_media(filename: str):
             abort(404)
         
         return send_from_directory(media_root, filename, as_attachment=False)
-        
+
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.warning(f"Invalid path attempt: {filename}")
         abort(403)
@@ -283,9 +286,11 @@ def media_info(filename: str):
         
         if not result.get('exists'):
             return jsonify(result), 404
-        
+
         return jsonify(result)
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Media info error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
