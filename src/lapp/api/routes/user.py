@@ -235,9 +235,11 @@ def delete_user(user_id: str):
 
 
 @bp.route('/<user_id>/password', methods=['PUT'])
-@login_required
 def update_password(user_id: str):
     """Update a user's password.
+
+    Self/admin always. A passwordless account (the "set a password on first
+    login" flow) is allowed unauthenticated — it has no way to authenticate yet.
     ---
     tags:
       - Users
@@ -261,10 +263,18 @@ def update_password(user_id: str):
         description: Password updated
       400:
         description: Password cannot be blank
+      403:
+        description: Not your account
       404:
         description: User not found
     """
-    require_self_or_admin(user_id)
+    target = user_service.get_by_id(user_id)
+    if target is None:
+        return jsonify({'error': 'User not found'}), 404
+    if target.password_hash is not None:
+        require_self_or_admin(user_id)
+    # else: passwordless — allow setting the first password without a session.
+
     password = (request.json or {}).get("password", "")
     if not password:
         return jsonify({'error': 'Password cannot be blank'}), 400

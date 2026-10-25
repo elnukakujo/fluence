@@ -1,4 +1,6 @@
 """User routes (self vs admin) + block/unblock tests (Task 10 + 11)."""
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from lapp.services.auth import AuthService
 from lapp.models.system_data import User
 
@@ -53,6 +55,24 @@ def test_nonadmin_cannot_block(app, db):
     client = app.test_client()
     client.set_cookie('session_token', token_b)
     assert client.put('/api/user/user_U1/block', json={"blocked": True}).status_code == 403
+
+
+def test_password_set_flow(app, db):
+    # passwordless user (first-login set) vs user with an existing password
+    with db.session_scope() as s:
+        db.insert(User(id="user_U1", username="a", email="a@x.com"), session=s, commit=False)
+    with db.session_scope() as s:
+        db.insert(User(id="user_U2", username="b", email="b@x.com", password_hash=generate_password_hash("pw")), session=s, commit=False)
+
+    client = app.test_client()
+    # passwordless → allowed without a session
+    assert client.put('/api/user/user_U1/password', json={"password": "newpw"}).status_code == 200
+    # has a password → requires auth (403 when unauthenticated)
+    assert client.put('/api/user/user_U2/password', json={"password": "hack"}).status_code == 403
+
+    with db.session_scope() as s:
+        u = db.find_by_attr(User, {"id": "user_U1"}, session=s)
+        assert check_password_hash(u.password_hash, "newpw")
 
 
 def test_delete_user_cascades(db):
