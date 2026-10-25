@@ -3,13 +3,14 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-export async function setUserCookie(userId: string) {
+export async function setUserCookie(userId: string, remember: boolean = false) {
     const cookieStore = await cookies()
     cookieStore.set('selected_user_id', userId, {
         httpOnly: true,
         path: '/',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 365, // 1 year
+        // Session cookie unless "remember me" is checked, then persist for a year.
+        ...(remember ? { maxAge: 60 * 60 * 24 * 365 } : {}),
     })
     redirect('/')
 }

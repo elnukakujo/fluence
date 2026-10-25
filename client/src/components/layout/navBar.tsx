@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import BackButton from "@/components/ui/buttons/backButton";
 import SearchBar from "@/components/layout/searchBar";
-import UserSwitcher from "@/components/user/userSwitcher";
+import { clearUserCookie } from "@/utils/user_cookie";
 
 const primaryLinks = [
 	{ href: "/", label: "Home" },
@@ -64,7 +64,13 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 					<SearchBar currentUserId={currentUserId} />
 				</div>
                 <div className={`nav-user flex items-center gap-2 ${currentUserId ? "visible" : "invisible pointer-events-none"}`}>
-                    <UserSwitcher currentUserId={currentUserId} />
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => clearUserCookie()}
+                    >
+                        Log out
+                    </button>
                     <Link
                         href={`/user/${currentUserId}/update`}
                         className="btn btn-primary shrink-0"

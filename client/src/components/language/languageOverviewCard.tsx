@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import type Language from '@/interface/containers/Language';
-import { languageProficiencySystems } from '@/utils/language_iso639';
+import { languageProficiencySystems, getLevelLabel } from '@/utils/language_iso639';
 import ScoreDisplay from '../ui/displays/scoreDisplay';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -15,7 +15,7 @@ export default function LanguageOverviewCard({ language }: { language: Language 
     };
 
     const system = languageProficiencySystems[language.target_iso639_2t ?? ""];
-    const levelLabel = system?.levels[language.level]?.code ?? `Level ${language.level}`;
+    const levelLabel = getLevelLabel(system, language.level);
 
     const sourceLanguage = languageProficiencySystems[language.source_iso639_2t ?? ""];
 

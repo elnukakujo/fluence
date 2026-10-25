@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,33 @@ class UserService:
             session=session
         )
         return self._serialize(user, as_dict, include_relations)
+
+    @transactional
+    def authenticate(
+        self,
+        email: str,
+        password: str,
+        session: Optional[Session] = None,
+    ) -> tuple[Optional[dict], bool]:
+        """Verify an email/password pair for login.
+
+        Returns:
+            (user_dict, needs_password): user_dict is None on unknown email or
+            wrong password; needs_password is True when the account has no
+            password set yet (client should prompt to set one).
+        """
+        user = db_manager.find_by_attr(
+            model_class=User,
+            attr_values={"email": email},
+            session=session,
+        )
+        if not user:
+            return None, False
+        if not user.password_hash:
+            return user.to_dict(), True
+        if not check_password_hash(user.password_hash, password):
+            return None, False
+        return user.to_dict(), False
 
     @transactional
     def create(

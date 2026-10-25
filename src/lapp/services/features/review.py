@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 from ...core.database import db_manager, transactional
 from ...models.containers import Language, Lesson
-from ...models.features import Vocabulary, Grammar, Calligraphy
+from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
 
@@ -16,7 +16,7 @@ from ...utils import review_priority
 SECONDS_PER_CARD = 30.0
 
 # The three flashcard-able feature types, in review (round-robin) order.
-FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy)
+FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy, Exercise)
 
 
 class ReviewService:
@@ -47,12 +47,9 @@ class ReviewService:
             daily_goal_minutes = preferences.daily_goal_minutes
         max_cards = max(1, round(daily_goal_minutes * 60 / SECONDS_PER_CARD))
 
-        lesson_ids = [
-            row.id
-            for row in session.query(Lesson)
-            .filter(Lesson.language_id == language_id)
-            .all()
-        ]
+        lessons = session.query(Lesson).filter(Lesson.language_id == language_id).all()
+        lesson_ids = [lesson.id for lesson in lessons]
+        lesson_title_by_id = {lesson.id: lesson.title for lesson in lessons}
 
         buckets = {model: [] for model in FEATURE_MODELS}
         for model in FEATURE_MODELS:
@@ -82,5 +79,8 @@ class ReviewService:
                     queue.append(buckets[model].pop(0))
 
         if as_dict:
-            return [card.to_dict(include_relations=True) for card in queue]
+            return [
+                {**card.to_dict(include_relations=True), "lesson_title": lesson_title_by_id.get(card.lesson_id)}
+                for card in queue
+            ]
         return queue

@@ -674,3 +674,14 @@ export const languageProficiencySystems: Record<string, LanguageProficiencySyste
     notes: "FSI Cat. V (~2,200 h to professional level). Uses HSK 2.0 (6 levels) which remains the most widely tested. HSK 3.0 (2021) expands to 9 levels: HSK 1–3 ≈ A1–B1, HSK 4–6 ≈ B2–C2, HSK 7–9 ≈ C2+. Official Confucius Institute figures: HSK 1 = 40–80 h, HSK 2 = 80–120 h, HSK 3 = 120–180 h. Wide ranges reflect whether learner has prior character knowledge (e.g. Japanese speakers).",
   },
 };
+
+/** Safe level label: the proficiency code when known, else a clean fallback.
+ *  Guards the out-of-range index that used to crash LevelDisplay. */
+export function getLevelLabel(
+  system: LanguageProficiencySystem | undefined,
+  level: number | null | undefined,
+): string {
+  const idx = level ?? -1;
+  const code = system?.levels?.[idx]?.code;
+  return code ?? (idx >= 0 ? `Level ${idx + 1}` : "—");
+}

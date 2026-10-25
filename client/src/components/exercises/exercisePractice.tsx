@@ -3,18 +3,8 @@
 import Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
 
-import EssayExercise from "./essayExercise";
+import ExerciseRunner from "./exerciseRunner";
 import BackButton from "@/components/ui/buttons/backButton";
-import AnsweringExercise from "./answeringExercise";
-import TypeInTheBlankExercise from "./typeInTheBlankExercise";
-import MatchingExercise from "./matchingExercise";
-import OrganizeExercise from "./organizeExercise";
-import TranslateExercise from "./translateExercise";
-import TrueFalseExercise from "./trueFalseExercise";
-import SpeakingExercise from "./speakingExercise";
-import ConversationExercise from "./conversationExercise";
-import SelectInTheBlankExercise from "./selectInTheBlankExercise";
-import QuizzExercise from "./quizzExercise";
 import ProgressBar from "../ui/progressBar";
 
 const EXERCISE_TYPE_LABELS: Record<string, string> = {
@@ -50,17 +40,7 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
                 <span className="badge">{EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""] ?? currentExercise.exercise_type}</span>
             </div>
             <div key={currentExercise.id ?? currentIndex} className="animate-fade-in">
-                {currentExercise.exercise_type === 'essay' && <EssayExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'answering' && <AnsweringExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'type_in_the_blank' && <TypeInTheBlankExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'select_in_the_blank' && <SelectInTheBlankExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'matching' && <MatchingExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'organize' && <OrganizeExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'translate' && <TranslateExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'true_false' && <TrueFalseExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'speaking' && <SpeakingExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'conversation' && <ConversationExercise exercise={currentExercise} />}
-                {currentExercise.exercise_type === 'quizz' && <QuizzExercise exercise={currentExercise} />}
+                <ExerciseRunner exercise={currentExercise} />
             </div>
             {!isLastExercise ? (
                 <button

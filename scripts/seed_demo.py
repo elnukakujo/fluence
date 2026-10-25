@@ -11,6 +11,7 @@ Usage:
     uv run python scripts/seed_demo.py             # seed the prod schema
     uv run python scripts/seed_demo.py --env dev   # seed the dev schema
     uv run python scripts/seed_demo.py --reset     # drop tables first, then seed
+    uv run python scripts/seed_demo.py --email you@example.com --username you  # seed a specific (existing or new) user
 """
 
 import argparse
@@ -38,6 +39,9 @@ from lapp.models import (
 )
 
 DEMO_EMAIL = "demo@example.com"
+DEMO_USERNAME = "demo"
+DEMO_DISPLAY_NAME = "Demo User"
+DEMO_PASSWORD = "demo"
 
 
 def gen(model, session):
@@ -48,11 +52,9 @@ def gen_many(model, session, n):
     return [gen(model, session) for _ in range(n)]
 
 
-def seed(session) -> None:
+def seed_course(session, user_id: str) -> None:
     # --- Generate every ID first, on an otherwise-empty session, so the
     # flushes inside generate_new_id never see a half-built object graph ---
-    user_id = gen(User, session)
-    pref_id = gen(UserPreferences, session)
     lang_id = gen(Language, session)
     lesson_ids = gen_many(Lesson, session, 3)
     word_ids = gen_many(Word, session, 8)
@@ -64,28 +66,6 @@ def seed(session) -> None:
     grammar_ids = gen_many(Grammar, session, 2)
     call_ids = gen_many(Calligraphy, session, 3)
     ex_ids = gen_many(Exercise, session, 5)
-
-    user = User(
-        id=user_id,
-        username="demo",
-        display_name="Demo User",
-        email=DEMO_EMAIL,
-        password_hash=generate_password_hash("demo"),
-    )
-    session.add(user)
-    session.flush()  # user must be in the DB before language/tags/sources reference it
-
-    # A user without preferences breaks the settings page (it PUTs to
-    # /api/pref/<preferences.id>), so seed one just like UserService.create does.
-    session.add(
-        UserPreferences(
-            id=pref_id,
-            user_id=user_id,
-            native_language_iso639_2=["eng"],
-            learning_goals="Learn Japanese basics",
-            daily_goal_minutes=20,
-        )
-    )
 
     language = Language(
         id=lang_id,
@@ -297,7 +277,7 @@ def seed(session) -> None:
     session.add_all(exercises)
 
     print(
-        f"Seeded: 1 user, 1 language, {len(lessons)} lessons, {len(words)} words, "
+        f"Seeded course for {user_id}: 1 language, {len(lessons)} lessons, {len(words)} words, "
         f"{len(passages)} passages, {len(characters)} characters, {len(vocab)} vocabulary, "
         f"{len(grammar)} grammar, {len(calligraphy)} calligraphy, {len(exercises)} exercises, "
         f"2 tags, 1 source"
@@ -307,6 +287,10 @@ def seed(session) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Seed demo data into the database.")
     parser.add_argument("--env", default="prod", choices=["dev", "test", "prod"])
+    parser.add_argument("--email", default=DEMO_EMAIL)
+    parser.add_argument("--username", default=DEMO_USERNAME)
+    parser.add_argument("--display-name", default=DEMO_DISPLAY_NAME)
+    parser.add_argument("--password", default=DEMO_PASSWORD)
     parser.add_argument("--reset", action="store_true", help="drop and recreate tables before seeding")
     args = parser.parse_args()
 
@@ -321,10 +305,31 @@ def main() -> int:
 
     with app.app_context():
         with db_manager.session_scope() as session:
-            if session.query(User).filter(User.email == DEMO_EMAIL).first():
-                print("Demo data already present. Use --reset to wipe and reseed.")
+            user = session.query(User).filter(User.email == args.email).first()
+            if user and session.query(Language).filter(Language.user_id == user.id).first():
+                print(f"{args.email} already has course data. Use --reset to wipe and reseed.")
                 return 0
-            seed(session)
+            if user is None:
+                user = User(
+                    id=gen(User, session),
+                    username=args.username,
+                    display_name=args.display_name,
+                    email=args.email,
+                    password_hash=generate_password_hash(args.password),
+                )
+                session.add(user)
+                session.flush()
+            if not session.query(UserPreferences).filter(UserPreferences.user_id == user.id).first():
+                session.add(
+                    UserPreferences(
+                        id=gen(UserPreferences, session),
+                        user_id=user.id,
+                        native_language_iso639_2=["eng"],
+                        learning_goals="Learn Japanese basics",
+                        daily_goal_minutes=20,
+                    )
+                )
+            seed_course(session, user.id)
 
     return 0
 

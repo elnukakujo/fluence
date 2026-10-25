@@ -38,7 +38,7 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                 <ElementPerformanceCard element={lesson} />
                 <ElementTagsCard element={lesson} />
                 <ElementSourcesCard element={lesson} />
-                <nav className="flex flex-row space-x-4">
+                <nav className="flex flex-row flex-wrap gap-2">
                     <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/update`}>
                         <p>Update this Lesson Informations</p>
                     </NavButton>

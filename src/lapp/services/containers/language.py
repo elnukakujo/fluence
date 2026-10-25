@@ -98,6 +98,9 @@ class LanguageService:
                 session=session
             )
 
+        # Stable creation order: oldest first.
+        languages.sort(key=lambda language: language.created_at)
+
         if not as_dict:
             return languages
         return self._serialize_list(languages, as_dict, include_relations)

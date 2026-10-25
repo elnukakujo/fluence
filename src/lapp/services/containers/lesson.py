@@ -48,6 +48,8 @@ class LessonService:
             filters={'language_id': language_id},
             session=session
         )
+        # Stable creation order: oldest first (find_all returns no ORDER BY).
+        lessons.sort(key=lambda lesson: lesson.created_at)
         return self._serialize_list(lessons, as_dict, include_relations)
 
     @transactional
