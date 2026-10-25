@@ -57,47 +57,6 @@ def get_user(user_id: str):
     return jsonify(user)
 
 
-@bp.route('/login', methods=['POST'])
-def login():
-    """Authenticate with email + password.
-    ---
-    tags:
-      - Users
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-            type: object
-            properties:
-                email:
-                    type: string
-                    required: true
-                password:
-                    type: string
-                    required: true
-    responses:
-      200:
-        description: Authenticated user, or needs_password flag for passwordless accounts
-      400:
-        description: Email missing
-      401:
-        description: Invalid email or password
-    """
-    data = request.json or {}
-    email = (data.get("email") or "").strip()
-    password = data.get("password") or ""
-    if not email:
-        return jsonify({'error': 'Email is required'}), 400
-
-    user, needs_password = user_service.authenticate(email, password)
-    if needs_password:
-        return jsonify({'needs_password': True, 'user_id': user['id']}), 200
-    if not user:
-        return jsonify({'error': 'Invalid email or password'}), 401
-    return jsonify({'user': user}), 200
-
-
 @bp.route('/', methods=['POST'])
 def create_user():
     """Create a new user.
