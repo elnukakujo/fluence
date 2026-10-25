@@ -30,14 +30,18 @@ def create_app(config_name: str = 'default') -> Flask:
     
     # Enable CORS for frontend
     CORS(app, resources={
-        r"/api/*": {"origins": "*"},
+        r"/api/*": {"origins": app.config.get('FRONTEND_ORIGIN', '*')},
         r"/media/*": {"origins": "*"},
         r"/media_dev/*": {"origins": "*"},
         r"/media_test/*": {"origins": "*"}
     })
-    
+
     # Register blueprints
     register_blueprints(app)
+
+    # Resolve the session cookie on every request
+    from ..core.auth import init_auth
+    init_auth(app)
     
     # Register error handlers
     register_error_handlers(app)
@@ -161,6 +165,13 @@ def register_error_handlers(app: Flask) -> None:
             'error': 'Bad Request',
             'message': str(error)
         }), 400
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': str(error)
+        }), 403
     
     @app.errorhandler(500)
     def internal_error(error):

@@ -41,6 +41,10 @@ _BASE_DATABASE_URL = _normalize_database_url(_DATABASE_URL)
 
 class Config:
     """Base configuration for personal use"""
+    # Auth
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-secret-change-me')
+    FRONTEND_ORIGIN = os.environ.get('FRONTEND_ORIGIN', 'http://localhost:3000')
+
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
