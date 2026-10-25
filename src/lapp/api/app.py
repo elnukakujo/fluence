@@ -29,12 +29,13 @@ def create_app(config_name: str = 'default') -> Flask:
     logger.info(f"📁 MEDIA_ROOT={app.config.get('MEDIA_ROOT')!r} BACKUP_ROOT={app.config.get('BACKUP_ROOT')!r}")
     
     # Enable CORS for frontend
+    _frontend_origins = [o.strip() for o in app.config.get('FRONTEND_ORIGIN', '').split(',') if o.strip()]
     CORS(app, resources={
-        r"/api/*": {"origins": app.config.get('FRONTEND_ORIGIN', '*')},
+        r"/api/*": {"origins": _frontend_origins},
         r"/media/*": {"origins": "*"},
         r"/media_dev/*": {"origins": "*"},
         r"/media_test/*": {"origins": "*"}
-    })
+    }, supports_credentials=True)
 
     # Register blueprints
     register_blueprints(app)

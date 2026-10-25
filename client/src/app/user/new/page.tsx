@@ -6,7 +6,8 @@ export default function NewUserPage() {
         <main>
             <div className="flex min-h-[75vh] items-center justify-center">
                 <section className="card flex w-full max-w-md flex-col gap-6 p-8">
-                    <header className="flex flex-col items-center gap-1 text-center">
+                    <header className="flex flex-col items-center gap-2 text-center">
+                        <img src="/fluence-mark.svg" alt="" aria-hidden="true" className="h-14 w-14" />
                         <h1 className="text-3xl">Fluence</h1>
                         <p className="text-sm text-muted">Create your account to start learning.</p>
                     </header>

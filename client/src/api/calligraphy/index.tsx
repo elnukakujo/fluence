@@ -1,21 +1,21 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import Calligraphy from "@/interface/features/Calligraphy";
 import { throwIfConflict } from "../conflictError";
 
 export async function getCalligraphyById(calligraphyId: string) {
-  const res = await fetch(`${BASE_URL}/api/calligraphy/${calligraphyId}`);
+  const res = await fetch(`${BASE_URL}/api/calligraphy/${calligraphyId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch calligraphy ${calligraphyId}`);
   return res.json();
 }
 
 export async function getCalligraphyByLanguage(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/calligraphy/language/${languageId}`);
+  const res = await fetch(`${BASE_URL}/api/calligraphy/language/${languageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch calligraphy for language ${languageId}`);
   return res.json();
 }
 
 export async function getCalligraphyByLesson(lessonId: string) {
-  const res = await fetch(`${BASE_URL}/api/calligraphy/lesson/${lessonId}`);
+  const res = await fetch(`${BASE_URL}/api/calligraphy/lesson/${lessonId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch calligraphy for lesson ${lessonId}`);
   return res.json();
 }

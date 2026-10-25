@@ -43,7 +43,12 @@ class Config:
     """Base configuration for personal use"""
     # Auth
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-secret-change-me')
-    FRONTEND_ORIGIN = os.environ.get('FRONTEND_ORIGIN', 'http://localhost:3000')
+    # Comma-separated allowed frontend origins (CORS). Defaults cover local dev
+    # (Next.js on 3000 or 8080); set to your production domain for deployment.
+    FRONTEND_ORIGIN = os.environ.get(
+        'FRONTEND_ORIGIN',
+        'http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080',
+    )
 
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False

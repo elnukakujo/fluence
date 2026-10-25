@@ -63,6 +63,8 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3000
+      LAPP_INTERNAL_HOST: backend
+      LAPP_INTERNAL_PORT: 5050
     depends_on:
       - backend
     ports:

@@ -1,21 +1,21 @@
 import Vocabulary from "@/interface/features/Vocabulary";
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import { throwIfConflict } from "../conflictError";
 
 export async function getVocabularyById(vocabularyId: string) {
-  const res = await fetch(`${BASE_URL}/api/vocabulary/${vocabularyId}`);
+  const res = await fetch(`${BASE_URL}/api/vocabulary/${vocabularyId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch vocabulary ${vocabularyId}`);
   return res.json();
 }
 
 export async function getVocabularyByLanguage(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/vocabulary/language/${languageId}`);
+  const res = await fetch(`${BASE_URL}/api/vocabulary/language/${languageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch vocabulary for language ${languageId}`);
   return res.json();
 }
 
 export async function getVocabularyByLesson(lessonId: string) {
-  const res = await fetch(`${BASE_URL}/api/vocabulary/lesson/${lessonId}`);
+  const res = await fetch(`${BASE_URL}/api/vocabulary/lesson/${lessonId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch vocabulary for lesson ${lessonId}`);
   return res.json();
 }

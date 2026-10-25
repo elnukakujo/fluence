@@ -1,22 +1,22 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import Language from "@/interface/containers/Language";
 import Lesson from "@/interface/containers/Lesson";
 
 export async function getAvailableLanguages(userId: string) {
-  const res = await fetch(`${BASE_URL}/api/languages/all/${userId}`);
+  const res = await fetch(`${BASE_URL}/api/languages/all/${userId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error('Failed to fetch available languages');
   return res.json();
 }
 
 export async function getLanguageById(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/languages/${languageId}`);
+  const res = await fetch(`${BASE_URL}/api/languages/${languageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch language ${languageId}`);
   return res.json();
 }
 
 export async function getLanguageData(languageId: string) {
   const language: Language = await getLanguageById(languageId);
-  const lessons = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`);
+  const lessons = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`, { headers: await getAuthHeaders() });
   if (!lessons.ok) throw new Error(`Failed to fetch lessons for language ${languageId}`);
   const lessonsData: Lesson[] = await lessons.json();
   return {

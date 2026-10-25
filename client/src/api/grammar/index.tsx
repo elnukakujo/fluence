@@ -1,20 +1,20 @@
 import Grammar from "@/interface/features/Grammar";
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 
 export async function getGrammarById(grammarId: string) {
-  const res = await fetch(`${BASE_URL}/api/grammar/${grammarId}`);
+  const res = await fetch(`${BASE_URL}/api/grammar/${grammarId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch grammar ${grammarId}`);
   return res.json();
 }
 
 export async function getGrammarByLanguage(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/grammar/language/${languageId}`);
+  const res = await fetch(`${BASE_URL}/api/grammar/language/${languageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch grammar for language ${languageId}`);
   return res.json();
 }
 
 export async function getGrammarByLesson(lessonId: string) {
-  const res = await fetch(`${BASE_URL}/api/grammar/lesson/${lessonId}`);
+  const res = await fetch(`${BASE_URL}/api/grammar/lesson/${lessonId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch grammar for lesson ${lessonId}`);
   return res.json();
 }

@@ -1,14 +1,14 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import Lesson from "@/interface/containers/Lesson";
 
 export async function getLessonById(lesson_id: string) {
-  const res = await fetch(`${BASE_URL}/api/lessons/${lesson_id}`);
+  const res = await fetch(`${BASE_URL}/api/lessons/${lesson_id}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch data for lesson ${lesson_id}`);
   return res.json();
 }
 
 export async function getAllLessons(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`);
+  const res = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch lessons for language ${languageId}`);
   return res.json();
 }

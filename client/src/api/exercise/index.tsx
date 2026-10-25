@@ -1,20 +1,20 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import Exercise from "@/interface/features/Exercise";
 
 export async function getExerciseById(exerciseId: string) {
-  const res = await fetch(`${BASE_URL}/api/exercise/${exerciseId}`);
+  const res = await fetch(`${BASE_URL}/api/exercise/${exerciseId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch exercise ${exerciseId}`);
   return res.json();
 }
 
 export async function getExercisesByLanguage(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/exercise/language/${languageId}`);
+  const res = await fetch(`${BASE_URL}/api/exercise/language/${languageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch exercises for language ${languageId}`);
   return res.json();
 }
 
 export async function getExercisesByLesson(lessonId: string) {
-  const res = await fetch(`${BASE_URL}/api/exercise/lesson/${lessonId}`);
+  const res = await fetch(`${BASE_URL}/api/exercise/lesson/${lessonId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch exercises for lesson ${lessonId}`);
   return res.json();
 }
