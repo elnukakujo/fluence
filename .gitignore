@@ -20,7 +20,7 @@ instance/*
 .DS_Store
 graphify-out/
 .graphifyignore
-docs/
+docs
 
 # Python
 __pycache__/
