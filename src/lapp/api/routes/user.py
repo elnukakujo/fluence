@@ -1,15 +1,19 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
 import logging
 logger = logging.getLogger(__name__)
 
 from ...schemas.system_data import UserDict
 from ...services.system_data import UserService
+from ...core.auth import login_required, admin_required, require_self_or_admin, current_user_id
+from ...core.database import db_manager
+from ...models.system_data import User as UserModel
 user_service = UserService()
 
 bp = Blueprint('user', __name__, url_prefix='/api/user')
 
 @bp.route('/', methods=['GET'])
+@admin_required
 def get_all_users():
     """
     Get all users
@@ -29,6 +33,7 @@ def get_all_users():
 
 
 @bp.route('/<user_id>', methods=['GET'])
+@login_required
 def get_user(user_id: str):
     """
     Get a specific user by ID
@@ -49,8 +54,9 @@ def get_user(user_id: str):
       404:
         description: User not found
     """
+    require_self_or_admin(user_id)
     user = user_service.get_by_id(user_id, as_dict=True)
-    
+
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
@@ -97,6 +103,13 @@ def create_user():
       400:
         description: Validation failed or creation error
     """
+    # First-user bootstrap: allow unauthenticated creation only when no users exist.
+    if current_user_id() is None:
+        if db_manager.find_all(UserModel):
+            return jsonify({'error': 'Authentication required'}), 401
+    elif not getattr(g.current_user, "is_admin", False):
+        return jsonify({'error': 'Admin access required'}), 403
+
     try:
         # Validate request data
         data = UserDict(**request.json)
@@ -119,6 +132,7 @@ def create_user():
 
 
 @bp.route('/<user_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_user(user_id: str):
     """Update a user.
     ---
@@ -174,6 +188,7 @@ def update_user(user_id: str):
         description: Language not found
     """
     try:
+        require_self_or_admin(user_id)
         data = UserDict(**request.json)
 
         user = user_service.update(user_id, data, as_dict=True)
@@ -193,6 +208,7 @@ def update_user(user_id: str):
 
 
 @bp.route('/<user_id>', methods=['DELETE'])
+@admin_required
 def delete_user(user_id: str):
     """Delete a user.
     ---
@@ -219,6 +235,7 @@ def delete_user(user_id: str):
 
 
 @bp.route('/<user_id>/password', methods=['PUT'])
+@login_required
 def update_password(user_id: str):
     """Update a user's password.
     ---
@@ -247,9 +264,20 @@ def update_password(user_id: str):
       404:
         description: User not found
     """
+    require_self_or_admin(user_id)
     password = (request.json or {}).get("password", "")
     if not password:
         return jsonify({'error': 'Password cannot be blank'}), 400
     if not user_service.update_password(user_id, password):
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({'success': True})
+
+
+@bp.route('/<user_id>/block', methods=['PUT'])
+@admin_required
+def set_blocked(user_id: str):
+    """Block/unblock a user (admin only)."""
+    blocked = bool((request.json or {}).get("blocked", False))
+    if not user_service.set_blocked(user_id, blocked):
         return jsonify({'error': 'User not found'}), 404
     return jsonify({'success': True})

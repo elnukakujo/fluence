@@ -18,3 +18,4 @@ Task 7: Ruling: wrote the route impl before the route tests (the RED would have 
 Task 8: complete (commits dd771ed..HEAD, tests: uv run pytest tests/test_ownership.py -q → 3/3 pass; full suite 81 passed / 2 pre-existing failed)
 Task 8: Ruling: ownership resolved via a DRY owner_user_id() helper (id-prefix → service dict chain: feature→lesson_id→language_id→user_id), not per-route resource.user_id — avoids the lesson.user_id default "user_U0" trap and lazy-load issues — cost if wrong: none, the chain is the canonical owner path
 Task 8: Ruling: client-side fetch calls now need credentials:'include' to send the session cookie cross-origin (Task 12 must add it, or proxy through Next.js) — flagged now so Task 12 doesn't miss it — cost if wrong: browser API calls 401 after auth is enforced
+Task 9: complete (commits f487b0d..HEAD, tests: uv run pytest tests/test_ownership.py -q → 5/5 pass; full suite 83 passed / 2 pre-existing failed)

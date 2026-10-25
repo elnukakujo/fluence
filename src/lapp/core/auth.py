@@ -110,3 +110,9 @@ def require_owns(element_id: str) -> None:
     if owner is None:
         abort(404, description="Not found")
     require_owner(owner)
+
+
+def require_self_or_admin(user_id: str) -> None:
+    """403 unless the current user is the target user or an admin."""
+    if user_id != current_user_id() and not getattr(g.current_user, "is_admin", False):
+        abort(403, description="Not your account")
