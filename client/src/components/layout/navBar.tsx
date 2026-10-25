@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import BackButton from "@/components/ui/buttons/backButton";
 import SearchBar from "@/components/layout/searchBar";
-import { clearUserCookie } from "@/utils/user_cookie";
+import { logout } from "@/api/user";
 
 const primaryLinks = [
 	{ href: "/", label: "Home" },
@@ -14,6 +14,7 @@ const primaryLinks = [
 
 export default function NavBar({ currentUserId }: { currentUserId: string | null }) {
 	const pathname = usePathname();
+	const router = useRouter();
 
 	const isActive = (href: string) => {
 		if (href === "/") {
@@ -67,7 +68,11 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
                     <button
                         type="button"
                         className="btn btn-secondary"
-                        onClick={() => clearUserCookie()}
+                        onClick={async () => {
+                            await logout();
+                            router.push('/');
+                            router.refresh();
+                        }}
                     >
                         Log out
                     </button>

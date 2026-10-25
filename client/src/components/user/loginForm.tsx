@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { login, updateUserPassword } from "@/api/user";
-import { setUserCookie } from "@/utils/user_cookie";
 
 export default function LoginForm() {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(false);
@@ -22,7 +23,7 @@ export default function LoginForm() {
         setError("");
         setSubmitting(true);
         try {
-            const result = await login(email, password);
+            const result = await login(email, password, remember);
             if (result.error) {
                 setError(result.error);
                 return;
@@ -33,7 +34,8 @@ export default function LoginForm() {
                 setPassword("");
                 return;
             }
-            await setUserCookie(result.user.id, remember);
+            router.push('/');
+            router.refresh();
         } catch {
             setError("Login failed. Please try again.");
         } finally {
@@ -47,7 +49,9 @@ export default function LoginForm() {
         setSubmitting(true);
         try {
             await updateUserPassword(userId, password);
-            await setUserCookie(userId, remember);
+            await login(email, password, remember);
+            router.push('/');
+            router.refresh();
         } catch {
             setError("Could not set password. Please try again.");
         } finally {

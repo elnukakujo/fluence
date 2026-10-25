@@ -5,6 +5,7 @@ export async function getAllUsers() {
   const res = await fetch(`${BASE_URL}/api/user/`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch users");
   return res.json();
@@ -43,8 +44,20 @@ export async function updateUser(userId: string, data: Partial<User>) {
 export async function deleteUser(userId: string) {
   const res = await fetch(`${BASE_URL}/api/user/${userId}`, {
     method: "DELETE",
+    credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to delete user");
+}
+
+export async function setUserBlocked(userId: string, blocked: boolean) {
+  const res = await fetch(`${BASE_URL}/api/user/${userId}/block`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ blocked }),
+  });
+  if (!res.ok) throw new Error("Failed to update user");
+  return res.json();
 }
 
 export async function updateUserPassword(userId: string, password: string) {
@@ -57,13 +70,27 @@ export async function updateUserPassword(userId: string, password: string) {
   return res.json();
 }
 
-export async function login(email: string, password: string) {
-  const res = await fetch(`${BASE_URL}/api/user/login`, {
+export async function login(email: string, password: string, remember: boolean = false) {
+  const res = await fetch(`${BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    credentials: "include",
+    body: JSON.stringify({ email, password, remember }),
   });
   if (res.status === 401) return { error: "Invalid email or password" };
+  if (res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    if (data.error === "account_blocked") return { error: "This account has been blocked." };
+    if (data.error === "account_locked") return { error: "Too many failed attempts. Please try again later." };
+    return { error: "Access denied." };
+  }
   if (!res.ok) throw new Error("Login failed");
   return res.json();
+}
+
+export async function logout() {
+  await fetch(`${BASE_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
 }

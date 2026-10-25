@@ -6,6 +6,8 @@ import PreferencesSection from "@/components/user/preferencesSection";
 import AiFeaturesSection from "@/components/user/aiFeaturesSection";
 import ApiEndpointsSection from "@/components/user/apiEndpointsSection";
 import BackupSection from "@/components/user/backupSection";
+import RoleBadge from "@/components/user/roleBadge";
+import UsersSection from "@/components/user/usersSection";
 
 export default async function UpdateUserPage({ params }: { params: Promise<{ user_id: string }> }) {
     const { user_id } = await params;
@@ -15,6 +17,11 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
 
     return (
         <SettingsLayout>
+            <header className="flex items-center gap-2">
+                <h1 className="text-xl">{user.display_name || user.username}</h1>
+                <RoleBadge isAdmin={user.is_admin} blocked={user.blocked} />
+            </header>
+
             <section id="profile">
                 <ProfileSection user={user} />
             </section>
@@ -42,9 +49,17 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
                 />
             </section>
 
-            <section id="backups">
-                <BackupSection />
-            </section>
+            {user.is_admin && (
+                <>
+                    <section id="users">
+                        <UsersSection currentUserId={user.id} />
+                    </section>
+
+                    <section id="backups">
+                        <BackupSection />
+                    </section>
+                </>
+            )}
         </SettingsLayout>
     );
 }
