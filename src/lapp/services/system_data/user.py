@@ -237,9 +237,29 @@ class UserService:
         if user.is_admin and not self._has_other_admin(user_id, session):
             raise ValueError("Cannot delete the last admin.")
 
-        # Delete children before parent (FK constraint)
+        # Cascade delete the user's whole content in FK-safe order:
+        # sessions → preferences → data-collection → tags/sources →
+        # languages (cascade lessons → features → components) → user.
+        from ...models.system_data import UserSession, Tag, Source
+        from ...models.containers import Language
+        from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking
+
+        for row in db_manager.find_all(UserSession, filters={"user_id": user_id}, session=session):
+            db_manager.delete(row, session=session, commit=False)
+
         if user.preferences:
             user_preferences_service.delete(pref_id=user.preferences.id, session=session)
+
+        for model in (CommitmentLog, DailyStats, ProgressTracking):
+            for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
+                db_manager.delete(row, session=session, commit=False)
+
+        for model in (Tag, Source):
+            for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
+                db_manager.delete(row, session=session, commit=False)
+
+        for lang in db_manager.find_all(Language, filters={"user_id": user_id}, session=session):
+            db_manager.delete(lang, session=session, commit=False)
 
         result = db_manager.delete(user, session=session, commit=False)
         if result:

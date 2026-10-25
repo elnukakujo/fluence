@@ -35,6 +35,18 @@ class Language(BaseContainerModel):
         foreign_keys=[Lesson.language_id],
     )
 
+    # Components (word/passage/character) belong to the language too; cascade
+    # them on delete so removing a language (or a user) cleans them up.
+    words: Mapped[list["Word"]] = relationship(
+        "Word", cascade="all, delete-orphan", foreign_keys="Word.language_id",
+    )
+    passages: Mapped[list["Passage"]] = relationship(
+        "Passage", cascade="all, delete-orphan", foreign_keys="Passage.language_id",
+    )
+    characters: Mapped[list["Character"]] = relationship(
+        "Character", cascade="all, delete-orphan", foreign_keys="Character.language_id",
+    )
+
     def to_dict(self, include_relations: bool = True) -> dict:
         base_dict =  {
             **super().to_dict(include_relations),

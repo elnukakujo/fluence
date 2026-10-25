@@ -53,3 +53,32 @@ def test_nonadmin_cannot_block(app, db):
     client = app.test_client()
     client.set_cookie('session_token', token_b)
     assert client.put('/api/user/user_U1/block', json={"blocked": True}).status_code == 403
+
+
+def test_delete_user_cascades(db):
+    from lapp.models.containers import Language, Lesson
+    from lapp.models.components import Word
+    from lapp.models.features import Vocabulary
+    from lapp.models.system_data import Tag, UserSession
+    from lapp.services.system_data import UserService
+    from lapp.core.database import db_manager
+
+    with db.session_scope() as s:
+        db.insert(User(id="user_U1", username="a", email="a@x.com"), session=s, commit=False)
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_L1", language_id="lang_L1", user_id="user_U1", title="L1"), session=s, commit=False)
+        db.insert(Word(id="word_W1", language_id="lang_L1", word="猫"), session=s, commit=False)
+        db.insert(Vocabulary(id="voc_V1", lesson_id="lesson_L1", word_id="word_W1"), session=s, commit=False)
+        db.insert(Tag(id="tag_T1", user_id="user_U1", name="N5"), session=s, commit=False)
+    AuthService().create_session("user_U1", remember=False)
+
+    assert UserService().delete("user_U1") is True
+
+    with db.session_scope() as s:
+        assert db.find_by_attr(User, {"id": "user_U1"}, session=s) is None
+        assert db_manager.find_all(Language, filters={"user_id": "user_U1"}, session=s) == []
+        assert db_manager.find_all(Lesson, filters={"language_id": "lang_L1"}, session=s) == []
+        assert db_manager.find_all(Word, filters={"language_id": "lang_L1"}, session=s) == []
+        assert db_manager.find_all(Vocabulary, filters={"lesson_id": "lesson_L1"}, session=s) == []
+        assert db_manager.find_all(Tag, filters={"user_id": "user_U1"}, session=s) == []
+        assert db_manager.find_all(UserSession, filters={"user_id": "user_U1"}, session=s) == []
