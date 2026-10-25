@@ -3,11 +3,13 @@ from pydantic import ValidationError
 
 from ...services import GrammarService
 from ...schemas import GrammarDict
+from ...core.auth import login_required, require_owns
 
 bp = Blueprint('grammar', __name__, url_prefix='/api/grammar')
 grammar_service = GrammarService()
 
 @bp.route('/language/<language_id>', methods=['GET'])
+@login_required
 def get_all_grammar_from_language(language_id: str):
     """Get all grammar for a specific language.
     --- 
@@ -29,11 +31,13 @@ def get_all_grammar_from_language(language_id: str):
                     type: object
                     description: "A Grammar object"
     """
+    require_owns(language_id)
     grammar = grammar_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(grammar)
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
+@login_required
 def get_all_grammar_from_lesson(lesson_id: str):
     """Get all grammar for a specific lesson.
     --- 
@@ -55,11 +59,13 @@ def get_all_grammar_from_lesson(lesson_id: str):
                     type: object
                     description: "A Grammar object"
     """
+    require_owns(lesson_id)
     grammar = grammar_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(grammar)
 
 
 @bp.route('/<grammar_id>', methods=['GET'])
+@login_required
 def get_grammar(grammar_id: str):
     """Get a specific grammar by ID.
     ---
@@ -80,8 +86,9 @@ def get_grammar(grammar_id: str):
         404:
             description: Grammar not found
     """
+    require_owns(grammar_id)
     grammar = grammar_service.get_by_id(grammar_id, as_dict=True)
-    
+
     if not grammar:
         return jsonify({'error': 'grammar not found'}), 404
     
@@ -89,6 +96,7 @@ def get_grammar(grammar_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_grammar():
     """Create a new grammar.
     ---
@@ -171,7 +179,8 @@ def create_grammar():
     try:
         # Validate request data
         data = GrammarDict(**request.json)
-        
+        require_owns(data.lesson_id)
+
         # Create grammar
         grammar = grammar_service.create(data, as_dict=True)
         
@@ -188,6 +197,7 @@ def create_grammar():
 
 
 @bp.route('/<grammar_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_grammar(grammar_id: str):
     """Update a grammar.
     ---
@@ -276,8 +286,9 @@ def update_grammar(grammar_id: str):
             description: Validation error
     """
     try:
+        require_owns(grammar_id)
         data = GrammarDict(**request.json)
-        
+
         grammar = grammar_service.update(grammar_id, data, as_dict=True)
         
         if grammar:
@@ -293,6 +304,7 @@ def update_grammar(grammar_id: str):
 
 
 @bp.route('/<grammar_id>', methods=['DELETE'])
+@login_required
 def delete_grammar(grammar_id: str):
     """Delete a grammar.
     ---
@@ -311,6 +323,7 @@ def delete_grammar(grammar_id: str):
         404:
             description: grammar not found
     """
+    require_owns(grammar_id)
     success = grammar_service.delete(grammar_id)
     
     if success:
@@ -319,6 +332,7 @@ def delete_grammar(grammar_id: str):
         return jsonify({'error': 'grammar not found'}), 404
     
 @bp.route('/score', methods=['POST'])
+@login_required
 def score_grammar():
     """Score a grammar.
     ---
@@ -348,6 +362,7 @@ def score_grammar():
     """
     data = request.json
     grammar_id = data['grammar_id']
+    require_owns(grammar_id)
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))

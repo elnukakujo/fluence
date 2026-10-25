@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 import logging
 
 from ...services.data_collection import CommitmentLogService
+from ...core.auth import login_required, require_owns, current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +12,10 @@ commitment_log_service = CommitmentLogService()
 
 
 @commitment_log_bp.route('/<commitment_log_id>', methods=['GET'])
+@login_required
 def get_commitment_log_by_id(commitment_log_id: str):
     try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            return jsonify({'error': 'user_id is required'}), 400
+        user_id = current_user_id()
 
         result = commitment_log_service.get_by_id(
             commitment_log_id=commitment_log_id,
@@ -36,10 +36,12 @@ def get_commitment_log_by_id(commitment_log_id: str):
 
 
 @commitment_log_bp.route('/user/<user_id>/language/<language_id>', methods=['GET'])
+@login_required
 def get_commitment_log_for_user_language(user_id: str, language_id: str):
     try:
+        require_owns(language_id)
         result = commitment_log_service.get_for_user(
-            user_id=user_id,
+            user_id=current_user_id(),
             language_id=language_id,
             as_dict=True,
             include_relations=False,
@@ -53,10 +55,11 @@ def get_commitment_log_for_user_language(user_id: str, language_id: str):
 
 
 @commitment_log_bp.route('/user/<user_id>', methods=['GET'])
+@login_required
 def get_all_commitment_logs_for_user(user_id: str):
     try:
         result = commitment_log_service.get_all_for_user(
-            user_id=user_id,
+            user_id=current_user_id(),
             as_dict=True,
             include_relations=False,
         )

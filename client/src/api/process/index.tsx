@@ -34,7 +34,7 @@ export async function updateScoreById(
   let payload: Record<string, string | number | boolean> = {};
 
   if (elementId.startsWith("voc_")) {
-    endpoint = `${BASE_URL}/api/vocabulary/score/`;
+    endpoint = `${BASE_URL}/api/vocabulary/score`;
     payload = { vocabulary_id: elementId, score, duration_ms, hint_used };
   } else if (elementId.startsWith("gram_")) {
     endpoint = `${BASE_URL}/api/grammar/score`;

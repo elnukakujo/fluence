@@ -12,4 +12,6 @@ class UserDict(BaseModel):
     password: Optional[str] = None
     last_review: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    is_admin: Optional[bool] = None
+    blocked: Optional[bool] = None
     preferences: Optional[UserPreferencesDict] = None

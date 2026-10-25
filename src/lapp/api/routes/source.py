@@ -4,11 +4,13 @@ from pydantic import ValidationError
 
 from ...services import SourceService
 from ...schemas.system_data import SourceDict
+from ...core.auth import login_required, require_owns, current_user_id
 
 bp = Blueprint('source', __name__, url_prefix='/api/sources')
 source_service = SourceService()
 
 @bp.route('/user/<user_id>', methods=['GET'])
+@login_required
 def get_by_user(user_id: str):
     """Get all sources.
     ---
@@ -29,12 +31,13 @@ def get_by_user(user_id: str):
                     type: object
                     description: Source object
     """
-    sources = source_service.get_by_user_id(user_id=user_id, as_dict=True)
+    sources = source_service.get_by_user_id(user_id=current_user_id(), as_dict=True)
     if sources is None or len(sources) == 0:
         return jsonify([]), 200
     return jsonify(sources), 200
 
 @bp.route('/<source_id>', methods=['GET'])
+@login_required
 def get_by_id(source_id: str):
     """Get a specific source by ID.
     ---
@@ -54,8 +57,9 @@ def get_by_id(source_id: str):
         404:
             description: Source not found
     """
+    require_owns(source_id)
     source = source_service.get_by_id(source_id, as_dict=True)
-    
+
     if not source:
         return jsonify({'error': 'Source not found'}), 404
     
@@ -63,6 +67,7 @@ def get_by_id(source_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_source():
     """Create a new source.
     ---
@@ -124,7 +129,8 @@ def create_source():
     try:
         # Validate request data
         data = SourceDict(**request.json)
-        
+        data.user_id = current_user_id()
+
         # Create source
         source = source_service.create(data, as_dict=True)
         
@@ -141,6 +147,7 @@ def create_source():
 
 
 @bp.route('/<source_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_source(source_id: str):
     """Update a source.
     ---
@@ -210,8 +217,9 @@ def update_source(source_id: str):
                     description: List of validation errors
     """
     try:
+        require_owns(source_id)
         data = SourceDict(**request.json)
-        
+
         source = source_service.update(source_id, data, as_dict=True)
         
         if source:
@@ -227,6 +235,7 @@ def update_source(source_id: str):
 
 
 @bp.route('/<source_id>', methods=['DELETE'])
+@login_required
 def delete_source(source_id: str):
     """Delete a source.
     ---
@@ -244,6 +253,7 @@ def delete_source(source_id: str):
         404:
             description: Source not found
     """
+    require_owns(source_id)
     success = source_service.delete(source_id)
     
     if success:
@@ -252,6 +262,7 @@ def delete_source(source_id: str):
         return jsonify({'error': 'Source not found'}), 404
     
 @bp.route('/add_source', methods=['POST'])
+@login_required
 def add_source_to_element():
     """Add a source to an element (character, word, passage, etc.).
     ---
@@ -299,7 +310,9 @@ def add_source_to_element():
         
         if not source_id or not element_id:
             return jsonify({'error': 'source_id and element_id are required'}), 400
-        
+
+        require_owns(source_id)
+        require_owns(element_id)
         success = source_service.add_source_to_element(source_id, element_id)
         
         if success:
@@ -311,6 +324,7 @@ def add_source_to_element():
         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
     
 @bp.route('/remove_source', methods=['POST'])
+@login_required
 def remove_source_from_element():
     """Remove a source from an element (character, word, passage, etc.).
     ---
@@ -358,7 +372,9 @@ def remove_source_from_element():
         
         if not source_id or not element_id:
             return jsonify({'error': 'source_id and element_id are required'}), 400
-        
+
+        require_owns(source_id)
+        require_owns(element_id)
         success = source_service.remove_source_from_element(source_id, element_id)
         
         if success:

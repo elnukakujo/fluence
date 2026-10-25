@@ -3,11 +3,13 @@ from pydantic import ValidationError
 
 from ...services import LessonService
 from ...schemas.containers import LessonDict
+from ...core.auth import login_required, require_owns
 
 bp = Blueprint('lesson', __name__, url_prefix='/api/lessons')
 lesson_service = LessonService()
 
 @bp.route('/all/<language_id>', methods=['GET'])
+@login_required
 def get_all_lessons(language_id: str):
     """Get all lessons.
     ---
@@ -28,11 +30,13 @@ def get_all_lessons(language_id: str):
                     type: object
                     description: Lesson object
     """
+    require_owns(language_id)
     lessons = lesson_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(lessons)
 
 
 @bp.route('/<lesson_id>', methods=['GET'])
+@login_required
 def get_lesson(lesson_id: str):
     """Get a specific lesson by ID.
     ---
@@ -52,8 +56,9 @@ def get_lesson(lesson_id: str):
         404:
             description: Lesson not found
     """
+    require_owns(lesson_id)
     lesson = lesson_service.get_by_id(lesson_id, as_dict=True)
-    
+
     if not lesson:
         return jsonify({'error': 'Lesson not found'}), 404
     
@@ -61,6 +66,7 @@ def get_lesson(lesson_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_lesson():
     """Create a new lesson.
     ---
@@ -117,7 +123,8 @@ def create_lesson():
     try:
         # Validate request data
         data = LessonDict(**request.json)
-        
+        require_owns(data.language_id)
+
         # Create lesson
         lesson = lesson_service.create(data, as_dict=True)
         
@@ -134,6 +141,7 @@ def create_lesson():
 
 
 @bp.route('/<lesson_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_lesson(lesson_id: str):
     """Update a lesson.
     ---
@@ -173,8 +181,9 @@ def update_lesson(lesson_id: str):
                     example: 0
     """
     try:
+        require_owns(lesson_id)
         data = LessonDict(**request.json)
-        
+
         lesson = lesson_service.update(lesson_id, data, as_dict=True)
         
         if lesson:
@@ -190,6 +199,7 @@ def update_lesson(lesson_id: str):
 
 
 @bp.route('/<lesson_id>', methods=['DELETE'])
+@login_required
 def delete_lesson(lesson_id: str):
     """Delete a lesson.
     ---
@@ -207,8 +217,9 @@ def delete_lesson(lesson_id: str):
         404:
             description: Lesson not found
     """
+    require_owns(lesson_id)
     success = lesson_service.delete(lesson_id)
-    
+
     if success:
         return jsonify({'success': True}), 204
     else:

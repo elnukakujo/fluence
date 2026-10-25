@@ -23,6 +23,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Fluence",
   description: "A personal knowledge base for language study.",
+  icons: { icon: "/fluence-mark.svg" },
 };
 
 export default async function RootLayout({

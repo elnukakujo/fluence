@@ -5,11 +5,13 @@ logger = logging.getLogger(__name__)
 
 from ...services import LanguageService
 from ...schemas.containers import LanguageDict
+from ...core.auth import login_required, require_owns, current_user_id
 
 bp = Blueprint('language', __name__, url_prefix='/api/languages')
 language_service = LanguageService()
 
 @bp.route('/all/<user_id>', methods=['GET'])
+@login_required
 def get_all_user_languages(user_id: str):
     """
     Get all languages for the current user
@@ -24,13 +26,14 @@ def get_all_user_languages(user_id: str):
           items:
             type: object
     """
-    languages = language_service.get_by_user_id(user_id=user_id, as_dict=True)
+    languages = language_service.get_by_user_id(user_id=current_user_id(), as_dict=True)
     if languages is None or len(languages) == 0:
         return jsonify([]), 200
     return jsonify(languages)
 
 
 @bp.route('/<language_id>', methods=['GET'])
+@login_required
 def get_language(language_id: str):
     """
     Get a specific language by ID
@@ -51,8 +54,9 @@ def get_language(language_id: str):
       404:
         description: Language not found
     """
+    require_owns(language_id)
     language = language_service.get_by_id(language_id, as_dict=True)
-    
+
     if not language:
         return jsonify({'error': 'Language not found'}), 404
     
@@ -60,6 +64,7 @@ def get_language(language_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_language():
     """Create a new language.
     ---
@@ -113,7 +118,8 @@ def create_language():
     try:
         # Validate request data
         data = LanguageDict(**request.json)
-        
+        data.user_id = current_user_id()
+
         # Create language
         language = language_service.create(data, as_dict=True)
         
@@ -130,6 +136,7 @@ def create_language():
 
 
 @bp.route('/<language_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_language(language_id: str):
     """Update a language.
     ---
@@ -190,8 +197,9 @@ def update_language(language_id: str):
         description: Language not found
     """
     try:
+        require_owns(language_id)
         data = LanguageDict(**request.json)
-        
+
         language = language_service.update(language_id, data, as_dict=True)
         
         if language:
@@ -207,6 +215,7 @@ def update_language(language_id: str):
 
 
 @bp.route('/<language_id>', methods=['DELETE'])
+@login_required
 def delete_language(language_id: str):
     """Delete a language.
     ---
@@ -224,8 +233,9 @@ def delete_language(language_id: str):
         404:
             description: Language not found
     """
+    require_owns(language_id)
     success = language_service.delete(language_id)
-    
+
     if success:
         return jsonify({'success': True}), 204
     else:

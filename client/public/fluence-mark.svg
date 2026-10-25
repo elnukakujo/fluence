@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Fluence logo mark</title>
+  <g>
+    <circle cx="128" cy="82" r="58" fill="#2878F0"/>
+    <path d="M91 45c8-10 18-16 28-17l5 8-7 9 2 9-10 7-4 13-10 2-8-10 2-10-7-5z" fill="#FFFFFF"/>
+    <path d="M108 91l13 3 10 11-4 12-8 14-8-8-1-13-8-8z" fill="#FFFFFF"/>
+    <path d="M143 35l13-5 12 7 4 10-7 9-8-1-4 9-9-2-5-10-7-5 3-8z" fill="#FFFFFF"/>
+    <path d="M149 72l15-4 10 8-4 12-8 6-2 13-10 9-6-9 1-12-7-9 4-8z" fill="#FFFFFF"/>
+    <path d="M35 155c27-1 54 8 88 34v44c-31-25-57-32-88-34-4 0-7-4-7-8v-28c0-5 3-8 7-8z" fill="#2878F0"/>
+    <path d="M221 155c-27-1-54 8-88 34v44c31-25 57-32 88-34 4 0 7-4 7-8v-28c0-5-3-8-7-8z" fill="#39BE9B"/>
+  </g>
+</svg>

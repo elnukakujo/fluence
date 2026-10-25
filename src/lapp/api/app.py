@@ -29,15 +29,20 @@ def create_app(config_name: str = 'default') -> Flask:
     logger.info(f"📁 MEDIA_ROOT={app.config.get('MEDIA_ROOT')!r} BACKUP_ROOT={app.config.get('BACKUP_ROOT')!r}")
     
     # Enable CORS for frontend
+    _frontend_origins = [o.strip() for o in app.config.get('FRONTEND_ORIGIN', '').split(',') if o.strip()]
     CORS(app, resources={
-        r"/api/*": {"origins": "*"},
+        r"/api/*": {"origins": _frontend_origins},
         r"/media/*": {"origins": "*"},
         r"/media_dev/*": {"origins": "*"},
         r"/media_test/*": {"origins": "*"}
-    })
-    
+    }, supports_credentials=True)
+
     # Register blueprints
     register_blueprints(app)
+
+    # Resolve the session cookie on every request
+    from ..core.auth import init_auth
+    init_auth(app)
     
     # Register error handlers
     register_error_handlers(app)
@@ -114,6 +119,7 @@ def register_blueprints(app: Flask) -> None:
         daily_stats_bp,
         commitment_log_bp,
         review_bp,
+        auth_bp,
     )
 
     # Register blueprints
@@ -138,6 +144,7 @@ def register_blueprints(app: Flask) -> None:
         daily_stats_bp,
         commitment_log_bp,
         review_bp,
+        auth_bp,
     ]
 
     for blueprint in blueprints:
@@ -161,6 +168,13 @@ def register_error_handlers(app: Flask) -> None:
             'error': 'Bad Request',
             'message': str(error)
         }), 400
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': str(error)
+        }), 403
     
     @app.errorhandler(500)
     def internal_error(error):

@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 import logging
 logger = logging.getLogger(__name__)
 
@@ -67,33 +67,6 @@ class UserService:
         return self._serialize(user, as_dict, include_relations)
 
     @transactional
-    def authenticate(
-        self,
-        email: str,
-        password: str,
-        session: Optional[Session] = None,
-    ) -> tuple[Optional[dict], bool]:
-        """Verify an email/password pair for login.
-
-        Returns:
-            (user_dict, needs_password): user_dict is None on unknown email or
-            wrong password; needs_password is True when the account has no
-            password set yet (client should prompt to set one).
-        """
-        user = db_manager.find_by_attr(
-            model_class=User,
-            attr_values={"email": email},
-            session=session,
-        )
-        if not user:
-            return None, False
-        if not user.password_hash:
-            return user.to_dict(), True
-        if not check_password_hash(user.password_hash, password):
-            return None, False
-        return user.to_dict(), False
-
-    @transactional
     def create(
         self,
         user_data: UserDict,
@@ -124,6 +97,7 @@ class UserService:
             username=user_data.username,
             display_name=user_data.display_name,
             email=user_data.email,
+            is_admin=session.query(User).count() == 0,
             password_hash=generate_password_hash(user_data.password) if user_data.password else None,
         )
 
@@ -208,6 +182,15 @@ class UserService:
         fields = update_data.model_dump(exclude={"id", "preferences"}, exclude_unset=True)
         password = fields.pop("password", None)
 
+        # Single-admin enforcement: never demote the last admin, never grant a second.
+        if "is_admin" in fields:
+            new_is_admin = fields.pop("is_admin")
+            if new_is_admin and not user.is_admin:
+                raise ValueError("Only one admin is allowed.")
+            if not new_is_admin and user.is_admin and not self._has_other_admin(user_id, session):
+                raise ValueError("Cannot demote the last admin.")
+            user.is_admin = new_is_admin
+
         if "email" in fields and fields["email"] != user.email:
             existing = db_manager.find_by_attr(model_class=User, attr_values={"email": fields["email"]}, session=session)
             if existing and existing.id != user_id:
@@ -251,9 +234,32 @@ class UserService:
         if not user:
             return False
 
-        # Delete children before parent (FK constraint)
+        if user.is_admin and not self._has_other_admin(user_id, session):
+            raise ValueError("Cannot delete the last admin.")
+
+        # Cascade delete the user's whole content in FK-safe order:
+        # sessions → preferences → data-collection → tags/sources →
+        # languages (cascade lessons → features → components) → user.
+        from ...models.system_data import UserSession, Tag, Source
+        from ...models.containers import Language
+        from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking
+
+        for row in db_manager.find_all(UserSession, filters={"user_id": user_id}, session=session):
+            db_manager.delete(row, session=session, commit=False)
+
         if user.preferences:
             user_preferences_service.delete(pref_id=user.preferences.id, session=session)
+
+        for model in (CommitmentLog, DailyStats, ProgressTracking):
+            for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
+                db_manager.delete(row, session=session, commit=False)
+
+        for model in (Tag, Source):
+            for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
+                db_manager.delete(row, session=session, commit=False)
+
+        for lang in db_manager.find_all(Language, filters={"user_id": user_id}, session=session):
+            db_manager.delete(lang, session=session, commit=False)
 
         result = db_manager.delete(user, session=session, commit=False)
         if result:
@@ -279,4 +285,23 @@ class UserService:
             return False
         user.password_hash = generate_password_hash(password)
         db_manager.modify(obj=user, session=session, commit=False)
+        return True
+
+    def _has_other_admin(self, user_id: str, session: Optional[Session] = None) -> bool:
+        admins = db_manager.find_all(User, filters={"is_admin": True}, session=session)
+        return any(a.id != user_id for a in admins)
+
+    @transactional
+    def set_blocked(
+        self,
+        user_id: str,
+        blocked: bool,
+        session: Optional[Session] = None,
+    ) -> bool:
+        """Block/unblock a user. Returns False if the user is not found."""
+        user = db_manager.find_by_attr(User, {"id": user_id}, session=session)
+        if not user:
+            return False
+        user.blocked = blocked
+        db_manager.modify(user, session=session, commit=False)
         return True

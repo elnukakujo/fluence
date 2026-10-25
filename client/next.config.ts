@@ -28,6 +28,12 @@ const nextConfig = {
     NEXT_PUBLIC_LAPP_HOST: publicHost,
     NEXT_PUBLIC_LAPP_PORT: publicPort,
   },
+  async rewrites() {
+    const backend = `http://${process.env.LAPP_INTERNAL_HOST || '127.0.0.1'}:${process.env.LAPP_INTERNAL_PORT || '5050'}`;
+    return [
+      { source: '/api/:path*', destination: `${backend}/api/:path*` },
+    ];
+  },
   images: {
     remotePatterns: mediaHosts.flatMap(({ hostname, port }) =>
       ['/media/images/**', '/media_dev/images/**', '/media_test/images/**'].map((pathname) => ({

@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { login, updateUserPassword } from "@/api/user";
-import { setUserCookie } from "@/utils/user_cookie";
 
 export default function LoginForm() {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(false);
@@ -22,7 +23,7 @@ export default function LoginForm() {
         setError("");
         setSubmitting(true);
         try {
-            const result = await login(email, password);
+            const result = await login(email, password, remember);
             if (result.error) {
                 setError(result.error);
                 return;
@@ -33,7 +34,8 @@ export default function LoginForm() {
                 setPassword("");
                 return;
             }
-            await setUserCookie(result.user.id, remember);
+            router.push('/');
+            router.refresh();
         } catch {
             setError("Login failed. Please try again.");
         } finally {
@@ -47,7 +49,9 @@ export default function LoginForm() {
         setSubmitting(true);
         try {
             await updateUserPassword(userId, password);
-            await setUserCookie(userId, remember);
+            await login(email, password, remember);
+            router.push('/');
+            router.refresh();
         } catch {
             setError("Could not set password. Please try again.");
         } finally {
@@ -58,7 +62,8 @@ export default function LoginForm() {
     return (
         <div className="flex min-h-[75vh] items-center justify-center">
             <section className="card flex w-full max-w-sm flex-col gap-6 p-8">
-                <header className="flex flex-col items-center gap-1 text-center">
+                <header className="flex flex-col items-center gap-2 text-center">
+                    <img src="/fluence-mark.svg" alt="" aria-hidden="true" className="h-14 w-14" />
                     <h1 className="text-3xl">Fluence</h1>
                     <p className="text-sm text-muted">Become fluent. Sign in to continue.</p>
                 </header>

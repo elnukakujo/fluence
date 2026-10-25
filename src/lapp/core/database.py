@@ -33,6 +33,7 @@ ID_PREFIXES = {
     "Word": "word_W",
     "Passage": "pass_P",
     "User": "user_U",
+    "UserSession": "sess_S",
     "UserPreferences": "pref_P",
     "Source": "src_S",
     "Tag": "tag_T",

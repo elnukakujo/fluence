@@ -19,6 +19,7 @@ __all__ = [
     "UserPreferences",
     "Source",
     "Tag",
+    "UserSession",
     "ProgressTracking",
     "DailyStats",
     "CommitmentLog",

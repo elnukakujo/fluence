@@ -3,11 +3,13 @@ from pydantic import ValidationError
 
 from ...services import ExerciseService
 from ...schemas import ExerciseDict
+from ...core.auth import login_required, require_owns
 
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
 
 @bp.route('/language/<language_id>', methods=['GET'])
+@login_required
 def get_all_exercise_from_language(language_id: str):
     """Get all exercise for a specific language.
     ---
@@ -29,11 +31,13 @@ def get_all_exercise_from_language(language_id: str):
                     type: object
                     description: Exercise object
     """
+    require_owns(language_id)
     exercise = exercise_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(exercise)
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
+@login_required
 def get_all_exercise_from_lesson(lesson_id: str):
     """Get all exercise for a specific lesson.
     ---
@@ -55,11 +59,13 @@ def get_all_exercise_from_lesson(lesson_id: str):
                     type: object
                     description: Exercise object
     """
+    require_owns(lesson_id)
     exercise = exercise_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(exercise)
 
 
 @bp.route('/<exercise_id>', methods=['GET'])
+@login_required
 def get_exercise(exercise_id: str):
     """Get a specific exercise by ID.
     ---
@@ -81,8 +87,9 @@ def get_exercise(exercise_id: str):
         404:
             description: Exercise not found
     """
+    require_owns(exercise_id)
     exercise = exercise_service.get_by_id(exercise_id, as_dict=True)
-    
+
     if not exercise:
         return jsonify({'error': 'exercise not found'}), 404
     
@@ -90,6 +97,7 @@ def get_exercise(exercise_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_exercise():
     """Create a new exercise.
     ---
@@ -175,7 +183,8 @@ def create_exercise():
     try:
         # Validate request data
         data = ExerciseDict(**request.json)
-        
+        require_owns(data.lesson_id)
+
         # Create exercise
         exercise = exercise_service.create(data, as_dict=True)
         
@@ -192,6 +201,7 @@ def create_exercise():
 
 
 @bp.route('/<exercise_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_exercise(exercise_id: str):
     """Update a exercise.
     ---
@@ -281,8 +291,9 @@ def update_exercise(exercise_id: str):
             description: Validation error or bad request
     """
     try:
+        require_owns(exercise_id)
         data = ExerciseDict(**request.json)
-        
+
         exercise = exercise_service.update(exercise_id, data, as_dict=True)
         
         if exercise:
@@ -298,6 +309,7 @@ def update_exercise(exercise_id: str):
 
 
 @bp.route('/<exercise_id>', methods=['DELETE'])
+@login_required
 def delete_exercise(exercise_id: str):
     """Delete an exercise.
     ---
@@ -316,6 +328,7 @@ def delete_exercise(exercise_id: str):
         404:
             description: Exercise not found
     """
+    require_owns(exercise_id)
     success = exercise_service.delete(exercise_id)
     
     if success:
@@ -324,6 +337,7 @@ def delete_exercise(exercise_id: str):
         return jsonify({'error': 'exercise not found'}), 404
     
 @bp.route('/score', methods=['POST'])
+@login_required
 def score_exercise():
     """Score an exercise.
     ---
@@ -363,6 +377,7 @@ def score_exercise():
     """
     data = request.json
     exercise_id = data['exercise_id']
+    require_owns(exercise_id)
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))

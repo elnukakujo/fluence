@@ -1,4 +1,4 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import DailyStats from "@/interface/dataCollection/DailyStats";
 
 export async function getTodayDailyStats(userId: string, languageId: string): Promise<DailyStats | null> {
@@ -8,7 +8,7 @@ export async function getTodayDailyStats(userId: string, languageId: string): Pr
   });
   const res = await fetch(`${BASE_URL}/api/daily-stats/me/today?${params.toString()}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to fetch today's daily stats");
   return res.json();
@@ -21,7 +21,7 @@ export async function getDailyStatsHistory(userId: string, languageId?: string, 
   if (endDate) params.set("end_date", endDate);
   const res = await fetch(`${BASE_URL}/api/daily-stats/me/history?${params.toString()}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to fetch daily stats history");
   return res.json();
@@ -31,7 +31,7 @@ export async function getDailyStatsById(dailyStatsId: string, userId: string): P
   const params = new URLSearchParams({ user_id: userId });
   const res = await fetch(`${BASE_URL}/api/daily-stats/${dailyStatsId}?${params.toString()}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error(`Failed to fetch daily stats ${dailyStatsId}`);
   return res.json();

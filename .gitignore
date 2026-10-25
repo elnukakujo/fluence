@@ -21,6 +21,7 @@ instance/*
 graphify-out/
 .graphifyignore
 docs
+.superpowers/
 
 # Python
 __pycache__/

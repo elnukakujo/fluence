@@ -316,6 +316,7 @@ def main() -> int:
                     display_name=args.display_name,
                     email=args.email,
                     password_hash=generate_password_hash(args.password),
+                    is_admin=session.query(User).count() == 0,  # first account = admin
                 )
                 session.add(user)
                 session.flush()

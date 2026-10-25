@@ -6,12 +6,14 @@ logger = logging.getLogger(__name__)
 from ...services import VocabularyService
 from ...schemas.features import VocabularyDict
 from ...core.exceptions import DuplicateEntityError
+from ...core.auth import login_required, require_owns
 
 bp = Blueprint('vocabulary', __name__, url_prefix='/api/vocabulary')
 vocabulary_service = VocabularyService()
 
 
 @bp.route('/language/<language_id>', methods=['GET'])
+@login_required
 def get_all_vocabulary_from_language(language_id: str):
     """Get all vocabulary for a specific language.
     ---
@@ -33,10 +35,12 @@ def get_all_vocabulary_from_language(language_id: str):
                     type: object
                     description: Vocabulary object
     """
+    require_owns(language_id)
     vocabulary = vocabulary_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(vocabulary)
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
+@login_required
 def get_all_vocabulary_from_lesson(lesson_id: str):
     """Get all vocabulary for a specific lesson.
     ---
@@ -58,11 +62,13 @@ def get_all_vocabulary_from_lesson(lesson_id: str):
                     type: object
                     description: Vocabulary object
     """
+    require_owns(lesson_id)
     vocabulary = vocabulary_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(vocabulary)
 
 
 @bp.route('/<vocabulary_id>', methods=['GET'])
+@login_required
 def get_vocabulary(vocabulary_id: str):
     """Get a specific vocabulary by ID.
     ---
@@ -82,8 +88,9 @@ def get_vocabulary(vocabulary_id: str):
         404:
             description: Vocabulary not found
     """
+    require_owns(vocabulary_id)
     vocabulary = vocabulary_service.get_by_id(vocabulary_id, as_dict=True)
-    
+
     if not vocabulary:
         return jsonify({'error': 'Vocabulary not found'}), 404
     
@@ -91,6 +98,7 @@ def get_vocabulary(vocabulary_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_vocabulary():
     """Create a new vocabulary.
     ---
@@ -203,6 +211,7 @@ def create_vocabulary():
         logger.debug(f"Received request data for creating vocabulary: {request.json}")
         on_conflict = request.json.pop('on_conflict', None) if request.json else None
         data = VocabularyDict(**request.json)
+        require_owns(data.lesson_id)
         logger.debug(f"Validated data for creating vocabulary: {data}")
 
         # Create vocabulary
@@ -229,6 +238,7 @@ def create_vocabulary():
 
 
 @bp.route('/<vocabulary_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_vocabulary(vocabulary_id: str):
     """Update a vocabulary.
     ---
@@ -336,6 +346,7 @@ def update_vocabulary(vocabulary_id: str):
             description: Vocabulary not found
     """
     try:
+        require_owns(vocabulary_id)
         data = VocabularyDict(**(request.get_json() or {}))
 
         vocabulary = vocabulary_service.update(
@@ -357,6 +368,7 @@ def update_vocabulary(vocabulary_id: str):
 
 
 @bp.route('/<vocabulary_id>', methods=['DELETE'])
+@login_required
 def delete_vocabulary(vocabulary_id: str):
     """Delete a vocabulary.
     ---
@@ -374,6 +386,7 @@ def delete_vocabulary(vocabulary_id: str):
         404:
             description: Vocabulary not found    
     """
+    require_owns(vocabulary_id)
     success = vocabulary_service.delete(vocabulary_id)
     
     if success:
@@ -381,7 +394,8 @@ def delete_vocabulary(vocabulary_id: str):
     else:
         return jsonify({'error': 'Vocabulary not found'}), 404
     
-@bp.route('/score/', methods=['POST'])
+@bp.route('/score', methods=['POST'])
+@login_required
 def score_vocabulary():
     """Score a vocabulary.
     ---
@@ -414,6 +428,7 @@ def score_vocabulary():
     """
     data = request.json
     vocabulary_id = data['vocabulary_id']
+    require_owns(vocabulary_id)
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))

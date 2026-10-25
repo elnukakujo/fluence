@@ -4,11 +4,13 @@ from pydantic import ValidationError
 from ...services import CalligraphyService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
+from ...core.auth import login_required, require_owns
 
 bp = Blueprint('calligraphy', __name__, url_prefix='/api/calligraphy')
 calligraphy_service = CalligraphyService()
 
 @bp.route('/language/<language_id>', methods=['GET'])
+@login_required
 def get_all_calligraphy_from_language(language_id: str):
     """Get all calligraphy for a specific language.
     ---
@@ -30,11 +32,13 @@ def get_all_calligraphy_from_language(language_id: str):
                     type: object
                     description: calligraphy object
     """
+    require_owns(language_id)
     calligraphy = calligraphy_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(calligraphy)
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
+@login_required
 def get_all_calligraphy_from_lesson(lesson_id: str):
     """Get all calligraphy for a specific lesson.
     ---
@@ -56,11 +60,13 @@ def get_all_calligraphy_from_lesson(lesson_id: str):
                     type: object
                     description: calligraphy object    
     """
+    require_owns(lesson_id)
     calligraphy = calligraphy_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(calligraphy)
 
 
 @bp.route('/<calligraphy_id>', methods=['GET'])
+@login_required
 def get_calligraphy(calligraphy_id: str):
     """Get a specific calligraphy by ID.
     ---
@@ -80,8 +86,9 @@ def get_calligraphy(calligraphy_id: str):
                 type: object
                 description: calligraphy object
     """
+    require_owns(calligraphy_id)
     calligraphy = calligraphy_service.get_by_id(calligraphy_id, as_dict=True)
-    
+
     if not calligraphy:
         return jsonify({'error': 'calligraphy not found'}), 404
     
@@ -89,6 +96,7 @@ def get_calligraphy(calligraphy_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_calligraphy():
     """Create a new calligraphy.
     ---
@@ -215,6 +223,7 @@ def create_calligraphy():
         # Validate request data
         on_conflict = request.json.pop('on_conflict', None) if request.json else None
         data = CalligraphyDict(**request.json)
+        require_owns(data.lesson_id)
 
         # Create calligraphy
         calligraphy = calligraphy_service.create(data, as_dict=True, on_conflict=on_conflict)
@@ -240,6 +249,7 @@ def create_calligraphy():
 
 
 @bp.route('/<calligraphy_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_calligraphy(calligraphy_id: str):
     """Update a calligraphy.
     ---
@@ -363,8 +373,9 @@ def update_calligraphy(calligraphy_id: str):
             description: calligraphy update failed
     """
     try:
+        require_owns(calligraphy_id)
         data = CalligraphyDict(**request.json)
-        
+
         calligraphy = calligraphy_service.update(calligraphy_id, data, as_dict=True)
         
         if calligraphy:
@@ -380,6 +391,7 @@ def update_calligraphy(calligraphy_id: str):
 
 
 @bp.route('/<calligraphy_id>', methods=['DELETE'])
+@login_required
 def delete_calligraphy(calligraphy_id: str):
     """Delete a calligraphy.
     ---
@@ -398,6 +410,7 @@ def delete_calligraphy(calligraphy_id: str):
         404:
             description: calligraphy not found
     """
+    require_owns(calligraphy_id)
     success = calligraphy_service.delete(calligraphy_id)
     
     if success:
@@ -406,6 +419,7 @@ def delete_calligraphy(calligraphy_id: str):
         return jsonify({'error': 'calligraphy not found'}), 404
     
 @bp.route('/score', methods=['POST'])
+@login_required
 def score_calligraphy():
     """Score a calligraphy.
     ---
@@ -439,6 +453,7 @@ def score_calligraphy():
     """
     data = request.json
     calligraphy_id = data['calligraphy_id']
+    require_owns(calligraphy_id)
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import BackButton from "@/components/ui/buttons/backButton";
 import SearchBar from "@/components/layout/searchBar";
-import { clearUserCookie } from "@/utils/user_cookie";
+import { logout } from "@/api/user";
 
 const primaryLinks = [
 	{ href: "/", label: "Home" },
@@ -14,6 +14,7 @@ const primaryLinks = [
 
 export default function NavBar({ currentUserId }: { currentUserId: string | null }) {
 	const pathname = usePathname();
+	const router = useRouter();
 
 	const isActive = (href: string) => {
 		if (href === "/") {
@@ -30,17 +31,20 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 					<div className={pathname === "/" || /^\/user\/[^/]+\/update$/.test(pathname) ? "invisible pointer-events-none" : "visible"}>
 						<BackButton />
 					</div>
-					<Link href="/" className="flex flex-col leading-tight">
-						<span className="text-sm font-semibold uppercase tracking-[0.24em] text-muted">
-							Fluence
-						</span>
-						<span className="text-base font-medium text-foreground">
-							Become fluent.
+					<Link href="/" className="flex items-center gap-2.5">
+						<img src="/fluence-mark.svg" alt="" aria-hidden="true" className="h-8 w-8 shrink-0" />
+						<span className="flex items-baseline gap-2.5">
+							<span className="font-serif text-xl font-semibold tracking-tight text-foreground">
+								Fluence
+							</span>
+							<span className="hidden font-serif text-sm italic text-muted sm:inline">
+								Become fluent.
+							</span>
 						</span>
 					</Link>
 				</div>
 
-				<nav className="nav-links flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-background p-1 shadow-sm">
+				<nav className="nav-links flex items-center gap-1">
 					{primaryLinks.map((link) => {
 						const active = isActive(link.href);
 
@@ -49,13 +53,19 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 								key={link.href}
 								href={link.href}
 								aria-current={active ? "page" : undefined}
-								className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+								className={`relative whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-medium transition-colors ${
 									active
-										? "bg-primary text-primary-foreground shadow-sm"
+										? "text-accent"
 										: "text-muted hover:bg-accent-soft hover:text-foreground"
 								}`}
 							>
 								{link.label}
+								{active && (
+									<span
+										aria-hidden
+										className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-accent"
+									/>
+								)}
 							</Link>
 						);
 					})}
@@ -67,7 +77,11 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
                     <button
                         type="button"
                         className="btn btn-secondary"
-                        onClick={() => clearUserCookie()}
+                        onClick={async () => {
+                            await logout();
+                            router.push('/');
+                            router.refresh();
+                        }}
                     >
                         Log out
                     </button>
