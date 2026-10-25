@@ -48,3 +48,45 @@ def require_owner(user_id: str) -> None:
     """Abort 403 when the given owning user_id isn't the current user."""
     if user_id != current_user_id():
         abort(403, description="Not your resource")
+
+
+def owner_user_id(element_id: str):
+    """Resolve the owning user_id for any element by its id prefix; None if not found."""
+    from ..services import (
+        LanguageService, LessonService,
+        VocabularyService, GrammarService, CalligraphyService, ExerciseService,
+    )
+
+    if element_id.startswith("lang_"):
+        lang = LanguageService().get_by_id(element_id, as_dict=True)
+        return lang["user_id"] if lang else None
+    if element_id.startswith("lesson_"):
+        lesson = LessonService().get_by_id(element_id, as_dict=True)
+        if not lesson:
+            return None
+        lang = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
+        return lang["user_id"] if lang else None
+    for prefix, service in (
+        ("voc_", VocabularyService()),
+        ("gram_", GrammarService()),
+        ("call_", CalligraphyService()),
+        ("ex_", ExerciseService()),
+    ):
+        if element_id.startswith(prefix):
+            feature = service.get_by_id(element_id, as_dict=True)
+            if not feature:
+                return None
+            lesson = LessonService().get_by_id(feature["lesson_id"], as_dict=True)
+            if not lesson:
+                return None
+            lang = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
+            return lang["user_id"] if lang else None
+    return None
+
+
+def require_owns(element_id: str) -> None:
+    """404 if the element doesn't exist, 403 if it isn't the current user's."""
+    owner = owner_user_id(element_id)
+    if owner is None:
+        abort(404, description="Not found")
+    require_owner(owner)

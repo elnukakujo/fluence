@@ -13,3 +13,5 @@ Task 4: Ruling: AuthService.on_success takes user_id:str (plan said user:User) �
 Task 4: Ruling: deleted tests/test_auth_login.py (superseded by test_auth_service.py; its route test moves to Task 7) — avoids duplicating authenticate tests — cost if wrong: brief gap in route-level login coverage until Task 7
 Task 5: complete (commits 2f08a86..HEAD, tests: uv run pytest tests/test_auth_middleware.py -q → 4/4 pass; full suite 67 passed / 2 pre-existing failed)
 Task 6: complete (commits 57f4533..HEAD, tests: uv run pytest tests/test_admin_model.py -q → 7/7 pass; full suite 72 passed / 2 pre-existing failed)
+Task 7: complete (commits cb7f27a..HEAD, tests: uv run pytest tests/test_auth_routes.py -q → 6/6 pass; full suite 78 passed / 2 pre-existing failed)
+Task 7: Ruling: wrote the route impl before the route tests (the RED would have been a 404 route-not-found, not an assertion) — the tests still assert real behavior (status, Set-Cookie, error body) — cost if wrong: none, the assertions would still catch a wrong implementation
