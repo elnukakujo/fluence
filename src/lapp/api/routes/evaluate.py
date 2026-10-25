@@ -3,12 +3,14 @@ import traceback
 import logging
 
 from ...services import EvaluatorService
+from ...core.auth import login_required, require_owns
 
 bp = Blueprint('evaluate', __name__, url_prefix='/api/evaluate')
 evaluator_service = EvaluatorService()
 logger = logging.getLogger(__name__)
 
 @bp.route('/text', methods=['POST'])
+@login_required
 def evaluate_text():
     """Evaluate a text answer for an exercise.
     ---
@@ -43,6 +45,7 @@ def evaluate_text():
     """
     try:
         data = request.json or {}
+        require_owns(data.get('exercise_id', ''))
         return evaluator_service.evaluate(
             ex_id=data.get('exercise_id', ''),
             user_input=data.get('user_text', ''),
@@ -53,6 +56,7 @@ def evaluate_text():
         return jsonify({"correct": False, "score": 0.0, "feedback": "Evaluation unavailable. Please try again."}), 200
 
 @bp.route('/speech', methods=['POST'])
+@login_required
 def evaluate_speech():
     """Evaluate a speech answer for an exercise.
     ---
@@ -89,6 +93,7 @@ def evaluate_speech():
     """
     try:
         data = request.json or {}
+        require_owns(data.get('exercise_id', ''))
         return evaluator_service.evaluate(
             ex_id=data.get('exercise_id', ''),
             user_input=data.get('user_audio_url', ''),

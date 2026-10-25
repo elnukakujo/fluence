@@ -5,11 +5,13 @@ logger = logging.getLogger(__name__)
 
 from ...schemas.system_data import UserPreferencesDict
 from ...services.system_data import UserPreferencesService
+from ...core.auth import login_required, require_owns, current_user_id
 user_preferences_service = UserPreferencesService()
 
 bp = Blueprint('user_preferences', __name__, url_prefix='/api/pref')
 
 @bp.route('/<pref_id>', methods=['GET'])
+@login_required
 def get_user_preferences(pref_id: str):
     """
     Get a specific user preferences by ID
@@ -30,14 +32,16 @@ def get_user_preferences(pref_id: str):
       404:
         description: User preferences not found
     """
+    require_owns(pref_id)
     user = user_preferences_service.get_by_id(pref_id, as_dict=True)
-    
+
     if not user:
         return jsonify({'error': 'User preferences not found'}), 404
     
     return jsonify(user)
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_user_preferences():
     """
     Create user preferences
@@ -78,7 +82,8 @@ def create_user_preferences():
     try:
         # Validate request data
         data = UserPreferencesDict(**request.json)
-        
+        data.user_id = current_user_id()
+
         # Create user
         pref = user_preferences_service.create(data, as_dict=True)
         
@@ -94,6 +99,7 @@ def create_user_preferences():
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
     
 @bp.route('/<pref_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_user_preferences(pref_id: str):
     """Update a user preferences.
     ---
@@ -148,8 +154,9 @@ def update_user_preferences(pref_id: str):
         description: User preferences not found
     """
     try:
+        require_owns(pref_id)
         data = UserPreferencesDict(**request.json)
-        
+
         pref = user_preferences_service.update(pref_id, data, as_dict=True)
         
         if pref:
@@ -164,6 +171,7 @@ def update_user_preferences(pref_id: str):
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
     
 @bp.route('/<pref_id>', methods=['DELETE'])
+@login_required
 def delete_user_preferences(pref_id: str):
     """Delete a user preferences.
     ---
@@ -181,6 +189,7 @@ def delete_user_preferences(pref_id: str):
         404:
             description: User preferences not found
     """
+    require_owns(pref_id)
     success = user_preferences_service.delete(pref_id)
 
     if success:
@@ -190,6 +199,7 @@ def delete_user_preferences(pref_id: str):
 
 
 @bp.route('/providers', methods=['GET'])
+@login_required
 def list_providers():
     """Return the provider catalog so the frontend stays in sync."""
     from ...utils.llm_providers import PROVIDER_LIST
@@ -197,6 +207,7 @@ def list_providers():
 
 
 @bp.route('/test-endpoint', methods=['POST'])
+@login_required
 def test_endpoint():
     """Test connectivity to an API endpoint (server-side, no CORS).
 

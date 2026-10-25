@@ -2,6 +2,7 @@ from functools import wraps
 from flask import g, jsonify, request, abort
 
 from ..services.auth import AuthService
+from .database import db_manager
 
 _auth_service = AuthService()
 
@@ -55,7 +56,10 @@ def owner_user_id(element_id: str):
     from ..services import (
         LanguageService, LessonService,
         VocabularyService, GrammarService, CalligraphyService, ExerciseService,
+        TagService, SourceService,
     )
+    from ..services.system_data import UserPreferencesService
+    from ..models.components import Word, Passage, Character
 
     if element_id.startswith("lang_"):
         lang = LanguageService().get_by_id(element_id, as_dict=True)
@@ -81,6 +85,22 @@ def owner_user_id(element_id: str):
                 return None
             lang = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
             return lang["user_id"] if lang else None
+    for prefix, model in (("word_", Word), ("pass_", Passage), ("char_", Character)):
+        if element_id.startswith(prefix):
+            comp = db_manager.find_by_attr(model, {"id": element_id})
+            if not comp:
+                return None
+            lang = LanguageService().get_by_id(comp.language_id, as_dict=True)
+            return lang["user_id"] if lang else None
+    if element_id.startswith("tag_"):
+        tag = TagService().get_by_id(element_id, as_dict=True)
+        return tag["user_id"] if tag else None
+    if element_id.startswith("src_"):
+        source = SourceService().get_by_id(element_id, as_dict=True)
+        return source["user_id"] if source else None
+    if element_id.startswith("pref_"):
+        pref = UserPreferencesService().get_by_id(element_id, as_dict=True)
+        return pref["user_id"] if pref else None
     return None
 
 

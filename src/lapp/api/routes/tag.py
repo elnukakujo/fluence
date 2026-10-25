@@ -5,11 +5,13 @@ logger = logging.getLogger(__name__)
 
 from ...services import TagService
 from ...schemas.system_data import TagDict
+from ...core.auth import login_required, require_owns, current_user_id
 
 bp = Blueprint('tag', __name__, url_prefix='/api/tags')
 tag_service = TagService()
 
 @bp.route('/user/<user_id>', methods=['GET'])
+@login_required
 def get_by_user(user_id: str):
     """Get all tags.
     ---
@@ -31,12 +33,13 @@ def get_by_user(user_id: str):
                     type: object
                     description: Tag object
     """
-    tags = tag_service.get_by_user_id(user_id=user_id, as_dict=True)
+    tags = tag_service.get_by_user_id(user_id=current_user_id(), as_dict=True)
     if tags is None or len(tags) == 0:
         return jsonify([]), 200
     return jsonify(tags), 200
 
 @bp.route('/<tag_id>', methods=['GET'])
+@login_required
 def get_by_id(tag_id: str):
     """Get a specific tag by ID.
     ---
@@ -56,8 +59,9 @@ def get_by_id(tag_id: str):
         404:
             description: Tag not found
     """
+    require_owns(tag_id)
     tag = tag_service.get_by_id(tag_id, as_dict=True)
-    
+
     if not tag:
         return jsonify({'error': 'Tag not found'}), 404
     
@@ -65,6 +69,7 @@ def get_by_id(tag_id: str):
 
 
 @bp.route('/', methods=['POST'])
+@login_required
 def create_tag():
     """Create a new tag.
     ---
@@ -121,7 +126,8 @@ def create_tag():
     try:
         # Validate request data
         data = TagDict(**request.json)
-        
+        data.user_id = current_user_id()
+
         # Create tag
         tag = tag_service.create(data, as_dict=True)
         
@@ -138,6 +144,7 @@ def create_tag():
 
 
 @bp.route('/<tag_id>', methods=['PUT', 'PATCH'])
+@login_required
 def update_tag(tag_id: str):
     """Update a tag.
     ---
@@ -177,8 +184,9 @@ def update_tag(tag_id: str):
                     example: "#FF5733"
     """
     try:
+        require_owns(tag_id)
         data = TagDict(**request.json)
-        
+
         tag = tag_service.update(tag_id, data, as_dict=True)
         
         if tag:
@@ -194,6 +202,7 @@ def update_tag(tag_id: str):
 
 
 @bp.route('/<tag_id>', methods=['DELETE'])
+@login_required
 def delete_tag(tag_id: str):
     """Delete a tag.
     ---
@@ -211,6 +220,7 @@ def delete_tag(tag_id: str):
         404:
             description: Tag not found
     """
+    require_owns(tag_id)
     success = tag_service.delete(tag_id)
     
     if success:
@@ -219,6 +229,7 @@ def delete_tag(tag_id: str):
         return jsonify({'error': 'Tag not found'}), 404
     
 @bp.route('/add_tag', methods=['POST'])
+@login_required
 def add_tag_to_element():
     """Add a tag to an element (character, word, passage, etc.).
     ---
@@ -266,7 +277,9 @@ def add_tag_to_element():
         
         if not tag_id or not element_id:
             return jsonify({'error': 'tag_id and element_id are required'}), 400
-        
+
+        require_owns(tag_id)
+        require_owns(element_id)
         success = tag_service.add_tag_to_element(tag_id, element_id)
         
         if success:
@@ -278,6 +291,7 @@ def add_tag_to_element():
         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
     
 @bp.route('/remove_tag', methods=['POST'])
+@login_required
 def remove_tag_from_element():
     """Remove a tag from an element (character, word, passage, etc.).
     ---
@@ -325,7 +339,9 @@ def remove_tag_from_element():
         
         if not tag_id or not element_id:
             return jsonify({'error': 'tag_id and element_id are required'}), 400
-        
+
+        require_owns(tag_id)
+        require_owns(element_id)
         success = tag_service.remove_tag_from_element(tag_id, element_id)
         
         if success:

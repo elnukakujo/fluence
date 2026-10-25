@@ -7,6 +7,7 @@ import logging
 from ...services.data_collection import DailyStatsService
 from ...services.system_data import UserService
 from ...services.containers import LanguageService
+from ...core.auth import login_required, require_owns, current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ user_service = UserService()
 language_service = LanguageService()
 
 @bp.route('/me/today', methods=['GET'])
+@login_required
 def get_daily_stats_today():
     """Get today's daily stats for the current user and language.
     ---
@@ -34,19 +36,15 @@ def get_daily_stats_today():
       200:
         description: Daily stats object
     """
-    user_id = request.args.get('user_id')
     language_id = request.args.get('language_id')
 
-    if not user_id or not language_id:
-        return jsonify({'error': 'user_id and language_id are required'}), 400
+    if not language_id:
+        return jsonify({'error': 'language_id is required'}), 400
 
-    if user_service.get_by_id(user_id=user_id) is None:
-        return jsonify({'error': 'User not found'}), 404
-    if language_service.get_by_id(language_id=language_id) is None:
-        return jsonify({'error': 'Language not found'}), 404
+    require_owns(language_id)
 
     daily_stats = daily_stats_service.get_today_for_user(
-        user_id=user_id,
+        user_id=current_user_id(),
         language_id=language_id,
         as_dict=True,
         include_relations=False,
@@ -55,6 +53,7 @@ def get_daily_stats_today():
 
 
 @bp.route('/me/history', methods=['GET'])
+@login_required
 def get_daily_stats_history():
     """Get daily stats for a date range (defaults to since account creation) — for a GitHub-style practice heatmap.
     ---
@@ -86,17 +85,14 @@ def get_daily_stats_history():
       404:
         description: User or language not found
     """
-    user_id = request.args.get('user_id')
+    user_id = current_user_id()
     language_id = request.args.get('language_id')
-
-    if not user_id:
-        return jsonify({'error': 'user_id is required'}), 400
 
     user = user_service.get_by_id(user_id=user_id)
     if user is None:
         return jsonify({'error': 'User not found'}), 404
-    if language_id and language_service.get_by_id(language_id=language_id) is None:
-        return jsonify({'error': 'Language not found'}), 404
+    if language_id:
+        require_owns(language_id)
 
     start_date_param = request.args.get('start_date')
     end_date_param = request.args.get('end_date')
@@ -115,6 +111,7 @@ def get_daily_stats_history():
 
 
 @bp.route('/<daily_stats_id>', methods=['GET'])
+@login_required
 def get_daily_stats_by_id(daily_stats_id: str):
     """Get a single daily stats entry by ID.
     ---
@@ -137,9 +134,7 @@ def get_daily_stats_by_id(daily_stats_id: str):
       404:
         description: Not found
     """
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'user_id is required'}), 400
+    user_id = current_user_id()
 
     daily_stats = daily_stats_service.get_by_id(
         daily_stats_id=daily_stats_id,
