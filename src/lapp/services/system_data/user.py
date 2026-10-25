@@ -97,6 +97,7 @@ class UserService:
             username=user_data.username,
             display_name=user_data.display_name,
             email=user_data.email,
+            is_admin=session.query(User).count() == 0,
             password_hash=generate_password_hash(user_data.password) if user_data.password else None,
         )
 
@@ -181,6 +182,15 @@ class UserService:
         fields = update_data.model_dump(exclude={"id", "preferences"}, exclude_unset=True)
         password = fields.pop("password", None)
 
+        # Single-admin enforcement: never demote the last admin, never grant a second.
+        if "is_admin" in fields:
+            new_is_admin = fields.pop("is_admin")
+            if new_is_admin and not user.is_admin:
+                raise ValueError("Only one admin is allowed.")
+            if not new_is_admin and user.is_admin and not self._has_other_admin(user_id, session):
+                raise ValueError("Cannot demote the last admin.")
+            user.is_admin = new_is_admin
+
         if "email" in fields and fields["email"] != user.email:
             existing = db_manager.find_by_attr(model_class=User, attr_values={"email": fields["email"]}, session=session)
             if existing and existing.id != user_id:
@@ -224,6 +234,9 @@ class UserService:
         if not user:
             return False
 
+        if user.is_admin and not self._has_other_admin(user_id, session):
+            raise ValueError("Cannot delete the last admin.")
+
         # Delete children before parent (FK constraint)
         if user.preferences:
             user_preferences_service.delete(pref_id=user.preferences.id, session=session)
@@ -252,4 +265,23 @@ class UserService:
             return False
         user.password_hash = generate_password_hash(password)
         db_manager.modify(obj=user, session=session, commit=False)
+        return True
+
+    def _has_other_admin(self, user_id: str, session: Optional[Session] = None) -> bool:
+        admins = db_manager.find_all(User, filters={"is_admin": True}, session=session)
+        return any(a.id != user_id for a in admins)
+
+    @transactional
+    def set_blocked(
+        self,
+        user_id: str,
+        blocked: bool,
+        session: Optional[Session] = None,
+    ) -> bool:
+        """Block/unblock a user. Returns False if the user is not found."""
+        user = db_manager.find_by_attr(User, {"id": user_id}, session=session)
+        if not user:
+            return False
+        user.blocked = blocked
+        db_manager.modify(user, session=session, commit=False)
         return True
