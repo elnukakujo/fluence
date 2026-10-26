@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getAllUserSources } from "@/api/source";
 import NavButton from "@/components/layout/navButton";
 import Source from "@/interface/systemData/Source";
@@ -5,7 +6,8 @@ import { getCurrentUserId } from "@/utils/user_cookie";
 
 export default async function SourcesPage() {
     const userId: string | null = await getCurrentUserId();
-    const sources: Source[] = await getAllUserSources(userId!);
+    if (!userId) redirect('/');
+    const sources: Source[] = await getAllUserSources(userId);
 
     return (
         <div className="flex flex-col gap-4">

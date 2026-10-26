@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getAllUserTags } from "@/api/tag";
 import Tag from "@/interface/systemData/Tag";
 import NavButton from "@/components/layout/navButton";
@@ -5,7 +6,8 @@ import { getCurrentUserId } from "@/utils/user_cookie";
 
 export default async function TagsPage() {
     const userId: string | null = await getCurrentUserId();
-    const tags: Tag[] = await getAllUserTags(userId!);
+    if (!userId) redirect('/');
+    const tags: Tag[] = await getAllUserTags(userId);
 
     return (
         <div className="flex flex-col gap-4">
