@@ -18,6 +18,17 @@ def test_login_success_sets_cookie(app, db):
     assert 'session_token' in (res.headers.get('Set-Cookie') or '')
 
 
+def test_login_cookie_not_secure_over_http(app, db):
+    # A Secure cookie is dropped by browsers over plain HTTP. The deploy serves
+    # the app over HTTP (frontend on :8080, no TLS), so forcing Secure=True in
+    # prod logs everyone straight back out. The flag must mirror the actual scheme.
+    _make_user(db, password_hash=generate_password_hash("secret"))
+    client = app.test_client()
+    res = client.post('/api/auth/login', json={'email': 'a@x.com', 'password': 'secret'})
+    assert res.status_code == 200
+    assert 'Secure' not in (res.headers.get('Set-Cookie') or '')
+
+
 def test_login_wrong_password(app, db):
     _make_user(db, password_hash=generate_password_hash("secret"))
     client = app.test_client()

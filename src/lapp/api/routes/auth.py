@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app, g
+from flask import Blueprint, jsonify, request, g
 
 from ...core.auth import login_required
 from ...services.auth import AuthService, REMEMBER_DAYS
@@ -36,7 +36,11 @@ def login():
         'session_token', raw,
         httponly=True,
         samesite='Lax',
-        secure=not current_app.debug,
+        # Mirror the actual connection, not the config: a Secure cookie is
+        # dropped by browsers over plain HTTP, which logs everyone out. Behind a
+        # TLS-terminating reverse proxy, add ProxyFix(x_proto=1) so
+        # X-Forwarded-Proto makes is_secure True again.
+        secure=request.is_secure,
         path='/',
         max_age=REMEMBER_DAYS * 86400 if remember else None,
     )
