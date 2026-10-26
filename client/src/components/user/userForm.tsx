@@ -8,7 +8,7 @@ import { createUser, updateUser } from "@/api/user";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import User from "@/interface/systemData/User";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
-import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
+import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 
 const EXERCISE_TYPES = [
@@ -167,9 +167,9 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                     <article className="flex flex-col space-y-2 items-center">
                         <ClassicSelectMenu
                             label="Native Languages"
-                            options={Object.values(LANGUAGE_to_ISO639_2T)}
-                            selectedOption={nativeLangs}
-                            onChange={(selected) => setNativeLangs(selected as string[])}
+                            options={Object.keys(LANGUAGE_to_ISO639_2T)}
+                            selectedOption={nativeLangs.map((iso) => ISO639_2T_to_LANGUAGE[iso] ?? iso)}
+                            onChange={(selected) => setNativeLangs((selected as string[]).map((name) => LANGUAGE_to_ISO639_2T[name] ?? name))}
                             multiple
                         />
                         <AutoSizeTextArea

@@ -19,7 +19,13 @@ def create_app(config_name: str = 'default') -> Flask:
         Configured Flask application
     """
     app = Flask(__name__)
-    
+
+    # Don't 308-redirect on trailing-slash mismatches. Behind the Next.js rewrite
+    # (which strips trailing slashes), Flask's default strict_slashes redirect leaks
+    # the internal host (http://backend:5050) into the Location header, which browsers
+    # then reject as mixed content. Accept both /x and /x/ instead.
+    app.url_map.strict_slashes = False
+
     # Load configuration
     app.config.from_object(config[config_name])
 
