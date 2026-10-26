@@ -67,7 +67,7 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
                                     className="btn btn-secondary text-sm"
                                     onClick={() => handleToggleBlock(u.id!, !u.blocked)}
                                 >
-                                    {u.blocked ? "Unblock" : "Block"}
+                                    {u.blocked ? "Unblock" : (u.approved ? "Block" : "Reject")}
                                 </button>
                                 <button
                                     type="button"
