@@ -9,6 +9,7 @@ export default interface User {
     last_review: string; // ISO date string
     created_at: string; // ISO date string
     is_admin?: boolean;
+    approved?: boolean;
     blocked?: boolean;
     last_login_at?: string | null; // ISO date string
     preferences?: Partial<UserPreferences>; // Optional user preferences

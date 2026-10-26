@@ -21,6 +21,8 @@ def login():
     user, status = auth_service.authenticate(email, password)
     if status == "blocked":
         return jsonify({'error': 'account_blocked'}), 403
+    if status == "pending":
+        return jsonify({'error': 'account_pending'}), 403
     if status == "locked":
         return jsonify({'error': 'account_locked'}), 403
     if status == "invalid":

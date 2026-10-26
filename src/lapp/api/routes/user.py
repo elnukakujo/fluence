@@ -113,8 +113,8 @@ def create_user():
         # Validate request data
         data = UserDict(**request.json)
 
-        # Create user
-        user = user_service.create(data, as_dict=True)
+        # Public signup (unauthenticated) -> pending approval; admin-created -> approved.
+        user = user_service.create(data, as_dict=True, approved=current_user_id() is not None)
 
         if user:
             return jsonify({
@@ -288,5 +288,15 @@ def set_blocked(user_id: str):
     """Block/unblock a user (admin only)."""
     blocked = bool((request.json or {}).get("blocked", False))
     if not user_service.set_blocked(user_id, blocked):
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({'success': True})
+
+
+@bp.route('/<user_id>/approve', methods=['PUT'])
+@admin_required
+def approve_user(user_id: str):
+    """Approve/un-approve a user's account (admin only)."""
+    approved = bool((request.json or {}).get("approved", True))
+    if not user_service.set_approved(user_id, approved):
         return jsonify({'error': 'User not found'}), 404
     return jsonify({'success': True})

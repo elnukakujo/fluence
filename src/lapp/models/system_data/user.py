@@ -18,6 +18,8 @@ class User(Base):
 
     # Auth / admin (see docs/superpowers/specs/2026-10-25-auth-hardening-design.md)
     is_admin = Column(Boolean, nullable=False, default=False)
+    # New signups are created approved=False and can't log in until an admin approves.
+    approved = Column(Boolean, nullable=False, default=True)
     blocked = Column(Boolean, nullable=False, default=False)
     last_login_at = Column(DateTime, nullable=True)
     failed_login_count = Column(Integer, nullable=False, default=0)
@@ -33,6 +35,7 @@ class User(Base):
             "display_name": self.display_name,
             "email": self.email,
             "is_admin": self.is_admin,
+            "approved": self.approved,
             "blocked": self.blocked,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_review": self.last_review.isoformat() if self.last_review else None,

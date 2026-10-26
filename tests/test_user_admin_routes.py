@@ -25,6 +25,30 @@ def test_public_signup_creates_nonadmin_user(app, db):
     res = client.post('/api/user/', json={"username": "newbie", "email": "new@x.com", "password": "pw"})
     assert res.status_code == 201
     assert res.get_json()['user']['is_admin'] is False
+    assert res.get_json()['user']['approved'] is False
+
+
+def test_pending_user_cannot_login(app, db):
+    _user_with_session(db, "user_U1", "a", "a@x.com", is_admin=True)
+    client = app.test_client()
+    client.post('/api/user/', json={"username": "newbie", "email": "new@x.com", "password": "pw"})
+    res = client.post('/api/auth/login', json={'email': 'new@x.com', 'password': 'pw'})
+    assert res.status_code == 403
+    assert res.get_json()['error'] == 'account_pending'
+
+
+def test_admin_can_approve_user(app, db):
+    token_a = _user_with_session(db, "user_U1", "a", "a@x.com", is_admin=True)
+    client = app.test_client()
+    client.post('/api/user/', json={"username": "newbie", "email": "new@x.com", "password": "pw"})
+    with db.session_scope() as s:
+        newbie = db.find_by_attr(User, {"email": "new@x.com"}, session=s)
+    # Approve as admin
+    client.set_cookie('session_token', token_a)
+    assert client.put(f'/api/user/{newbie.id}/approve', json={"approved": True}).status_code == 200
+    # Now login works
+    res = client.post('/api/auth/login', json={'email': 'new@x.com', 'password': 'pw'})
+    assert res.status_code == 200
 
 
 def test_admin_can_list_users(app, db):

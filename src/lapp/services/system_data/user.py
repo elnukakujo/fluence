@@ -72,7 +72,8 @@ class UserService:
         user_data: UserDict,
         session: Optional[Session] = None,
         as_dict: bool = False,
-        include_relations: bool = True
+        include_relations: bool = True,
+        approved: bool = True,
     ) -> User | UserDict:
         """Create a new user.
 
@@ -98,8 +99,12 @@ class UserService:
             display_name=user_data.display_name,
             email=user_data.email,
             is_admin=session.query(User).count() == 0,
+            approved=approved,
             password_hash=generate_password_hash(user_data.password) if user_data.password else None,
         )
+
+        # Insert the user first so the preferences FK (user_id) can reference it.
+        result = db_manager.insert(obj=user_obj, session=session, commit=False)
 
         user_obj.preferences = user_preferences_service.create(
             data=UserPreferencesDict(
@@ -120,8 +125,6 @@ class UserService:
             ),
             session=session,
         )
-
-        result = db_manager.insert(obj=user_obj, session=session, commit=False)
 
         if result:
             logger.info(f"Created new User item with ID: {result.id}")
@@ -303,5 +306,20 @@ class UserService:
         if not user:
             return False
         user.blocked = blocked
+        db_manager.modify(user, session=session, commit=False)
+        return True
+
+    @transactional
+    def set_approved(
+        self,
+        user_id: str,
+        approved: bool,
+        session: Optional[Session] = None,
+    ) -> bool:
+        """Approve (or un-approve) a user. Returns False if the user is not found."""
+        user = db_manager.find_by_attr(User, {"id": user_id}, session=session)
+        if not user:
+            return False
+        user.approved = approved
         db_manager.modify(user, session=session, commit=False)
         return True

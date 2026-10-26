@@ -60,6 +60,17 @@ export async function setUserBlocked(userId: string, blocked: boolean) {
   return res.json();
 }
 
+export async function setUserApproved(userId: string, approved: boolean) {
+  const res = await fetch(`${BASE_URL}/api/user/${userId}/approve`, {
+    method: "PUT",
+    headers: await getAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ approved }),
+  });
+  if (!res.ok) throw new Error("Failed to update user");
+  return res.json();
+}
+
 export async function updateUserPassword(userId: string, password: string) {
   const res = await fetch(`${BASE_URL}/api/user/${userId}/password`, {
     method: "PUT",
@@ -81,6 +92,7 @@ export async function login(email: string, password: string, remember: boolean =
   if (res.status === 403) {
     const data = await res.json().catch(() => ({}));
     if (data.error === "account_blocked") return { error: "This account has been blocked." };
+    if (data.error === "account_pending") return { error: "This account is awaiting admin approval." };
     if (data.error === "account_locked") return { error: "Too many failed attempts. Please try again later." };
     return { error: "Access denied." };
   }

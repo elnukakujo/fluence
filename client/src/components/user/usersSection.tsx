@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllUsers, deleteUser, setUserBlocked } from "@/api/user";
+import { getAllUsers, deleteUser, setUserBlocked, setUserApproved } from "@/api/user";
 import SectionCard from "./sectionCard";
 import RoleBadge from "./roleBadge";
 import ConfirmDialog from "./confirmDialog";
@@ -23,6 +23,11 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
         await refresh();
     };
 
+    const handleApprove = async (userId: string) => {
+        await setUserApproved(userId, true);
+        await refresh();
+    };
+
     const handleDelete = async () => {
         if (!deleting) return;
         await deleteUser(deleting);
@@ -39,7 +44,7 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <span className="font-medium">{u.display_name || u.username}</span>
-                                <RoleBadge isAdmin={u.is_admin} blocked={u.blocked} />
+                                <RoleBadge isAdmin={u.is_admin} approved={u.approved} blocked={u.blocked} />
                             </div>
                             <span className="text-xs text-muted">{u.email}</span>
                             <span className="text-xs text-muted">
@@ -48,6 +53,15 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
                         </div>
                         {u.id !== currentUserId && (
                             <div className="flex shrink-0 items-center gap-2">
+                                {!u.approved && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary text-sm"
+                                        onClick={() => handleApprove(u.id!)}
+                                    >
+                                        Approve
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     className="btn btn-secondary text-sm"

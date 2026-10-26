@@ -32,15 +32,18 @@ class AuthService:
         """Verify an email/password pair.
 
         Returns (user, status): user is None on failure; status is None on
-        success, else one of "invalid", "blocked", "locked", "needs_password".
-        The blocked check precedes password verification (family scope: tell
-        the user their account is blocked regardless of the password).
+        success, else one of "invalid", "blocked", "pending", "locked",
+        "needs_password". The blocked/pending checks precede password
+        verification (family scope: tell the user their account state
+        regardless of the password).
         """
         user = db_manager.find_by_attr(User, {"email": email}, session=session)
         if not user:
             return None, "invalid"
         if user.blocked:
             return None, "blocked"
+        if not user.approved:
+            return None, "pending"
         if user.locked_until and user.locked_until > datetime.now():
             return None, "locked"
         if not user.password_hash:
