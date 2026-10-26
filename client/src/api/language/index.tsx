@@ -31,7 +31,7 @@ export async function createLanguage(data: Partial<Language>) {
   }
   const res = await fetch(`${BASE_URL}/api/languages/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to create language");
@@ -41,7 +41,7 @@ export async function createLanguage(data: Partial<Language>) {
 export async function updateLanguage(languageId: string, data: Partial<Language>) {
   const res = await fetch(`${BASE_URL}/api/languages/${languageId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update language");

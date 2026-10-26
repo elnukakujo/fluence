@@ -29,7 +29,7 @@ export async function createCalligraphy(
   }
   const res = await fetch(`${BASE_URL}/api/calligraphy/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ ...data, on_conflict: onConflict }),
   });
   await throwIfConflict(res);
@@ -40,7 +40,7 @@ export async function createCalligraphy(
 export async function updateCalligraphy(calligraphyId: string, data: Partial<Calligraphy>) {
   const res = await fetch(`${BASE_URL}/api/calligraphy/${calligraphyId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update calligraphy");

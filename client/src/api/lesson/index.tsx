@@ -19,7 +19,7 @@ export async function createLesson(data: Partial<Lesson>) {
   }
   const res = await fetch(`${BASE_URL}/api/lessons/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to create lesson");
@@ -29,7 +29,7 @@ export async function createLesson(data: Partial<Lesson>) {
 export async function updateLesson(lessonId: string, data: Partial<Lesson>) {
   const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update lesson");

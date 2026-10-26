@@ -1,11 +1,11 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 
 
 // ============= Evaluation API =============
 export async function evaluateText(exerciseId: string, userText: string) {
   const res = await fetch(`${BASE_URL}/api/evaluate/text`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ exercise_id: exerciseId, user_text: userText }),
   });
   if (!res.ok) throw new Error("Failed to evaluate text");
@@ -15,7 +15,7 @@ export async function evaluateText(exerciseId: string, userText: string) {
 export async function evaluateSpeech(exerciseId: string, user_audio_url: string, correct_audio_index: number = 0) {
   const res = await fetch(`${BASE_URL}/api/evaluate/speech`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ exercise_id: exerciseId, user_audio_url: user_audio_url, correct_audio_index: correct_audio_index }),
   });
   if (!res.ok) throw new Error("Failed to evaluate speech");
@@ -51,7 +51,7 @@ export async function updateScoreById(
 
   const res = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error("Failed to update score");

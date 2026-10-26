@@ -1,4 +1,4 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 
 export type SearchCategory = "container" | "feature" | "component";
 

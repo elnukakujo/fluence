@@ -29,7 +29,7 @@ export async function createVocabulary(
   }
   const res = await fetch(`${BASE_URL}/api/vocabulary/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ ...data, on_conflict: onConflict }),
   });
   await throwIfConflict(res);
@@ -40,7 +40,7 @@ export async function createVocabulary(
 export async function updateVocabulary(vocabularyId: string, data: Partial<Vocabulary>) {
   const res = await fetch(`${BASE_URL}/api/vocabulary/${vocabularyId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update vocabulary");

@@ -1,4 +1,4 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 
 export async function getWordById(wordId: string) {
   const res = await fetch(`${BASE_URL}/api/word/${wordId}`);

@@ -1,10 +1,10 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import Tag from "@/interface/systemData/Tag";
 
 export async function getAllUserTags(userId: string) {
   const res = await fetch(`${BASE_URL}/api/tags/user/${userId}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to fetch user tags");
   return res.json();
@@ -13,7 +13,7 @@ export async function getAllUserTags(userId: string) {
 export async function getTagById(tagId: string) {
   const res = await fetch(`${BASE_URL}/api/tags/${tagId}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error(`Failed to fetch tag ${tagId}`);
   return res.json();
@@ -22,7 +22,7 @@ export async function getTagById(tagId: string) {
 export async function createTag(data: Partial<Tag>) {
   const res = await fetch(`${BASE_URL}/api/tags/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to create tag");
@@ -32,7 +32,7 @@ export async function createTag(data: Partial<Tag>) {
 export async function updateTag(tagId: string, data: Partial<Tag>) {
   const res = await fetch(`${BASE_URL}/api/tags/${tagId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update tag");
@@ -52,7 +52,7 @@ export async function addTagToElement(tagId: string, elementId: string) {
 
   const res = await fetch(`${BASE_URL}/api/tags/add_tag`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ tag_id: tagId, element_id: elementId }),
   });
   if (!res.ok) {
@@ -68,7 +68,7 @@ export async function removeTagFromElement(tagId: string, elementId: string) {
 
   const res = await fetch(`${BASE_URL}/api/tags/remove_tag`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ tag_id: tagId, element_id: elementId }),
   });
   if (!res.ok) {

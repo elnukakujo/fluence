@@ -25,7 +25,7 @@ export async function createExercise(data: Partial<Exercise>) {
   }
   const res = await fetch(`${BASE_URL}/api/exercise/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to create exercise");
@@ -35,7 +35,7 @@ export async function createExercise(data: Partial<Exercise>) {
 export async function updateExercise(exerciseId: string, data: Partial<Exercise>) {
   const res = await fetch(`${BASE_URL}/api/exercise/${exerciseId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update exercise");

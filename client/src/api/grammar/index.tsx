@@ -25,7 +25,7 @@ export async function createGrammar(data: Partial<Grammar>) {
   }
   const res = await fetch(`${BASE_URL}/api/grammar/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to create grammar");
@@ -35,7 +35,7 @@ export async function createGrammar(data: Partial<Grammar>) {
 export async function updateGrammar(grammarId: string, data: Partial<Grammar>) {
   const res = await fetch(`${BASE_URL}/api/grammar/${grammarId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update grammar");

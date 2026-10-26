@@ -1,10 +1,10 @@
-import { BASE_URL } from "..";
+import { BASE_URL, getAuthHeaders } from "..";
 import UserPreferences from "@/interface/systemData/UserPreferences";
 
 export async function updateUserPreferences(prefId: string, data: Partial<UserPreferences>) {
   const res = await fetch(`${BASE_URL}/api/pref/${prefId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
