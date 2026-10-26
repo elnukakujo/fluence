@@ -18,6 +18,15 @@ def test_nonadmin_cannot_list_users(app, db):
     assert client.get('/api/user/').status_code == 403
 
 
+def test_public_signup_creates_nonadmin_user(app, db):
+    # An existing admin means this is a "subsequent" signup, not the bootstrap.
+    _user_with_session(db, "user_U1", "a", "a@x.com", is_admin=True)
+    client = app.test_client()
+    res = client.post('/api/user/', json={"username": "newbie", "email": "new@x.com", "password": "pw"})
+    assert res.status_code == 201
+    assert res.get_json()['user']['is_admin'] is False
+
+
 def test_admin_can_list_users(app, db):
     token_a = _user_with_session(db, "user_U1", "a", "a@x.com", is_admin=True)
     _user_with_session(db, "user_U2", "b", "b@x.com")

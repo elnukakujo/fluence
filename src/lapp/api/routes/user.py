@@ -103,11 +103,10 @@ def create_user():
       400:
         description: Validation failed or creation error
     """
-    # First-user bootstrap: allow unauthenticated creation only when no users exist.
-    if current_user_id() is None:
-        if db_manager.find_all(UserModel):
-            return jsonify({'error': 'Authentication required'}), 401
-    elif not getattr(g.current_user, "is_admin", False):
+    # Public signup: unauthenticated users may create a regular (non-admin) account.
+    # The single-admin invariant is preserved by UserService.create (first user → admin,
+    # every later one → non-admin). Authenticated non-admin users still can't create others.
+    if current_user_id() is not None and not getattr(g.current_user, "is_admin", False):
         return jsonify({'error': 'Admin access required'}), 403
 
     try:
