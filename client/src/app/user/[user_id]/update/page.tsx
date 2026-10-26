@@ -16,7 +16,7 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
     const endpoints = preferences.ai_endpoints ?? [];
 
     return (
-        <SettingsLayout>
+        <SettingsLayout isAdmin={user.is_admin}>
             <header className="flex items-center gap-2">
                 <h1 className="text-xl">{user.display_name || user.username}</h1>
                 <RoleBadge isAdmin={user.is_admin} blocked={user.blocked} />

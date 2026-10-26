@@ -2,20 +2,24 @@
 
 import { useEffect, useState } from "react";
 
-const SECTIONS = [
+const COMMON_SECTIONS = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Security" },
   { id: "preferences", label: "Learning" },
   { id: "ai-features", label: "AI Features" },
   { id: "api-endpoints", label: "Endpoints" },
-  { id: "backups", label: "Backups" },
-] as const;
+];
 
-export default function SettingsSidebar() {
+const ADMIN_SECTIONS = [
+  { id: "users", label: "Users" },
+  { id: "backups", label: "Backups" },
+];
+
+export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const [active, setActive] = useState<string>("profile");
+  const sections = isAdmin ? [...COMMON_SECTIONS, ...ADMIN_SECTIONS] : COMMON_SECTIONS;
 
   useEffect(() => {
-    const observers: IntersectionObserver[] = [];
     const handle = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -27,14 +31,13 @@ export default function SettingsSidebar() {
       { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
     );
 
-    for (const s of SECTIONS) {
+    for (const s of sections) {
       const el = document.getElementById(s.id);
       if (el) handle.observe(el);
     }
-    observers.push(handle);
 
-    return () => observers.forEach((o) => o.disconnect());
-  }, []);
+    return () => handle.disconnect();
+  }, [isAdmin]);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -43,7 +46,7 @@ export default function SettingsSidebar() {
   return (
     <nav className="settings-sidebar" role="navigation" aria-label="Settings sections">
       <ul className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-        {SECTIONS.map((s) => (
+        {sections.map((s) => (
           <li key={s.id}>
             <button
               type="button"
