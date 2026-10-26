@@ -95,7 +95,8 @@ def main():
     app.run(
         host=args.host,
         port=args.port,
-        debug=app.config.get('DEBUG', False)
+        debug=app.config.get('DEBUG', False),
+        threaded=True,
     )
 
 if __name__ == '__main__':
