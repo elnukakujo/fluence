@@ -41,6 +41,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [stepError, setStepError] = useState("");
+    const [createdPending, setCreatedPending] = useState(false);
 
     const handleNext = () => {
         if (!username.trim() || !email.trim() || (!isUpdate && !password)) {
@@ -83,7 +84,11 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             if (isUpdate) {
                 await updateUser(userData.id!, element);
             } else {
-                await createUser(element);
+                const result = await createUser(element);
+                if (result?.user?.approved === false) {
+                    setCreatedPending(true);
+                    return;
+                }
             }
             if (!navDisabled) {
                 router.push(`/`);
@@ -97,6 +102,21 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             if (onSuccess) onSuccess();
         }
     };
+
+    if (createdPending) {
+        return (
+            <div className="card flex w-full max-w-md flex-col items-center gap-4 p-8 text-center">
+                <h3 className="text-xl">Account created</h3>
+                <p className="text-sm text-muted">
+                    Your account needs admin approval before you can sign in. You&apos;ll be able to
+                    log in once an admin approves it.
+                </p>
+                <button type="button" className="btn btn-primary" onClick={() => router.push("/")}>
+                    Go to sign in
+                </button>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-center">
