@@ -32,6 +32,9 @@ const nextConfig = {
     const backend = `http://${process.env.LAPP_INTERNAL_HOST || '127.0.0.1'}:${process.env.LAPP_INTERNAL_PORT || '5050'}`;
     return [
       { source: '/api/:path*', destination: `${backend}/api/:path*` },
+      { source: '/media/:path*', destination: `${backend}/media/:path*` },
+      { source: '/media_dev/:path*', destination: `${backend}/media_dev/:path*` },
+      { source: '/media_test/:path*', destination: `${backend}/media_test/:path*` },
     ];
   },
   images: {
