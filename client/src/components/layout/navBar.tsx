@@ -31,16 +31,8 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 					<div className={pathname === "/" || /^\/user\/[^/]+\/update$/.test(pathname) ? "invisible pointer-events-none" : "visible"}>
 						<BackButton />
 					</div>
-					<Link href="/" className="flex items-center gap-2.5">
-						<img src="/fluence-mark.svg" alt="" aria-hidden="true" className="h-8 w-8 shrink-0" />
-						<span className="flex items-baseline gap-2.5">
-							<span className="font-serif text-xl font-semibold tracking-tight text-foreground">
-								Fluence
-							</span>
-							<span className="hidden font-serif text-sm italic text-muted sm:inline">
-								Become fluent.
-							</span>
-						</span>
+					<Link href="/" className="flex items-center">
+						<img src="/fluence-logo.jpg" alt="Fluence" className="h-8 w-auto shrink-0" />
 					</Link>
 				</div>
 
