@@ -75,12 +75,20 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    /* Long words/URLs wrap instead of pushing the page wider than a phone */
+    overflow-wrap: break-word;
   }
 
   main {
     max-width: 72rem;
     margin: 0 auto;
     padding: 1.5rem 1.5rem 3rem;
+  }
+
+  @media (max-width: 480px) {
+    main {
+      padding: 1rem 1rem 2.5rem;
+    }
   }
 
   h1, h2, h3 {
@@ -873,5 +881,11 @@
   @keyframes indeterminate {
     0%   { transform: translateX(-100%); }
     100% { transform: translateX(200%); }
+  }
+
+  /* ── Small-phone tightening: tighter card padding, 44px touch targets ── */
+  @media (max-width: 480px) {
+    .card { padding: 1rem; }
+    .btn { min-height: 2.75rem; }
   }
 }
