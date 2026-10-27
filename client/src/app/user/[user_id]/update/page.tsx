@@ -6,6 +6,7 @@ import PreferencesSection from "@/components/user/preferencesSection";
 import AiFeaturesSection from "@/components/user/aiFeaturesSection";
 import ApiEndpointsSection from "@/components/user/apiEndpointsSection";
 import BackupSection from "@/components/user/backupSection";
+import LogsSection from "@/components/user/logsSection";
 import RoleBadge from "@/components/user/roleBadge";
 import UsersSection from "@/components/user/usersSection";
 
@@ -57,6 +58,10 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
 
                     <section id="backups">
                         <BackupSection />
+                    </section>
+
+                    <section id="logs">
+                        <LogsSection />
                     </section>
                 </>
             )}

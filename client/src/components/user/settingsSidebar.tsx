@@ -13,6 +13,7 @@ const COMMON_SECTIONS = [
 const ADMIN_SECTIONS = [
   { id: "users", label: "Users" },
   { id: "backups", label: "Backups" },
+  { id: "logs", label: "Logs" },
 ];
 
 export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean }) {

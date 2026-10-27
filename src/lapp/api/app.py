@@ -1,5 +1,9 @@
 import logging
-from flask import Flask, jsonify
+import time
+from collections import deque
+from logging import Formatter, StreamHandler
+
+from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 from flasgger import Swagger
 
@@ -7,6 +11,22 @@ from ..core.database import init_db
 from config import config
 
 logger = logging.getLogger(__name__)
+
+# In-memory ring buffer of recent log lines, served to admins via /api/logs.
+# ponytail: resets on process restart and caps at LOG_BUFFER_SIZE lines; add a
+# rotating FileHandler if logs must survive restarts.
+LOG_BUFFER_SIZE = 500
+_log_buffer: deque = deque(maxlen=LOG_BUFFER_SIZE)
+
+
+class _RingBufferHandler(logging.Handler):
+    """Append formatted log records to the module-level ring buffer."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            _log_buffer.append(self.format(record))
+        except Exception:  # pragma: no cover - never let logging break the app
+            pass
 
 def create_app(config_name: str = 'default') -> Flask:
     """
@@ -49,6 +69,9 @@ def create_app(config_name: str = 'default') -> Flask:
     # Resolve the session cookie on every request
     from ..core.auth import init_auth
     init_auth(app)
+
+    # Log every request so activity (reviews, edits, …) shows up in /api/logs
+    register_request_logging(app)
     
     # Register error handlers
     register_error_handlers(app)
@@ -58,6 +81,9 @@ def create_app(config_name: str = 'default') -> Flask:
 
     # Register health check endpoint
     register_health_check(app)
+
+    # Register logs endpoint
+    register_logs_endpoint(app)
 
     # Initialize extensions
     initialize_extensions(app)
@@ -70,14 +96,39 @@ def create_app(config_name: str = 'default') -> Flask:
 
 
 def configure_logging(app: Flask) -> None:
-    """Configure application logging."""
+    """Configure application logging: one format for stdout + the ring buffer."""
     log_level = logging.DEBUG if app.config.get('DEBUG') else logging.INFO
-    
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+
+    fmt = Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        '%Y-%m-%d %H:%M:%S',
     )
+
+    root = logging.getLogger()
+    root.setLevel(log_level)
+
+    stream = StreamHandler()
+    stream.setFormatter(fmt)
+    root.addHandler(stream)
+
+    ring = _RingBufferHandler()
+    ring.setFormatter(fmt)
+    root.addHandler(ring)
+
+    # Quiet noisy third-party loggers so the logs users copy stay readable.
+    for name in (
+        'sqlalchemy.engine',
+        'sqlalchemy.pool',
+        'urllib3',
+        'urllib3.connectionpool',
+        'httpx',
+        'httpcore',
+        'transformers',
+        'spacy',
+        'torch',
+        'werkzeug',
+    ):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def initialize_extensions(app: Flask) -> None:
@@ -231,10 +282,42 @@ def register_commands(app: Flask) -> None:
 # Health check endpoint
 def register_health_check(app: Flask) -> None:
     """Register health check endpoint."""
-    
+
     @app.route('/health')
     def health_check():
         return jsonify({
             'status': 'healthy',
             'environment': app.config.get('ENV', 'unknown')
         })
+
+
+def register_logs_endpoint(app: Flask) -> None:
+    """Register the admin-only endpoint that serves the buffered log lines."""
+    from ..core.auth import admin_required
+
+    @app.route('/api/logs', methods=['GET'])
+    @admin_required
+    def get_logs():
+        return jsonify({'logs': list(_log_buffer)})
+
+
+def register_request_logging(app: Flask) -> None:
+    """Log one line per request so user activity shows up in /api/logs."""
+
+    @app.before_request
+    def _start_timer():
+        g._request_start = time.perf_counter()
+
+    @app.after_request
+    def _log_request(response):
+        start = getattr(g, '_request_start', None)
+        if start is None:
+            return response
+        # Health checks are polled constantly — skip them to keep logs readable.
+        if request.path == '/health':
+            return response
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            f"{request.method} {request.path} {response.status_code} {duration_ms:.0f}ms"
+        )
+        return response
