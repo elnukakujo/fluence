@@ -28,11 +28,12 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 		<header className="sticky top-0 z-50 border-b border-border bg-surface/90 backdrop-blur-md">
 			<div className="nav-row mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-8">
 				<div className="flex items-center gap-3">
-					<div className={pathname === "/" || /^\/user\/[^/]+\/update$/.test(pathname) ? "invisible pointer-events-none" : "visible"}>
+					<div className={pathname === "/" || /^\/user\/[^/]+\/update$/.test(pathname) ? "invisible pointer-events-none max-sm:hidden" : "visible"}>
 						<BackButton />
 					</div>
-					<Link href="/" className="flex items-center">
-						<img src="/fluence-logo.jpg" alt="Fluence" className="h-8 w-auto shrink-0" />
+					<Link href="/" className="flex items-center gap-1" aria-label="Fluence">
+						<img src="/fluence-mark.svg" alt="" aria-hidden="true" className="-my-3 h-14 w-14 shrink-0" />
+						<span className="font-serif text-2xl font-semibold tracking-tight text-foreground">Fluence</span>
 					</Link>
 				</div>
 

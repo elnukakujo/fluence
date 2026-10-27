@@ -61,7 +61,11 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const start = history.length > 0 ? parseDateKey(toDateKey(history[0].created_at)) : today;
+    // Always show at least 12 weeks so a new account doesn't render a 3-square stub
+    const minStart = new Date(today);
+    minStart.setDate(minStart.getDate() - 12 * 7);
+    const first = history.length > 0 ? parseDateKey(toDateKey(history[0].created_at)) : today;
+    const start = first < minStart ? first : minStart;
 
     // Align to the Sunday on/before `start` so weeks line up into full columns.
     const gridStart = new Date(start);
@@ -80,7 +84,7 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
         <section className="flex flex-col gap-2 text-sm">
             <div className="flex items-center justify-between gap-4">
                 <h4 className="font-serif text-base text-ink">Practice History</h4>
-                <span className="text-xs text-muted">Since account creation</span>
+                <span className="text-xs text-muted">Your recent activity</span>
             </div>
             <div className="heatmap-scroll">
                 <div className="heatmap-grid">
