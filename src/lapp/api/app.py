@@ -127,6 +127,7 @@ def configure_logging(app: Flask) -> None:
         'spacy',
         'torch',
         'werkzeug',
+        'apscheduler',
     ):
         logging.getLogger(name).setLevel(logging.WARNING)
 

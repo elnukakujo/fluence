@@ -217,6 +217,10 @@ class DatabaseManager:
 
         repo_root = Path(__file__).resolve().parents[3]
         alembic_cfg = AlembicConfig(str(repo_root / "alembic.ini"))
+        # We're running in-app, where logging is already configured — tell
+        # alembic/env.py to skip its own fileConfig() so it doesn't clobber
+        # the app's handlers/levels (see alembic/env.py).
+        alembic_cfg.attributes["skip_logging"] = True
         alembic_cfg.set_main_option("script_location", str(repo_root / "alembic"))
         # Escape "%" for ConfigParser's interpolation - our URLs contain "%3D"
         # (percent-encoded "=" from the search_path query param).

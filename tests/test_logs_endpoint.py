@@ -31,6 +31,29 @@ def test_admin_gets_buffered_logs(app, db):
     assert any("ring-buffer-probe" in line for line in logs)
 
 
+def test_run_migrations_sets_skip_logging(app, db, monkeypatch):
+    """In-app migrations must not let Alembic reconfigure logging.
+
+    alembic/env.py calls fileConfig(config.config_file_name), which defaults to
+    disable_existing_loggers=True — that would set lapp.api.app.disabled=True and
+    silence request/LLM/scoring logs for the rest of the process. run_migrations()
+    sets skip_logging so env.py skips fileConfig.
+    """
+    from alembic import command
+
+    seen = {}
+
+    def capture(cfg, *args, **kwargs):
+        seen["skip_logging"] = cfg.attributes.get("skip_logging")
+
+    monkeypatch.setattr(command, "stamp", capture)
+    monkeypatch.setattr(command, "upgrade", capture)
+
+    db.run_migrations()
+
+    assert seen.get("skip_logging") is True
+
+
 def test_requests_are_logged(app, db):
     token_a = _user_with_session(db, "user_U1", "a", "a@x.com", is_admin=True)
     client = app.test_client()

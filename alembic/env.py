@@ -18,8 +18,11 @@ from config import config as app_config
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-if config.config_file_name is not None:
+# Interpret the config file for Python logging. Skip when Alembic is invoked
+# programmatically from the running app (DatabaseManager.run_migrations) — the
+# app already configures logging, and fileConfig()'s disable_existing_loggers
+# default would silence every app logger (lapp.*) for the rest of the process.
+if config.config_file_name is not None and not config.attributes.get("skip_logging"):
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
