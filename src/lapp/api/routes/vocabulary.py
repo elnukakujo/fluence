@@ -4,9 +4,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...services import VocabularyService
+from ...services.system_data import CollaborationProgressService
 from ...schemas.features import VocabularyDict
 from ...core.exceptions import DuplicateEntityError
-from ...core.auth import login_required, require_owns, require_write
+from ...core.auth import login_required, require_owns, require_write, owner_user_id, current_user_id
 
 bp = Blueprint('vocabulary', __name__, url_prefix='/api/vocabulary')
 vocabulary_service = VocabularyService()
@@ -428,10 +429,14 @@ def score_vocabulary():
     """
     data = request.json
     vocabulary_id = data['vocabulary_id']
-    require_owns(vocabulary_id)
+    require_write(vocabulary_id)
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))
+
+    if owner_user_id(vocabulary_id) != current_user_id():
+        CollaborationProgressService().record(current_user_id(), vocabulary_id, score)
+        return jsonify({'success': True})
 
     vocabulary = vocabulary_service.update_score(
         vocabulary_id,

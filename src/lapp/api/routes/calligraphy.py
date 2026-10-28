@@ -2,9 +2,10 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import CalligraphyService
+from ...services.system_data import CollaborationProgressService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
-from ...core.auth import login_required, require_owns, require_write
+from ...core.auth import login_required, require_owns, require_write, owner_user_id, current_user_id
 from ...utils.helpers import score_drawing
 
 bp = Blueprint('calligraphy', __name__, url_prefix='/api/calligraphy')
@@ -454,10 +455,14 @@ def score_calligraphy():
     """
     data = request.json
     calligraphy_id = data['calligraphy_id']
-    require_owns(calligraphy_id)
+    require_write(calligraphy_id)
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))
+
+    if owner_user_id(calligraphy_id) != current_user_id():
+        CollaborationProgressService().record(current_user_id(), calligraphy_id, score)
+        return jsonify({'success': True})
 
     calligraphy = calligraphy_service.update_score(
         calligraphy_id,
@@ -485,12 +490,16 @@ def draw_calligraphy():
     """
     data = request.json
     calligraphy_id = data['calligraphy_id']
-    require_owns(calligraphy_id)
+    require_write(calligraphy_id)
     similarity = float(data['similarity'])
     stroke_order_errors = int(data['stroke_order_errors'])
     duration_ms = float(data.get('duration_ms', 0))
 
     score = score_drawing(similarity, stroke_order_errors)
+
+    if owner_user_id(calligraphy_id) != current_user_id():
+        CollaborationProgressService().record(current_user_id(), calligraphy_id, score)
+        return jsonify({'success': True})
 
     calligraphy = calligraphy_service.update_score(
         calligraphy_id,

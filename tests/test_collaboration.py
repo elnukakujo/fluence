@@ -115,3 +115,20 @@ def test_collaborator_cannot_delete_container(app, db):
     _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{inv['collaboration']['id']}/accept")
     res = _client_for_user(app, db, "user_U2").delete('/api/languages/lang_L1')
     assert res.status_code == 403
+
+
+def test_collaborator_practice_writes_progress(app, db):
+    _seed_users(db)
+    _seed_vocabulary(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{inv['collaboration']['id']}/accept")
+    res = _client_for_user(app, db, "user_U2").post(
+        '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'score': 1.0, 'duration_ms': 100})
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        voc = s.query(Vocabulary).filter(Vocabulary.id == "voc_V1").one()
+        assert voc.score == 0
+        cp = s.query(CollaborationProgress).filter(
+            CollaborationProgress.user_id == "user_U2", CollaborationProgress.element_id == "voc_V1").one()
+        assert cp.score > 0
