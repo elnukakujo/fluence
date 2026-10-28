@@ -44,9 +44,22 @@ export default function CalligraphyPracticeCanvas({
     const scale = width / LOGICAL_SIZE;
     ctx.clearRect(0, 0, width, height);
 
+    // Reference guide (faint + thick so the jagged medians read as a smooth outline).
+    if (referenceStrokes) {
+      ctx.strokeStyle = "rgba(0,0,0,0.18)";
+      ctx.lineWidth = 12;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      for (const stroke of referenceStrokes) {
+        drawPolyline(ctx, stroke, scale);
+      }
+    }
+
     // User's ink (dark).
     ctx.strokeStyle = "rgba(0,0,0,0.85)";
     ctx.lineWidth = 6;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     for (const stroke of userStrokes) {
       drawPolyline(ctx, stroke, scale);
     }
