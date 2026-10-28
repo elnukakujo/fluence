@@ -81,3 +81,37 @@ def test_invite_requires_owner(app, db):
     res = _client_for_user(app, db, "user_U2").post(
         '/api/collaboration', json={'collaborator_id': 'user_U1', 'target_type': 'language', 'target_id': 'lang_L1'})
     assert res.status_code == 403
+
+
+from lapp.models.features import Vocabulary
+from lapp.models.components import Word
+from lapp.models.containers import Lesson
+
+
+def _seed_vocabulary(db):
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_L1", user_id="user_U1", language_id="lang_L1", title="L1"), session=s, commit=False)
+        db.insert(Word(id="word_W1", language_id="lang_L1", word="水"), session=s, commit=False)
+        db.insert(Vocabulary(id="voc_V1", lesson_id="lesson_L1", word_id="word_W1"), session=s, commit=False)
+
+
+def test_collaborator_can_write_shared_element(app, db):
+    _seed_users(db)
+    _seed_vocabulary(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{inv['collaboration']['id']}/accept")
+    res = _client_for_user(app, db, "user_U2").put('/api/vocabulary/voc_V1', json={'answer': 'water'})
+    assert res.status_code not in (403, 404)  # collaborator is allowed to write
+
+
+def test_collaborator_cannot_delete_container(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{inv['collaboration']['id']}/accept")
+    res = _client_for_user(app, db, "user_U2").delete('/api/languages/lang_L1')
+    assert res.status_code == 403

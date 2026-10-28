@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from ...services import LessonService
 from ...schemas.containers import LessonDict
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 
 bp = Blueprint('lesson', __name__, url_prefix='/api/lessons')
 lesson_service = LessonService()
@@ -30,7 +30,7 @@ def get_all_lessons(language_id: str):
                     type: object
                     description: Lesson object
     """
-    require_owns(language_id)
+    require_write(language_id)
     lessons = lesson_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(lessons)
 
@@ -56,7 +56,7 @@ def get_lesson(lesson_id: str):
         404:
             description: Lesson not found
     """
-    require_owns(lesson_id)
+    require_write(lesson_id)
     lesson = lesson_service.get_by_id(lesson_id, as_dict=True)
 
     if not lesson:
@@ -181,7 +181,7 @@ def update_lesson(lesson_id: str):
                     example: 0
     """
     try:
-        require_owns(lesson_id)
+        require_write(lesson_id)
         data = LessonDict(**request.json)
 
         lesson = lesson_service.update(lesson_id, data, as_dict=True)

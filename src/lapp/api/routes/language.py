@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from ...services import LanguageService
 from ...schemas.containers import LanguageDict
-from ...core.auth import login_required, require_owns, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('language', __name__, url_prefix='/api/languages')
 language_service = LanguageService()
@@ -54,7 +54,7 @@ def get_language(language_id: str):
       404:
         description: Language not found
     """
-    require_owns(language_id)
+    require_write(language_id)
     language = language_service.get_by_id(language_id, as_dict=True)
 
     if not language:
@@ -197,7 +197,7 @@ def update_language(language_id: str):
         description: Language not found
     """
     try:
-        require_owns(language_id)
+        require_write(language_id)
         data = LanguageDict(**request.json)
 
         language = language_service.update(language_id, data, as_dict=True)

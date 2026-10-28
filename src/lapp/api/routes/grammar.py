@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from ...services import GrammarService
 from ...schemas import GrammarDict
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 
 bp = Blueprint('grammar', __name__, url_prefix='/api/grammar')
 grammar_service = GrammarService()
@@ -31,7 +31,7 @@ def get_all_grammar_from_language(language_id: str):
                     type: object
                     description: "A Grammar object"
     """
-    require_owns(language_id)
+    require_write(language_id)
     grammar = grammar_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(grammar)
 
@@ -59,7 +59,7 @@ def get_all_grammar_from_lesson(lesson_id: str):
                     type: object
                     description: "A Grammar object"
     """
-    require_owns(lesson_id)
+    require_write(lesson_id)
     grammar = grammar_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(grammar)
 
@@ -86,7 +86,7 @@ def get_grammar(grammar_id: str):
         404:
             description: Grammar not found
     """
-    require_owns(grammar_id)
+    require_write(grammar_id)
     grammar = grammar_service.get_by_id(grammar_id, as_dict=True)
 
     if not grammar:
@@ -286,7 +286,7 @@ def update_grammar(grammar_id: str):
             description: Validation error
     """
     try:
-        require_owns(grammar_id)
+        require_write(grammar_id)
         data = GrammarDict(**request.json)
 
         grammar = grammar_service.update(grammar_id, data, as_dict=True)

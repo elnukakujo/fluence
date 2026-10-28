@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from ...services import CalligraphyService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 from ...utils.helpers import score_drawing
 
 bp = Blueprint('calligraphy', __name__, url_prefix='/api/calligraphy')
@@ -33,7 +33,7 @@ def get_all_calligraphy_from_language(language_id: str):
                     type: object
                     description: calligraphy object
     """
-    require_owns(language_id)
+    require_write(language_id)
     calligraphy = calligraphy_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(calligraphy)
 
@@ -61,7 +61,7 @@ def get_all_calligraphy_from_lesson(lesson_id: str):
                     type: object
                     description: calligraphy object    
     """
-    require_owns(lesson_id)
+    require_write(lesson_id)
     calligraphy = calligraphy_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(calligraphy)
 
@@ -87,7 +87,7 @@ def get_calligraphy(calligraphy_id: str):
                 type: object
                 description: calligraphy object
     """
-    require_owns(calligraphy_id)
+    require_write(calligraphy_id)
     calligraphy = calligraphy_service.get_by_id(calligraphy_id, as_dict=True)
 
     if not calligraphy:
@@ -374,7 +374,7 @@ def update_calligraphy(calligraphy_id: str):
             description: calligraphy update failed
     """
     try:
-        require_owns(calligraphy_id)
+        require_write(calligraphy_id)
         data = CalligraphyDict(**request.json)
 
         calligraphy = calligraphy_service.update(calligraphy_id, data, as_dict=True)

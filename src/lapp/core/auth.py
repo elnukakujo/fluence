@@ -116,3 +116,56 @@ def require_self_or_admin(user_id: str) -> None:
     """403 unless the current user is the target user or an admin."""
     if user_id != current_user_id() and not getattr(g.current_user, "is_admin", False):
         abort(403, description="Not your account")
+
+
+def _resolve_containers(element_id: str):
+    """Resolve (language_id, lesson_id) for a shareable element; (None, None) otherwise."""
+    from ..services import (
+        LanguageService, LessonService,
+        VocabularyService, GrammarService, CalligraphyService, ExerciseService,
+    )
+    from ..models.components import Word, Passage, Character
+
+    if element_id.startswith("lang_"):
+        return element_id, None
+    if element_id.startswith("lesson_"):
+        lesson = LessonService().get_by_id(element_id, as_dict=True)
+        return (lesson["language_id"], element_id) if lesson else (None, None)
+    for prefix, service in (
+        ("voc_", VocabularyService()), ("gram_", GrammarService()),
+        ("call_", CalligraphyService()), ("ex_", ExerciseService()),
+    ):
+        if element_id.startswith(prefix):
+            feature = service.get_by_id(element_id, as_dict=True)
+            if not feature:
+                return None, None
+            lesson = LessonService().get_by_id(feature["lesson_id"], as_dict=True)
+            return (lesson["language_id"], feature["lesson_id"]) if lesson else (None, None)
+    for prefix, model in (("word_", Word), ("pass_", Passage), ("char_", Character)):
+        if element_id.startswith(prefix):
+            comp = db_manager.find_by_attr(model, {"id": element_id})
+            return (comp.language_id, None) if comp else (None, None)
+    return None, None
+
+
+def can_write(user_id: str, element_id: str) -> bool:
+    """True if `user_id` is the owner or an accepted collaborator of the element's container."""
+    from ..services.system_data import CollaborationService
+
+    if owner_user_id(element_id) == user_id:
+        return True
+    language_id, lesson_id = _resolve_containers(element_id)
+    collab_service = CollaborationService()
+    if language_id and collab_service.is_collaborator(user_id, "language", language_id):
+        return True
+    if lesson_id and collab_service.is_collaborator(user_id, "lesson", lesson_id):
+        return True
+    return False
+
+
+def require_write(element_id: str) -> None:
+    """404 if absent, 403 if neither owner nor collaborator (write access)."""
+    if owner_user_id(element_id) is None:
+        abort(404, description="Not found")
+    if not can_write(current_user_id(), element_id):
+        abort(403, description="Not your resource")

@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 from ...services import VocabularyService
 from ...schemas.features import VocabularyDict
 from ...core.exceptions import DuplicateEntityError
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 
 bp = Blueprint('vocabulary', __name__, url_prefix='/api/vocabulary')
 vocabulary_service = VocabularyService()
@@ -35,7 +35,7 @@ def get_all_vocabulary_from_language(language_id: str):
                     type: object
                     description: Vocabulary object
     """
-    require_owns(language_id)
+    require_write(language_id)
     vocabulary = vocabulary_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(vocabulary)
 
@@ -62,7 +62,7 @@ def get_all_vocabulary_from_lesson(lesson_id: str):
                     type: object
                     description: Vocabulary object
     """
-    require_owns(lesson_id)
+    require_write(lesson_id)
     vocabulary = vocabulary_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(vocabulary)
 
@@ -88,7 +88,7 @@ def get_vocabulary(vocabulary_id: str):
         404:
             description: Vocabulary not found
     """
-    require_owns(vocabulary_id)
+    require_write(vocabulary_id)
     vocabulary = vocabulary_service.get_by_id(vocabulary_id, as_dict=True)
 
     if not vocabulary:
@@ -346,7 +346,7 @@ def update_vocabulary(vocabulary_id: str):
             description: Vocabulary not found
     """
     try:
-        require_owns(vocabulary_id)
+        require_write(vocabulary_id)
         data = VocabularyDict(**(request.get_json() or {}))
 
         vocabulary = vocabulary_service.update(

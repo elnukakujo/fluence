@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from ...services import ExerciseService
 from ...schemas import ExerciseDict
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
@@ -31,7 +31,7 @@ def get_all_exercise_from_language(language_id: str):
                     type: object
                     description: Exercise object
     """
-    require_owns(language_id)
+    require_write(language_id)
     exercise = exercise_service.get_all(language_id=language_id, as_dict=True)
     return jsonify(exercise)
 
@@ -59,7 +59,7 @@ def get_all_exercise_from_lesson(lesson_id: str):
                     type: object
                     description: Exercise object
     """
-    require_owns(lesson_id)
+    require_write(lesson_id)
     exercise = exercise_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(exercise)
 
@@ -87,7 +87,7 @@ def get_exercise(exercise_id: str):
         404:
             description: Exercise not found
     """
-    require_owns(exercise_id)
+    require_write(exercise_id)
     exercise = exercise_service.get_by_id(exercise_id, as_dict=True)
 
     if not exercise:
@@ -291,7 +291,7 @@ def update_exercise(exercise_id: str):
             description: Validation error or bad request
     """
     try:
-        require_owns(exercise_id)
+        require_write(exercise_id)
         data = ExerciseDict(**request.json)
 
         exercise = exercise_service.update(exercise_id, data, as_dict=True)
