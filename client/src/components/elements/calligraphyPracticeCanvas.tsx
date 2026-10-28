@@ -18,11 +18,13 @@ export default function CalligraphyPracticeCanvas({
   const [userStrokes, setUserStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke>([]);
   const drawingRef = useRef(false);
+  const currentStrokeRef = useRef<Stroke>([]);
 
   useEffect(() => {
     let cancelled = false;
     setUserStrokes([]);
     setCurrentStroke([]);
+    currentStrokeRef.current = [];
     loadStrokeData(character).then((strokes) => {
       if (!cancelled) setReferenceStrokes(strokes);
     });
@@ -75,19 +77,22 @@ export default function CalligraphyPracticeCanvas({
   function handleDown(e: React.PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
     drawingRef.current = true;
+    currentStrokeRef.current = [toLogical(e)];
     setCurrentStroke([toLogical(e)]);
   }
 
   function handleMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawingRef.current) return;
-    setCurrentStroke((prev) => [...prev, toLogical(e)]);
+    currentStrokeRef.current = [...currentStrokeRef.current, toLogical(e)];
+    setCurrentStroke(currentStrokeRef.current);
   }
 
   function handleUp() {
     if (!drawingRef.current) return;
     drawingRef.current = false;
-    if (currentStroke.length > 0) {
-      setUserStrokes((prev) => [...prev, currentStroke]);
+    if (currentStrokeRef.current.length > 0) {
+      setUserStrokes((prev) => [...prev, currentStrokeRef.current]);
+      currentStrokeRef.current = [];
       setCurrentStroke([]);
     }
   }

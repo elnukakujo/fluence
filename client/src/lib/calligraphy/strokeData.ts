@@ -13,8 +13,32 @@ export async function loadStrokeData(character: string): Promise<Stroke[] | null
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.medians) return null;
-    return data.medians.map((pts: number[][]) => pts.map(([x, y]) => ({ x, y })));
+    const strokes = data.medians.map((pts: number[][]) => pts.map(([x, y]) => ({ x, y })));
+    return normalizeStrokes(strokes);
   } catch {
     return null;
   }
+}
+
+// hanzi-writer-data medians are in a per-character coordinate space (not centered
+// in a 1024 box). Center + scale them so the guide fills the canvas and the
+// matcher's /1024 scale is meaningful.
+export function normalizeStrokes(strokes: Stroke[]): Stroke[] {
+  if (strokes.length === 0) return strokes;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const s of strokes) {
+    for (const p of s) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+  }
+  const width = maxX - minX || 1;
+  const height = maxY - minY || 1;
+  const scale = Math.min(1024 / width, 1024 / height) * 0.8;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  return strokes.map((s) => s.map((p) => ({
+    x: (p.x - cx) * scale + 512,
+    y: (p.y - cy) * scale + 512,
+  })));
 }

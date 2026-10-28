@@ -139,5 +139,8 @@ def score_drawing(similarity: float, stroke_order_errors: int) -> float:
     """Combine drawing shape similarity + stroke-order errors into a 0–1 score.
 
     Shape is primary; each stroke-order error scales it down by 10% (10+ → 0).
+    Clamps both inputs so a tampered client can't inflate the score.
     """
+    similarity = min(max(similarity, 0.0), 1.0)
+    stroke_order_errors = max(int(stroke_order_errors), 0)
     return round(similarity * max(0.0, 1.0 - 0.1 * stroke_order_errors), 4)

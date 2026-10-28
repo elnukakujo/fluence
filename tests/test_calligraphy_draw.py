@@ -23,6 +23,18 @@ def test_score_drawing_floor_at_zero():
     assert score_drawing(0.9, 20) == 0.0
 
 
+def test_score_drawing_clamps_similarity_to_one():
+    assert score_drawing(2.0, 0) == 1.0
+
+
+def test_score_drawing_clamps_similarity_to_zero():
+    assert score_drawing(-1.0, 0) == 0.0
+
+
+def test_score_drawing_clamps_negative_errors():
+    assert score_drawing(1.0, -5) == 1.0
+
+
 def _seed_calligraphy(db):
     with db.session_scope() as s:
         db.insert(User(id="user_U1", username="a", email="a@x.com", is_admin=True), session=s, commit=False)
