@@ -111,17 +111,31 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             {graded && (
                 <>
                     {practiceResult !== null && (
-                        <section className="flex flex-col space-y-2">
+                        <section className="card">
                             <h3 className="font-serif">Practice Result</h3>
-                            <p className="text-sm">Shape similarity: {Math.round(practiceResult.similarity * 100)}%</p>
-                            <p className="text-sm">
-                                Stroke order: {practiceResult.strokeOrderErrors === 0
-                                    ? "correct"
-                                    : `${practiceResult.strokeOrderErrors} error${practiceResult.strokeOrderErrors === 1 ? "" : "s"}`}
-                            </p>
-                            {practiceScore !== null && (
-                                <p className="text-sm">Score: {Math.round(practiceScore)}/100</p>
-                            )}
+                            <div className="index-divider flex flex-col gap-2.5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted">Shape similarity</span>
+                                    <span className="stat-value">{Math.round(practiceResult.similarity * 100)}%</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted">Stroke order</span>
+                                    <span
+                                        className="text-sm font-medium"
+                                        style={{ color: practiceResult.strokeOrderErrors === 0 ? "var(--color-success)" : "var(--color-danger)" }}
+                                    >
+                                        {practiceResult.strokeOrderErrors === 0
+                                            ? "Correct"
+                                            : `${practiceResult.strokeOrderErrors} error${practiceResult.strokeOrderErrors === 1 ? "" : "s"}`}
+                                    </span>
+                                </div>
+                                {practiceScore !== null && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted">Mastery</span>
+                                        <span className="text-sm">{Math.round(practiceScore)}/100</span>
+                                    </div>
+                                )}
+                            </div>
                         </section>
                     )}
                     {calligraphy.example_words && (
