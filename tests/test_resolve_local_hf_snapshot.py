@@ -37,6 +37,7 @@ def test_complete_snapshot_is_returned(tmp_path):
     snapshot = _make_snapshot(tmp_path, repo_name)
     blobs = snapshot.parent.parent / "blobs"
     _link_real_blob(snapshot, blobs, "model.safetensors")
+    _link_real_blob(snapshot, blobs, "config.json")
     _link_real_blob(snapshot, blobs, "tokenizer.json")
 
     with patch("lapp.utils.models.Path.home", return_value=tmp_path):
@@ -71,6 +72,7 @@ def test_model_with_no_tokenizer_files_at_all_is_fine(tmp_path):
     snapshot = _make_snapshot(tmp_path, repo_name)
     blobs = snapshot.parent.parent / "blobs"
     _link_real_blob(snapshot, blobs, "model.safetensors")
+    _link_real_blob(snapshot, blobs, "config.json")
 
     with patch("lapp.utils.models.Path.home", return_value=tmp_path):
         assert _resolve_local_hf_snapshot(repo_name) == str(snapshot)
