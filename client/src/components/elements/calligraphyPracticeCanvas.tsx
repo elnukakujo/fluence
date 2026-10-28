@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadStrokeData, normalizeStrokes, type Stroke } from "@/lib/calligraphy/strokeData";
+import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
 import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
@@ -138,13 +138,15 @@ export default function CalligraphyPracticeCanvas({
     if (stroke.length === 0 || !referenceStrokes) return;
 
     // Validate: the next expected stroke, in the right order, close enough.
-    const normalized = normalizeStrokes([stroke])[0];
-    const { index, distance } = findClosestStroke(normalized, referenceStrokes);
+    // The stroke is already in the canvas's 0-1024 space (via toLogical), matching
+    // the normalized reference — do NOT re-normalize a single stroke (it would
+    // scale it up to fill the whole box and misalign it).
+    const { index, distance } = findClosestStroke(stroke, referenceStrokes);
     const correct = index === correctCountRef.current && distance < STROKE_MATCH_THRESHOLD;
 
     if (correct) {
       correctCountRef.current += 1;
-      setUserStrokes((prev) => [...prev, normalized]);
+      setUserStrokes((prev) => [...prev, stroke]);
       setLastStrokeWrong(false);
     } else {
       setLastStrokeWrong(true);
