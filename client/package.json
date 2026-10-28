@@ -6,7 +6,8 @@
     "dev": "node --env-file=../.env node_modules/.bin/next dev",
     "build": "node --env-file=../.env node_modules/.bin/next build",
     "start": "node --env-file=../.env node_modules/.bin/next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
@@ -35,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }
