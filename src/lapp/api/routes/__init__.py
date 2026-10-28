@@ -19,6 +19,7 @@ from .daily_stats import bp as daily_stats_bp
 from .commitment_log import commitment_log_bp
 from .review import bp as review_bp
 from .auth import bp as auth_bp
+from .collaboration import bp as collaboration_bp
 __all__ = [
     language_bp,
     lesson_bp,
@@ -41,4 +42,5 @@ __all__ = [
     commitment_log_bp,
     review_bp,
     auth_bp,
+    collaboration_bp,
 ]

@@ -26,3 +26,58 @@ def test_collaboration_progress_model_fields(db):
         s.flush()
         p = s.query(CollaborationProgress).filter(CollaborationProgress.id == "cp_P1").one()
         assert p.score == 42.0 and p.difficulty == 0.6
+
+
+from lapp.services.auth import AuthService
+from lapp.models.containers import Language
+
+
+def _seed_language(db):
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+
+
+def _client_for_user(app, db, uid):
+    token = AuthService().create_session(uid, remember=False)
+    client = app.test_client()
+    client.set_cookie('session_token', token)
+    return client
+
+
+def test_invite_creates_pending_collaboration(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    res = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'})
+    assert res.status_code == 200
+    assert res.get_json()['collaboration']['status'] == 'pending'
+
+
+def test_accept_flips_status(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    res = _client_for_user(app, db, "user_U2").post(f'/api/collaboration/{cid}/accept')
+    assert res.status_code == 200
+    assert res.get_json()['collaboration']['status'] == 'accepted'
+
+
+def test_reject_deletes(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    res = _client_for_user(app, db, "user_U2").post(f'/api/collaboration/{cid}/reject')
+    assert res.status_code == 200
+
+
+def test_invite_requires_owner(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    res = _client_for_user(app, db, "user_U2").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U1', 'target_type': 'language', 'target_id': 'lang_L1'})
+    assert res.status_code == 403

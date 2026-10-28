@@ -178,6 +178,7 @@ def register_blueprints(app: Flask) -> None:
         commitment_log_bp,
         review_bp,
         auth_bp,
+        collaboration_bp,
     )
 
     # Register blueprints
@@ -203,6 +204,7 @@ def register_blueprints(app: Flask) -> None:
         commitment_log_bp,
         review_bp,
         auth_bp,
+        collaboration_bp,
     ]
 
     for blueprint in blueprints:
