@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import { matchStrokes } from "./strokeMatch";
 
 test("identical strokes give similarity 1 and zero order errors", () => {
