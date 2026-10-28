@@ -32,6 +32,14 @@ def get_all_users():
     return jsonify(users)
 
 
+@bp.route('/list', methods=['GET'])
+@login_required
+def list_users_for_collaboration():
+    """All users (id + display_name) to feed the invite menu. Non-admin."""
+    users = db_manager.find_all(UserModel)
+    return jsonify([{"id": u.id, "display_name": u.display_name or u.username} for u in users])
+
+
 @bp.route('/<user_id>', methods=['GET'])
 @login_required
 def get_user(user_id: str):

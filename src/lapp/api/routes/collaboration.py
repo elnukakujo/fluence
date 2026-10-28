@@ -88,3 +88,18 @@ def remove(collaboration_id):
 @login_required
 def invites():
     return jsonify(collaboration_service.list_invites(current_user_id()))
+
+
+@bp.route('/list', methods=['GET'])
+@login_required
+def list_collaborators():
+    target_type = request.args.get('target_type')
+    target_id = request.args.get('target_id')
+    if not target_type or not target_id:
+        abort(400, description="target_type and target_id are required")
+    owner = owner_user_id(target_id)
+    if owner is None:
+        abort(404, description="Target not found")
+    if owner != current_user_id():
+        abort(403, description="Not your resource")
+    return jsonify(collaboration_service.list_collaborators(target_type, target_id))

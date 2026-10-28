@@ -1,5 +1,6 @@
 import NavButton from "@/components/layout/navButton";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
+import CollaborateButton from "@/components/collaboration/collaborateButton";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
@@ -33,6 +34,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                     <NavButton path={`/languages/${language_id}/update`}>
                         <p>Update Language</p>
                     </NavButton>
+                    <CollaborateButton targetType="language" targetId={language_id} />
                     <DeleteButton element_id={language_id}/>
                 </nav>
                 <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} />
