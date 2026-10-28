@@ -60,6 +60,7 @@ dependencies = [
     "hanzipy>=1.0.4",
     "alembic>=1.18.5",
     "psycopg[binary]>=3.3.4",
+    "soundfile>=0.14.0",
 ]
 [build-system]
 requires = ["hatchling"]
