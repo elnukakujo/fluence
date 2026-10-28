@@ -133,3 +133,11 @@ def update_difficulty(
     new_difficulty = (1 - alpha) * previous_difficulty + alpha * (previous_difficulty + difficulty_delta)
 
     return min(max(0.0, new_difficulty), 1.0)
+
+
+def score_drawing(similarity: float, stroke_order_errors: int) -> float:
+    """Combine drawing shape similarity + stroke-order errors into a 0–1 score.
+
+    Shape is primary; each stroke-order error scales it down by 10% (10+ → 0).
+    """
+    return round(similarity * max(0.0, 1.0 - 0.1 * stroke_order_errors), 4)

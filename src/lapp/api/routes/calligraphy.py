@@ -5,6 +5,7 @@ from ...services import CalligraphyService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
 from ...core.auth import login_required, require_owns
+from ...utils.helpers import score_drawing
 
 bp = Blueprint('calligraphy', __name__, url_prefix='/api/calligraphy')
 calligraphy_service = CalligraphyService()
@@ -472,5 +473,35 @@ def score_calligraphy():
             'success': True,
                 'calligraphy': calligraphy
         })
+    else:
+        return jsonify({'error': 'calligraphy not found'}), 404
+
+@bp.route('/draw', methods=['POST'])
+@login_required
+def draw_calligraphy():
+    """Score a calligraphy drawing (shape similarity + stroke-order errors).
+
+    Body: { calligraphy_id, similarity (0..1), stroke_order_errors (int), duration_ms (float) }.
+    """
+    data = request.json
+    calligraphy_id = data['calligraphy_id']
+    require_owns(calligraphy_id)
+    similarity = float(data['similarity'])
+    stroke_order_errors = int(data['stroke_order_errors'])
+    duration_ms = float(data.get('duration_ms', 0))
+
+    score = score_drawing(similarity, stroke_order_errors)
+
+    calligraphy = calligraphy_service.update_score(
+        calligraphy_id,
+        score,
+        duration_ms=duration_ms,
+        hint_used=False,
+        as_dict=True,
+        include_relations=False,
+    )
+
+    if calligraphy:
+        return jsonify({'success': True, 'calligraphy': calligraphy})
     else:
         return jsonify({'error': 'calligraphy not found'}), 404
