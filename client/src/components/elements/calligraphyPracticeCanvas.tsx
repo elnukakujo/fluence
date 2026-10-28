@@ -47,7 +47,7 @@ export default function CalligraphyPracticeCanvas({
     // Reference guide (faint + thick so the jagged medians read as a smooth outline).
     if (referenceStrokes) {
       ctx.strokeStyle = "rgba(0,0,0,0.18)";
-      ctx.lineWidth = 12;
+      ctx.lineWidth = 18;
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
       for (const stroke of referenceStrokes) {
@@ -57,7 +57,7 @@ export default function CalligraphyPracticeCanvas({
 
     // User's ink (dark).
     ctx.strokeStyle = "rgba(0,0,0,0.85)";
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 10;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     for (const stroke of userStrokes) {
@@ -128,6 +128,9 @@ export default function CalligraphyPracticeCanvas({
         onPointerUp={handleUp}
         onPointerLeave={handleUp}
       />
+      <p className="text-sm text-muted">
+        Strokes: {userStrokes.length}{referenceStrokes ? ` / ${referenceStrokes.length}` : ""}
+      </p>
       <div className="flex gap-3">
         <button type="button" className="btn" onClick={handleClear}>
           Clear

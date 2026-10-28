@@ -37,8 +37,10 @@ export function normalizeStrokes(strokes: Stroke[]): Stroke[] {
   const scale = Math.min(1024 / width, 1024 / height) * 0.8;
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
+  // Negate the Y offset: hanzi-writer-data is Y-up (0 = bottom), the canvas is
+  // Y-down (0 = top), so flip the vertical axis while centering.
   return strokes.map((s) => s.map((p) => ({
     x: (p.x - cx) * scale + 512,
-    y: (p.y - cy) * scale + 512,
+    y: -(p.y - cy) * scale + 512,
   })));
 }

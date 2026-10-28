@@ -9,3 +9,10 @@ test("normalizeStrokes centers a stroke's bounding box at the canvas origin", ()
   expect(cx).toBeCloseTo(512, 0);
   expect(cy).toBeCloseTo(512, 0);
 });
+
+test("normalizeStrokes flips the Y axis (data is Y-up, canvas is Y-down)", () => {
+  // y=100 is the top of the character (larger Y in Y-up data), y=0 is the bottom.
+  const strokes = [[{ x: 0, y: 100 }, { x: 0, y: 0 }]];
+  const out = normalizeStrokes(strokes);
+  expect(out[0][0].y).toBeLessThan(out[0][1].y);
+});
