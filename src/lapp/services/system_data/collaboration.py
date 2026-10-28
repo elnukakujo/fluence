@@ -73,6 +73,7 @@ class CollaborationService:
         word_map: dict[str, str] = {}
         char_map: dict[str, str] = {}
         pass_map: dict[str, str] = {}
+        feature_map: dict[str, str] = {}
 
         if target_type == "language":
             lang = session.query(Language).filter(Language.id == target_id).first()
@@ -114,27 +115,28 @@ class CollaborationService:
                                title=lesson.title, level=lesson.level, description=lesson.description)
             session.flush()
             for v in session.query(Vocabulary).filter(Vocabulary.lesson_id == lesson.id).all():
-                clone(Vocabulary, lesson_id=new_lesson.id, word_id=word_map.get(v.word_id, v.word_id),
-                      score=0.0, difficulty=v.difficulty)
+                nv = clone(Vocabulary, lesson_id=new_lesson.id, word_id=word_map.get(v.word_id, v.word_id),
+                           score=0.0, difficulty=v.difficulty)
+                feature_map[v.id] = nv.id
             for g in session.query(Grammar).filter(Grammar.lesson_id == lesson.id).all():
-                clone(Grammar, lesson_id=new_lesson.id, title=g.title, explanation=g.explanation,
-                      score=0.0, difficulty=g.difficulty)
+                ng = clone(Grammar, lesson_id=new_lesson.id, title=g.title, explanation=g.explanation,
+                           score=0.0, difficulty=g.difficulty)
+                feature_map[g.id] = ng.id
             for c in session.query(Calligraphy).filter(Calligraphy.lesson_id == lesson.id).all():
-                clone(Calligraphy, lesson_id=new_lesson.id, character_id=char_map.get(c.character_id, c.character_id),
-                      score=0.0, difficulty=c.difficulty)
+                nc = clone(Calligraphy, lesson_id=new_lesson.id, character_id=char_map.get(c.character_id, c.character_id),
+                           score=0.0, difficulty=c.difficulty)
+                feature_map[c.id] = nc.id
             for e in session.query(Exercise).filter(Exercise.lesson_id == lesson.id).all():
-                clone(Exercise, lesson_id=new_lesson.id, exercise_type=e.exercise_type, question=e.question,
-                      answer=e.answer, text_support=e.text_support, content=e.content, score=0.0, difficulty=e.difficulty)
+                ne = clone(Exercise, lesson_id=new_lesson.id, exercise_type=e.exercise_type, question=e.question,
+                           answer=e.answer, text_support=e.text_support, content=e.content, score=0.0, difficulty=e.difficulty)
+                feature_map[e.id] = ne.id
 
         # map the collaborator's progress (old element id -> new element id)
-        # progress is keyed by element id; features/components are cloned with new ids,
-        # so remap old->new where the element was a feature/component under the container.
         element_map: dict[str, str] = {}
         element_map.update(word_map)
         element_map.update(char_map)
         element_map.update(pass_map)
-        # feature ids are not mapped above (they're created inline); skip for now —
-        # progress on features is dropped rather than mis-attributed.
+        element_map.update(feature_map)
         for cp in session.query(CollaborationProgress).filter(
                 CollaborationProgress.user_id == collaborator_id).all():
             if cp.element_id in element_map:

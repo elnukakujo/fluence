@@ -68,6 +68,8 @@ def reject(collaboration_id):
         abort(404, description="Collaboration not found")
     if collab.collaborator_id != current_user_id():
         abort(403, description="Not your invitation")
+    if collab.status == "accepted":
+        abort(403, description="Already accepted — the master must remove you (or leave, which forks)")
     collaboration_service.reject(collaboration_id)
     return jsonify({'success': True})
 

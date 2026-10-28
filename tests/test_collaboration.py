@@ -151,3 +151,14 @@ def test_remove_forks_content(app, db):
         assert len(lessons) == 1
         vocs = s.query(Vocabulary).filter(Vocabulary.lesson_id == lessons[0].id).all()
         assert len(vocs) == 1
+
+
+def test_accepted_collaboration_cannot_be_rejected(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/accept")
+    res = _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/reject")
+    assert res.status_code == 403
