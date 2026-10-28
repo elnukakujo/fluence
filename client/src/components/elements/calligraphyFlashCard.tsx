@@ -1,9 +1,11 @@
 "use client";
 
 import { updateScoreById } from "@/api/process";
+import { submitCalligraphyDrawing } from "@/api/calligraphy";
 import { useEffect, useRef, useState } from "react";
 import Calligraphy from "@/interface/features/Calligraphy";
 import BackButton from "@/components/ui/buttons/backButton";
+import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
 import CharacterCard from "./characterCard";
 import WordCard from "./wordCard";
 import SentenceCard from "./sentenceCard";
@@ -21,12 +23,16 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
 
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
+    const [showPractice, setShowPractice] = useState<boolean>(false);
+    const [practiceScore, setPracticeScore] = useState<number | null>(null);
 
     useEffect(() => {
         startTimeRef.current = performance.now();
         setHintUsed(false);
         setHiddenTranslation(true);
         setGraded(false);
+        setShowPractice(false);
+        setPracticeScore(null);
     }, [currentIndex]);
 
     const handleGrade = (score: number) => {
@@ -45,6 +51,18 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
         setCurrentIndex(currentIndex + 1);
     }
 
+    const handleDrawingResult = async (r: { similarity: number; strokeOrderErrors: number }) => {
+        const duration_ms = Math.round(performance.now() - startTimeRef.current);
+        try {
+            const res = await submitCalligraphyDrawing(calligraphy.id!, r.similarity, r.strokeOrderErrors, duration_ms);
+            setPracticeScore(res.calligraphy?.score ?? null);
+            setGraded(true);
+            setShowPractice(false);
+        } catch (e) {
+            console.error("Failed to submit drawing", e);
+        }
+    }
+
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
             <ProgressBar
@@ -52,7 +70,15 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                 total={calligraphies.length}
             />
             <section className="flex flex-col space-y-4">
-                <h1>Calligraphy Sheet</h1>
+                <div className="flex items-baseline justify-between">
+                    <h1>Calligraphy Sheet</h1>
+                    {!showPractice && (
+                        <button className="btn" onClick={() => setShowPractice(true)}>Practice</button>
+                    )}
+                </div>
+                {showPractice ? (
+                    <CalligraphyPracticeCanvas character={calligraphy.character.character ?? ""} onResult={handleDrawingResult} />
+                ) : (
                 <div className="flashcard">
                     <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
                         <div
@@ -74,12 +100,19 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                         </div>
                     </div>
                 </div>
+                )}
             </section>
             {!hiddenTranslation && !graded && (
                 <RecallGradeButtons onGrade={handleGrade} />
             )}
             {graded && (
                 <>
+                    {practiceScore !== null && (
+                        <section className="flex flex-col space-y-2">
+                            <h3 className="font-serif">Practice Result</h3>
+                            <p className="text-sm">Score: {Math.round(practiceScore)}/100</p>
+                        </section>
+                    )}
                     {calligraphy.example_words && (
                         <section className="flex flex-col space-y-4 items-baseline">
                             <h3 className="font-serif">Example Words</h3>

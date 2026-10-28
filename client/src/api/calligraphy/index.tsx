@@ -53,3 +53,23 @@ export async function deleteCalligraphy(calligraphyId: string) {
   });
   if (!res.ok) throw new Error("Failed to delete calligraphy");
 }
+
+export async function submitCalligraphyDrawing(
+  calligraphyId: string,
+  similarity: number,
+  strokeOrderErrors: number,
+  durationMs: number,
+) {
+  const res = await fetch(`${BASE_URL}/api/calligraphy/draw`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({
+      calligraphy_id: calligraphyId,
+      similarity,
+      stroke_order_errors: strokeOrderErrors,
+      duration_ms: durationMs,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to submit calligraphy drawing");
+  return res.json();
+}
