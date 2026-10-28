@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import json
 from datetime import date
 
 from flask import Flask
@@ -65,7 +66,7 @@ def seed_course(session, user_id: str) -> None:
     vocab_ids = gen_many(Vocabulary, session, 8)
     grammar_ids = gen_many(Grammar, session, 2)
     call_ids = gen_many(Calligraphy, session, 3)
-    ex_ids = gen_many(Exercise, session, 5)
+    ex_ids = gen_many(Exercise, session, 6)
 
     language = Language(
         id=lang_id,
@@ -272,6 +273,26 @@ def seed_course(session, user_id: str) -> None:
             answer="true",
             content={"statement": "「を」 marks the object of a verb.", "answer": True},
             related_grammar=[grammar["wo"]],
+        ),
+        Exercise(
+            id=ex_ids[5],
+            lesson_id=lessons["actions"].id,
+            exercise_type="conversation",
+            question=json.dumps({
+                "speakers": [
+                    {"id": "s1", "name": "店員", "isUser": False},
+                    {"id": "s2", "name": "あなた", "isUser": True},
+                ],
+                "lines": [
+                    {"speakerId": "s1", "text": "いらっしゃいませ！", "audioIndex": 0},
+                    {"speakerId": "s2", "text": "こんにちは。水をください。", "audioIndex": 1},
+                    {"speakerId": "s1", "text": "かしこまりました。", "audioIndex": 2},
+                    {"speakerId": "s2", "text": "ありがとうございます。", "audioIndex": 3},
+                ],
+            }),
+            answer="Scripted restaurant dialogue",
+            audio_files=[],  # reference audio is a TTS follow-up (ElevenLabs)
+            related_vocabulary=[vocab["水"]],
         ),
     ]
     session.add_all(exercises)

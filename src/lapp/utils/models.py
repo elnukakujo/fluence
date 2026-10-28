@@ -67,6 +67,12 @@ def _resolve_local_hf_snapshot(model_repo_name: str, require_tokenizer: bool = F
     if not has_weights:
         logger.info(f"[hf-snapshot] {model_repo_name}: rejected, no resolvable weight files")
         return None
+    # config.json is required to instantiate the right architecture; a snapshot
+    # with weights but no config makes from_pretrained fall back to default
+    # config (e.g. 768 vs the model's 1024 hidden size) and fail to load.
+    if not (latest / "config.json").exists():
+        logger.info(f"[hf-snapshot] {model_repo_name}: rejected, missing config.json")
+        return None
 
     tokenizer_names = ("tokenizer.json", "vocab.json", "merges.txt", "vocab.txt")
     tokenizer_status = {
@@ -150,6 +156,11 @@ def get_stt_pipe():
         pipeline,
     )
     device = get_device()
+    # torchcodec is installed but its FFmpeg/CUDA shared libs can't load on this
+    # CPU-only box, so the ASR preprocess's `import torchcodec` raises. We pass
+    # raw waveforms (not file paths), so force transformers to skip torchcodec.
+    from transformers.pipelines import automatic_speech_recognition as _asr
+    _asr.is_torchcodec_available = lambda: False
     # float16 has no native CPU arithmetic support and falls back to slow
     # scalar emulation; only use it on a real GPU.
     dtype = torch.float16 if device in ("cuda", "mps") else torch.float32

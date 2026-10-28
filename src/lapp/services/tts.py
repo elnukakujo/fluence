@@ -20,6 +20,20 @@ _VOICE_MAP: dict[str, dict[str, str]] = {
 }
 _VOICE_FALLBACK = "en_f"
 
+# ElevenLabs multilingual voice ids (work across languages via eleven_multilingual_v2).
+_ELEVENLABS_VOICES: dict[str, str] = {
+    "female": "21m00Tcm4TlvDq8ikWAM",  # Rachel
+    "male": "pNInz6obpgDQGcFmaJgB",     # Adam
+}
+
+# Google Cloud TTS language codes (ISO 639-1 -> BCP-47). Falls back to en-US.
+_GOOGLE_LANG_MAP: dict[str, str] = {
+    "ja": "ja-JP", "en": "en-US", "es": "es-ES", "fr": "fr-FR",
+    "zh": "cmn-CN", "hi": "hi-IN", "it": "it-IT", "pt": "pt-BR",
+    "de": "de-DE", "ko": "ko-KR", "ru": "ru-RU", "ar": "ar-XA",
+    "nl": "nl-NL", "pl": "pl-PL", "tr": "tr-TR", "vi": "vi-VN",
+}
+
 class TTSService:
     """
     Service for generating text-to-speech audio via a configurable TTS API endpoint.
@@ -94,17 +108,37 @@ class TTSService:
             # Prefer the caller's target language over guessing from the text —
             # single CJK chars like 犬 are shared across ja/zh and langdetect misreads them.
             if not api.get("voice"):
+                api_format = api.get("api_format")
+                is_elevenlabs = api_format == "elevenlabs"
+                is_google = api_format == "google_tts"
                 try:
-                    iso1 = language_code or detect_text_language(text).iso1
                     gender = api.get("voice_gender") or "female"
-                    voices = _VOICE_MAP.get(iso1, {})
-                    # ponytail: if male voice doesn't exist for this language, fall back to female
-                    voice = voices.get(gender) or voices.get("female") or _VOICE_FALLBACK
+                    if is_elevenlabs:
+                        # ElevenLabs voices are multilingual ids, not per-language names.
+                        voice = _ELEVENLABS_VOICES.get(gender) or _ELEVENLABS_VOICES["female"]
+                        logger.info(f"Selected ElevenLabs voice '{voice}' (gender={gender})")
+                    elif is_google:
+                        # Google voices are per-language; `voice` carries the BCP-47 code,
+                        # gender is handled downstream via voice_gender.
+                        iso1 = language_code or detect_text_language(text).iso1
+                        voice = _GOOGLE_LANG_MAP.get(iso1, "en-US")
+                        logger.info(f"Selected Google language code '{voice}' (lang={iso1})")
+                    else:
+                        iso1 = language_code or detect_text_language(text).iso1
+                        voices = _VOICE_MAP.get(iso1, {})
+                        # ponytail: if male voice doesn't exist for this language, fall back to female
+                        voice = voices.get(gender) or voices.get("female") or _VOICE_FALLBACK
+                        logger.info(f"Selected voice '{voice}' (lang={iso1}, gender={gender})")
                     api = {**api, "voice": voice}
-                    logger.info(f"Selected voice '{voice}' (lang={iso1}, gender={gender})")
                 except Exception:
-                    api = {**api, "voice": _VOICE_FALLBACK}
-                    logger.info(f"Voice detection failed, using fallback '{_VOICE_FALLBACK}'")
+                    if is_elevenlabs:
+                        fallback = _ELEVENLABS_VOICES["female"]
+                    elif is_google:
+                        fallback = "en-US"
+                    else:
+                        fallback = _VOICE_FALLBACK
+                    api = {**api, "voice": fallback}
+                    logger.info(f"Voice detection failed, using fallback '{fallback}'")
 
             wav_bytes = synthesize_speech(**api, text=text)
 

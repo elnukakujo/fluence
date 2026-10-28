@@ -7,8 +7,10 @@ speak OpenAI-compatible — one path covers them all.
 There is no server-wide default — each user configures their own API in Settings.
 A task is skipped when a user hasn't configured one.
 """
+import base64
 import logging
 import os
+import struct
 
 import httpx
 
@@ -277,6 +279,76 @@ def chat_completion(
         ) from e
 
 
+def _pcm_to_wav(pcm: bytes, sample_rate: int = 24000) -> bytes:
+    """Wrap raw 16-bit mono PCM in a WAV header (ElevenLabs returns PCM)."""
+    byte_rate = sample_rate * 2  # 1 channel * 16-bit
+    block_align = 2
+    header = (
+        b"RIFF"
+        + struct.pack("<I", 36 + len(pcm))
+        + b"WAVEfmt "
+        + struct.pack("<IHHIIHH", 16, 1, 1, sample_rate, byte_rate, block_align, 16)
+        + b"data"
+        + struct.pack("<I", len(pcm))
+    )
+    return header + pcm
+
+
+def _synthesize_speech_elevenlabs(
+    base_url: str,
+    api_key: str,
+    voice_id: str,
+    text: str,
+    model: str = "",
+) -> bytes:
+    """Generate speech via ElevenLabs. voice_id is a hex voice id (not a name).
+
+    ElevenLabs uses POST /text-to-speech/{voice_id} + an xi-api-key header, and
+    returns PCM (pcm_24000) which we wrap as WAV so the eval pipeline can load it.
+    """
+    model_id = model or "eleven_multilingual_v2"
+    headers = {
+        "xi-api-key": (api_key or "").strip(),
+        "Content-Type": "application/json",
+    }
+    with _client(base_url.rstrip("/"), headers) as client:
+        resp = client.post(
+            f"/text-to-speech/{voice_id}",
+            json={"text": text, "model_id": model_id},
+            params={"output_format": "pcm_24000"},
+        )
+        resp.raise_for_status()
+        return _pcm_to_wav(resp.content)
+
+
+def _synthesize_speech_google(
+    base_url: str,
+    api_key: str,
+    text: str,
+    voice: str = "en-US",
+    voice_gender: str = "female",
+) -> bytes:
+    """Generate speech via Google Cloud Text-to-Speech (API key auth).
+
+    `voice` is a BCP-47 language code (e.g. "ja-JP"); `voice_gender` selects the
+    default voice for that language. Returns LINEAR16 PCM wrapped as WAV.
+    """
+    language_code = voice or "en-US"
+    gender = "MALE" if (voice_gender or "").lower() == "male" else "FEMALE"
+    body = {
+        "input": {"text": text},
+        "voice": {"languageCode": language_code, "ssmlGender": gender},
+        "audioConfig": {"audioEncoding": "LINEAR16", "sampleRateHertz": 24000},
+    }
+    path = "/text:synthesize"
+    if api_key:
+        path += f"?key={api_key}"
+    with _client(base_url.rstrip("/"), {"Content-Type": "application/json"}) as client:
+        resp = client.post(path, json=body)
+        resp.raise_for_status()
+        return _pcm_to_wav(base64.b64decode(resp.json()["audioContent"]))
+
+
 def synthesize_speech(
     base_url: str,
     api_key: str,
@@ -284,13 +356,26 @@ def synthesize_speech(
     model: str = "",
     text: str = "",
     voice: str = "alloy",
-    **kwargs,  # ponytail: api_format and friends passed via **api dict — ignored, TTS is openai-only
+    api_format: str = "openai",
+    **kwargs,
 ) -> bytes:
-    """Generate speech from text. Only OpenAI-compatible TTS is supported.
+    """Generate speech from text. Dispatches on api_format:
+    - "elevenlabs": native ElevenLabs TTS (voice is a voice id).
+    - otherwise: OpenAI-compatible /audio/speech (voice is a name).
 
     Raises ModelAPIError on transport/auth/API failures.
     """
     try:
+        if api_format == "elevenlabs":
+            return _synthesize_speech_elevenlabs(
+                base_url=base_url, api_key=api_key,
+                voice_id=voice or "", text=text, model=model,
+            )
+        if api_format == "google_tts":
+            return _synthesize_speech_google(
+                base_url=base_url, api_key=api_key, text=text,
+                voice=voice or "", voice_gender=kwargs.get("voice_gender", "female"),
+            )
         return _synthesize_speech_openai(
             base_url=base_url, api_key=api_key, auth_type=auth_type,
             model=model, text=text, voice=voice,

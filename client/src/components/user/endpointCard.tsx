@@ -27,7 +27,8 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { value: "gemini", label: "Google Gemini", base_url: "https://generativelanguage.googleapis.com/v1beta", auth_type: "param", api_format: "gemini" },
   { value: "llamacpp", label: "llama.cpp Server", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai" },
   { value: "localai", label: "LocalAI", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai" },
-  { value: "elevenlabs", label: "ElevenLabs", base_url: "https://api.elevenlabs.io/v1", auth_type: "x-api-key", api_format: "openai" },
+  { value: "elevenlabs", label: "ElevenLabs", base_url: "https://api.elevenlabs.io/v1", auth_type: "x-api-key", api_format: "elevenlabs" },
+  { value: "google_tts", label: "Google Cloud TTS", base_url: "https://texttospeech.googleapis.com/v1", auth_type: "param", api_format: "google_tts" },
   { value: "local_tts", label: "Local TTS (Kokoro / Piper)", base_url: "http://localhost:8880/v1", auth_type: "none", api_format: "openai" },
   { value: "custom", label: "Custom", base_url: "", auth_type: "bearer", api_format: "openai" },
 ];
@@ -45,7 +46,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // Providers that only do TTS (never text-gen)
-const TTS_ONLY = new Set(["elevenlabs", "local_tts"]);
+const TTS_ONLY = new Set(["elevenlabs", "google_tts", "local_tts"]);
 
 // Map backend error patterns to user-friendly hints
 function friendlyError(error: string): string {
@@ -107,7 +108,7 @@ export default function EndpointCard({
   const filteredProviders = useMemo(() => {
     if (!endpoint.api_type || endpoint.api_type === "both") return providers;
     if (endpoint.api_type === "tts") {
-      return providers.filter(p => p.value === "custom" || p.value === "local_tts" || p.value === "elevenlabs" || p.value === "openai");
+      return providers.filter(p => p.value === "custom" || p.value === "local_tts" || p.value === "elevenlabs" || p.value === "google_tts" || p.value === "openai");
     }
     // text_gen: exclude TTS-only providers
     return providers.filter(p => !TTS_ONLY.has(p.value));

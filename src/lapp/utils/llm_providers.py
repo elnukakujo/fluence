@@ -75,7 +75,13 @@ PROVIDERS: dict[str, dict] = {
         "label": "ElevenLabs",
         "base_url": "https://api.elevenlabs.io/v1",
         "auth_type": "x-api-key",
-        "api_format": "openai",
+        "api_format": "elevenlabs",
+    },
+    "google_tts": {
+        "label": "Google Cloud TTS",
+        "base_url": "https://texttospeech.googleapis.com/v1",
+        "auth_type": "param",
+        "api_format": "google_tts",
     },
     "local_tts": {
         "label": "Local TTS (Kokoro / Piper)",

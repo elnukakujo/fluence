@@ -5,9 +5,9 @@ from pydantic import BaseModel, field_validator
 VALID_PROVIDERS = {
     "openai", "deepseek", "ollama", "kimi", "groq", "mistral",
     "openrouter", "anthropic", "gemini", "llamacpp", "localai",
-    "elevenlabs", "local_tts", "custom",
+    "elevenlabs", "google_tts", "local_tts", "custom",
 }
-VALID_API_FORMATS = {"openai", "anthropic", "gemini"}
+VALID_API_FORMATS = {"openai", "anthropic", "gemini", "elevenlabs", "google_tts"}
 VALID_AUTH_TYPES = {"bearer", "x-api-key", "param", "none"}
 VALID_API_TYPES = {"text_gen", "tts", "both"}
 

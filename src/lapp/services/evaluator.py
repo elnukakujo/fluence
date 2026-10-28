@@ -3,7 +3,9 @@ from scipy.spatial.distance import cosine
 import language_tool_python
 from sqlalchemy.orm import Session
 from typing import Optional
+import torch
 import torchaudio
+import soundfile as sf
 import math
 import traceback
 
@@ -50,7 +52,7 @@ class EvaluatorService:
         "essay": (0.4, 0.4, 0.2),
         "answering": (0.6, 0.3, 0.1),
         "speaking": (0.3, 0.1, 0.6),
-        "conversation": (0.5, 0.3, 0.2)
+        "conversation": (0.3, 0.1, 0.6)
     }
 
     exercises_thresholds = {
@@ -115,10 +117,15 @@ class EvaluatorService:
         return correct_speaking_path, exercise.exercise_type
 
     def _extract_waveform_from_path(self, audio_path: str) -> np.ndarray:
-        waveform, sr = torchaudio.load(audio_path)
+        # torchaudio.load defaults to the torchcodec backend (FFmpeg+CUDA) which
+        # isn't installed; our audio is always WAV, so read it with soundfile.
+        data, sr = sf.read(audio_path, dtype="float32")
+        if data.ndim > 1:
+            data = data.mean(axis=1)
+        waveform = torch.from_numpy(data)
         if sr != 16000:
             waveform = torchaudio.transforms.Resample(orig_freq=sr, new_freq=16000)(waveform)
-        return waveform.mean(dim=0).numpy()
+        return waveform.numpy()
     
     def _speech_to_embeddings(self, waveform: np.ndarray) -> list[float]:
         device = next(self.audio_embedding_model.parameters()).device
