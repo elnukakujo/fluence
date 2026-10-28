@@ -17,6 +17,19 @@ function strokeDistance(a: Stroke, b: Stroke): number {
   return Math.hypot(ca.x - cb.x, ca.y - cb.y);
 }
 
+export function findClosestStroke(userStroke: Stroke, referenceStrokes: Stroke[]): { index: number; distance: number } {
+  let best = -1;
+  let bestD = Infinity;
+  for (let i = 0; i < referenceStrokes.length; i++) {
+    const d = strokeDistance(userStroke, referenceStrokes[i]);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return { index: best, distance: bestD };
+}
+
 export function matchStrokes(
   userStrokes: Stroke[],
   referenceStrokes: Stroke[],

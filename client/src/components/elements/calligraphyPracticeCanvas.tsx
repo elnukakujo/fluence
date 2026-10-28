@@ -2,29 +2,49 @@
 
 import { useEffect, useRef, useState } from "react";
 import { loadStrokeData, normalizeStrokes, type Stroke } from "@/lib/calligraphy/strokeData";
-import { matchStrokes } from "@/lib/calligraphy/strokeMatch";
+import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
+const STROKE_MATCH_THRESHOLD = 150; // max centroid distance (1024-space) for a stroke to count as correct
+
+type Guidance = "none" | "guide" | "order";
+
+function guidanceFor(difficulty: number): Guidance {
+  // Fade the scaffold as the element gets easier: numbered order → outline → nothing.
+  if (difficulty >= 0.6) return "order";
+  if (difficulty >= 0.3) return "guide";
+  return "none";
+}
 
 export default function CalligraphyPracticeCanvas({
   character,
+  difficulty,
   onResult,
 }: {
   character: string;
+  difficulty: number;
   onResult: (r: { similarity: number; strokeOrderErrors: number }) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [referenceStrokes, setReferenceStrokes] = useState<Stroke[] | null>(null);
   const [userStrokes, setUserStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke>([]);
+  const [lastStrokeWrong, setLastStrokeWrong] = useState(false);
   const drawingRef = useRef(false);
   const currentStrokeRef = useRef<Stroke>([]);
+  const correctCountRef = useRef(0);
+  const submittedRef = useRef(false);
+
+  const guidance = guidanceFor(difficulty);
 
   useEffect(() => {
     let cancelled = false;
     setUserStrokes([]);
     setCurrentStroke([]);
+    setLastStrokeWrong(false);
     currentStrokeRef.current = [];
+    correctCountRef.current = 0;
+    submittedRef.current = false;
     loadStrokeData(character).then((strokes) => {
       if (!cancelled) setReferenceStrokes(strokes);
     });
@@ -40,12 +60,12 @@ export default function CalligraphyPracticeCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const { width, height } = canvas;
+    const { width } = canvas;
     const scale = width / LOGICAL_SIZE;
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, width, width);
 
     // Reference guide (faint + thick so the jagged medians read as a smooth outline).
-    if (referenceStrokes) {
+    if (referenceStrokes && guidance !== "none") {
       ctx.strokeStyle = "rgba(0,0,0,0.18)";
       ctx.lineWidth = 18;
       ctx.lineJoin = "round";
@@ -53,11 +73,21 @@ export default function CalligraphyPracticeCanvas({
       for (const stroke of referenceStrokes) {
         drawPolyline(ctx, stroke, scale);
       }
+      if (guidance === "order") {
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.font = "bold 20px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        referenceStrokes.forEach((stroke, i) => {
+          const start = stroke[0];
+          ctx.fillText(String(i + 1), start.x * scale, start.y * scale);
+        });
+      }
     }
 
     // User's ink (dark).
     ctx.strokeStyle = "rgba(0,0,0,0.85)";
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 14;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     for (const stroke of userStrokes) {
@@ -66,12 +96,20 @@ export default function CalligraphyPracticeCanvas({
     if (currentStroke.length > 0) {
       drawPolyline(ctx, currentStroke, scale);
     }
-  }, [referenceStrokes, userStrokes, currentStroke]);
+  }, [referenceStrokes, userStrokes, currentStroke, guidance]);
+
+  // Auto-advance once every stroke has been drawn correctly.
+  useEffect(() => {
+    if (submittedRef.current) return;
+    if (referenceStrokes && userStrokes.length > 0 && userStrokes.length === referenceStrokes.length) {
+      submittedRef.current = true;
+      onResult(matchStrokes(userStrokes, referenceStrokes));
+    }
+  }, [userStrokes, referenceStrokes, onResult]);
 
   function toLogical(e: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const scale = canvas.width / LOGICAL_SIZE;
     return {
       x: ((e.clientX - rect.left) / rect.width) * LOGICAL_SIZE,
       y: ((e.clientY - rect.top) / rect.height) * LOGICAL_SIZE,
@@ -95,21 +133,29 @@ export default function CalligraphyPracticeCanvas({
     if (!drawingRef.current) return;
     drawingRef.current = false;
     const stroke = currentStrokeRef.current;
-    if (stroke.length > 0) {
-      setUserStrokes((prev) => [...prev, stroke]);
-      currentStrokeRef.current = [];
-      setCurrentStroke([]);
+    currentStrokeRef.current = [];
+    setCurrentStroke([]);
+    if (stroke.length === 0 || !referenceStrokes) return;
+
+    // Validate: the next expected stroke, in the right order, close enough.
+    const normalized = normalizeStrokes([stroke])[0];
+    const { index, distance } = findClosestStroke(normalized, referenceStrokes);
+    const correct = index === correctCountRef.current && distance < STROKE_MATCH_THRESHOLD;
+
+    if (correct) {
+      correctCountRef.current += 1;
+      setUserStrokes((prev) => [...prev, normalized]);
+      setLastStrokeWrong(false);
+    } else {
+      setLastStrokeWrong(true);
     }
   }
 
   function handleClear() {
     setUserStrokes([]);
     setCurrentStroke([]);
-  }
-
-  function handleSubmit() {
-    if (!referenceStrokes) return;
-    onResult(matchStrokes(normalizeStrokes(userStrokes), referenceStrokes));
+    correctCountRef.current = 0;
+    setLastStrokeWrong(false);
   }
 
   if (referenceStrokes === null) {
@@ -131,12 +177,10 @@ export default function CalligraphyPracticeCanvas({
       <p className="text-sm text-muted">
         Strokes: {userStrokes.length}{referenceStrokes ? ` / ${referenceStrokes.length}` : ""}
       </p>
+      {lastStrokeWrong && <p className="text-sm" style={{ color: "var(--color-danger)" }}>Wrong stroke — try again</p>}
       <div className="flex gap-3">
         <button type="button" className="btn" onClick={handleClear}>
           Clear
-        </button>
-        <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={userStrokes.length === 0}>
-          Submit
         </button>
       </div>
     </div>

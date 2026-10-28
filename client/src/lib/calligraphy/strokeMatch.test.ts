@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { matchStrokes } from "./strokeMatch";
+import { matchStrokes, findClosestStroke } from "./strokeMatch";
 
 test("identical strokes give similarity 1 and zero order errors", () => {
   const s = [[{ x: 0, y: 0 }, { x: 10, y: 10 }]];
@@ -28,4 +28,15 @@ test("stroke count mismatch does not throw", () => {
 
 test("empty user strokes give similarity 0 and no throw", () => {
   expect(matchStrokes([], [[{ x: 0, y: 0 }, { x: 10, y: 10 }]])).toEqual({ similarity: 0, strokeOrderErrors: 0 });
+});
+
+test("findClosestStroke returns the closest reference stroke index and distance", () => {
+  const ref = [
+    [{ x: 0, y: 0 }, { x: 10, y: 0 }],
+    [{ x: 0, y: 100 }, { x: 10, y: 100 }],
+  ];
+  const stroke = [{ x: 0, y: 98 }, { x: 10, y: 98 }];
+  const { index, distance } = findClosestStroke(stroke, ref);
+  expect(index).toBe(1);
+  expect(distance).toBeLessThan(10);
 });

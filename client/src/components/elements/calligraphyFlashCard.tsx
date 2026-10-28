@@ -72,6 +72,34 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                 current={currentIndex + (graded ? 1 : 0)}
                 total={calligraphies.length}
             />
+            {practiceResult !== null && (
+                <section className="card">
+                    <h3 className="font-serif">Practice Result</h3>
+                    <div className="index-divider flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted">Shape similarity</span>
+                            <span className="stat-value">{Math.round(practiceResult.similarity * 100)}%</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted">Stroke order</span>
+                            <span
+                                className="text-sm font-medium"
+                                style={{ color: practiceResult.strokeOrderErrors === 0 ? "var(--color-success)" : "var(--color-danger)" }}
+                            >
+                                {practiceResult.strokeOrderErrors === 0
+                                    ? "Correct"
+                                    : `${practiceResult.strokeOrderErrors} error${practiceResult.strokeOrderErrors === 1 ? "" : "s"}`}
+                            </span>
+                        </div>
+                        {practiceScore !== null && (
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted">Mastery</span>
+                                <span className="text-sm">{Math.round(practiceScore)}/100</span>
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
             <section className="flex flex-col space-y-4">
                 <div className="flex items-baseline justify-between">
                     <h1>Calligraphy Sheet</h1>
@@ -80,7 +108,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                     )}
                 </div>
                 {showPractice ? (
-                    <CalligraphyPracticeCanvas character={calligraphy.character.character ?? ""} onResult={handleDrawingResult} />
+                    <CalligraphyPracticeCanvas character={calligraphy.character.character ?? ""} difficulty={calligraphy.difficulty} onResult={handleDrawingResult} />
                 ) : (
                 <div className="flashcard">
                     <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
@@ -110,34 +138,6 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             )}
             {graded && (
                 <>
-                    {practiceResult !== null && (
-                        <section className="card">
-                            <h3 className="font-serif">Practice Result</h3>
-                            <div className="index-divider flex flex-col gap-2.5">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted">Shape similarity</span>
-                                    <span className="stat-value">{Math.round(practiceResult.similarity * 100)}%</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted">Stroke order</span>
-                                    <span
-                                        className="text-sm font-medium"
-                                        style={{ color: practiceResult.strokeOrderErrors === 0 ? "var(--color-success)" : "var(--color-danger)" }}
-                                    >
-                                        {practiceResult.strokeOrderErrors === 0
-                                            ? "Correct"
-                                            : `${practiceResult.strokeOrderErrors} error${practiceResult.strokeOrderErrors === 1 ? "" : "s"}`}
-                                    </span>
-                                </div>
-                                {practiceScore !== null && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-muted">Mastery</span>
-                                        <span className="text-sm">{Math.round(practiceScore)}/100</span>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-                    )}
                     {calligraphy.example_words && (
                         <section className="flex flex-col space-y-4 items-baseline">
                             <h3 className="font-serif">Example Words</h3>
