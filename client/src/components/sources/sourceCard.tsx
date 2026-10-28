@@ -1,63 +1,16 @@
-"use client";
-
-import { useEffect, useState } from 'react';
-import Calligraphy from '@/interface/features/Calligraphy';
-import Exercise from '@/interface/features/Exercise';
-import Grammar from '@/interface/features/Grammar';
-import Vocabulary from '@/interface/features/Vocabulary';
 import Source from '@/interface/systemData/Source';
-import Lesson from '@/interface/containers/Lesson';
-import Language from '@/interface/containers/Language';
-import { getVocabularyById } from '@/api/vocabulary';
-import { getCalligraphyById } from '@/api/calligraphy';
-import { getGrammarById } from '@/api/grammar';
-import { getExerciseById } from '@/api/exercise';
-import { getLessonById } from '@/api/lesson';
-import { getLanguageById } from '@/api/language';
 
-interface RelatedElementsProps {
-    voc?: Vocabulary[];
-    call?: Calligraphy[];
-    gram?: Grammar[];
-    ex?: Exercise[];
-    lesson?: Lesson[];
-    lang?: Language[];
-}
+const ROWS = [
+    { key: "voc",    label: "Vocab" },
+    { key: "call",   label: "Calli" },
+    { key: "gram",   label: "Grammar" },
+    { key: "ex",     label: "Exercise" },
+    { key: "lesson", label: "Lesson" },
+    { key: "lang",   label: "Lang" },
+] as const;
 
-export default function SourceCard({source}: { source: Source }) {
-    const [relatedElements, setRelatedElements] = useState<RelatedElementsProps>({});
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadRelatedElements = async (): Promise<void> => {
-            if (!source.elements) {
-                if (isMounted) setRelatedElements({});
-                return;
-            }
-
-            const elements = source.elements as Record<string, string[] | undefined>;
-
-            const [voc, call, gram, ex, lesson, lang] = await Promise.all([
-                elements["voc"] ? Promise.all(elements["voc"].map((id: string) => getVocabularyById(id))) : [],
-                elements["call"] ? Promise.all(elements["call"].map((id: string) => getCalligraphyById(id))) : [],
-                elements["gram"] ? Promise.all(elements["gram"].map((id: string) => getGrammarById(id))) : [],
-                elements["ex"] ? Promise.all(elements["ex"].map((id: string) => getExerciseById(id))) : [],
-                elements["lesson"] ? Promise.all(elements["lesson"].map((id: string) => getLessonById(id))) : [],
-                elements["lang"] ? Promise.all(elements["lang"].map((id: string) => getLanguageById(id))) : []
-            ]);
-
-            if (isMounted) {
-                setRelatedElements({ voc, call, gram, ex, lesson, lang });
-            }
-        };
-
-        loadRelatedElements();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [source]);
+export default function SourceCard({ source }: { source: Source }) {
+    const elements = source.elements;
 
     return (
         <div className="pl-4 py-3 border-l-2 border-border">
@@ -68,23 +21,21 @@ export default function SourceCard({source}: { source: Source }) {
             </div>
             <p className="text-sm text-muted mb-3">{source.description}</p>
 
-            {relatedElements && (
+            {elements && (
                 <div className="index-divider pt-3 flex flex-col gap-1.5">
-                {[
-                    { key: "voc",    label: "Vocab",    text: relatedElements.voc?.map((i: Vocabulary)  => i.word?.word           ?? "").filter(Boolean).join(" · ") },
-                    { key: "call",   label: "Calli",    text: relatedElements.call?.map((i: Calligraphy) => i.character?.character ?? "").filter(Boolean).join(" · ") },
-                    { key: "gram",   label: "Grammar",  text: relatedElements.gram?.map((i: Grammar)     => i.title               ?? "").filter(Boolean).join(" · ") },
-                    { key: "ex",     label: "Exercise", text: relatedElements.ex?.map((i: Exercise)      => i.question            ?? "").filter(Boolean).join(" · ") },
-                    { key: "lesson", label: "Lesson",   text: relatedElements.lesson?.map((i: Lesson)    => i.title               ?? "").filter(Boolean).join(" · ") },
-                    { key: "lang",   label: "Lang",     text: relatedElements.lang?.map((i: Language)    => i.name                ?? "").filter(Boolean).join(" · ") },
-                ]
-                    .filter((s) => Boolean(s.text))
-                    .map(({ key, label, text }) => (
-                    <div key={key} className="flex gap-2 text-xs items-baseline">
-                        <span className="text-muted w-14 shrink-0">{label}</span>
-                        <span className="text-foreground">{text}</span>
-                    </div>
-                    ))}
+                    {ROWS
+                        .map(({ key, label }) => ({
+                            key,
+                            label,
+                            text: elements[key]?.map((e) => e.label ?? "").filter(Boolean).join(" · "),
+                        }))
+                        .filter((s) => Boolean(s.text))
+                        .map(({ key, label, text }) => (
+                            <div key={key} className="flex gap-2 text-xs items-baseline">
+                                <span className="text-muted w-14 shrink-0">{label}</span>
+                                <span className="text-foreground">{text}</span>
+                            </div>
+                        ))}
                 </div>
             )}
         </div>

@@ -36,3 +36,45 @@ def resolve_element_model(element_id: str) -> Optional[Type]:
             "pt": ProgressTracking,
         }
         return model_map.get(element_id.split("_")[0])
+
+
+def resolve_element_labels(session, element_ids: list) -> dict:
+    """Batch-resolve a display label per element id, one query per type.
+
+    Source/Tag detail serialization returns element *ids*; the client used to
+    fetch each element back individually (N+1). This resolves a single display
+    label per id in one query per element type (≤6) so the client needs no
+    follow-up calls. Returns {id: label}.
+    """
+    from collections import defaultdict
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+    from ..models.features import Vocabulary, Grammar, Calligraphy, Exercise
+    from ..models.containers import Language, Lesson
+
+    buckets = defaultdict(list)
+    for id_ in element_ids:
+        buckets[id_.split("_")[0]].append(id_)
+
+    # prefix -> (model, load option, label accessor)
+    resolvers = {
+        "voc":    (Vocabulary, joinedload(Vocabulary.word), lambda v: v.word.word if v.word else None),
+        "call":   (Calligraphy, joinedload(Calligraphy.character), lambda c: c.character.character if c.character else None),
+        "gram":   (Grammar, None, lambda g: g.title),
+        "ex":     (Exercise, None, lambda e: e.question),
+        "lesson": (Lesson, None, lambda l: l.title),
+        "lang":   (Language, None, lambda l: l.name),
+    }
+
+    labels: dict = {}
+    for prefix, ids in buckets.items():
+        resolver = resolvers.get(prefix)
+        if not resolver:
+            continue
+        model, load, accessor = resolver
+        stmt = select(model).where(model.id.in_(ids))
+        if load is not None:
+            stmt = stmt.options(load)
+        for obj in session.execute(stmt).scalars():
+            labels[obj.id] = accessor(obj)
+    return labels

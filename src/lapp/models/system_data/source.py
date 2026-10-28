@@ -34,10 +34,13 @@ class Source(Base):
         if not linked_ids:
             return {}
 
+        from ...utils.resolve_orm_table import resolve_element_labels
+        labels = resolve_element_labels(session, linked_ids)
+
         bucketed = defaultdict(list)
         for id_ in linked_ids:
             type_name = id_.split("_")[0]
-            bucketed[type_name].append(id_)
+            bucketed[type_name].append({"id": id_, "label": labels.get(id_)})
 
         return dict(bucketed)
 

@@ -5,5 +5,5 @@ export default interface Source {
     date?: string; // ISO date string
     description?: string;
     source_type?: string; // "original", "textbook", "class", "online", "media", "social", "other" (Not allowed to add by users: "ai")
-    elements?: { string: string[] }; // Mapping of element types to arrays of element IDs
+    elements?: Record<string, { id: string; label: string }[]>; // element type -> resolved {id, label}
 }
