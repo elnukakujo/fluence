@@ -132,3 +132,22 @@ def test_collaborator_practice_writes_progress(app, db):
         cp = s.query(CollaborationProgress).filter(
             CollaborationProgress.user_id == "user_U2", CollaborationProgress.element_id == "voc_V1").one()
         assert cp.score > 0
+
+
+def test_remove_forks_content(app, db):
+    _seed_users(db)
+    _seed_vocabulary(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/accept")
+    res = _client_for_user(app, db, "user_U1").delete(f'/api/collaboration/{cid}')
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        langs = s.query(Language).filter(Language.user_id == "user_U2").all()
+        assert len(langs) == 1
+        assert langs[0].name == "Japanese"
+        lessons = s.query(Lesson).filter(Lesson.language_id == langs[0].id).all()
+        assert len(lessons) == 1
+        vocs = s.query(Vocabulary).filter(Vocabulary.lesson_id == lessons[0].id).all()
+        assert len(vocs) == 1
