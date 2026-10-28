@@ -3,6 +3,8 @@ from .user_preferences import UserPreferences
 from .source import Source
 from .tag import Tag
 from .session import UserSession
+from .collaboration import Collaboration
+from .collaboration_progress import CollaborationProgress
 
 __all__ = [
     "User",
@@ -10,4 +12,6 @@ __all__ = [
     "Source",
     "Tag",
     "UserSession",
+    "Collaboration",
+    "CollaborationProgress",
 ]

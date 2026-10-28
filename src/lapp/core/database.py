@@ -40,6 +40,8 @@ ID_PREFIXES = {
     "ProgressTracking": "pt_P",
     "DailyStats": "day_D",
     "CommitmentLog": "cl_C",
+    "Collaboration": "collab_C",
+    "CollaborationProgress": "cp_P",
 }
 
 # Backing store for generate_new_id()'s atomic counters. One row per entity
