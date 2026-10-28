@@ -25,6 +25,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
     const [graded, setGraded] = useState<boolean>(false);
     const [showPractice, setShowPractice] = useState<boolean>(false);
     const [practiceScore, setPracticeScore] = useState<number | null>(null);
+    const [practiceResult, setPracticeResult] = useState<{ similarity: number; strokeOrderErrors: number } | null>(null);
 
     useEffect(() => {
         startTimeRef.current = performance.now();
@@ -33,6 +34,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
         setGraded(false);
         setShowPractice(false);
         setPracticeScore(null);
+        setPracticeResult(null);
     }, [currentIndex]);
 
     const handleGrade = (score: number) => {
@@ -56,6 +58,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
         try {
             const res = await submitCalligraphyDrawing(calligraphy.id!, r.similarity, r.strokeOrderErrors, duration_ms);
             setPracticeScore(res.calligraphy?.score ?? null);
+            setPracticeResult({ similarity: r.similarity, strokeOrderErrors: r.strokeOrderErrors });
             setGraded(true);
             setShowPractice(false);
         } catch (e) {
@@ -107,10 +110,18 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             )}
             {graded && (
                 <>
-                    {practiceScore !== null && (
+                    {practiceResult !== null && (
                         <section className="flex flex-col space-y-2">
                             <h3 className="font-serif">Practice Result</h3>
-                            <p className="text-sm">Score: {Math.round(practiceScore)}/100</p>
+                            <p className="text-sm">Shape similarity: {Math.round(practiceResult.similarity * 100)}%</p>
+                            <p className="text-sm">
+                                Stroke order: {practiceResult.strokeOrderErrors === 0
+                                    ? "correct"
+                                    : `${practiceResult.strokeOrderErrors} error${practiceResult.strokeOrderErrors === 1 ? "" : "s"}`}
+                            </p>
+                            {practiceScore !== null && (
+                                <p className="text-sm">Score: {Math.round(practiceScore)}/100</p>
+                            )}
                         </section>
                     )}
                     {calligraphy.example_words && (

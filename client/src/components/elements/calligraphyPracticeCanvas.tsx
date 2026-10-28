@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
+import { loadStrokeData, normalizeStrokes, type Stroke } from "@/lib/calligraphy/strokeData";
 import { matchStrokes } from "@/lib/calligraphy/strokeMatch";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
@@ -44,15 +44,6 @@ export default function CalligraphyPracticeCanvas({
     const scale = width / LOGICAL_SIZE;
     ctx.clearRect(0, 0, width, height);
 
-    // Reference guide (faint).
-    if (referenceStrokes) {
-      ctx.strokeStyle = "rgba(0,0,0,0.15)";
-      ctx.lineWidth = 4;
-      for (const stroke of referenceStrokes) {
-        drawPolyline(ctx, stroke, scale);
-      }
-    }
-
     // User's ink (dark).
     ctx.strokeStyle = "rgba(0,0,0,0.85)";
     ctx.lineWidth = 6;
@@ -90,8 +81,9 @@ export default function CalligraphyPracticeCanvas({
   function handleUp() {
     if (!drawingRef.current) return;
     drawingRef.current = false;
-    if (currentStrokeRef.current.length > 0) {
-      setUserStrokes((prev) => [...prev, currentStrokeRef.current]);
+    const stroke = currentStrokeRef.current;
+    if (stroke.length > 0) {
+      setUserStrokes((prev) => [...prev, stroke]);
       currentStrokeRef.current = [];
       setCurrentStroke([]);
     }
@@ -104,7 +96,7 @@ export default function CalligraphyPracticeCanvas({
 
   function handleSubmit() {
     if (!referenceStrokes) return;
-    onResult(matchStrokes(userStrokes, referenceStrokes));
+    onResult(matchStrokes(normalizeStrokes(userStrokes), referenceStrokes));
   }
 
   if (referenceStrokes === null) {
