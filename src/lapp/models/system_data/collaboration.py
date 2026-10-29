@@ -12,5 +12,6 @@ class Collaboration(Base):
     collaborator_id = Column(String, ForeignKey('user.id'), nullable=False)
     target_type = Column(String, nullable=False)  # 'language' | 'lesson'
     target_id = Column(String, nullable=False)
-    status = Column(String, nullable=False, default='pending')  # 'pending' | 'accepted'
+    status = Column(String, nullable=False, default='pending')  # 'pending' | 'accepted' | 'awaiting_master_consent'
+    mode = Column(String, nullable=True)  # 'full' | 'partial' (sticky per target)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
