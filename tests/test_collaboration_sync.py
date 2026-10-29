@@ -208,3 +208,12 @@ def test_partial_does_not_list_master_language(db):
     CollaborationService().accept(c.id, "partial")
     collab_ids = CollaborationService().list_collaborated_target_ids("user_U2", "language")
     assert "lang_L1" not in collab_ids  # partial shares lessons, not the language
+
+
+def test_list_shared_lessons(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial")
+    shared = LessonShareService().list_shared_lessons("user_U2")
+    assert any(l.id == "lesson_M1" for l in shared)

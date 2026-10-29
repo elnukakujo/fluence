@@ -250,3 +250,12 @@ def unshare_lesson(lesson_id: str):
     require_owns(lesson_id)
     LessonShareService().unshare(lesson_id, user_id)
     return jsonify({'success': True}), 200
+
+
+@bp.route('/shared', methods=['GET'])
+@login_required
+def shared_lessons():
+    """Lessons shared with the current user (partial collaboration)."""
+    lessons = LessonShareService().list_shared_lessons(current_user_id())
+    dicts = [l.to_dict() for l in lessons]
+    return jsonify(ScoreService().merge(current_user_id(), dicts))

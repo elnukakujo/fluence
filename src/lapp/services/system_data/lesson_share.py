@@ -50,3 +50,13 @@ class LessonShareService:
     def list_shared_lesson_ids(self, user_id: str, session: Optional[Session] = None) -> list[str]:
         rows = session.query(LessonShare).filter(LessonShare.user_id == user_id).all()
         return [r.lesson_id for r in rows]
+
+    @transactional
+    def list_shared_lessons(self, user_id: str, session: Optional[Session] = None) -> list:
+        """Return the Lesson objects shared with `user_id` (single-source pointers)."""
+        from ...models.containers import Lesson
+        rows = session.query(LessonShare).filter(LessonShare.user_id == user_id).all()
+        ids = [r.lesson_id for r in rows]
+        if not ids:
+            return []
+        return session.query(Lesson).filter(Lesson.id.in_(ids)).all()
