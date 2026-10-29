@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import LessonService
-from ...services.system_data import ScoreService, LessonShareService
+from ...services.system_data import ScoreService, LessonShareService, CollaborationService
 from ...schemas.containers import LessonDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
@@ -264,5 +264,5 @@ def shared_lessons():
 @login_required
 def leave_shared_lesson(lesson_id: str):
     """Stop collaborating on a shared lesson (remove the current user's access)."""
-    LessonShareService().unshare(lesson_id, current_user_id())
+    CollaborationService().leave_lesson(lesson_id, current_user_id())
     return jsonify({'success': True}), 200

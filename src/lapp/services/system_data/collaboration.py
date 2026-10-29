@@ -138,6 +138,32 @@ class CollaborationService:
                 LessonShare.lesson_id.in_(lesson_ids),
             ).delete(synchronize_session=False)
 
+    @transactional
+    def leave_lesson(self, lesson_id: str, user_id: str, session: Optional[Session] = None) -> None:
+        """Unshare one lesson; if the user holds no remaining shares on its language, end the
+        language collaboration so the master can invite them again."""
+        from ...models.containers import Lesson
+        from ...models.system_data import LessonShare
+        from .lesson_share import LessonShareService
+        LessonShareService().unshare(lesson_id, user_id, session=session)
+        lesson = session.query(Lesson).filter(Lesson.id == lesson_id).first()
+        if lesson is None:
+            return
+        remaining = session.query(LessonShare).join(
+            Lesson, LessonShare.lesson_id == Lesson.id).filter(
+            LessonShare.user_id == user_id,
+            Lesson.language_id == lesson.language_id,
+        ).first()
+        if remaining is not None:
+            return
+        for collab in session.query(Collaboration).filter(
+            Collaboration.collaborator_id == user_id,
+            Collaboration.target_type == "language",
+            Collaboration.target_id == lesson.language_id,
+            Collaboration.status == "accepted",
+        ).all():
+            session.delete(collab)
+
     def _fork(self, collaborator_id: str, target_type: str, target_id: str, session: Session) -> None:
         """Deep-copy the shared container + descendants into the collaborator's account, mapping progress."""
         from ...models.containers import Language, Lesson

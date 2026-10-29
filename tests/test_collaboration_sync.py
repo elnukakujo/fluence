@@ -262,3 +262,26 @@ def test_remove_partial_unshares_not_forks(db):
     assert LessonShareService().is_recipient("user_U2", "lesson_M1") is False
     titles = [l.title for l in LessonService().get_all(language_id="lang_U2")]
     assert titles == ["I1"]
+
+
+def test_leave_last_lesson_ends_collaboration(db):
+    _seed_users(db)
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_M1", user_id="user_U1", language_id="lang_L1", title="M1"),
+                  session=s, commit=False)
+        db.insert(Lesson(id="lesson_M2", user_id="user_U1", language_id="lang_L1", title="M2"),
+                  session=s, commit=False)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial", lesson_ids=["lesson_M1", "lesson_M2"])
+
+    # leaving one lesson keeps the collaboration (still shares M2)
+    CollaborationService().leave_lesson("lesson_M1", "user_U2")
+    assert any(x["collaborator_id"] == "user_U2"
+               for x in CollaborationService().list_collaborators("language", "lang_L1"))
+
+    # leaving the last lesson ends the collaboration so the master can re-invite
+    CollaborationService().leave_lesson("lesson_M2", "user_U2")
+    assert all(x["collaborator_id"] != "user_U2"
+               for x in CollaborationService().list_collaborators("language", "lang_L1"))
