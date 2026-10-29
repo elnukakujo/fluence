@@ -123,7 +123,7 @@ def create_lesson():
     try:
         # Validate request data
         data = LessonDict(**request.json)
-        require_owns(data.language_id)
+        require_write(data.language_id)
 
         # Create lesson
         lesson = lesson_service.create(data, as_dict=True)

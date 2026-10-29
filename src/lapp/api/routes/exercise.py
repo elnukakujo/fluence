@@ -184,7 +184,7 @@ def create_exercise():
     try:
         # Validate request data
         data = ExerciseDict(**request.json)
-        require_owns(data.lesson_id)
+        require_write(data.lesson_id)
 
         # Create exercise
         exercise = exercise_service.create(data, as_dict=True)
@@ -329,7 +329,7 @@ def delete_exercise(exercise_id: str):
         404:
             description: Exercise not found
     """
-    require_owns(exercise_id)
+    require_write(exercise_id)
     success = exercise_service.delete(exercise_id)
     
     if success:

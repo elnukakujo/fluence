@@ -3,7 +3,7 @@ import traceback
 import logging
 
 from ...services import EvaluatorService
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 
 bp = Blueprint('evaluate', __name__, url_prefix='/api/evaluate')
 evaluator_service = EvaluatorService()
@@ -45,7 +45,7 @@ def evaluate_text():
     """
     try:
         data = request.json or {}
-        require_owns(data.get('exercise_id', ''))
+        require_write(data.get('exercise_id', ''))
         return evaluator_service.evaluate(
             ex_id=data.get('exercise_id', ''),
             user_input=data.get('user_text', ''),
@@ -93,7 +93,7 @@ def evaluate_speech():
     """
     try:
         data = request.json or {}
-        require_owns(data.get('exercise_id', ''))
+        require_write(data.get('exercise_id', ''))
         return evaluator_service.evaluate(
             ex_id=data.get('exercise_id', ''),
             user_input=data.get('user_audio_url', ''),

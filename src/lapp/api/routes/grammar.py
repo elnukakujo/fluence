@@ -180,7 +180,7 @@ def create_grammar():
     try:
         # Validate request data
         data = GrammarDict(**request.json)
-        require_owns(data.lesson_id)
+        require_write(data.lesson_id)
 
         # Create grammar
         grammar = grammar_service.create(data, as_dict=True)
@@ -324,7 +324,7 @@ def delete_grammar(grammar_id: str):
         404:
             description: grammar not found
     """
-    require_owns(grammar_id)
+    require_write(grammar_id)
     success = grammar_service.delete(grammar_id)
     
     if success:

@@ -225,7 +225,7 @@ def create_calligraphy():
         # Validate request data
         on_conflict = request.json.pop('on_conflict', None) if request.json else None
         data = CalligraphyDict(**request.json)
-        require_owns(data.lesson_id)
+        require_write(data.lesson_id)
 
         # Create calligraphy
         calligraphy = calligraphy_service.create(data, as_dict=True, on_conflict=on_conflict)
@@ -412,7 +412,7 @@ def delete_calligraphy(calligraphy_id: str):
         404:
             description: calligraphy not found
     """
-    require_owns(calligraphy_id)
+    require_write(calligraphy_id)
     success = calligraphy_service.delete(calligraphy_id)
     
     if success:

@@ -212,7 +212,7 @@ def create_vocabulary():
         logger.debug(f"Received request data for creating vocabulary: {request.json}")
         on_conflict = request.json.pop('on_conflict', None) if request.json else None
         data = VocabularyDict(**request.json)
-        require_owns(data.lesson_id)
+        require_write(data.lesson_id)
         logger.debug(f"Validated data for creating vocabulary: {data}")
 
         # Create vocabulary
@@ -387,7 +387,7 @@ def delete_vocabulary(vocabulary_id: str):
         404:
             description: Vocabulary not found    
     """
-    require_owns(vocabulary_id)
+    require_write(vocabulary_id)
     success = vocabulary_service.delete(vocabulary_id)
     
     if success:
