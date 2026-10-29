@@ -106,14 +106,21 @@ class CollaborationService:
 
         # components under the (original) language
         orig_lang_id = target_id if target_type == "language" else lessons[0].language_id
+        def get_or_create_component(model, key_field, key_value, **fields):
+            existing = session.query(model).filter(
+                model.language_id == new_lang_id,
+                getattr(model, key_field) == key_value,
+            ).first()
+            return existing.id if existing else clone(model, language_id=new_lang_id, **fields).id
+
         for w in session.query(Word).filter(Word.language_id == orig_lang_id).all():
-            word_map[w.id] = clone(Word, language_id=new_lang_id, word=w.word, translation=w.translation,
-                                   phonetic=w.phonetic, word_type=w.word_type, word_gender=w.word_gender).id
+            word_map[w.id] = get_or_create_component(Word, "word", w.word, word=w.word, translation=w.translation,
+                                                     phonetic=w.phonetic, word_type=w.word_type, word_gender=w.word_gender)
         for c in session.query(Character).filter(Character.language_id == orig_lang_id).all():
-            char_map[c.id] = clone(Character, language_id=new_lang_id, character=c.character,
-                                   phonetic=c.phonetic, meaning=c.meaning, radical=c.radical, strokes=c.strokes).id
+            char_map[c.id] = get_or_create_component(Character, "character", c.character, character=c.character,
+                                                     phonetic=c.phonetic, meaning=c.meaning, radical=c.radical, strokes=c.strokes)
         for p in session.query(Passage).filter(Passage.language_id == orig_lang_id).all():
-            pass_map[p.id] = clone(Passage, language_id=new_lang_id, text=p.text, translation=p.translation).id
+            pass_map[p.id] = get_or_create_component(Passage, "text", p.text, text=p.text, translation=p.translation)
 
         # lessons + features
         for lesson in lessons:

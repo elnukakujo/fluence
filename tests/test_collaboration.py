@@ -180,3 +180,22 @@ def test_fork_dedupes_into_existing_language(app, db):
         langs = s.query(Language).filter(Language.user_id == "user_U2").all()
         assert len(langs) == 1  # no duplicate "Japanese" created
         assert langs[0].id == "lang_L2"  # merged into the existing one
+
+
+def test_fork_dedupes_components(app, db):
+    _seed_users(db)
+    _seed_vocabulary(db)  # U1: lang_L1 + lesson_L1 + word_W1 "水" + voc_V1
+    # U2 already has "Japanese" (lang_L2) with a colliding word "水"
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L2", user_id="user_U2", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Word(id="word_W2", language_id="lang_L2", word="水"), session=s, commit=False)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/accept")
+    res = _client_for_user(app, db, "user_U1").delete(f'/api/collaboration/{cid}')
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        words = s.query(Word).filter(Word.language_id == "lang_L2", Word.word == "水").all()
+        assert len(words) == 1  # reused the existing word, no duplicate
