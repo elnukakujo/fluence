@@ -9,6 +9,7 @@ import { getLanguageData } from "@/api/language";
 import { getTodayDailyStats } from "@/api/dailyStats";
 import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
+import SharedLessons from "@/components/lesson/sharedLessons";
 import { getCurrentUserId } from "@/utils/user_cookie";
 
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
@@ -49,7 +50,8 @@ export default async function Language({ params }: { params: Promise<{ language_
                         language_code={language.target_iso639_2t ?? ""}
                     />
                 )}
-                
+                <SharedLessons language_code={language.target_iso639_2t ?? ""} />
+
                 <NavButton path={`/languages/${language_id}/lesson/new`}>
                     <p>Create New Lesson</p>
                 </NavButton>

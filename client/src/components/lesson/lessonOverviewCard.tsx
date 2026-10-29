@@ -7,11 +7,12 @@ import type Lesson from "@/interface/containers/Lesson";
 import { languageProficiencySystems, getLevelLabel } from '@/utils/language_iso639';
 import ScoreDisplay from '../ui/displays/scoreDisplay';
 
-export default function LessonOverviewCard({ language_code, lesson }: { language_code: string; lesson: Lesson }) {
-    const { language_id } = useParams();
+export default function LessonOverviewCard({ language_code, lesson, languageId }: { language_code: string; lesson: Lesson; languageId?: string }) {
+    const { language_id: paramLanguageId } = useParams();
     const router = useRouter();
+    const langId = languageId ?? paramLanguageId;
     const handleClick = () => {
-        router.push(`/languages/${language_id}/lesson/${lesson.id}`);
+        router.push(`/languages/${langId}/lesson/${lesson.id}`);
     };
     const system = languageProficiencySystems[language_code];
     const levelLabel = getLevelLabel(system, lesson.level);

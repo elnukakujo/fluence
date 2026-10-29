@@ -42,3 +42,8 @@ export async function deleteLesson(lessonId: string) {
   });
   if (!res.ok) throw new Error("Failed to delete lesson");
 }
+export async function getSharedLessons(): Promise<Lesson[]> {
+  const res = await fetch(`${BASE_URL}/api/lessons/shared`, { headers: await getAuthHeaders() });
+  if (!res.ok) throw new Error("Failed to fetch shared lessons");
+  return res.json();
+}
