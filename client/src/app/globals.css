@@ -710,8 +710,8 @@
 
   /* ── Overview card: shrinks on narrow screens instead of a fixed 12rem square ── */
   .overview-card {
-    width: clamp(10.5rem, 46vw, 13rem);
-    min-height: clamp(10.5rem, 46vw, 13rem);
+    width: 100%;
+    min-height: 11rem;
     flex-shrink: 0;
   }
 

@@ -207,7 +207,7 @@ export default function LessonsSection({
 
             {/* Results */}
             {filtered.length > 0 ? (
-                <ul className="flex flex-row flex-wrap gap-2 list-none">
+                <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 list-none">
                     {filtered.map(lesson => (
                         <li key={lesson.id}>
                             <LessonOverviewCard language_code={language_code} lesson={lesson} />

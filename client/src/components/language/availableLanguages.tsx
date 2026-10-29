@@ -8,14 +8,12 @@ export default async function AvailableLanguages() {
     const languages: Language[] = await getAvailableLanguages(userId!);
 
     return (
-        <article className="flex flex-row flex-wrap gap-4 items-center">
+        <article className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4">
             {languages.length === 0 && (
                 <p className="text-sm text-muted">No available languages found. Please add some.</p>
             )}
             {languages.map((lang, idx) => (
-                <section key={idx}>
-                    <LanguageOverviewCard language={lang} />
-                </section>
+                <LanguageOverviewCard key={idx} language={lang} />
             ))}
         </article>
     );
