@@ -25,11 +25,13 @@ export default function LanguageOverviewCard({ language }: { language: Language 
             onClick={handleCardClick}
         >
             <header className="flex flex-col gap-1">
-                <p className="text-2xl">{language.flag}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-2xl">{language.flag}</p>
+                    {language.collaborators && language.collaborators.length > 0 && (
+                        <span className="badge w-fit">Shared</span>
+                    )}
+                </div>
                 <h3 className="font-serif text-lg text-ink line-clamp-2">{language.name} ({language.alias})</h3>
-                {language.collaborators && language.collaborators.length > 0 && (
-                    <span className="badge w-fit">Shared</span>
-                )}
                 <span className="text-xs flex flex-row gap-1 items-center text-muted">
                     <p>From</p>
                     <p className="badge">{sourceLanguage?.englishName ?? 'Unknown'}</p>
