@@ -65,6 +65,22 @@ def test_reject_deletes(app, db):
     assert res.status_code == 200
 
 
+def test_invite_shows_language_details(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'})
+    res = _client_for_user(app, db, "user_U2").get('/api/collaboration/invites')
+    assert res.status_code == 200
+    invs = res.get_json()
+    assert len(invs) == 1
+    inv = invs[0]
+    assert inv['master_name'] == 'a'          # fallback to username (no display_name)
+    assert inv['language_name'] == 'Japanese'
+    assert inv['source_language'] == 'English'
+    assert inv['target_language'] == 'Japanese'
+
+
 def test_invite_requires_owner(app, db):
     _seed_users(db)
     _seed_language(db)

@@ -196,9 +196,36 @@ class CollaborationService:
 
     @transactional
     def list_invites(self, user_id: str, session: Optional[Session] = None) -> list[dict]:
+        from ...models.containers import Language, Lesson
+        from ...models.system_data import User
+        from ...utils.detect_language import get_language_by_iso2t
+
         collabs = session.query(Collaboration).filter(
             Collaboration.collaborator_id == user_id,
             Collaboration.status == "pending",
         ).all()
-        return [{"id": c.id, "master_id": c.master_id, "target_type": c.target_type,
-                 "target_id": c.target_id} for c in collabs]
+
+        result = []
+        for c in collabs:
+            master = session.query(User).filter(User.id == c.master_id).first()
+            master_name = (master.display_name or master.username) if master else c.master_id
+
+            lang = None
+            if c.target_type == "language":
+                lang = session.query(Language).filter(Language.id == c.target_id).first()
+            elif c.target_type == "lesson":
+                lesson = session.query(Lesson).filter(Lesson.id == c.target_id).first()
+                if lesson:
+                    lang = session.query(Language).filter(Language.id == lesson.language_id).first()
+
+            result.append({
+                "id": c.id,
+                "master_id": c.master_id,
+                "master_name": master_name,
+                "target_type": c.target_type,
+                "target_id": c.target_id,
+                "language_name": lang.name if lang else None,
+                "source_language": get_language_by_iso2t(lang.source_iso639_2t).name if lang else None,
+                "target_language": get_language_by_iso2t(lang.target_iso639_2t).name if lang else None,
+            })
+        return result

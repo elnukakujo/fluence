@@ -43,7 +43,7 @@ export async function reject(collaborationId: string) {
   return res.json();
 }
 
-export async function listInvites(): Promise<{ id: string; master_id: string; target_type: string; target_id: string }[]> {
+export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; language_name?: string; source_language?: string; target_language?: string }[]> {
   const res = await fetch(`${BASE_URL}/api/collaboration/invites`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list invites");
   return res.json();

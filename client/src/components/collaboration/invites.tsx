@@ -3,8 +3,19 @@
 import { useEffect, useState } from "react";
 import { listInvites, accept, reject } from "@/api/collaboration";
 
+type Invite = {
+  id: string;
+  master_id: string;
+  master_name?: string;
+  target_type: string;
+  target_id: string;
+  language_name?: string;
+  source_language?: string;
+  target_language?: string;
+};
+
 export default function Invites() {
-  const [invites, setInvites] = useState<{ id: string; master_id: string; target_type: string; target_id: string }[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   async function load() {
@@ -25,8 +36,14 @@ export default function Invites() {
       <ul className="flex flex-col gap-2">
         {invites.map((inv) => (
           <li key={inv.id} className="card flex items-center justify-between gap-2">
-            <span className="text-sm">
-              {inv.target_type === "language" ? "Language" : "Lesson"}: {inv.target_id}
+            <span className="text-sm flex flex-col gap-0.5">
+              <span className="font-medium">{inv.master_name ?? inv.master_id} invited you</span>
+              <span className="text-muted">
+                {inv.language_name ?? inv.target_id}
+                {inv.source_language && inv.target_language && (
+                  <> ({inv.source_language} → {inv.target_language})</>
+                )}
+              </span>
             </span>
             <span className="flex gap-2">
               <button
