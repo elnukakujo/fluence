@@ -10,6 +10,9 @@ from ...schemas.containers import LanguageDict
 from ...models.system_data import Source, Tag
 from ...models.containers import Language, Lesson
 from ...core.database import db_manager, transactional, resolve_related
+from ..system_data import ScoreService
+
+score_service = ScoreService()
 
 class LanguageService:
     def _serialize(self, language: Language | None, as_dict: bool, include_relations: bool) -> Language | dict | None:
@@ -42,15 +45,16 @@ class LanguageService:
         db_manager.modify(language, session=session, commit=False)
         return new_current_lesson_id
     
-    def _find_current_lesson(self, language_id: str, score_threshold: float, session: Optional[Session] = None) -> Optional[str]:
+    def _find_current_lesson(self, language_id: str, score_threshold: float, user_id: Optional[str] = None, session: Optional[Session] = None) -> Optional[str]:
         """
         Find the first lesson ID for a given language with a score below a certain threshold.
 
         Args:
             language_id: The ID of the language.
             score_threshold: The score threshold to compare against.
+            user_id: The user whose score rows to read; defaults to the language owner.
             session: Optional SQLAlchemy session.
-        
+
         Returns:
             The ID of the first lesson below the threshold, or None if all lessons meet/exceed the threshold.
         """
@@ -61,8 +65,14 @@ class LanguageService:
             language_id=language_id,
             session=session
         )
+        if user_id is None:
+            lang = db_manager.find_by_attr(Language, {'id': language_id}, session=session)
+            user_id = lang.user_id if lang else None
+        lesson_ids = [lesson.id for lesson in lessons]
+        score_map = score_service.get_many(user_id, lesson_ids, session=session)
         for lesson in lessons:
-            if lesson.score < score_threshold*100:
+            s = score_map.get(lesson.id)
+            if s is None or s.score < score_threshold*100:
                 return lesson.id
         return lessons[-1].id if lessons else None
         
@@ -309,7 +319,7 @@ class LanguageService:
         return success
 
     @transactional
-    def update_score(self, language_id: str, session: Optional[Session] = None) -> Language | None:
+    def update_score(self, language_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
         """
         Update language score based on average of all lesson scores.
         
@@ -333,26 +343,27 @@ class LanguageService:
             session=session
         )
 
-        if not lessons:
-            logger.warning(f"No lessons found for language: {language_id}")
-            language.score = 0.0
+        lesson_ids = [l.id for l in lessons]
+        score_map = score_service.get_many(user_id, lesson_ids, session=session)
+        if lesson_ids:
+            total_score = sum(score_map[lid].score if lid in score_map else 0.0 for lid in lesson_ids)
+            total_difficulty = sum(score_map[lid].difficulty if lid in score_map else 0.5 for lid in lesson_ids)
+            language_score = round(total_score / len(lesson_ids), 2)
+            language_difficulty = total_difficulty / len(lesson_ids)
         else:
-            total_score = sum(lesson.score for lesson in lessons)
-            language.score = round(total_score / len(lessons), 2)
+            logger.warning(f"No lessons found for language: {language_id}")
+            language_score = 0.0
+            language_difficulty = 0.5
 
-            logger.info(
-                f"Calculated language score: {language.score} "
-                f"(from {len(lessons)} lessons)"
-            )
-
-        language.last_seen_at = datetime.now()
-        language.current_lesson_id = self._find_current_lesson(
+        current_lesson_id = self._find_current_lesson(
             language_id=language.id,
             score_threshold=0.75,
+            user_id=user_id,
             session=session
         )
 
-        result = db_manager.modify(language, session=session, commit=False)
+        result = score_service.set(user_id, language_id, language_score, language_difficulty,
+                                   current_lesson_id=current_lesson_id, session=session)
 
         if result:
             logger.info(f"Updated language {language_id} score: {result.score}")

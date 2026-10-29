@@ -8,18 +8,20 @@ logger = logging.getLogger(__name__)
 from ...schemas.features import GrammarDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
 from ...models.features import Grammar
-from ...models.system_data import Tag, Source
+from ...models.system_data import Tag, Source, Score
 from ..containers import LessonService, LanguageService
 from ..components import PassageService, WordService
 from ..data_collection import ProgressTrackingService
+from ..system_data import ScoreService
 from ...core.database import db_manager, transactional, resolve_related
-from ...utils import update_score, update_difficulty
+from ...utils import update_score, update_difficulty, status_for
 
 lesson_service = LessonService()
 language_service = LanguageService()
 word_service = WordService()
 passage_service = PassageService()
 progress_tracking_service = ProgressTrackingService()
+score_service = ScoreService()
 
 class GrammarService:
     def _serialize(self, grammar: Grammar | None, as_dict: bool, include_relations: bool) -> Grammar | dict | None:
@@ -225,66 +227,47 @@ class GrammarService:
         score: float,
         duration_ms: float,
         hint_used: bool = False,
+        user_id: Optional[str] = None,
         session: Optional[Session] = None,
-        as_dict: bool = False,
-        include_relations: bool = True
-    ) -> Grammar | dict | None:
+    ) -> Score | None:
         grammar = self.get_by_id(grammar_id, session=session)
 
         if not grammar:
             logger.warning(f"Grammar item not found: {grammar_id}")
             return None
 
-        previous_score = grammar.score
+        previous = score_service.get(user_id, grammar_id, session=session)
+        previous_score = previous.score if previous else 0.0
+        updated = score_service.record(user_id, grammar_id, score, session=session)
 
-        grammar.score = update_score(
-            score=grammar.score,
-            last_seen_at=grammar.last_seen_at,
-            similarity=score
+        progress_tracking_service.create(
+            data=ProgressTrackingDict(
+                user_id=user_id,
+                language_id=grammar.lesson.language_id,
+                element_id=grammar_id,
+                element_type="grammar",
+                element_status=status_for(grammar_id, updated.score),
+                score_before=previous_score,
+                score_after=updated.score,
+                result=updated.score >= previous_score,
+                duration_ms=duration_ms,
+                hint_used=hint_used,
+            ),
+            session=session,
         )
 
-        grammar.difficulty = update_difficulty(
-            new_score=score,
-            last_seen_at=grammar.last_seen_at,
-            previous_difficulty=grammar.difficulty,
-            created_at=grammar.created_at
-        )
-
-        grammar.last_seen_at = datetime.now()
-
-        result = db_manager.modify(grammar, session=session, commit=False)
-
-        if result:
-            logger.info(f"Updated GrammarFeature {grammar_id} score to {grammar.score} and difficulty to {grammar.difficulty}")
-
-            progress_tracking_service.create(
-                data=ProgressTrackingDict(
-                    user_id=grammar.lesson.user_id,
-                    language_id=grammar.lesson.language_id,
-                    element_id=grammar_id,
-                    element_type="grammar",
-                    element_status=grammar.status,
-                    score_before=previous_score,
-                    score_after=result.score,
-                    result=result.score >= previous_score,
-                    duration_ms=duration_ms,
-                    hint_used=hint_used,
-                ),
-                session=session,
-            )
-
-        if grammar.score != previous_score:
-            lesson_service.update_score(grammar.lesson_id, session=session)
+        if updated.score != previous_score:
+            lesson_service.update_score(grammar.lesson_id, user_id=user_id, session=session)
             logger.info(f"Updated lesson {grammar.lesson_id} score due to Grammar {grammar_id}")
 
             if grammar.example_words:
                 for word in grammar.example_words:
-                    word_service.update_score(word.id, session=session)
+                    word_service.update_score(word.id, user_id=user_id, session=session)
                     logger.info(f"Updated example Word {word.id} score due to Grammar {grammar_id}")
 
             if grammar.example_sentences:
                 for passage in grammar.example_sentences:
-                    passage_service.update_score(passage.id, session=session)
+                    passage_service.update_score(passage.id, user_id=user_id, session=session)
                     logger.info(f"Updated example Passage {passage.id} score due to Grammar {grammar_id}")
 
-        return self._serialize(result, as_dict, include_relations)
+        return updated

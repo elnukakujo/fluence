@@ -8,18 +8,20 @@ logger = logging.getLogger(__name__)
 from ...schemas.features import VocabularyDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
 from ...models.features import Vocabulary
-from ...models.system_data import Tag, Source
+from ...models.system_data import Tag, Source, Score
 from ..containers import LessonService, LanguageService
 from ..components import WordService, PassageService
 from ..data_collection import ProgressTrackingService
+from ..system_data import ScoreService
 from ...core.database import db_manager, transactional, resolve_related, stack_related
-from ...utils import update_score, update_difficulty, stack_lists
+from ...utils import update_score, update_difficulty, stack_lists, status_for
 
 lesson_service = LessonService()
 language_service = LanguageService()
 word_service = WordService()
 passage_service = PassageService()
 progress_tracking_service = ProgressTrackingService()
+score_service = ScoreService()
 
 
 class VocabularyService:
@@ -278,63 +280,44 @@ class VocabularyService:
         score: float,
         duration_ms: float,
         hint_used: bool = False,
+        user_id: Optional[str] = None,
         session: Optional[Session] = None,
-        as_dict: bool = False,
-        include_relations: bool = True
-    ) -> Vocabulary | dict | None:
+    ) -> Score | None:
         vocabulary = self.get_by_id(voc_id, session=session)
         if not vocabulary:
             logger.warning(f"VocabularyFeature item not found: {voc_id}")
             return None
 
-        previous_score = vocabulary.score
+        previous = score_service.get(user_id, voc_id, session=session)
+        previous_score = previous.score if previous else 0.0
+        updated = score_service.record(user_id, voc_id, score, session=session)
 
-        vocabulary.score = update_score(
-            score=vocabulary.score,
-            last_seen_at=vocabulary.last_seen_at,
-            similarity=score
+        progress_tracking_service.create(
+            data=ProgressTrackingDict(
+                user_id=user_id,
+                language_id=vocabulary.lesson.language_id,
+                element_id=voc_id,
+                element_type="vocabulary",
+                element_status=status_for(voc_id, updated.score),
+                score_before=previous_score,
+                score_after=updated.score,
+                result=updated.score >= previous_score,
+                duration_ms=min(duration_ms, 10*60*1000),
+                hint_used=hint_used,
+            ),
+            session=session,
         )
 
-        vocabulary.difficulty = update_difficulty(
-            new_score=score,
-            last_seen_at=vocabulary.last_seen_at,
-            previous_difficulty=vocabulary.difficulty,
-            created_at=vocabulary.created_at
-        )
-
-        vocabulary.last_seen_at = datetime.now()
-
-        result = db_manager.modify(vocabulary, session=session, commit=False)
-
-        if result:
-            logger.info(f"Updated VocabularyFeature {voc_id} score to {vocabulary.score} and difficulty to {vocabulary.difficulty}")
-
-            progress_tracking_service.create(
-                data=ProgressTrackingDict(
-                    user_id=vocabulary.lesson.user_id,
-                    language_id=vocabulary.lesson.language_id,
-                    element_id=voc_id,
-                    element_type="vocabulary",
-                    element_status=vocabulary.status,
-                    score_before=previous_score,
-                    score_after=result.score,
-                    result=result.score >= previous_score,
-                    duration_ms=min(duration_ms, 10*60*1000),
-                    hint_used=hint_used,
-                ),
-                session=session,
-            )
-
-        if vocabulary.score != previous_score:
-            lesson_service.update_score(vocabulary.lesson_id, session=session)
+        if updated.score != previous_score:
+            lesson_service.update_score(vocabulary.lesson_id, user_id=user_id, session=session)
             logger.info(f"Updated lesson {vocabulary.lesson_id} score due to VocabularyFeature {voc_id}")
 
-            word_service.update_score(vocabulary.word_id, session=session)
+            word_service.update_score(vocabulary.word_id, user_id=user_id, session=session)
             logger.info(f"Updated word {vocabulary.word_id} score due to VocabularyFeature {voc_id}")
 
             if vocabulary.example_sentences:
                 for passage in vocabulary.example_sentences:
-                    passage_service.update_score(passage.id, session=session)
+                    passage_service.update_score(passage.id, user_id=user_id, session=session)
                     logger.info(f"Updated passage {passage.id} score due to VocabularyFeature {voc_id}")
 
-        return self._serialize(result, as_dict, include_relations)
+        return updated

@@ -1,5 +1,5 @@
 """Collaboration: models, service/routes, write access, per-user scoring, fork, dedupe."""
-from lapp.models.system_data import Collaboration, CollaborationProgress, User
+from lapp.models.system_data import Collaboration, CollaborationProgress, Score, User
 
 
 def _seed_users(db):
@@ -129,9 +129,9 @@ def test_collaborator_practice_writes_progress(app, db):
     with db.session_scope() as s:
         voc = s.query(Vocabulary).filter(Vocabulary.id == "voc_V1").one()
         assert voc.score == 0
-        cp = s.query(CollaborationProgress).filter(
-            CollaborationProgress.user_id == "user_U2", CollaborationProgress.element_id == "voc_V1").one()
-        assert cp.score > 0
+        sc = s.query(Score).filter(
+            Score.user_id == "user_U2", Score.element_id == "voc_V1").one()
+        assert sc.score > 0
 
 
 def test_remove_forks_content(app, db):

@@ -10,6 +10,9 @@ from ...models.system_data import Tag, Source
 from ...models.containers import Language
 from ...schemas.components import WordDict
 from ...utils import enrich_word, get_language_by_iso2t, stack_lists
+from ..system_data import ScoreService
+
+score_service = ScoreService()
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +246,7 @@ class WordService:
         return db_manager.delete(existing, session=session, commit=False)
 
     @transactional
-    def update_score(self, word_id: str, session: Optional[Session] = None) -> Word | None:
+    def update_score(self, word_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
         word = self.get_by_id(word_id, session=session)
         if not word:
             logger.warning(f"Word not found: {word_id}")
@@ -255,22 +258,20 @@ class WordService:
             *word.grammar,
         ]
 
-        if features and len(features) > 0:
-            total_score = sum(feature.score for feature in features)
-            word.score = total_score / len(features)
-
-            total_difficulty = sum(feature.difficulty for feature in features)
-            word.difficulty = total_difficulty / len(features)
+        feature_ids = [f.id for f in features]
+        score_map = score_service.get_many(user_id, feature_ids, session=session)
+        if feature_ids:
+            total_score = sum(score_map[fid].score if fid in score_map else 0.0 for fid in feature_ids)
+            total_difficulty = sum(score_map[fid].difficulty if fid in score_map else 0.5 for fid in feature_ids)
+            word_score = total_score / len(feature_ids)
+            word_difficulty = total_difficulty / len(feature_ids)
         else:
             logger.warning(f"No features found for word: {word_id}")
-            word.score = 0.0
-            word.difficulty = 0.5
+            word_score = 0.0
+            word_difficulty = 0.5
 
-        word.last_seen_at = datetime.now()
-
-        result = db_manager.modify(word, session=session, commit=False)
-
+        result = score_service.set(user_id, word_id, word_score, word_difficulty, session=session)
         if result:
-            logger.info(f"Updated WordComponent {word_id} score to {word.score} and difficulty to {word.difficulty}")
+            logger.info(f"Updated WordComponent {word_id} score to {result.score} and difficulty to {result.difficulty}")
 
         return result

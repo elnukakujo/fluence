@@ -69,3 +69,34 @@ class ScoreService:
             Score.element_id.in_(element_ids),
         ).all()
         return {r.element_id: r for r in rows}
+
+    @transactional
+    def set(self, user_id: str, element_id: str, score: float, difficulty: float,
+            current_lesson_id: Optional[str] = None,
+            session: Optional[Session] = None) -> Score:
+        """Upsert a Score row with explicit values (for container/component aggregates)."""
+        now = datetime.now()
+        row = session.query(Score).filter(
+            Score.user_id == user_id,
+            Score.element_id == element_id,
+        ).first()
+        if row is None:
+            row = Score(
+                id=db_manager.generate_new_id(Score, session=session),
+                user_id=user_id,
+                element_id=element_id,
+                score=score,
+                difficulty=difficulty,
+                created_at=now,
+                last_seen_at=now,
+                current_lesson_id=current_lesson_id,
+            )
+            session.add(row)
+        else:
+            row.score = score
+            row.difficulty = difficulty
+            row.last_seen_at = now
+            if current_lesson_id is not None:
+                row.current_lesson_id = current_lesson_id
+        session.flush()
+        return row

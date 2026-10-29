@@ -2,9 +2,8 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import ExerciseService
-from ...services.system_data import CollaborationProgressService
 from ...schemas import ExerciseDict
-from ...core.auth import login_required, require_owns, require_write, owner_user_id, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
@@ -384,24 +383,16 @@ def score_exercise():
     hint_used = bool(data.get('hint_used', False))
     attempt_number = int(data['attempt_number']) if data.get('attempt_number') is not None else None
 
-    if owner_user_id(exercise_id) != current_user_id():
-        CollaborationProgressService().record(current_user_id(), exercise_id, score)
-        return jsonify({'success': True})
-
     exercise = exercise_service.update_score(
         exercise_id,
         score,
         duration_ms=duration_ms,
         hint_used=hint_used,
         attempt_number=attempt_number,
-        as_dict=True,
-        include_relations=False,
+        user_id=current_user_id(),
     )
-    
+
     if exercise:
-        return jsonify({
-            'success': True,
-            'exercise': exercise
-        })
+        return jsonify({'success': True})
     else:
         return jsonify({'error': 'exercise not found'}), 404

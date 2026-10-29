@@ -1,7 +1,7 @@
 """Calligraphy drawing practice: scoring function + /api/calligraphy/draw route."""
 from lapp.utils.helpers import score_drawing
 from lapp.services.auth import AuthService
-from lapp.models.system_data import User
+from lapp.models.system_data import User, Score
 from lapp.models.containers import Language, Lesson
 from lapp.models.components import Character
 from lapp.models.features import Calligraphy
@@ -63,7 +63,9 @@ def test_draw_calligraphy_updates_score(app, db):
     assert res.status_code == 200
     body = res.get_json()
     assert body['success'] is True
-    assert body['calligraphy']['score'] > 0
+    with db.session_scope() as s:
+        sc = s.query(Score).filter(Score.user_id == "user_U1", Score.element_id == "call_C1").one()
+        assert sc.score > 0
 
 
 def test_draw_calligraphy_rejects_non_owner(app, db):

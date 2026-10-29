@@ -2,9 +2,8 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import GrammarService
-from ...services.system_data import CollaborationProgressService
 from ...schemas import GrammarDict
-from ...core.auth import login_required, require_owns, require_write, owner_user_id, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('grammar', __name__, url_prefix='/api/grammar')
 grammar_service = GrammarService()
@@ -368,23 +367,15 @@ def score_grammar():
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))
 
-    if owner_user_id(grammar_id) != current_user_id():
-        CollaborationProgressService().record(current_user_id(), grammar_id, score)
-        return jsonify({'success': True})
-
     grammar = grammar_service.update_score(
         grammar_id,
         score,
         duration_ms=duration_ms,
         hint_used=hint_used,
-        as_dict=True,
-        include_relations=False,
+        user_id=current_user_id(),
     )
-    
+
     if grammar:
-        return jsonify({
-            'success': True,
-            'grammar': grammar
-        })
+        return jsonify({'success': True})
     else:
         return jsonify({'error': 'grammar not found'}), 404

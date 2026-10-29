@@ -8,10 +8,11 @@ from ...core.database import db_manager, transactional, resolve_related
 from ...models.features import Exercise
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
-from ...models.system_data import Tag, Source
-from ...utils import update_score, update_difficulty
+from ...models.system_data import Tag, Source, Score
+from ...utils import update_score, update_difficulty, status_for
 from ..containers import LessonService
 from ..data_collection import ProgressTrackingService
+from ..system_data import ScoreService
 from .calligraphy import CalligraphyService
 from .grammar import GrammarService
 from .vocabulary import VocabularyService
@@ -23,6 +24,7 @@ calligraphy_service = CalligraphyService()
 grammar_service = GrammarService()
 vocabulary_service = VocabularyService()
 progress_tracking_service = ProgressTrackingService()
+score_service = ScoreService()
 
 class ExerciseService:
     def _serialize(self, exercise: Exercise | None, as_dict: bool, include_relations: bool) -> Exercise | dict | None:
@@ -237,83 +239,57 @@ class ExerciseService:
         session: Optional[Session] = None,
         hint_used: bool = False,
         attempt_number: Optional[int] = None,
-        as_dict: bool = False,
-        include_relations: bool = True,
-    ) -> Exercise | dict | None:
+        user_id: Optional[str] = None,
+    ) -> Score | None:
         exercise = self.get_by_id(ex_id, session=session)
         if not exercise:
             logger.warning(f"Exercise not found: {ex_id}")
             return None
 
-        previous_score = exercise.score
-        exercise.score = update_score(
-            score=exercise.score,
-            last_seen_at=exercise.last_seen_at,
-            similarity=score,
+        previous = score_service.get(user_id, ex_id, session=session)
+        previous_score = previous.score if previous else 0.0
+        updated = score_service.record(user_id, ex_id, score, session=session)
+
+        progress_tracking_service.create(
+            data=ProgressTrackingDict(
+                user_id=user_id,
+                language_id=exercise.lesson.language_id,
+                element_id=ex_id,
+                element_type="exercise",
+                element_status=status_for(ex_id, updated.score),
+                score_before=previous_score,
+                score_after=updated.score,
+                result=updated.score >= previous_score,
+                duration_ms=duration_ms,
+                hint_used=hint_used,
+                attempt_number=attempt_number,
+            ),
+            session=session,
         )
-        exercise.difficulty = update_difficulty(
-            new_score=exercise.score,
-            last_seen_at=exercise.last_seen_at,
-            previous_difficulty=exercise.difficulty,
-            created_at=exercise.created_at
-        )
-
-        exercise.last_seen_at = datetime.now()
-
-        result = db_manager.modify(exercise, session=session, commit=False)
-
-        if result:
-            logger.info(f"Updated exercise {ex_id} score to {exercise.score} and difficulty to {exercise.difficulty}")
-
-            progress_tracking_service.create(
-                data=ProgressTrackingDict(
-                    user_id=exercise.lesson.user_id,
-                    language_id=exercise.lesson.language_id,
-                    element_id=ex_id,
-                    element_type="exercise",
-                    element_status=exercise.status,
-                    score_before=previous_score,
-                    score_after=result.score,
-                    result=result.score >= previous_score,
-                    duration_ms=duration_ms,
-                    hint_used=hint_used,
-                    attempt_number=attempt_number,
-                ),
-                session=session,
-            )
 
         for vocabulary in exercise.related_vocabulary:
             vocabulary_service.update_score(
-                vocabulary.id,
-                score=score,
-                duration_ms=duration_ms,
-                hint_used=hint_used,
-                session=session,
+                vocabulary.id, score=score, duration_ms=duration_ms,
+                hint_used=hint_used, user_id=user_id, session=session,
             )
             logger.info(f"Updated vocabulary {vocabulary.id} score due to exercise {ex_id}")
 
         for grammar in exercise.related_grammar:
             grammar_service.update_score(
-                grammar.id,
-                score=score,
-                duration_ms=duration_ms,
-                hint_used=hint_used,
-                session=session,
+                grammar.id, score=score, duration_ms=duration_ms,
+                hint_used=hint_used, user_id=user_id, session=session,
             )
             logger.info(f"Updated grammar {grammar.id} score due to exercise {ex_id}")
 
         for calligraphy in exercise.related_calligraphy:
             calligraphy_service.update_score(
-                calligraphy.id,
-                score=score,
-                duration_ms=duration_ms,
-                hint_used=hint_used,
-                session=session,
+                calligraphy.id, score=score, duration_ms=duration_ms,
+                hint_used=hint_used, user_id=user_id, session=session,
             )
             logger.info(f"Updated calligraphy {calligraphy.id} score due to exercise {ex_id}")
 
-        if exercise.score != previous_score:
-            lesson_service.update_score(exercise.lesson_id, session=session)
+        if updated.score != previous_score:
+            lesson_service.update_score(exercise.lesson_id, user_id=user_id, session=session)
             logger.info(f"Updated lesson {exercise.lesson_id} score due to exercise {ex_id}")
 
-        return self._serialize(result, as_dict, include_relations)
+        return updated

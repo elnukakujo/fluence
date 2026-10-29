@@ -10,12 +10,13 @@ logger = logging.getLogger(__name__)
 from ...schemas.features import CalligraphyDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
 from ...models.features import Calligraphy
-from ...models.system_data import Source, Tag
+from ...models.system_data import Source, Tag, Score
 from ...core.database import db_manager, transactional, resolve_related, stack_related
 from ..containers import LessonService, LanguageService
 from ..components import CharacterService, WordService, PassageService
 from ..data_collection import ProgressTrackingService
-from ...utils import update_score
+from ..system_data import ScoreService
+from ...utils import update_score, status_for
 
 lesson_service = LessonService()
 language_service = LanguageService()
@@ -23,6 +24,7 @@ character_service = CharacterService()
 passage_service = PassageService()
 word_service = WordService()
 progress_tracking_service = ProgressTrackingService()
+score_service = ScoreService()
 
 class CalligraphyService:
     def _serialize(self, calligraphy: Calligraphy | None, as_dict: bool, include_relations: bool) -> Calligraphy | dict | None:
@@ -350,10 +352,9 @@ class CalligraphyService:
         score: float,
         duration_ms: float,
         hint_used: bool = False,
+        user_id: Optional[str] = None,
         session: Optional[Session] = None,
-        as_dict: bool = False,
-        include_relations: bool = True
-    ) -> Calligraphy | dict | None:
+    ) -> Score | None:
         """
         Update Calligraphy item score based on average of all of its components scores.
         
@@ -372,59 +373,41 @@ class CalligraphyService:
             logger.warning(f"Calligraphy item not found: {calligraphy_id}")
             return None
 
-        previous_score = calligraphy.score
+        previous = score_service.get(user_id, calligraphy_id, session=session)
+        previous_score = previous.score if previous else 0.0
+        updated = score_service.record(user_id, calligraphy_id, score, session=session)
 
-        calligraphy.score = update_score(
-            score=calligraphy.score,
-            last_seen_at=calligraphy.last_seen_at,
-            similarity=score,
+        progress_tracking_service.create(
+            data=ProgressTrackingDict(
+                user_id=user_id,
+                language_id=calligraphy.lesson.language_id,
+                element_id=calligraphy_id,
+                element_type="calligraphy",
+                element_status=status_for(calligraphy_id, updated.score),
+                score_before=previous_score,
+                score_after=updated.score,
+                result=updated.score >= previous_score,
+                duration_ms=duration_ms,
+                hint_used=hint_used,
+            ),
+            session=session,
         )
 
-        calligraphy.difficulty = update_difficulty(
-            new_score=score,
-            last_seen_at=calligraphy.last_seen_at,
-            previous_difficulty=calligraphy.difficulty,
-            created_at=calligraphy.created_at
-        )
-
-        calligraphy.last_seen_at = datetime.now()
-
-        result = db_manager.modify(calligraphy, session=session, commit=False)
-
-        if result:
-            logger.info(f"Updated CalligraphyFeature {calligraphy_id} score to {calligraphy.score} and difficulty to {calligraphy.difficulty}")
-
-            progress_tracking_service.create(
-                data=ProgressTrackingDict(
-                    user_id=calligraphy.lesson.user_id,
-                    language_id=calligraphy.lesson.language_id,
-                    element_id=calligraphy_id,
-                    element_type="calligraphy",
-                    element_status=calligraphy.status,
-                    score_before=previous_score,
-                    score_after=result.score,
-                    result=result.score >= previous_score,
-                    duration_ms=duration_ms,
-                    hint_used=hint_used,
-                ),
-                session=session,
-            )
-
-        if calligraphy.score != previous_score:
-            lesson_service.update_score(calligraphy.lesson_id, session=session)
+        if updated.score != previous_score:
+            lesson_service.update_score(calligraphy.lesson_id, user_id=user_id, session=session)
             logger.info(f"Updated lesson {calligraphy.lesson_id} score due to calligraphy {calligraphy_id}")
 
-            character_service.update_score(char_id=calligraphy.character_id, session=session)
+            character_service.update_score(char_id=calligraphy.character_id, user_id=user_id, session=session)
             logger.info(f"Updated character {calligraphy.character_id} score due to calligraphy {calligraphy_id}")
 
             if calligraphy.example_words:
                 for word in calligraphy.example_words:
-                    word_service.update_score(word_id=word.id, session=session)
+                    word_service.update_score(word_id=word.id, user_id=user_id, session=session)
                     logger.info(f"Updated example word {word.id} score due to calligraphy {calligraphy_id}")
 
             if calligraphy.example_sentences:
                 for passage in calligraphy.example_sentences:
-                    passage_service.update_score(passage_id=passage.id, session=session)
+                    passage_service.update_score(passage_id=passage.id, user_id=user_id, session=session)
                     logger.info(f"Updated example sentence {passage.id} score due to calligraphy {calligraphy_id}")
 
-        return self._serialize(result, as_dict, include_relations)
+        return updated

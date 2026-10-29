@@ -12,8 +12,10 @@ from ...models.system_data import Tag, Source
 from ...models.features import Calligraphy, Vocabulary, Grammar, Exercise
 from ...core.database import db_manager, transactional, resolve_related
 from .language import LanguageService
+from ..system_data import ScoreService
 
 language_service = LanguageService()
+score_service = ScoreService()
 
 class LessonService:
     def _serialize(self, lesson: Lesson | None, as_dict: bool, include_relations: bool) -> Lesson | dict | None:
@@ -216,7 +218,7 @@ class LessonService:
         return success
 
     @transactional
-    def update_score(self, lesson_id: str, session: Optional[Session] = None) -> Lesson | None:
+    def update_score(self, lesson_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
         """
         Update lesson score based on average of all of its components scores.
         
@@ -240,25 +242,23 @@ class LessonService:
             session=session
         )
 
-        if not components:
-            logger.warning(f"No components found for lesson: {lesson_id}")
-            lesson.score = 0.0
+        component_ids = [c.id for c in components]
+        score_map = score_service.get_many(user_id, component_ids, session=session)
+        if component_ids:
+            total_score = sum(score_map[cid].score if cid in score_map else 0.0 for cid in component_ids)
+            total_difficulty = sum(score_map[cid].difficulty if cid in score_map else 0.5 for cid in component_ids)
+            lesson_score = round(total_score / len(component_ids), 2)
+            lesson_difficulty = total_difficulty / len(component_ids)
         else:
-            total_score = sum(component.score for component in components)
-            lesson.score = round(total_score / len(components), 2)
+            logger.warning(f"No components found for lesson: {lesson_id}")
+            lesson_score = 0.0
+            lesson_difficulty = 0.5
 
-            logger.info(
-                f"Calculated lesson score: {lesson.score} "
-                f"(from {len(components)} components)"
-            )
-
-        lesson.last_seen_at = datetime.now()
-
-        result = db_manager.modify(lesson, session=session, commit=False)
+        result = score_service.set(user_id, lesson_id, lesson_score, lesson_difficulty, session=session)
         if result:
             logger.info(f"Updated lesson {lesson_id} score: {result.score}")
 
-        if not (language_service.update_score(lesson.language_id, session=session)):
+        if not (language_service.update_score(lesson.language_id, user_id=user_id, session=session)):
             raise Exception(f"Failed to update language score for language {lesson.language_id} after lesson {lesson_id} score update.")
 
         return result

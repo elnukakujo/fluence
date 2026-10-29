@@ -2,10 +2,9 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import CalligraphyService
-from ...services.system_data import CollaborationProgressService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
-from ...core.auth import login_required, require_owns, require_write, owner_user_id, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...utils.helpers import score_drawing
 
 bp = Blueprint('calligraphy', __name__, url_prefix='/api/calligraphy')
@@ -460,24 +459,16 @@ def score_calligraphy():
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))
 
-    if owner_user_id(calligraphy_id) != current_user_id():
-        CollaborationProgressService().record(current_user_id(), calligraphy_id, score)
-        return jsonify({'success': True})
-
     calligraphy = calligraphy_service.update_score(
         calligraphy_id,
         score,
         duration_ms=duration_ms,
         hint_used=hint_used,
-        as_dict=True,
-        include_relations=False,
+        user_id=current_user_id(),
     )
-    
+
     if calligraphy:
-        return jsonify({
-            'success': True,
-                'calligraphy': calligraphy
-        })
+        return jsonify({'success': True})
     else:
         return jsonify({'error': 'calligraphy not found'}), 404
 
@@ -497,20 +488,15 @@ def draw_calligraphy():
 
     score = score_drawing(similarity, stroke_order_errors)
 
-    if owner_user_id(calligraphy_id) != current_user_id():
-        CollaborationProgressService().record(current_user_id(), calligraphy_id, score)
-        return jsonify({'success': True})
-
     calligraphy = calligraphy_service.update_score(
         calligraphy_id,
         score,
         duration_ms=duration_ms,
         hint_used=False,
-        as_dict=True,
-        include_relations=False,
+        user_id=current_user_id(),
     )
 
     if calligraphy:
-        return jsonify({'success': True, 'calligraphy': calligraphy})
+        return jsonify({'success': True})
     else:
         return jsonify({'error': 'calligraphy not found'}), 404

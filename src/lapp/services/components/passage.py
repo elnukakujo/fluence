@@ -11,6 +11,9 @@ from ...models.system_data import Tag, Source
 from ...models.containers import Language
 from ...core.database import db_manager, transactional, resolve_related
 from ...utils import enrich_passage, get_language_by_iso2t
+from ..system_data import ScoreService
+
+score_service = ScoreService()
 
 
 class PassageService:
@@ -304,7 +307,7 @@ class PassageService:
         return success
 
     @transactional
-    def update_score(self, passage_id: str, session: Optional[Session] = None) -> Passage | None:
+    def update_score(self, passage_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
         passage = self.get_by_id(passage_id, session=session)
         if not passage:
             logger.warning(f"Passage not found: {passage_id}")
@@ -316,22 +319,20 @@ class PassageService:
             *passage.grammar,
         ]
 
-        if features and len(features) > 0:
-            total_score = sum(feature.score for feature in features)
-            passage.score = total_score / len(features)
-
-            total_difficulty = sum(feature.difficulty for feature in features)
-            passage.difficulty = total_difficulty / len(features)
+        feature_ids = [f.id for f in features]
+        score_map = score_service.get_many(user_id, feature_ids, session=session)
+        if feature_ids:
+            total_score = sum(score_map[fid].score if fid in score_map else 0.0 for fid in feature_ids)
+            total_difficulty = sum(score_map[fid].difficulty if fid in score_map else 0.5 for fid in feature_ids)
+            passage_score = total_score / len(feature_ids)
+            passage_difficulty = total_difficulty / len(feature_ids)
         else:
             logger.warning(f"No features found for passage: {passage_id}")
-            passage.score = 0.0
-            passage.difficulty = 0.5
+            passage_score = 0.0
+            passage_difficulty = 0.5
 
-        passage.last_seen_at = datetime.now()
-
-        result = db_manager.modify(passage, session=session, commit=False)
-
+        result = score_service.set(user_id, passage_id, passage_score, passage_difficulty, session=session)
         if result:
-            logger.info(f"Updated PassageComponent {passage_id} score to {passage.score} and difficulty to {passage.difficulty}")
+            logger.info(f"Updated PassageComponent {passage_id} score to {result.score} and difficulty to {result.difficulty}")
 
         return result
