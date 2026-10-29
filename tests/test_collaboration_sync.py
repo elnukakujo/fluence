@@ -131,3 +131,14 @@ def test_accept_full_then_consent_merges(db):
         assert cc.status == "awaiting_master_consent"
     CollaborationService().consent(c.id)
     assert LanguageService().get_by_id("lang_U2") is None
+
+
+def test_share_lesson_endpoint(app, db):
+    _seed_users(db)
+    _seed_lesson(db)
+    res = _client_for_user(app, db, "user_U1").post('/api/lessons/lesson_L1/share', json={'user_id': 'user_U2'})
+    assert res.status_code == 200
+    assert LessonShareService().is_recipient("user_U2", "lesson_L1") is True
+    res = _client_for_user(app, db, "user_U1").delete('/api/lessons/lesson_L1/share', json={'user_id': 'user_U2'})
+    assert res.status_code == 200
+    assert LessonShareService().is_recipient("user_U2", "lesson_L1") is False

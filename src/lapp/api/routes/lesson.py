@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import LessonService
-from ...services.system_data import ScoreService
+from ...services.system_data import ScoreService, LessonShareService
 from ...schemas.containers import LessonDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
@@ -225,3 +225,28 @@ def delete_lesson(lesson_id: str):
         return jsonify({'success': True}), 204
     else:
         return jsonify({'error': 'Lesson not found'}), 404
+
+@bp.route('/<lesson_id>/share', methods=['POST'])
+@login_required
+def share_lesson(lesson_id: str):
+    """Share a lesson (co-editable) with another user."""
+    data = request.json or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'user_id required'}), 400
+    require_owns(lesson_id)
+    LessonShareService().share(lesson_id, user_id)
+    return jsonify({'success': True}), 200
+
+
+@bp.route('/<lesson_id>/share', methods=['DELETE'])
+@login_required
+def unshare_lesson(lesson_id: str):
+    """Stop sharing a lesson with another user."""
+    data = request.json or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'user_id required'}), 400
+    require_owns(lesson_id)
+    LessonShareService().unshare(lesson_id, user_id)
+    return jsonify({'success': True}), 200
