@@ -162,3 +162,40 @@ def test_list_awaiting_consent(db):
     CollaborationService().accept(c.id, "full")
     pending = CollaborationService().list_awaiting_consent("user_U1")
     assert any(x["id"] == c.id for x in pending)
+
+
+def test_partial_collaborator_no_language_write(db):
+    from lapp.core.auth import can_write
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial")
+    assert can_write("user_U2", "lang_L1") is False       # partial: no language write
+    assert can_write("user_U2", "lesson_M1") is True      # shared lesson still writable
+
+
+def test_collision_requires_source_and_target_iso(db):
+    _seed_users(db)
+    # master eng->jpn (lang_L1); invitee fra->jpn (lang_U2, different source)
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Language(id="lang_U2", user_id="user_U2", name="Japonais",
+                           target_iso639_2t="jpn", source_iso639_2t="fra"), session=s, commit=False)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")
+    CollaborationService().consent(c.id)
+    # different source ISO → NOT a collision → lang_U2 must survive (no merge)
+    assert LanguageService().get_by_id("lang_U2") is not None
+
+
+def test_no_collision_accepts_immediately(db):
+    _seed_users(db)
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")
+    with db.session_scope() as s:
+        cc = s.query(Collaboration).filter(Collaboration.id == c.id).one()
+        assert cc.status == "accepted"  # no collision → immediately accepted

@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
@@ -41,12 +42,24 @@ class CollaborationService:
         if mode == "partial":
             self.share_master_lessons(collab.master_id, collab.collaborator_id, collab.target_id, session=session)
             collab.status = "accepted"
-        elif mode == "full":
+        elif mode == "full" and self._has_collision(collab.collaborator_id, collab.target_id, session):
             collab.status = "awaiting_master_consent"
         else:
             collab.status = "accepted"
         session.flush()
         return collab
+
+    def _has_collision(self, collaborator_id: str, target_id: str, session: Session) -> bool:
+        """True if the collaborator owns a language with the same source+target ISO couple."""
+        from ...models.containers import Language
+        target = session.query(Language).filter(Language.id == target_id).first()
+        if not target:
+            return False
+        return session.query(Language).filter(
+            Language.user_id == collaborator_id,
+            Language.target_iso639_2t == target.target_iso639_2t,
+            Language.source_iso639_2t == target.source_iso639_2t,
+        ).first() is not None
 
     @transactional
     def consent(self, collaboration_id: str, session: Optional[Session] = None) -> Optional[Collaboration]:
@@ -60,6 +73,7 @@ class CollaborationService:
             collab_lang = session.query(Language).filter(
                 Language.user_id == collab.collaborator_id,
                 Language.target_iso639_2t == target.target_iso639_2t,
+                Language.source_iso639_2t == target.source_iso639_2t,
             ).first()
             if collab_lang:
                 self.merge_language(collab_lang.id, collab.target_id, collab.collaborator_id, session=session)
@@ -291,6 +305,7 @@ class CollaborationService:
             Collaboration.target_type == target_type,
             Collaboration.target_id == target_id,
             Collaboration.status == "accepted",
+            or_(Collaboration.mode.is_(None), Collaboration.mode == "full"),
         ).first() is not None
 
     @transactional
