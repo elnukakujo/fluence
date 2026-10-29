@@ -153,3 +153,12 @@ def test_accept_route_persists_mode(app, db):
     with db.session_scope() as s:
         cc = s.query(Collaboration).filter(Collaboration.id == c.id).one()
         assert cc.mode == 'partial'
+
+
+def test_list_awaiting_consent(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")
+    pending = CollaborationService().list_awaiting_consent("user_U1")
+    assert any(x["id"] == c.id for x in pending)

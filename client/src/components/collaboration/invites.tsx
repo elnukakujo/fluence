@@ -49,9 +49,16 @@ export default function Invites() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={async () => { await accept(inv.id); await load(); }}
+                onClick={async () => { await accept(inv.id, "full"); await load(); }}
               >
-                Accept
+                Accept (full)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={async () => { await accept(inv.id, "partial"); await load(); }}
+              >
+                Accept (partial)
               </button>
               <button
                 type="button"

@@ -77,6 +77,15 @@ class CollaborationService:
             LessonShareService().share(lesson.id, collaborator_id, session=session)
 
     @transactional
+    def list_awaiting_consent(self, master_id: str, session: Optional[Session] = None) -> list[dict]:
+        collabs = session.query(Collaboration).filter(
+            Collaboration.master_id == master_id,
+            Collaboration.status == "awaiting_master_consent",
+        ).all()
+        return [{"id": c.id, "collaborator_id": c.collaborator_id, "target_id": c.target_id,
+                 "target_type": c.target_type, "mode": c.mode} for c in collabs]
+
+    @transactional
     def reject(self, collaboration_id: str, session: Optional[Session] = None) -> bool:
         collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
         if not collab:

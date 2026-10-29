@@ -2,6 +2,7 @@ import { getUserById } from "@/api/user";
 import { getDailyStatsHistory } from "@/api/dailyStats";
 import AvailableLanguages from "@/components/language/availableLanguages";
 import Invites from "@/components/collaboration/invites";
+import ConsentRequests from "@/components/collaboration/consentRequests";
 import NavButton from "@/components/layout/navButton";
 import LoginForm from "@/components/user/loginForm";
 import PracticeHeatmap from "@/components/language/practiceHeatmap";
@@ -41,6 +42,7 @@ export default async function Home() {
       </header>
       <PracticeHeatmap history={history} />
       <Invites />
+      <ConsentRequests />
       <AvailableLanguages />
       <NavButton path="/languages/new">
         <p>Create New Language</p>

@@ -25,12 +25,22 @@ export async function remove(collaborationId: string) {
   return res.json();
 }
 
-export async function accept(collaborationId: string) {
+export async function accept(collaborationId: string, mode?: "full" | "partial") {
   const res = await fetch(`${BASE_URL}/api/collaboration/${collaborationId}/accept`, {
     method: "POST",
     headers: await getAuthHeaders(),
+    body: JSON.stringify(mode ? { mode } : {}),
   });
   if (!res.ok) throw new Error("Failed to accept");
+  return res.json();
+}
+
+export async function consent(collaborationId: string) {
+  const res = await fetch(`${BASE_URL}/api/collaboration/${collaborationId}/consent`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to consent");
   return res.json();
 }
 
@@ -40,6 +50,12 @@ export async function reject(collaborationId: string) {
     headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to reject");
+  return res.json();
+}
+
+export async function listAwaitingConsent(): Promise<{ id: string; collaborator_id: string; target_id: string; target_type: string; mode: string }[]> {
+  const res = await fetch(`${BASE_URL}/api/collaboration/awaiting-consent`, { headers: await getAuthHeaders() });
+  if (!res.ok) throw new Error("Failed to list awaiting consent");
   return res.json();
 }
 

@@ -102,6 +102,12 @@ def remove(collaboration_id):
     return jsonify({'success': True})
 
 
+@bp.route('/awaiting-consent', methods=['GET'])
+@login_required
+def awaiting_consent():
+    return jsonify(collaboration_service.list_awaiting_consent(current_user_id()))
+
+
 @bp.route('/invites', methods=['GET'])
 @login_required
 def invites():
