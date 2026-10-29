@@ -111,3 +111,23 @@ def test_merge_language_combines_and_removes_source(db):
     assert LanguageService().get_by_id("lang_U2") is None
     lessons = LessonService().get_all(language_id="lang_L1", as_dict=True)
     assert {l["title"] for l in lessons} == {"M1", "I1"}
+
+
+def test_accept_partial_shares_lessons(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial")
+    assert LessonShareService().is_recipient("user_U2", "lesson_M1") is True
+
+
+def test_accept_full_then_consent_merges(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")
+    with db.session_scope() as s:
+        cc = s.query(Collaboration).filter(Collaboration.id == c.id).one()
+        assert cc.status == "awaiting_master_consent"
+    CollaborationService().consent(c.id)
+    assert LanguageService().get_by_id("lang_U2") is None

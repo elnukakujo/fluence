@@ -32,12 +32,49 @@ class CollaborationService:
         return collab
 
     @transactional
-    def accept(self, collaboration_id: str, session: Optional[Session] = None) -> Optional[Collaboration]:
+    def accept(self, collaboration_id: str, mode: Optional[str] = None,
+               session: Optional[Session] = None) -> Optional[Collaboration]:
         collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
-        if collab:
+        if not collab:
+            return collab
+        collab.mode = mode
+        if mode == "partial":
+            self.share_master_lessons(collab.master_id, collab.collaborator_id, collab.target_id, session=session)
             collab.status = "accepted"
-            session.flush()
+        elif mode == "full":
+            collab.status = "awaiting_master_consent"
+        else:
+            collab.status = "accepted"
+        session.flush()
         return collab
+
+    @transactional
+    def consent(self, collaboration_id: str, session: Optional[Session] = None) -> Optional[Collaboration]:
+        """Master approves a full merge: merge the collaborator's same-ISO language into the target."""
+        from ...models.containers import Language
+        collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
+        if not collab or collab.mode != "full" or collab.status != "awaiting_master_consent":
+            return collab
+        target = session.query(Language).filter(Language.id == collab.target_id).first()
+        if target:
+            collab_lang = session.query(Language).filter(
+                Language.user_id == collab.collaborator_id,
+                Language.target_iso639_2t == target.target_iso639_2t,
+            ).first()
+            if collab_lang:
+                self.merge_language(collab_lang.id, collab.target_id, collab.collaborator_id, session=session)
+        collab.status = "accepted"
+        session.flush()
+        return collab
+
+    @transactional
+    def share_master_lessons(self, master_id: str, collaborator_id: str, language_id: str,
+                             session: Optional[Session] = None) -> None:
+        from ...models.containers import Lesson
+        from .lesson_share import LessonShareService
+        lessons = session.query(Lesson).filter(Lesson.language_id == language_id).all()
+        for lesson in lessons:
+            LessonShareService().share(lesson.id, collaborator_id, session=session)
 
     @transactional
     def reject(self, collaboration_id: str, session: Optional[Session] = None) -> bool:
