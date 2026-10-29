@@ -199,3 +199,12 @@ def test_no_collision_accepts_immediately(db):
     with db.session_scope() as s:
         cc = s.query(Collaboration).filter(Collaboration.id == c.id).one()
         assert cc.status == "accepted"  # no collision → immediately accepted
+
+
+def test_partial_does_not_list_master_language(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial")
+    collab_ids = CollaborationService().list_collaborated_target_ids("user_U2", "language")
+    assert "lang_L1" not in collab_ids  # partial shares lessons, not the language

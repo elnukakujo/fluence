@@ -324,6 +324,7 @@ class CollaborationService:
             Collaboration.collaborator_id == user_id,
             Collaboration.target_type == target_type,
             Collaboration.status == "accepted",
+            or_(Collaboration.mode.is_(None), Collaboration.mode == "full"),
         ).all()
         return [c.target_id for c in collabs]
 
