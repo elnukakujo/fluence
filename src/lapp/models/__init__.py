@@ -23,4 +23,5 @@ __all__ = [
     "ProgressTracking",
     "DailyStats",
     "CommitmentLog",
+    "Score",
 ]

@@ -5,6 +5,7 @@ from .tag import Tag
 from .session import UserSession
 from .collaboration import Collaboration
 from .collaboration_progress import CollaborationProgress
+from .score import Score
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "UserSession",
     "Collaboration",
     "CollaborationProgress",
+    "Score",
 ]
