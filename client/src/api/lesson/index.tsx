@@ -47,3 +47,12 @@ export async function getSharedLessons(): Promise<Lesson[]> {
   if (!res.ok) throw new Error("Failed to fetch shared lessons");
   return res.json();
 }
+
+export async function leaveSharedLesson(lessonId: string) {
+  const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}/leave`, {
+    method: "DELETE",
+    headers: await getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to stop sharing");
+  return res.json();
+}

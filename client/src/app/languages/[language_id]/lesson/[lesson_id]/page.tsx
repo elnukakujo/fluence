@@ -11,6 +11,7 @@ import type Exercise from "@/interface/features/Exercise";
 
 import NavButton from "@/components/layout/navButton";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
+import StopSharingButton from "@/components/ui/buttons/stopSharingButton";
 import CollaborateButton from "@/components/collaboration/collaborateButton";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
@@ -47,9 +48,13 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                         <p>Update this Lesson Informations</p>
                     </NavButton>
                     {isOwner && <CollaborateButton targetType="lesson" targetId={lesson_id} />}
-                    <DeleteButton element_id={lesson_id}>
-                        <p>Delete this Lesson</p>
-                    </DeleteButton>
+                    {isOwner ? (
+                        <DeleteButton element_id={lesson_id}>
+                            <p>Delete this Lesson</p>
+                        </DeleteButton>
+                    ) : (
+                        <StopSharingButton lesson_id={lesson_id} />
+                    )}
                 </nav>
             </header>
             <article className="flex flex-row flex-wrap gap-8 justify-around">

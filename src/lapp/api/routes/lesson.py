@@ -259,3 +259,11 @@ def shared_lessons():
     lessons = LessonShareService().list_shared_lessons(current_user_id())
     dicts = [l.to_dict() for l in lessons]
     return jsonify(ScoreService().merge(current_user_id(), dicts))
+
+
+@bp.route('/<lesson_id>/leave', methods=['DELETE'])
+@login_required
+def leave_shared_lesson(lesson_id: str):
+    """Stop collaborating on a shared lesson (remove the current user's access)."""
+    LessonShareService().unshare(lesson_id, current_user_id())
+    return jsonify({'success': True}), 200

@@ -217,3 +217,12 @@ def test_list_shared_lessons(db):
     CollaborationService().accept(c.id, "partial")
     shared = LessonShareService().list_shared_lessons("user_U2")
     assert any(l.id == "lesson_M1" for l in shared)
+
+
+def test_leave_shared_lesson(app, db):
+    _seed_users(db)
+    _seed_lesson(db)
+    LessonShareService().share("lesson_L1", "user_U2")
+    res = _client_for_user(app, db, "user_U2").delete('/api/lessons/lesson_L1/leave')
+    assert res.status_code == 200
+    assert LessonShareService().is_recipient("user_U2", "lesson_L1") is False
