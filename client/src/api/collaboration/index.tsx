@@ -53,7 +53,7 @@ export async function reject(collaborationId: string) {
   return res.json();
 }
 
-export async function listAwaitingConsent(): Promise<{ id: string; collaborator_id: string; target_id: string; target_type: string; mode: string }[]> {
+export async function listAwaitingConsent(): Promise<{ id: string; collaborator_id: string; collaborator_name?: string; target_id: string; target_type: string; mode: string; language_name?: string | null }[]> {
   const res = await fetch(`${BASE_URL}/api/collaboration/awaiting-consent`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list awaiting consent");
   return res.json();
@@ -65,11 +65,20 @@ export async function listInvites(): Promise<{ id: string; master_id: string; ma
   return res.json();
 }
 
-export async function listCollaborators(targetType: string, targetId: string): Promise<{ id: string; collaborator_id: string; status: string }[]> {
+export async function listCollaborators(targetType: string, targetId: string): Promise<{ id: string; collaborator_id: string; status: string; mode?: string | null }[]> {
   const res = await fetch(
     `${BASE_URL}/api/collaboration/list?target_type=${targetType}&target_id=${targetId}`,
     { headers: await getAuthHeaders() },
   );
   if (!res.ok) throw new Error("Failed to list collaborators");
+  return res.json();
+}
+
+export async function decline(collaborationId: string) {
+  const res = await fetch(`${BASE_URL}/api/collaboration/${collaborationId}/decline`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to decline");
   return res.json();
 }

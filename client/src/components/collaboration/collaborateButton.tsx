@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createPortal } from "react-dom";
+import { Users } from "lucide-react";
+import Modal from "@/components/ui/dialogs/modal";
 import InviteMenu from "./inviteMenu";
 
 export default function CollaborateButton({ targetType, targetId }: {
@@ -13,13 +14,16 @@ export default function CollaborateButton({ targetType, targetId }: {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="btn btn-secondary">
-        Collaborate
+        <Users size={16} aria-hidden /> Collaborate
       </button>
-      {open && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <InviteMenu targetType={targetType} targetId={targetId} onClose={() => setOpen(false)} />
-        </div>,
-        document.body,
+      {open && (
+        <Modal
+          title="Collaborators"
+          subtitle={`Invite people to co-edit this ${targetType}.`}
+          onClose={() => setOpen(false)}
+        >
+          <InviteMenu targetType={targetType} targetId={targetId} />
+        </Modal>
       )}
     </>
   );

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type Language from '@/interface/containers/Language';
 import { languageProficiencySystems, getLevelLabel } from '@/utils/language_iso639';
+import SharedBadge from '../collaboration/sharedBadge';
 import ScoreDisplay from '../ui/displays/scoreDisplay';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -39,7 +40,7 @@ export default function LanguageOverviewCard({ language }: { language: Language 
                 <div className="flex items-center gap-2">
                     <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
                     {language.collaborators && language.collaborators.length > 0 && (
-                        <span className="badge w-fit">Shared</span>
+                        <SharedBadge count={language.collaborators.length} />
                     )}
                 </div>
                 <ScoreDisplay score={language.score} />

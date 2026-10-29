@@ -2,6 +2,7 @@
 
 import Language from "@/interface/containers/Language";
 import { ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
+import SharedBadge from "../collaboration/sharedBadge";
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 
@@ -11,7 +12,7 @@ export default function LanguageHeaderCard({ language }: { language: Language })
             <header className="flex items-baseline gap-2">
                 <h1>{language.flag} {language.name} ({language.alias})</h1>
                 {language.collaborators && language.collaborators.length > 0 && (
-                    <span className="badge">Shared</span>
+                    <SharedBadge count={language.collaborators.length} />
                 )}
             </header>
             <div className="index-divider pt-3 flex flex-col space-y-2">

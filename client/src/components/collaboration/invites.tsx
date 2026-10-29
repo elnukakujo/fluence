@@ -1,28 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Layers, Merge, Users } from "lucide-react";
 import { listInvites, accept, reject } from "@/api/collaboration";
-import { createPortal } from "react-dom";
+import Modal from "@/components/ui/dialogs/modal";
 
-type LessonInfo = { id: string; title: string; description?: string; level?: number };
-type Invite = {
-  id: string;
-  master_id: string;
-  master_name?: string;
-  target_type: string;
-  target_id: string;
-  language_name?: string;
-  source_language?: string;
-  target_language?: string;
-  lessons?: LessonInfo[];
-};
+type Invite = Awaited<ReturnType<typeof listInvites>>[number];
+type Mode = "full" | "partial";
+
+const MODES: { value: Mode; title: string; body: string; Icon: typeof Merge }[] = [
+  { value: "full", title: "Full sync", Icon: Merge,
+    body: "Merge your language into theirs. You both edit one shared course." },
+  { value: "partial", title: "Partial sync", Icon: Layers,
+    body: "Keep your language separate and pick which of their lessons to share." },
+];
 
 export default function Invites() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [accepting, setAccepting] = useState<Invite | null>(null);
-  const [mode, setMode] = useState<"full" | "partial" | null>(null);
+  const [mode, setMode] = useState<Mode | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     setInvites(await listInvites());
@@ -33,134 +33,141 @@ export default function Invites() {
 
   if (!loaded || invites.length === 0) return null;
 
+  const lessons = accepting?.lessons ?? [];
+  const route = (inv: Invite) =>
+    inv.source_language && inv.target_language ? `${inv.source_language} → ${inv.target_language}` : null;
+
   function openAccept(inv: Invite) {
     setAccepting(inv);
     setMode(null);
+    setError(null);
     setSelected(new Set((inv.lessons ?? []).map((l) => l.id)));
+  }
+
+  function close() {
+    if (!busy) setAccepting(null);
   }
 
   function toggleLesson(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (!next.delete(id)) next.add(id);
       return next;
     });
   }
 
-  async function confirm() {
-    if (!accepting || !mode) return;
-    if (mode === "partial") {
-      const ids = (accepting.lessons ?? []).map((l) => l.id).filter((id) => selected.has(id));
-      await accept(accepting.id, "partial", ids);
-    } else {
-      await accept(accepting.id, "full");
+  async function run(action: () => Promise<unknown>) {
+    setBusy(true);
+    try {
+      await action();
+      setAccepting(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setBusy(false);
     }
-    setAccepting(null);
-    setMode(null);
-    await load();
   }
 
+  const canConfirm = !!mode && (mode === "full" || selected.size > 0);
+
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2" aria-label="Collaboration invites">
       <h2 className="font-serif">Collaboration invites</h2>
       <ul className="flex flex-col gap-2">
         {invites.map((inv) => (
-          <li key={inv.id} className="card flex items-center justify-between gap-2">
-            <span className="text-sm flex flex-col gap-0.5">
-              <span className="font-medium">{inv.master_name ?? inv.master_id} invited you</span>
-              <span className="text-muted">
-                {inv.language_name ?? inv.target_id}
-                {inv.source_language && inv.target_language && (
-                  <> ({inv.source_language} → {inv.target_language})</>
-                )}
+          <li key={inv.id} className="card flex items-center justify-between gap-3">
+            <span className="flex items-start gap-3 text-sm">
+              <Users size={18} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-medium">{inv.master_name ?? inv.master_id} invited you</span>
+                <span className="text-muted">
+                  {inv.language_name ?? inv.target_id}{route(inv) && ` · ${route(inv)}`}
+                </span>
               </span>
             </span>
             <span className="flex gap-2">
               <button type="button" className="btn btn-primary" onClick={() => openAccept(inv)}>
-                Accept
+                Review
               </button>
-              <button type="button" className="btn btn-secondary" onClick={async () => { await reject(inv.id); await load(); }}>
-                Reject
+              <button type="button" className="btn btn-secondary"
+                onClick={() => run(() => reject(inv.id))}>
+                Decline
               </button>
             </span>
           </li>
         ))}
       </ul>
 
-      {accepting && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="card flex flex-col gap-4 max-w-lg w-full p-5" role="dialog" aria-modal="true">
-            <div className="flex flex-col gap-0.5">
-              <h3 className="font-serif text-lg">{accepting.language_name ?? accepting.target_id}</h3>
-              <p className="text-sm text-muted">
-                {accepting.master_name ?? accepting.master_id} invited you to collaborate
-                {accepting.source_language && accepting.target_language && (
-                  <> · {accepting.source_language} → {accepting.target_language}</>
-                )}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                className={`card text-left p-3 border transition ${mode === "full" ? "border-ink ring-2 ring-ink" : "hover:bg-accent-soft"}`}
-                onClick={() => setMode("full")}
-              >
-                <span className="font-medium block">Full sync</span>
-                <span className="text-sm text-muted">
-                  Merge your language into theirs — you both edit one shared course.
-                </span>
+      {accepting && (
+        <Modal
+          title={accepting.language_name ?? accepting.target_id}
+          subtitle={`${accepting.master_name ?? accepting.master_id} invited you to collaborate${route(accepting) ? ` · ${route(accepting)}` : ""}`}
+          onClose={close}
+          footer={
+            <>
+              <button type="button" className="btn btn-secondary" onClick={close} disabled={busy}>Cancel</button>
+              <button type="button" className="btn btn-primary" disabled={!canConfirm || busy}
+                onClick={() => run(() => mode === "partial"
+                  ? accept(accepting.id, "partial", lessons.map((l) => l.id).filter((id) => selected.has(id)))
+                  : accept(accepting.id, "full"))}>
+                {busy ? "Joining…" : mode === "partial" ? `Share ${selected.size} lesson${selected.size === 1 ? "" : "s"}` : "Join"}
               </button>
-              <button
-                type="button"
-                className={`card text-left p-3 border transition ${mode === "partial" ? "border-ink ring-2 ring-ink" : "hover:bg-accent-soft"}`}
-                onClick={() => setMode("partial")}
-              >
-                <span className="font-medium block">Partial sync</span>
-                <span className="text-sm text-muted">
-                  Keep your language separate — pick which of their lessons to share.
-                </span>
-              </button>
-            </div>
+            </>
+          }
+        >
+          <div role="radiogroup" aria-label="Sync mode" className="flex flex-col gap-2">
+            {MODES.map(({ value, title, body, Icon }) => {
+              const active = mode === value;
+              return (
+                <button key={value} type="button" role="radio" aria-checked={active}
+                  onClick={() => setMode(value)}
+                  className={`flex items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                    active ? "border-primary bg-accent-soft ring-2 ring-primary" : "border-border hover:bg-accent-soft"}`}>
+                  <Icon size={18} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                  <span>
+                    <span className="block font-medium">{title}</span>
+                    <span className="text-sm text-muted">{body}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-            {mode === "partial" && (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium">Choose lessons to share</p>
-                <ul className="flex flex-col gap-1 max-h-56 overflow-y-auto">
-                  {(accepting.lessons ?? []).map((l) => (
-                    <li
-                      key={l.id}
-                      className="flex items-start gap-2 text-sm p-2 rounded hover:bg-accent-soft"
-                      title={l.description || l.title}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected.has(l.id)}
-                        onChange={() => toggleLesson(l.id)}
-                      />
+          {mode === "full" && (
+            <p className="text-xs text-muted">
+              If you already study this language pair, the owner must approve the merge before it happens.
+            </p>
+          )}
+
+          {mode === "partial" && (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="flex w-full items-center justify-between text-sm font-medium">
+                <span>Lessons to share · {selected.size}/{lessons.length}</span>
+                <button type="button" className="text-xs text-accent underline"
+                  onClick={() => setSelected(new Set(selected.size === lessons.length ? [] : lessons.map((l) => l.id)))}>
+                  {selected.size === lessons.length ? "Select none" : "Select all"}
+                </button>
+              </legend>
+              {lessons.length === 0 && <p className="text-sm text-muted">The owner has no lessons yet.</p>}
+              <ul className="flex flex-col max-h-56 overflow-y-auto">
+                {lessons.map((l) => (
+                  <li key={l.id}>
+                    <label className="flex cursor-pointer items-start gap-2 rounded p-2 text-sm hover:bg-accent-soft">
+                      <input type="checkbox" className="mt-1" checked={selected.has(l.id)} onChange={() => toggleLesson(l.id)} />
                       <span className="flex flex-col">
                         <span>{l.title}</span>
-                        {l.description && (
-                          <span className="text-xs text-muted line-clamp-1">{l.description}</span>
-                        )}
+                        {l.description && <span className="text-xs text-muted line-clamp-1">{l.description}</span>}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+          )}
 
-            <div className="flex flex-row gap-2 justify-end">
-              <button type="button" className="btn btn-primary" onClick={confirm} disabled={!mode}>
-                Confirm
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={() => { setAccepting(null); setMode(null); }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
+          {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+        </Modal>
       )}
     </section>
   );
