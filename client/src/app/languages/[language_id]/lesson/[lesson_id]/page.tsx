@@ -11,6 +11,7 @@ import type Exercise from "@/interface/features/Exercise";
 
 import NavButton from "@/components/layout/navButton";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
+import CollaborateButton from "@/components/collaboration/collaborateButton";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
@@ -42,6 +43,7 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                     <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/update`}>
                         <p>Update this Lesson Informations</p>
                     </NavButton>
+                    <CollaborateButton targetType="lesson" targetId={lesson_id} />
                     <DeleteButton element_id={lesson_id}>
                         <p>Delete this Lesson</p>
                     </DeleteButton>

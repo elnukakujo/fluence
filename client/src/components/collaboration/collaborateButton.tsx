@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import InviteMenu from "./inviteMenu";
 
 export default function CollaborateButton({ targetType, targetId }: {
@@ -11,13 +12,14 @@ export default function CollaborateButton({ targetType, targetId }: {
 
   return (
     <>
-      <button type="button" className="btn" onClick={() => setOpen(!open)}>
+      <button type="button" onClick={() => setOpen(true)} className="btn btn-secondary">
         Collaborate
       </button>
-      {open && (
-        <div className="mt-2">
+      {open && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <InviteMenu targetType={targetType} targetId={targetId} onClose={() => setOpen(false)} />
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
