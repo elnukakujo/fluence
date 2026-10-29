@@ -25,12 +25,7 @@ export default function LanguageOverviewCard({ language }: { language: Language 
             onClick={handleCardClick}
         >
             <header className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                    <p className="text-2xl">{language.flag}</p>
-                    {language.collaborators && language.collaborators.length > 0 && (
-                        <span className="badge w-fit">Shared</span>
-                    )}
-                </div>
+                <p className="text-2xl">{language.flag}</p>
                 <h3 className="font-serif text-lg text-ink line-clamp-2">{language.name} ({language.alias})</h3>
                 <span className="text-xs flex flex-row gap-1 items-center text-muted">
                     <p>From</p>
@@ -41,7 +36,12 @@ export default function LanguageOverviewCard({ language }: { language: Language 
                 <Markdown remarkPlugins={[remarkGfm]}>{language.description}</Markdown>
             </div>
             <footer>
-                <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
+                <div className="flex items-center gap-2">
+                    <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
+                    {language.collaborators && language.collaborators.length > 0 && (
+                        <span className="badge w-fit">Shared</span>
+                    )}
+                </div>
                 <ScoreDisplay score={language.score} />
             </footer>
         </button>

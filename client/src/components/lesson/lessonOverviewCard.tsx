@@ -22,15 +22,17 @@ export default function LessonOverviewCard({ language_code, lesson }: { language
         >
             <header className="flex flex-col gap-1">
                 <h3 className="font-serif text-lg text-ink line-clamp-2">{lesson.title}</h3>
-                {lesson.collaborators && lesson.collaborators.length > 0 && (
-                    <span className="badge w-fit">Shared</span>
-                )}
             </header>
             <div className="index-divider line-clamp-4 flex-1 text-sm text-muted prose-sm">
                 <Markdown remarkPlugins={[remarkGfm]}>{lesson.description}</Markdown>
             </div>
             <footer>
-                <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
+                <div className="flex items-center gap-2">
+                    <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
+                    {lesson.collaborators && lesson.collaborators.length > 0 && (
+                        <span className="badge w-fit">Shared</span>
+                    )}
+                </div>
                 <ScoreDisplay score={lesson.score} />
             </footer>
         </button>
