@@ -9,10 +9,13 @@ import { getLanguageData } from "@/api/language";
 import { getTodayDailyStats } from "@/api/dailyStats";
 import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
+import { getCurrentUserId } from "@/utils/user_cookie";
 
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
     const { language_id } = await params;
     const { language, lessons } = await getLanguageData(language_id);
+    const userId = await getCurrentUserId();
+    const isOwner = userId === language.user_id;
     const dailyStats = language.user_id ? await getTodayDailyStats(language.user_id, language_id) : null;
     const commitmentLog = language.user_id ? await (await import("@/api/commitmentLog")).getCommitmentLogForUserLanguage(language.user_id, language_id) : null;
     const hasLessons = lessons && lessons.length > 0;
@@ -34,7 +37,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                     <NavButton path={`/languages/${language_id}/update`}>
                         <p>Update Language</p>
                     </NavButton>
-                    <CollaborateButton targetType="language" targetId={language_id} />
+                    {isOwner && <CollaborateButton targetType="language" targetId={language_id} />}
                     <DeleteButton element_id={language_id}/>
                 </nav>
                 <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} />

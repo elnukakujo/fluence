@@ -49,7 +49,7 @@ export async function listInvites(): Promise<{ id: string; master_id: string; ta
   return res.json();
 }
 
-export async function listCollaborators(targetType: string, targetId: string): Promise<{ id: string; collaborator_id: string }[]> {
+export async function listCollaborators(targetType: string, targetId: string): Promise<{ id: string; collaborator_id: string; status: string }[]> {
   const res = await fetch(
     `${BASE_URL}/api/collaboration/list?target_type=${targetType}&target_id=${targetId}`,
     { headers: await getAuthHeaders() },

@@ -9,7 +9,7 @@ export default function InviteMenu({ targetType, targetId, onClose }: {
   onClose: () => void;
 }) {
   const [users, setUsers] = useState<{ id: string; display_name: string }[]>([]);
-  const [collaborators, setCollaborators] = useState<Record<string, string>>({});  // collaborator_id -> collab id
+  const [collaborators, setCollaborators] = useState<Record<string, { id: string; status: string }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,8 +20,8 @@ export default function InviteMenu({ targetType, targetId, onClose }: {
         listCollaborators(targetType, targetId),
       ]);
       setUsers(allUsers);
-      const map: Record<string, string> = {};
-      for (const c of collabs) map[c.collaborator_id] = c.id;
+      const map: Record<string, { id: string; status: string }> = {};
+      for (const c of collabs) map[c.collaborator_id] = { id: c.id, status: c.status };
       setCollaborators(map);
       setError(null);
     } catch (e) {
@@ -45,10 +45,10 @@ export default function InviteMenu({ targetType, targetId, onClose }: {
   }
 
   async function handleRemove(userId: string) {
-    const collabId = collaborators[userId];
-    if (!collabId) return;
+    const collab = collaborators[userId];
+    if (!collab) return;
     try {
-      await remove(collabId);
+      await remove(collab.id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to remove");
@@ -71,13 +71,17 @@ export default function InviteMenu({ targetType, targetId, onClose }: {
       ) : (
         <ul className="flex flex-col gap-1 max-h-72 overflow-y-auto">
           {users.map((u) => {
-            const isCollaborator = u.id in collaborators;
+            const collab = collaborators[u.id];
             return (
               <li key={u.id} className="flex items-center justify-between gap-2 py-1">
                 <span className="text-sm">{u.display_name}</span>
-                {isCollaborator ? (
+                {collab?.status === "accepted" ? (
                   <button type="button" className="btn btn-secondary" onClick={() => handleRemove(u.id)}>
                     Remove
+                  </button>
+                ) : collab?.status === "pending" ? (
+                  <button type="button" className="btn btn-primary" onClick={() => handleInvite(u.id)}>
+                    Resend invite
                   </button>
                 ) : (
                   <button type="button" className="btn btn-primary" onClick={() => handleInvite(u.id)}>

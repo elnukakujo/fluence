@@ -8,8 +8,11 @@ import remarkGfm from 'remark-gfm';
 export default function LanguageHeaderCard({ language }: { language: Language }) { 
     return (
         <section className="card flex flex-col space-y-2">
-            <header>
+            <header className="flex items-baseline gap-2">
                 <h1>{language.flag} {language.name} ({language.alias})</h1>
+                {language.collaborators && language.collaborators.length > 0 && (
+                    <span className="badge">Collaborative</span>
+                )}
             </header>
             <div className="index-divider pt-3 flex flex-col space-y-2">
                 <div className="grid gap-2 sm:grid-cols-2">

@@ -40,8 +40,8 @@ export default async function Home() {
         <p className="text-muted">What do you want to study today?</p>
       </header>
       <PracticeHeatmap history={history} />
-      <AvailableLanguages />
       <Invites />
+      <AvailableLanguages />
       <NavButton path="/languages/new">
         <p>Create New Language</p>
       </NavButton>

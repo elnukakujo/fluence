@@ -10,6 +10,7 @@ export default interface Lesson extends BaseContainer {
     
     user_id?: string;
     language_id: string;
+    collaborators?: string[];
     vocabularies?: Partial<Vocabulary>[];
     grammars?: Partial<Grammar>[];
     calligraphies?: Partial<Calligraphy>[];

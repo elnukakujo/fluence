@@ -61,4 +61,21 @@ class Lesson(BaseContainerModel):
                 "vocabulary": [vocab.id for vocab in self.vocabulary],
                 "exercise_ids": [ex.id for ex in self.exercise]
             })
+        base_dict["collaborators"] = self._collaborator_names()
         return base_dict
+
+    def _collaborator_names(self) -> list[str]:
+        from sqlalchemy.orm import object_session
+        from ...core.database import db_manager
+        from ...models.system_data import Collaboration, User
+        session = object_session(self) or db_manager.get_session()
+        collabs = session.query(Collaboration).filter(
+            Collaboration.target_type == "lesson",
+            Collaboration.target_id == self.id,
+            Collaboration.status == "accepted",
+        ).all()
+        user_ids = [c.collaborator_id for c in collabs]
+        if not user_ids:
+            return []
+        users = session.query(User).filter(User.id.in_(user_ids)).all()
+        return [u.display_name or u.username for u in users]

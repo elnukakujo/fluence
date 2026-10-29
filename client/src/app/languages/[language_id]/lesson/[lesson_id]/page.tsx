@@ -21,11 +21,14 @@ import { getGrammarByLesson } from "@/api/grammar";
 import { getCalligraphyByLesson } from "@/api/calligraphy";
 import { getExercisesByLesson } from "@/api/exercise";
 import LessonHeaderCard from "@/components/lesson/lessonHeaderCard";
+import { getCurrentUserId } from "@/utils/user_cookie";
 
 
 export default async function Lesson({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }) {
     const { language_id, lesson_id } = await params;
     const lesson: Lesson = await getLessonById(lesson_id);
+    const userId = await getCurrentUserId();
+    const isOwner = userId === lesson.user_id;
 
     const vocabularies: Vocabulary[] = await getVocabularyByLesson(lesson_id);
     const grammars: Grammar[] = await getGrammarByLesson(lesson_id);
@@ -43,7 +46,7 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                     <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/update`}>
                         <p>Update this Lesson Informations</p>
                     </NavButton>
-                    <CollaborateButton targetType="lesson" targetId={lesson_id} />
+                    {isOwner && <CollaborateButton targetType="lesson" targetId={lesson_id} />}
                     <DeleteButton element_id={lesson_id}>
                         <p>Delete this Lesson</p>
                     </DeleteButton>

@@ -62,5 +62,22 @@ class Language(BaseContainerModel):
                 "current_lesson_id": self.current_lesson_id,
                 "lesson_ids": [lesson.id for lesson in self.lessons],
             })
-        
+        base_dict["collaborators"] = self._collaborator_names()
+
         return base_dict
+
+    def _collaborator_names(self) -> list[str]:
+        from sqlalchemy.orm import object_session
+        from ...core.database import db_manager
+        from ...models.system_data import Collaboration, User
+        session = object_session(self) or db_manager.get_session()
+        collabs = session.query(Collaboration).filter(
+            Collaboration.target_type == "language",
+            Collaboration.target_id == self.id,
+            Collaboration.status == "accepted",
+        ).all()
+        user_ids = [c.collaborator_id for c in collabs]
+        if not user_ids:
+            return []
+        users = session.query(User).filter(User.id.in_(user_ids)).all()
+        return [u.display_name or u.username for u in users]
