@@ -181,6 +181,16 @@ class CollaborationService:
         return [{"id": c.id, "collaborator_id": c.collaborator_id, "status": c.status} for c in collabs]
 
     @transactional
+    def list_collaborated_target_ids(self, user_id: str, target_type: str,
+                                     session: Optional[Session] = None) -> list[str]:
+        collabs = session.query(Collaboration).filter(
+            Collaboration.collaborator_id == user_id,
+            Collaboration.target_type == target_type,
+            Collaboration.status == "accepted",
+        ).all()
+        return [c.target_id for c in collabs]
+
+    @transactional
     def list_invites(self, user_id: str, session: Optional[Session] = None) -> list[dict]:
         collabs = session.query(Collaboration).filter(
             Collaboration.collaborator_id == user_id,

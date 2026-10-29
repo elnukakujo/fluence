@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...services import LanguageService
+from ...services.system_data import CollaborationService
 from ...schemas.containers import LanguageDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
@@ -26,8 +27,14 @@ def get_all_user_languages(user_id: str):
           items:
             type: object
     """
-    languages = language_service.get_by_user_id(user_id=current_user_id(), as_dict=True)
-    if languages is None or len(languages) == 0:
+    languages = language_service.get_by_user_id(user_id=current_user_id(), as_dict=True) or []
+    # include languages the current user collaborates on
+    collab_ids = CollaborationService().list_collaborated_target_ids(current_user_id(), "language")
+    for lid in collab_ids:
+        lang = language_service.get_by_id(lid, as_dict=True)
+        if lang and lang["id"] not in {l["id"] for l in languages}:
+            languages.append(lang)
+    if len(languages) == 0:
         return jsonify([]), 200
     return jsonify(languages)
 

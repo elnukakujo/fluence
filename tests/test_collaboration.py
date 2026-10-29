@@ -199,3 +199,16 @@ def test_fork_dedupes_components(app, db):
     with db.session_scope() as s:
         words = s.query(Word).filter(Word.language_id == "lang_L2", Word.word == "水").all()
         assert len(words) == 1  # reused the existing word, no duplicate
+
+
+def test_collaborated_language_appears_in_list(app, db):
+    _seed_users(db)
+    _seed_language(db)  # U1 owns lang_L1
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/accept")
+    res = _client_for_user(app, db, "user_U2").get('/api/languages/all/user_U2')
+    assert res.status_code == 200
+    ids = [l['id'] for l in res.get_json()]
+    assert 'lang_L1' in ids  # the collaborated language appears in the collaborator's list
