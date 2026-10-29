@@ -4,6 +4,7 @@ from .user import UserService
 from .user_preferences import UserPreferencesService
 from .collaboration import CollaborationService
 from .score import ScoreService
+from .lesson_share import LessonShareService
 
 __all__ = [
     "TagService",
@@ -12,4 +13,5 @@ __all__ = [
     "UserPreferencesService",
     "CollaborationService",
     "ScoreService",
+    "LessonShareService",
 ]
