@@ -41,7 +41,6 @@ ID_PREFIXES = {
     "DailyStats": "day_D",
     "CommitmentLog": "cl_C",
     "Collaboration": "collab_C",
-    "CollaborationProgress": "cp_P",
     "Score": "sc_S",
 }
 

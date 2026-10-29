@@ -62,7 +62,7 @@ class CollaborationService:
         from ...models.containers import Language, Lesson
         from ...models.components import Word, Character, Passage
         from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
-        from ...models.system_data import CollaborationProgress
+        from ...models.system_data import Score
 
         def clone(model, **fields):
             obj = model(id=db_manager.generate_new_id(model, session=session), **fields)
@@ -76,12 +76,19 @@ class CollaborationService:
         feature_map: dict[str, str] = {}
 
         def get_or_create_language(lang) -> str:
-            """Dedupe: if the collaborator already has a language with the same name, merge into it."""
+            """Dedupe by target ISO code: merge into the collaborator's existing language."""
             existing = session.query(Language).filter(
                 Language.user_id == collaborator_id,
-                Language.name == lang.name,
+                Language.target_iso639_2t == lang.target_iso639_2t,
             ).first()
             if existing:
+                # apply master's tags/sources to the invitee's language (description untouched)
+                for tag in lang.tags:
+                    if tag not in existing.tags:
+                        existing.tags.append(tag)
+                for source in lang.sources:
+                    if source not in existing.sources:
+                        existing.sources.append(source)
                 return existing.id
             new_lang = clone(Language, user_id=collaborator_id, name=lang.name, alias=lang.alias,
                              flag=lang.flag, level=lang.level, description=lang.description,
@@ -150,10 +157,10 @@ class CollaborationService:
         element_map.update(char_map)
         element_map.update(pass_map)
         element_map.update(feature_map)
-        for cp in session.query(CollaborationProgress).filter(
-                CollaborationProgress.user_id == collaborator_id).all():
-            if cp.element_id in element_map:
-                cp.element_id = element_map[cp.element_id]
+        for sc in session.query(Score).filter(
+                Score.user_id == collaborator_id).all():
+            if sc.element_id in element_map:
+                sc.element_id = element_map[sc.element_id]
         session.flush()
 
     def is_collaborator(self, user_id: str, target_type: str, target_id: str,
