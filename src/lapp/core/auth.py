@@ -149,8 +149,8 @@ def _resolve_containers(element_id: str):
 
 
 def can_write(user_id: str, element_id: str) -> bool:
-    """True if `user_id` is the owner or an accepted collaborator of the element's container."""
-    from ..services.system_data import CollaborationService
+    """True if `user_id` is the owner, an accepted collaborator, or a lesson-share recipient."""
+    from ..services.system_data import CollaborationService, LessonShareService
 
     if owner_user_id(element_id) == user_id:
         return True
@@ -159,6 +159,8 @@ def can_write(user_id: str, element_id: str) -> bool:
     if language_id and collab_service.is_collaborator(user_id, "language", language_id):
         return True
     if lesson_id and collab_service.is_collaborator(user_id, "lesson", lesson_id):
+        return True
+    if lesson_id and LessonShareService().is_recipient(user_id, lesson_id):
         return True
     return False
 
