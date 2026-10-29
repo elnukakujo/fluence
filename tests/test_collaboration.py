@@ -212,3 +212,15 @@ def test_collaborated_language_appears_in_list(app, db):
     assert res.status_code == 200
     ids = [l['id'] for l in res.get_json()]
     assert 'lang_L1' in ids  # the collaborated language appears in the collaborator's list
+
+
+def test_collaborated_language_has_collaborators_field(app, db):
+    _seed_users(db)
+    _seed_language(db)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{inv['collaboration']['id']}/accept")
+    res = _client_for_user(app, db, "user_U2").get('/api/languages/all/user_U2')
+    langs = res.get_json()
+    lang = next(l for l in langs if l['id'] == 'lang_L1')
+    assert lang['collaborators'] == ['b']  # user_U2's collaborator (user_U1) ... actually collaborators of lang_L1 are user_U2

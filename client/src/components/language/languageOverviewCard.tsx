@@ -26,7 +26,12 @@ export default function LanguageOverviewCard({ language }: { language: Language 
         >
             <header className="flex flex-col">
                 <p className="text-2xl">{language.flag}</p>
-                <h3 className="font-serif text-lg text-ink line-clamp-1">{language.name} ({language.alias}){language.collaborators && language.collaborators.length > 0 && <span className="badge ml-2 align-middle">Shared</span>}</h3>
+                <div className="flex items-center gap-2">
+                    <h3 className="font-serif text-lg text-ink line-clamp-1">{language.name} ({language.alias})</h3>
+                    {language.collaborators && language.collaborators.length > 0 && (
+                        <span className="badge shrink-0">Shared</span>
+                    )}
+                </div>
                 <span className="text-xs flex flex-row gap-1 items-center text-muted">
                     <p>From</p>
                     <p className="badge">{sourceLanguage?.englishName ?? 'Unknown'}</p>
