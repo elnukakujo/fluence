@@ -155,7 +155,7 @@ class ExerciseService:
             logger.warning(f"Cannot create exercise, lesson not found: {data.lesson_id}")
             return None
 
-        exercise_data = data.model_dump(exclude={'status', 'score', 'created_at', 'last_seen_at'}, exclude_none=True)
+        exercise_data = data.model_dump(exclude={'difficulty', 'status', 'score', 'created_at', 'last_seen_at'}, exclude_none=True)
 
         related_calligraphy = exercise_data.pop("related_calligraphy", None)
         related_vocabulary = exercise_data.pop("related_vocabulary", None)

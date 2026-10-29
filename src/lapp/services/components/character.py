@@ -85,7 +85,7 @@ class CharacterService:
 
         character = Character(
             id=db_manager.generate_new_id(model_class=Character, session=session),
-            **{k: v for k, v in data.model_dump(exclude={'id', 'status', 'score', 'created_at', 'last_seen_at', 'phonetic', 'radical', 'meaning'}, exclude_none=True).items()},
+            **{k: v for k, v in data.model_dump(exclude={'id', 'difficulty', 'status', 'score', 'created_at', 'last_seen_at', 'phonetic', 'radical', 'meaning'}, exclude_none=True).items()},
             phonetic=data.phonetic if (data.phonetic is not None and data.phonetic != "") else enriched_data["phonetic"],
             radical=data.radical if (data.radical is not None and data.radical != "") else enriched_data["radical"],
             meaning=data.meaning if (data.meaning is not None and data.meaning != "") else enriched_data["meaning"],

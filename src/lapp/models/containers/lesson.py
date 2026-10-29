@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, Computed
+from sqlalchemy import Column, String, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from ..base import BaseContainerModel
@@ -8,14 +8,6 @@ class Lesson(BaseContainerModel):
     __mapper_args__ = {"polymorphic_identity": "lesson"}
 
     title = Column(String, index=True)
-
-    # Overrides BaseElementModel.status: lesson uses the feature-style
-    # thresholds (0/75/100), not the container/language thresholds.
-    status = Column(
-        String,
-        Computed("CASE WHEN score = 0 THEN 'unstarted' WHEN score < 75 THEN 'inprogress' WHEN score < 100 THEN 'revisiting' ELSE 'completed' END"),
-        nullable=False
-    )
 
     # Foreign key
     language_id: Mapped[str] = mapped_column(ForeignKey('language.id'))

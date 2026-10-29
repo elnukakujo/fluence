@@ -118,7 +118,8 @@ class WordService:
         word = Word(
             id=db_manager.generate_new_id(model_class=Word, session=session),
             **data.model_dump(
-                exclude={'id', 'word', 'phonetic', 'translation', 'word_type', 'word_gender', 'tags', 'sources'},
+                exclude={'id', 'word', 'phonetic', 'translation', 'word_type', 'word_gender',
+                         'difficulty', 'status', 'score', 'created_at', 'last_seen_at', 'tags', 'sources'},
                 exclude_none=True,
             ),
             word=data.word,

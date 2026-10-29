@@ -155,23 +155,15 @@ def test_word_create_merge_stacks_tags_and_sources(db):
 
 
 def test_score_difficulty_and_dates_excluded_from_conflict_diff(db):
-    """These always keep the existing value and never show up as a decision."""
+    """Dates/tags/sources always keep the existing value and never show up as a decision."""
     _seed_language(db)
     first = word_service.create(WordDict(word="bonjour", language_id="lang_D1", translation="hello"))
-    with db.session_scope() as s:
-        w = db.find_by_attr(model_class=type(first), attr_values={"id": first.id}, session=s)
-        w.score = 42
-        w.difficulty = 0.9
-        db.modify(w, session=s, commit=False)
 
     with pytest.raises(DuplicateEntityError) as exc_info:
         word_service.create(WordDict(word="bonjour", language_id="lang_D1", translation="hi there"))
 
     diff = exc_info.value.diff
-    assert "score" not in diff
-    assert "difficulty" not in diff
     assert "created_at" not in diff
-    assert "last_seen_at" not in diff
     assert "tags" not in diff
     assert "sources" not in diff
     assert "translation" in diff  # the real conflict is still reported

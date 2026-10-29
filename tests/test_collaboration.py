@@ -117,11 +117,12 @@ def test_collaborator_practice_writes_progress(app, db):
         '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'score': 1.0, 'duration_ms': 100})
     assert res.status_code == 200
     with db.session_scope() as s:
-        voc = s.query(Vocabulary).filter(Vocabulary.id == "voc_V1").one()
-        assert voc.score == 0
         sc = s.query(Score).filter(
             Score.user_id == "user_U2", Score.element_id == "voc_V1").one()
         assert sc.score > 0
+        # owner's Score row untouched (per-user isolation)
+        assert s.query(Score).filter(
+            Score.user_id == "user_U1", Score.element_id == "voc_V1").first() is None
 
 
 def test_remove_forks_content(app, db):

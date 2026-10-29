@@ -25,26 +25,6 @@ class LanguageService:
             return languages
         return [language.to_dict(include_relations=include_relations) for language in languages]
 
-    def _check_current_lesson(self, language: Language, current_lesson_id: str, session: Optional[Session] = None) -> bool:
-        """
-        Check if the current lesson ID is valid for the given language.
-
-        Args:
-            language: The Language object.
-            current_lesson_id: The current lesson ID to validate.
-        Returns:
-            True if valid, False otherwise.
-        """
-        from .lesson import LessonService
-        lesson_service = LessonService()
-        if (lesson := lesson_service.get_by_id(current_lesson_id, session=session)):
-            return lesson.id
-        new_current_lesson_id = self._find_current_lesson(language.id, score_threshold=0.75, session=session)
-
-        language.current_lesson_id = new_current_lesson_id
-        db_manager.modify(language, session=session, commit=False)
-        return new_current_lesson_id
-    
     def _find_current_lesson(self, language_id: str, score_threshold: float, user_id: Optional[str] = None, session: Optional[Session] = None) -> Optional[str]:
         """
         Find the first lesson ID for a given language with a score below a certain threshold.
@@ -101,12 +81,6 @@ class LanguageService:
             filters={'user_id': user_id},
             session=session
         )
-        for language in languages:
-            language.current_lesson_id = self._check_current_lesson(
-                language=language,
-                current_lesson_id=language.current_lesson_id,
-                session=session
-            )
 
         # Stable creation order: oldest first.
         languages.sort(key=lambda language: language.created_at)
@@ -138,12 +112,6 @@ class LanguageService:
             session=session
         )
         logger.info(f"Retrieved language with ID {language_id}")
-        if language:
-            language.current_lesson_id = self._check_current_lesson(
-                language=language,
-                current_lesson_id=language.current_lesson_id,
-                session=session
-            )
         return self._serialize(language, as_dict, include_relations)
 
     @transactional
@@ -168,12 +136,6 @@ class LanguageService:
             filters={'level': level},
             session=session
         )
-        for language in languages:
-            language.current_lesson_id = self._check_current_lesson(
-                language=language,
-                current_lesson_id=language.current_lesson_id,
-                session=session
-            )
         return self._serialize_list(languages, as_dict, include_relations)
     
     @transactional
@@ -256,12 +218,6 @@ class LanguageService:
             if value is not None:
                 setattr(existing, key, value)
 
-        existing.current_lesson_id = self._check_current_lesson(
-            language=existing,
-            current_lesson_id=existing.current_lesson_id,
-            session=session
-        )
-
         if data.tags is not None:
             existing.tags = resolve_related(data.tags, Tag, session)
         if data.sources is not None:
@@ -292,11 +248,6 @@ class LanguageService:
         if not existing:
             logger.warning(f"Language not found: {language_id}")
             return False
-
-        # Clear the circular current_lesson_id FK before deleting, or the lesson
-        # delete violates fk_language_current_lesson_id.
-        existing.current_lesson_id = None
-        session.flush()
 
         # ponytail: delete dependent rows (FK to language, no DB cascade)
         from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking

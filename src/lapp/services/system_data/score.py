@@ -116,9 +116,11 @@ class ScoreService:
                 e["difficulty"] = r.difficulty
                 e["status"] = status_for(eid, r.score)
                 e["last_seen_at"] = r.last_seen_at
+                e["current_lesson_id"] = r.current_lesson_id
             else:
                 e["score"] = 0.0
                 e["difficulty"] = 0.5
                 e["status"] = status_for(eid, 0.0)
                 e["last_seen_at"] = None
+                e["current_lesson_id"] = None
         return elements

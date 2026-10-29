@@ -32,7 +32,7 @@ from lapp.models.system_data import User
 from lapp.models.containers import Language
 from lapp.models.components import Character
 
-KNOWN_GAPS_SCHEMA_ONLY = {"tags", "sources", "language_id"}  # declared in CharacterDict, absent from to_dict() output
+KNOWN_GAPS_SCHEMA_ONLY = {"tags", "sources", "language_id", "score", "difficulty", "status", "last_seen_at"}  # in CharacterDict, absent from to_dict() (score/difficulty/status/last_seen_at injected via ScoreService.merge)
 KNOWN_GAPS_DICT_ONLY = {"calligraphy"}  # emitted by to_dict(), not modeled in CharacterDict
 
 
@@ -42,7 +42,7 @@ def _seed(db):
         db.insert(Language(id="lang_S1", user_id="user_S1", name="Chinese",
                            target_iso639_2t="zho", source_iso639_2t="eng"),
                   session=s, commit=False)
-        db.insert(Character(id="char_S1", character="学", language_id="lang_S1", score=10,
+        db.insert(Character(id="char_S1", character="学", language_id="lang_S1",
                             phonetic="xué", meaning="study", radical="子"),
                   session=s, commit=False)
 

@@ -1,7 +1,7 @@
 from flask import current_app
 from typing import Any, List
 from pathlib import Path
-from sqlalchemy import Column, Float, String, Integer, DateTime, JSON, ForeignKey, Table, Computed, PrimaryKeyConstraint
+from sqlalchemy import Column, Float, String, Integer, DateTime, JSON, ForeignKey, Table, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr, validates
 from datetime import datetime
 
@@ -116,14 +116,7 @@ class BaseElementModel(Base):
     __abstract__ = True
 
     id = Column(String, primary_key=True, index=True)
-    score = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
-    last_seen_at = Column("last_seen_at", DateTime, default=datetime.now, nullable=True)
-    status = Column(
-        String, 
-        Computed("CASE WHEN score = 0 THEN 'unstarted' WHEN score <= 30 THEN 'beginner' WHEN score <= 60 THEN 'intermediary' WHEN score <= 90 THEN 'advanced' ELSE 'fluent' END"),
-        nullable=False
-    )
 
     @declared_attr
     def tags(cls) -> Mapped[List["Tag"]]:
@@ -177,10 +170,7 @@ class BaseElementModel(Base):
 
         base.update({
             "id": self.id,
-            "score": self.score,
             "created_at": self.created_at.isoformat(),
-            "last_seen_at": self.last_seen_at.isoformat() if self.last_seen_at else None,
-            "status": self.status
         })
 
         if include_relations:
@@ -297,14 +287,6 @@ class BaseFeatureModel(BaseElementModel, BaseModelWithMediaFiles):
     """
     __abstract__ = True
 
-    difficulty = Column(Float, default=0.5, nullable=False)
-
-    status = Column(
-        String,
-        Computed("CASE WHEN score = 0 THEN 'unstarted' WHEN score < 75 THEN 'inprogress' WHEN score < 100 THEN 'revisiting' ELSE 'completed' END"),
-        nullable=False
-    )
-
     # Foreign keys - shared by all components
     lesson_id: Mapped[str] = mapped_column("lesson_id", ForeignKey("lesson.id"))
 
@@ -320,14 +302,13 @@ class BaseFeatureModel(BaseElementModel, BaseModelWithMediaFiles):
     def to_dict(self, include_relations: bool = True) -> dict:
         base_dict = {
             **super().to_dict(include_relations=include_relations),
-            "difficulty": self.difficulty
         }
-        
+
         if include_relations:
             base_dict.update({
                 "lesson_id": self.lesson_id,
             })
-        
+
         return base_dict
     
 class BaseComponentModel(BaseElementModel, BaseModelWithMediaFiles):
@@ -337,23 +318,14 @@ class BaseComponentModel(BaseElementModel, BaseModelWithMediaFiles):
     """
     __abstract__ = True
 
-    difficulty = Column(Float, default=0.5, nullable=False)
-
-    status = Column(
-        String,
-        Computed("CASE WHEN score = 0 THEN 'unseen' WHEN score <= 10 THEN 'introduced' WHEN score <= 50 THEN 'learning' WHEN score <= 75 THEN 'practicing' WHEN score <= 90 THEN 'review' ELSE 'mastered' END"),
-        nullable=False
-    )
-
     # Foreign keys
     language_id: Mapped[str] = mapped_column(ForeignKey("language.id"), nullable=False)
 
     def to_dict(self, include_relations: bool = True) -> dict:
         base_dict = {
             **super().to_dict(include_relations=include_relations),
-            "difficulty": self.difficulty
         }
-        
+
         if include_relations:
             base_dict.update({
                 "language_id": self.language_id,

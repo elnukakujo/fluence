@@ -18,7 +18,7 @@ def _seed(db):
         db.insert(Language(id="lang_C1", user_id="user_C1", name="Chinese",
                            target_iso639_2t="zho", source_iso639_2t="eng"),
                   session=s, commit=False)
-        db.insert(Character(id="char_C1", character="好", language_id="lang_C1", score=40,
+        db.insert(Character(id="char_C1", character="好", language_id="lang_C1",
                             phonetic="hǎo", meaning="good", radical="女"),
                   session=s, commit=False)
 

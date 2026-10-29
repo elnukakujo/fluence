@@ -135,20 +135,17 @@ class CollaborationService:
                                title=lesson.title, level=lesson.level, description=lesson.description)
             session.flush()
             for v in session.query(Vocabulary).filter(Vocabulary.lesson_id == lesson.id).all():
-                nv = clone(Vocabulary, lesson_id=new_lesson.id, word_id=word_map.get(v.word_id, v.word_id),
-                           score=0.0, difficulty=v.difficulty)
+                nv = clone(Vocabulary, lesson_id=new_lesson.id, word_id=word_map.get(v.word_id, v.word_id))
                 feature_map[v.id] = nv.id
             for g in session.query(Grammar).filter(Grammar.lesson_id == lesson.id).all():
-                ng = clone(Grammar, lesson_id=new_lesson.id, title=g.title, explanation=g.explanation,
-                           score=0.0, difficulty=g.difficulty)
+                ng = clone(Grammar, lesson_id=new_lesson.id, title=g.title, explanation=g.explanation)
                 feature_map[g.id] = ng.id
             for c in session.query(Calligraphy).filter(Calligraphy.lesson_id == lesson.id).all():
-                nc = clone(Calligraphy, lesson_id=new_lesson.id, character_id=char_map.get(c.character_id, c.character_id),
-                           score=0.0, difficulty=c.difficulty)
+                nc = clone(Calligraphy, lesson_id=new_lesson.id, character_id=char_map.get(c.character_id, c.character_id))
                 feature_map[c.id] = nc.id
             for e in session.query(Exercise).filter(Exercise.lesson_id == lesson.id).all():
                 ne = clone(Exercise, lesson_id=new_lesson.id, exercise_type=e.exercise_type, question=e.question,
-                           answer=e.answer, text_support=e.text_support, content=e.content, score=0.0, difficulty=e.difficulty)
+                           answer=e.answer, text_support=e.text_support, content=e.content)
                 feature_map[e.id] = ne.id
 
         # map the collaborator's progress (old element id -> new element id)
