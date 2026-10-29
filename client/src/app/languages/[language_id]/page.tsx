@@ -6,20 +6,22 @@ import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import LanguageStatsPanel from "@/components/language/LanguageStatsPanel";
 import { getLanguageData } from "@/api/language";
+import { getSharedLessons } from "@/api/lesson";
 import { getTodayDailyStats } from "@/api/dailyStats";
 import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
-import SharedLessons from "@/components/lesson/sharedLessons";
 import { getCurrentUserId } from "@/utils/user_cookie";
 
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
     const { language_id } = await params;
     const { language, lessons } = await getLanguageData(language_id);
+    const sharedLessons = await getSharedLessons();
+    const allLessons = [...lessons, ...sharedLessons.map((l) => ({ ...l, shared: true }))];
     const userId = await getCurrentUserId();
     const isOwner = userId === language.user_id;
     const dailyStats = language.user_id ? await getTodayDailyStats(language.user_id, language_id) : null;
     const commitmentLog = language.user_id ? await (await import("@/api/commitmentLog")).getCommitmentLogForUserLanguage(language.user_id, language_id) : null;
-    const hasLessons = lessons && lessons.length > 0;
+    const hasLessons = allLessons.length > 0;
 
     return (
         <main className="flex flex-col space-y-4">
@@ -46,11 +48,10 @@ export default async function Language({ params }: { params: Promise<{ language_
             <article className="flex flex-col space-y-4">
                 {hasLessons && (
                     <LessonsSection
-                        lessons={lessons}
+                        lessons={allLessons}
                         language_code={language.target_iso639_2t ?? ""}
                     />
                 )}
-                <SharedLessons language_code={language.target_iso639_2t ?? ""} />
 
                 <NavButton path={`/languages/${language_id}/lesson/new`}>
                     <p>Create New Lesson</p>

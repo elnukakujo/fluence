@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { listInvites, accept, reject } from "@/api/collaboration";
 import { createPortal } from "react-dom";
 
+type LessonInfo = { id: string; title: string; description?: string; level?: number };
 type Invite = {
   id: string;
   master_id: string;
@@ -13,13 +14,14 @@ type Invite = {
   language_name?: string;
   source_language?: string;
   target_language?: string;
-  lessons?: { id: string; title: string }[];
+  lessons?: LessonInfo[];
 };
 
 export default function Invites() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [selecting, setSelecting] = useState<Invite | null>(null);
+  const [accepting, setAccepting] = useState<Invite | null>(null);
+  const [mode, setMode] = useState<"full" | "partial" | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   async function load() {
@@ -31,6 +33,12 @@ export default function Invites() {
 
   if (!loaded || invites.length === 0) return null;
 
+  function openAccept(inv: Invite) {
+    setAccepting(inv);
+    setMode(null);
+    setSelected(new Set((inv.lessons ?? []).map((l) => l.id)));
+  }
+
   function toggleLesson(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -39,12 +47,16 @@ export default function Invites() {
     });
   }
 
-  async function confirmPartial() {
-    if (!selecting) return;
-    const ids = selecting.lessons?.map((l) => l.id).filter((id) => selected.has(id));
-    await accept(selecting.id, "partial", ids);
-    setSelecting(null);
-    setSelected(new Set());
+  async function confirm() {
+    if (!accepting || !mode) return;
+    if (mode === "partial") {
+      const ids = (accepting.lessons ?? []).map((l) => l.id).filter((id) => selected.has(id));
+      await accept(accepting.id, "partial", ids);
+    } else {
+      await accept(accepting.id, "full");
+    }
+    setAccepting(null);
+    setMode(null);
     await load();
   }
 
@@ -64,25 +76,10 @@ export default function Invites() {
               </span>
             </span>
             <span className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={async () => { await accept(inv.id, "full"); await load(); }}
-              >
-                Accept (full)
+              <button type="button" className="btn btn-primary" onClick={() => openAccept(inv)}>
+                Accept
               </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => { setSelecting(inv); setSelected(new Set((inv.lessons ?? []).map((l) => l.id))); }}
-              >
-                Accept (partial)
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={async () => { await reject(inv.id); await load(); }}
-              >
+              <button type="button" className="btn btn-secondary" onClick={async () => { await reject(inv.id); await load(); }}>
                 Reject
               </button>
             </span>
@@ -90,27 +87,74 @@ export default function Invites() {
         ))}
       </ul>
 
-      {selecting && createPortal(
-        <div className="fixed inset-0 z-50 flex flex-col gap-3 items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="card flex flex-col gap-3 max-w-md w-full">
-            <p className="font-medium">Choose lessons to share</p>
-            <ul className="flex flex-col gap-1 max-h-64 overflow-y-auto">
-              {(selecting.lessons ?? []).map((l) => (
-                <li key={l.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(l.id)}
-                    onChange={() => toggleLesson(l.id)}
-                  />
-                  <span>{l.title}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-row gap-2 justify-end">
-              <button type="button" className="btn btn-primary" onClick={confirmPartial}>
-                Share selected
+      {accepting && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="card flex flex-col gap-4 max-w-lg w-full p-5" role="dialog" aria-modal="true">
+            <div className="flex flex-col gap-0.5">
+              <h3 className="font-serif text-lg">{accepting.language_name ?? accepting.target_id}</h3>
+              <p className="text-sm text-muted">
+                {accepting.master_name ?? accepting.master_id} invited you to collaborate
+                {accepting.source_language && accepting.target_language && (
+                  <> · {accepting.source_language} → {accepting.target_language}</>
+                )}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                className={`card text-left p-3 border transition ${mode === "full" ? "border-ink ring-2 ring-ink" : "hover:bg-accent-soft"}`}
+                onClick={() => setMode("full")}
+              >
+                <span className="font-medium block">Full sync</span>
+                <span className="text-sm text-muted">
+                  Merge your language into theirs — you both edit one shared course.
+                </span>
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => { setSelecting(null); setSelected(new Set()); }}>
+              <button
+                type="button"
+                className={`card text-left p-3 border transition ${mode === "partial" ? "border-ink ring-2 ring-ink" : "hover:bg-accent-soft"}`}
+                onClick={() => setMode("partial")}
+              >
+                <span className="font-medium block">Partial sync</span>
+                <span className="text-sm text-muted">
+                  Keep your language separate — pick which of their lessons to share.
+                </span>
+              </button>
+            </div>
+
+            {mode === "partial" && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">Choose lessons to share</p>
+                <ul className="flex flex-col gap-1 max-h-56 overflow-y-auto">
+                  {(accepting.lessons ?? []).map((l) => (
+                    <li
+                      key={l.id}
+                      className="flex items-start gap-2 text-sm p-2 rounded hover:bg-accent-soft"
+                      title={l.description || l.title}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected.has(l.id)}
+                        onChange={() => toggleLesson(l.id)}
+                      />
+                      <span className="flex flex-col">
+                        <span>{l.title}</span>
+                        {l.description && (
+                          <span className="text-xs text-muted line-clamp-1">{l.description}</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex flex-row gap-2 justify-end">
+              <button type="button" className="btn btn-primary" onClick={confirm} disabled={!mode}>
+                Confirm
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => { setAccepting(null); setMode(null); }}>
                 Cancel
               </button>
             </div>

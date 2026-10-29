@@ -59,7 +59,7 @@ export async function listAwaitingConsent(): Promise<{ id: string; collaborator_
   return res.json();
 }
 
-export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string }[] }[]> {
+export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string; description?: string; level?: number }[] }[]> {
   const res = await fetch(`${BASE_URL}/api/collaboration/invites`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list invites");
   return res.json();

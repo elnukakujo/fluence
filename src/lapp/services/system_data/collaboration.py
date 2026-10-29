@@ -376,4 +376,4 @@ class CollaborationService:
         if collab.target_type != "language":
             return []
         lessons = session.query(Lesson).filter(Lesson.language_id == collab.target_id).all()
-        return [{"id": l.id, "title": l.title} for l in lessons]
+        return [{"id": l.id, "title": l.title, "description": l.description, "level": l.level} for l in lessons]
