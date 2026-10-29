@@ -144,3 +144,46 @@ def score_drawing(similarity: float, stroke_order_errors: int) -> float:
     similarity = min(max(similarity, 0.0), 1.0)
     stroke_order_errors = max(int(stroke_order_errors), 0)
     return round(similarity * max(0.0, 1.0 - 0.1 * stroke_order_errors), 4)
+
+
+def status_for(element_id: str, score: float) -> str:
+    """Map an element id prefix + score to its status label.
+
+    Reproduces the three status CASE expressions formerly stored as computed
+    columns on the element models (base.py:124/304/344, lesson.py:14). The
+    element type is inferred from the id prefix; one threshold set per group.
+    """
+    prefix = element_id.split("_")[0]
+
+    if prefix == "lang":
+        if score == 0:
+            return "unstarted"
+        if score <= 30:
+            return "beginner"
+        if score <= 60:
+            return "intermediary"
+        if score <= 90:
+            return "advanced"
+        return "fluent"
+
+    if prefix in ("lesson", "voc", "gram", "call", "ex"):
+        if score == 0:
+            return "unstarted"
+        if score < 75:
+            return "inprogress"
+        if score < 100:
+            return "revisiting"
+        return "completed"
+
+    # word, char, pass (components)
+    if score == 0:
+        return "unseen"
+    if score <= 10:
+        return "introduced"
+    if score <= 50:
+        return "learning"
+    if score <= 75:
+        return "practicing"
+    if score <= 90:
+        return "review"
+    return "mastered"

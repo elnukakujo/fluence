@@ -9,6 +9,7 @@ from lapp.utils.helpers import (
     review_priority,
     update_difficulty,
     update_score,
+    status_for,
 )
 
 
@@ -56,6 +57,34 @@ def test_review_priority_boosts_difficult_and_new_cards():
     new_card = review_priority(created_at=created_at, last_seen_at=today, difficulty=0.1, score=10)
     assert hard > mastered              # hard cards surface even when just seen
     assert new_card > mastered          # low-score (just-introduced) cards repeat
+
+
+def test_status_for_all_sets():
+    # Language (fluent scale)
+    assert status_for("lang_L1", 0)   == "unstarted"
+    assert status_for("lang_L1", 30)  == "beginner"
+    assert status_for("lang_L1", 60)  == "intermediary"
+    assert status_for("lang_L1", 90)  == "advanced"
+    assert status_for("lang_L1", 91)  == "fluent"
+    # Lesson + features (progress scale)
+    assert status_for("lesson_L1", 0)   == "unstarted"
+    assert status_for("lesson_L1", 74)  == "inprogress"
+    assert status_for("lesson_L1", 99)  == "revisiting"
+    assert status_for("lesson_L1", 100) == "completed"
+    assert status_for("voc_V1", 74) == "inprogress"
+    assert status_for("voc_V1", 75) == "revisiting"  # boundary: <75, not <=75
+    assert status_for("gram_G1", 100) == "completed"
+    assert status_for("call_C1", 0) == "unstarted"
+    assert status_for("ex_E1", 99) == "revisiting"
+    # Components (mastery scale)
+    assert status_for("word_W1", 0)   == "unseen"
+    assert status_for("word_W1", 10)  == "introduced"
+    assert status_for("word_W1", 50)  == "learning"
+    assert status_for("word_W1", 75)  == "practicing"
+    assert status_for("word_W1", 90)  == "review"
+    assert status_for("word_W1", 91)  == "mastered"
+    assert status_for("char_C1", 50) == "learning"
+    assert status_for("pass_P1", 91) == "mastered"
 
 
 if __name__ == "__main__":
