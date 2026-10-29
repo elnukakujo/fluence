@@ -20,13 +20,11 @@ export default function LessonOverviewCard({ language_code, lesson }: { language
             className="card overview-card flex flex-col gap-2 overflow-hidden text-left cursor-pointer transition hover:-translate-y-0.5 hover:bg-accent-soft hover:shadow-md"
             onClick={handleClick}
         >
-            <header className="flex flex-col">
-                <div className="flex items-center gap-2">
-                    <h3 className="font-serif text-lg text-ink line-clamp-1">{lesson.title}</h3>
-                    {lesson.collaborators && lesson.collaborators.length > 0 && (
-                        <span className="badge shrink-0">Shared</span>
-                    )}
-                </div>
+            <header className="flex flex-col gap-1">
+                <h3 className="font-serif text-lg text-ink line-clamp-2">{lesson.title}</h3>
+                {lesson.collaborators && lesson.collaborators.length > 0 && (
+                    <span className="badge w-fit">Shared</span>
+                )}
             </header>
             <div className="index-divider line-clamp-4 flex-1 text-sm text-muted prose-sm">
                 <Markdown remarkPlugins={[remarkGfm]}>{lesson.description}</Markdown>
