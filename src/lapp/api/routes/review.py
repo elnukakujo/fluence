@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 
 from ...services import ReviewService
-from ...core.auth import login_required, require_owns
+from ...core.auth import login_required, require_owns, require_write
 
 bp = Blueprint('review', __name__, url_prefix='/api/review')
 review_service = ReviewService()
@@ -29,6 +29,6 @@ def get_review_cards(language_id: str):
                 items:
                     type: object
     """
-    require_owns(language_id)
+    require_write(language_id)
     cards = review_service.get_review_cards(language_id, as_dict=True)
     return jsonify(cards)

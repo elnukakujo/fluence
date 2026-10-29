@@ -11,7 +11,7 @@ export default function LanguageHeaderCard({ language }: { language: Language })
             <header className="flex items-baseline gap-2">
                 <h1>{language.flag} {language.name} ({language.alias})</h1>
                 {language.collaborators && language.collaborators.length > 0 && (
-                    <span className="badge">Collaborative</span>
+                    <span className="badge">Shared</span>
                 )}
             </header>
             <div className="index-divider pt-3 flex flex-col space-y-2">

@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 import logging
 
 from ...services.data_collection import CommitmentLogService
-from ...core.auth import login_required, require_owns, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def get_commitment_log_by_id(commitment_log_id: str):
 @login_required
 def get_commitment_log_for_user_language(user_id: str, language_id: str):
     try:
-        require_owns(language_id)
+        require_write(language_id)
         result = commitment_log_service.get_for_user(
             user_id=current_user_id(),
             language_id=language_id,

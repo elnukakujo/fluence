@@ -21,7 +21,7 @@ export default function LessonOverviewCard({ language_code, lesson }: { language
             onClick={handleClick}
         >
             <header className="flex flex-col">
-                <h3 className="font-serif text-lg text-ink line-clamp-1">{lesson.title}</h3>
+                <h3 className="font-serif text-lg text-ink line-clamp-1">{lesson.title}{lesson.collaborators && lesson.collaborators.length > 0 && <span className="badge ml-2 align-middle">Shared</span>}</h3>
             </header>
             <div className="index-divider line-clamp-4 flex-1 text-sm text-muted prose-sm">
                 <Markdown remarkPlugins={[remarkGfm]}>{lesson.description}</Markdown>

@@ -7,7 +7,7 @@ import logging
 from ...services.data_collection import DailyStatsService
 from ...services.system_data import UserService
 from ...services.containers import LanguageService
-from ...core.auth import login_required, require_owns, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def get_daily_stats_today():
     if not language_id:
         return jsonify({'error': 'language_id is required'}), 400
 
-    require_owns(language_id)
+    require_write(language_id)
 
     daily_stats = daily_stats_service.get_today_for_user(
         user_id=current_user_id(),
@@ -92,7 +92,7 @@ def get_daily_stats_history():
     if user is None:
         return jsonify({'error': 'User not found'}), 404
     if language_id:
-        require_owns(language_id)
+        require_write(language_id)
 
     start_date_param = request.args.get('start_date')
     end_date_param = request.args.get('end_date')

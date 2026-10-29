@@ -10,7 +10,7 @@ export default function LessonHeaderCard({ lesson }: { lesson: Lesson }) {
             <div className="flex items-baseline gap-2">
                 <h1>{lesson.title}</h1>
                 {lesson.collaborators && lesson.collaborators.length > 0 && (
-                    <span className="badge">Collaborative</span>
+                    <span className="badge">Shared</span>
                 )}
             </div>
             {lesson.description && <div className="index-divider pt-3 flex flex-col space-y-2">
