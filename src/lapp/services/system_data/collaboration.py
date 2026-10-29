@@ -160,6 +160,78 @@ class CollaborationService:
                 sc.element_id = element_map[sc.element_id]
         session.flush()
 
+    @transactional
+    def merge_language(self, source_language_id: str, target_language_id: str,
+                       collaborator_id: str, session: Optional[Session] = None) -> None:
+        """Merge `source` language's lessons into `target`, remap the collaborator's Score, delete `source`."""
+        from ...models.containers import Language, Lesson
+        from ...models.components import Word, Character, Passage
+        from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
+        from ...models.system_data import Score
+
+        target = session.query(Language).filter(Language.id == target_language_id).first()
+        if not target:
+            return
+        target_owner = target.user_id
+
+        def clone(model, **fields):
+            obj = model(id=db_manager.generate_new_id(model, session=session), **fields)
+            session.add(obj)
+            return obj
+
+        word_map: dict[str, str] = {}
+        char_map: dict[str, str] = {}
+        pass_map: dict[str, str] = {}
+        feature_map: dict[str, str] = {}
+
+        def get_or_create_component(model, key_field, key_value, **fields):
+            existing = session.query(model).filter(
+                model.language_id == target_language_id,
+                getattr(model, key_field) == key_value,
+            ).first()
+            return existing.id if existing else clone(model, language_id=target_language_id, **fields).id
+
+        for w in session.query(Word).filter(Word.language_id == source_language_id).all():
+            word_map[w.id] = get_or_create_component(Word, "word", w.word, word=w.word, translation=w.translation,
+                                                     phonetic=w.phonetic, word_type=w.word_type, word_gender=w.word_gender)
+        for c in session.query(Character).filter(Character.language_id == source_language_id).all():
+            char_map[c.id] = get_or_create_component(Character, "character", c.character, character=c.character,
+                                                     phonetic=c.phonetic, meaning=c.meaning, radical=c.radical, strokes=c.strokes)
+        for p in session.query(Passage).filter(Passage.language_id == source_language_id).all():
+            pass_map[p.id] = get_or_create_component(Passage, "text", p.text, text=p.text, translation=p.translation)
+
+        for lesson in session.query(Lesson).filter(Lesson.language_id == source_language_id).all():
+            new_lesson = clone(Lesson, user_id=target_owner, language_id=target_language_id,
+                               title=lesson.title, level=lesson.level, description=lesson.description)
+            session.flush()
+            for v in session.query(Vocabulary).filter(Vocabulary.lesson_id == lesson.id).all():
+                nv = clone(Vocabulary, lesson_id=new_lesson.id, word_id=word_map.get(v.word_id, v.word_id))
+                feature_map[v.id] = nv.id
+            for g in session.query(Grammar).filter(Grammar.lesson_id == lesson.id).all():
+                ng = clone(Grammar, lesson_id=new_lesson.id, title=g.title, explanation=g.explanation)
+                feature_map[g.id] = ng.id
+            for c in session.query(Calligraphy).filter(Calligraphy.lesson_id == lesson.id).all():
+                nc = clone(Calligraphy, lesson_id=new_lesson.id, character_id=char_map.get(c.character_id, c.character_id))
+                feature_map[c.id] = nc.id
+            for e in session.query(Exercise).filter(Exercise.lesson_id == lesson.id).all():
+                ne = clone(Exercise, lesson_id=new_lesson.id, exercise_type=e.exercise_type, question=e.question,
+                           answer=e.answer, text_support=e.text_support, content=e.content)
+                feature_map[e.id] = ne.id
+
+        element_map: dict[str, str] = {}
+        element_map.update(word_map)
+        element_map.update(char_map)
+        element_map.update(pass_map)
+        element_map.update(feature_map)
+        for sc in session.query(Score).filter(Score.user_id == collaborator_id).all():
+            if sc.element_id in element_map:
+                sc.element_id = element_map[sc.element_id]
+
+        source = session.query(Language).filter(Language.id == source_language_id).first()
+        if source:
+            session.delete(source)
+        session.flush()
+
     def is_collaborator(self, user_id: str, target_type: str, target_id: str,
                         session: Optional[Session] = None) -> bool:
         if session is not None:

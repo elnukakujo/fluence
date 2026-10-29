@@ -6,7 +6,8 @@ from lapp.models.system_data import Collaboration, LessonShare, User
 from lapp.models.containers import Language, Lesson
 from lapp.models.features import Vocabulary
 from lapp.models.components import Word
-from lapp.services.system_data import LessonShareService
+from lapp.services.system_data import LessonShareService, CollaborationService
+from lapp.services import LanguageService, LessonService
 from lapp.services.auth import AuthService
 
 
@@ -89,3 +90,24 @@ def test_share_recipient_can_write(app, db):
     res = _client_for_user(app, db, "user_U2").post(
         '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'score': 1.0, 'duration_ms': 100})
     assert res.status_code == 200
+
+
+def _seed_merge(db):
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_M1", user_id="user_U1", language_id="lang_L1", title="M1"),
+                  session=s, commit=False)
+        db.insert(Language(id="lang_U2", user_id="user_U2", name="日本語",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_I1", user_id="user_U2", language_id="lang_U2", title="I1"),
+                  session=s, commit=False)
+
+
+def test_merge_language_combines_and_removes_source(db):
+    _seed_users(db)
+    _seed_merge(db)
+    CollaborationService().merge_language("lang_U2", "lang_L1", "user_U2")
+    assert LanguageService().get_by_id("lang_U2") is None
+    lessons = LessonService().get_all(language_id="lang_L1", as_dict=True)
+    assert {l["title"] for l in lessons} == {"M1", "I1"}
