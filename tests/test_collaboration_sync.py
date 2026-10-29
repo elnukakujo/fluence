@@ -241,3 +241,24 @@ def test_accept_partial_shares_selected_lessons(db):
     CollaborationService().accept(c.id, "partial", lesson_ids=["lesson_M1"])
     assert LessonShareService().is_recipient("user_U2", "lesson_M1") is True
     assert LessonShareService().is_recipient("user_U2", "lesson_M2") is False
+
+
+def test_remove_partial_unshares_not_forks(db):
+    _seed_users(db)
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_M1", user_id="user_U1", language_id="lang_L1", title="M1"),
+                  session=s, commit=False)
+        # invitee's own language with one lesson
+        db.insert(Language(id="lang_U2", user_id="user_U2", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_I1", user_id="user_U2", language_id="lang_U2", title="I1"),
+                  session=s, commit=False)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial", lesson_ids=["lesson_M1"])
+    CollaborationService().remove(c.id)
+    # M1 is unshared, and no copy of it landed in the invitee's language
+    assert LessonShareService().is_recipient("user_U2", "lesson_M1") is False
+    titles = [l.title for l in LessonService().get_all(language_id="lang_U2")]
+    assert titles == ["I1"]

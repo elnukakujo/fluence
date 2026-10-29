@@ -114,13 +114,29 @@ class CollaborationService:
 
     @transactional
     def remove(self, collaboration_id: str, session: Optional[Session] = None) -> bool:
-        """Fork the shared container into the collaborator's account, then delete the link."""
+        """Remove the collaboration link. Full mode forks content back to the collaborator;
+        partial mode merely drops the lesson_share pointers."""
         collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
         if not collab:
             return False
-        self._fork(collab.collaborator_id, collab.target_type, collab.target_id, session)
+        if collab.mode == "partial":
+            self._unshare(collab, session)
+        else:
+            self._fork(collab.collaborator_id, collab.target_type, collab.target_id, session)
         session.delete(collab)
         return True
+
+    def _unshare(self, collab: Collaboration, session: Session) -> None:
+        """Drop every lesson_share pointer for the collaborator on the target's lessons."""
+        from ...models.containers import Lesson
+        from ...models.system_data import LessonShare
+        lesson_ids = [l.id for l in session.query(Lesson).filter(
+            Lesson.language_id == collab.target_id).all()]
+        if lesson_ids:
+            session.query(LessonShare).filter(
+                LessonShare.user_id == collab.collaborator_id,
+                LessonShare.lesson_id.in_(lesson_ids),
+            ).delete(synchronize_session=False)
 
     def _fork(self, collaborator_id: str, target_type: str, target_id: str, session: Session) -> None:
         """Deep-copy the shared container + descendants into the collaborator's account, mapping progress."""
