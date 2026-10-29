@@ -25,11 +25,11 @@ export async function remove(collaborationId: string) {
   return res.json();
 }
 
-export async function accept(collaborationId: string, mode?: "full" | "partial") {
+export async function accept(collaborationId: string, mode?: "full" | "partial", lessonIds?: string[]) {
   const res = await fetch(`${BASE_URL}/api/collaboration/${collaborationId}/accept`, {
     method: "POST",
     headers: await getAuthHeaders(),
-    body: JSON.stringify(mode ? { mode } : {}),
+    body: JSON.stringify({ mode, lesson_ids: lessonIds }),
   });
   if (!res.ok) throw new Error("Failed to accept");
   return res.json();
@@ -59,7 +59,7 @@ export async function listAwaitingConsent(): Promise<{ id: string; collaborator_
   return res.json();
 }
 
-export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; language_name?: string; source_language?: string; target_language?: string }[]> {
+export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string }[] }[]> {
   const res = await fetch(`${BASE_URL}/api/collaboration/invites`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list invites");
   return res.json();

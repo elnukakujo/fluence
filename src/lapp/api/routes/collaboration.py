@@ -60,7 +60,8 @@ def accept(collaboration_id):
     mode = (request.get_json(silent=True) or {}).get('mode')
     if mode not in (None, 'full', 'partial'):
         abort(400, description="mode must be 'full' or 'partial'")
-    updated = collaboration_service.accept(collaboration_id, mode=mode)
+    lesson_ids = (request.get_json(silent=True) or {}).get('lesson_ids')
+    updated = collaboration_service.accept(collaboration_id, mode=mode, lesson_ids=lesson_ids)
     return jsonify({'success': True, 'collaboration': _serialize(updated)})
 
 

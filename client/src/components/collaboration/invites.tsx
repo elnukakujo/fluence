@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { listInvites, accept, reject } from "@/api/collaboration";
+import { createPortal } from "react-dom";
 
 type Invite = {
   id: string;
@@ -12,23 +13,40 @@ type Invite = {
   language_name?: string;
   source_language?: string;
   target_language?: string;
+  lessons?: { id: string; title: string }[];
 };
 
 export default function Invites() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [selecting, setSelecting] = useState<Invite | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   async function load() {
-    const invs = await listInvites();
-    setInvites(invs);
+    setInvites(await listInvites());
     setLoaded(true);
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   if (!loaded || invites.length === 0) return null;
+
+  function toggleLesson(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function confirmPartial() {
+    if (!selecting) return;
+    const ids = selecting.lessons?.map((l) => l.id).filter((id) => selected.has(id));
+    await accept(selecting.id, "partial", ids);
+    setSelecting(null);
+    setSelected(new Set());
+    await load();
+  }
 
   return (
     <section className="flex flex-col gap-2">
@@ -56,7 +74,7 @@ export default function Invites() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={async () => { await accept(inv.id, "partial"); await load(); }}
+                onClick={() => { setSelecting(inv); setSelected(new Set((inv.lessons ?? []).map((l) => l.id))); }}
               >
                 Accept (partial)
               </button>
@@ -71,6 +89,35 @@ export default function Invites() {
           </li>
         ))}
       </ul>
+
+      {selecting && createPortal(
+        <div className="fixed inset-0 z-50 flex flex-col gap-3 items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="card flex flex-col gap-3 max-w-md w-full">
+            <p className="font-medium">Choose lessons to share</p>
+            <ul className="flex flex-col gap-1 max-h-64 overflow-y-auto">
+              {(selecting.lessons ?? []).map((l) => (
+                <li key={l.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(l.id)}
+                    onChange={() => toggleLesson(l.id)}
+                  />
+                  <span>{l.title}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-row gap-2 justify-end">
+              <button type="button" className="btn btn-primary" onClick={confirmPartial}>
+                Share selected
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => { setSelecting(null); setSelected(new Set()); }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </section>
   );
 }

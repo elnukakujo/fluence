@@ -226,3 +226,18 @@ def test_leave_shared_lesson(app, db):
     res = _client_for_user(app, db, "user_U2").delete('/api/lessons/lesson_L1/leave')
     assert res.status_code == 200
     assert LessonShareService().is_recipient("user_U2", "lesson_L1") is False
+
+
+def test_accept_partial_shares_selected_lessons(db):
+    _seed_users(db)
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_M1", user_id="user_U1", language_id="lang_L1", title="M1"),
+                  session=s, commit=False)
+        db.insert(Lesson(id="lesson_M2", user_id="user_U1", language_id="lang_L1", title="M2"),
+                  session=s, commit=False)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "partial", lesson_ids=["lesson_M1"])
+    assert LessonShareService().is_recipient("user_U2", "lesson_M1") is True
+    assert LessonShareService().is_recipient("user_U2", "lesson_M2") is False

@@ -34,13 +34,15 @@ class CollaborationService:
 
     @transactional
     def accept(self, collaboration_id: str, mode: Optional[str] = None,
+               lesson_ids: Optional[list[str]] = None,
                session: Optional[Session] = None) -> Optional[Collaboration]:
         collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
         if not collab:
             return collab
         collab.mode = mode
         if mode == "partial":
-            self.share_master_lessons(collab.master_id, collab.collaborator_id, collab.target_id, session=session)
+            self.share_master_lessons(collab.master_id, collab.collaborator_id, collab.target_id,
+                                      lesson_ids=lesson_ids, session=session)
             collab.status = "accepted"
         elif mode == "full" and self._has_collision(collab.collaborator_id, collab.target_id, session):
             collab.status = "awaiting_master_consent"
@@ -83,11 +85,14 @@ class CollaborationService:
 
     @transactional
     def share_master_lessons(self, master_id: str, collaborator_id: str, language_id: str,
+                             lesson_ids: Optional[list[str]] = None,
                              session: Optional[Session] = None) -> None:
         from ...models.containers import Lesson
         from .lesson_share import LessonShareService
-        lessons = session.query(Lesson).filter(Lesson.language_id == language_id).all()
-        for lesson in lessons:
+        q = session.query(Lesson).filter(Lesson.language_id == language_id)
+        if lesson_ids is not None:
+            q = q.filter(Lesson.id.in_(lesson_ids))
+        for lesson in q.all():
             LessonShareService().share(lesson.id, collaborator_id, session=session)
 
     @transactional
@@ -361,5 +366,14 @@ class CollaborationService:
                 "language_name": lang.name if lang else None,
                 "source_language": get_language_by_iso2t(lang.source_iso639_2t).name if lang else None,
                 "target_language": get_language_by_iso2t(lang.target_iso639_2t).name if lang else None,
+                "lessons": self._target_lessons(c, session),
             })
         return result
+
+    def _target_lessons(self, collab, session) -> list[dict]:
+        """The master's lessons for a language target, for the partial-sync selector."""
+        from ...models.containers import Lesson
+        if collab.target_type != "language":
+            return []
+        lessons = session.query(Lesson).filter(Lesson.language_id == collab.target_id).all()
+        return [{"id": l.id, "title": l.title} for l in lessons]
