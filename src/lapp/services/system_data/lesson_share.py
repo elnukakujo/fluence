@@ -52,11 +52,12 @@ class LessonShareService:
         return [r.lesson_id for r in rows]
 
     @transactional
-    def list_shared_lessons(self, user_id: str, session: Optional[Session] = None) -> list:
-        """Return the Lesson objects shared with `user_id` (single-source pointers)."""
+    def list_shared_lessons(self, user_id: str, session: Optional[Session] = None) -> list[dict]:
+        """Return dicts for the lessons shared with `user_id` (serialized inside the session)."""
         from ...models.containers import Lesson
         rows = session.query(LessonShare).filter(LessonShare.user_id == user_id).all()
         ids = [r.lesson_id for r in rows]
         if not ids:
             return []
-        return session.query(Lesson).filter(Lesson.id.in_(ids)).all()
+        lessons = session.query(Lesson).filter(Lesson.id.in_(ids)).all()
+        return [l.to_dict() for l in lessons]

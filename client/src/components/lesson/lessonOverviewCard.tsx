@@ -7,7 +7,7 @@ import type Lesson from "@/interface/containers/Lesson";
 import { languageProficiencySystems, getLevelLabel } from '@/utils/language_iso639';
 import ScoreDisplay from '../ui/displays/scoreDisplay';
 
-export default function LessonOverviewCard({ language_code, lesson, languageId }: { language_code: string; lesson: Lesson; languageId?: string }) {
+export default function LessonOverviewCard({ language_code, lesson, languageId, shared }: { language_code: string; lesson: Lesson; languageId?: string; shared?: boolean }) {
     const { language_id: paramLanguageId } = useParams();
     const router = useRouter();
     const langId = languageId ?? paramLanguageId;
@@ -30,7 +30,7 @@ export default function LessonOverviewCard({ language_code, lesson, languageId }
             <footer>
                 <div className="flex items-center gap-2">
                     <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
-                    {lesson.collaborators && lesson.collaborators.length > 0 && (
+                    {(shared || (lesson.collaborators && lesson.collaborators.length > 0)) && (
                         <span className="badge w-fit">Shared</span>
                     )}
                 </div>

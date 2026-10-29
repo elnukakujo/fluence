@@ -256,8 +256,7 @@ def unshare_lesson(lesson_id: str):
 @login_required
 def shared_lessons():
     """Lessons shared with the current user (partial collaboration)."""
-    lessons = LessonShareService().list_shared_lessons(current_user_id())
-    dicts = [l.to_dict() for l in lessons]
+    dicts = LessonShareService().list_shared_lessons(current_user_id())
     return jsonify(ScoreService().merge(current_user_id(), dicts))
 
 
