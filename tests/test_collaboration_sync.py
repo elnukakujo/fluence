@@ -142,3 +142,14 @@ def test_share_lesson_endpoint(app, db):
     res = _client_for_user(app, db, "user_U1").delete('/api/lessons/lesson_L1/share', json={'user_id': 'user_U2'})
     assert res.status_code == 200
     assert LessonShareService().is_recipient("user_U2", "lesson_L1") is False
+
+
+def test_accept_route_persists_mode(app, db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    res = _client_for_user(app, db, "user_U2").post(f'/api/collaboration/{c.id}/accept', json={'mode': 'partial'})
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        cc = s.query(Collaboration).filter(Collaboration.id == c.id).one()
+        assert cc.mode == 'partial'

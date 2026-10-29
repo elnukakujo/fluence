@@ -17,6 +17,7 @@ def _serialize(collab: Collaboration) -> dict:
         "target_type": collab.target_type,
         "target_id": collab.target_id,
         "status": collab.status,
+        "mode": collab.mode,
     }
 
 
@@ -56,7 +57,22 @@ def accept(collaboration_id):
         abort(404, description="Collaboration not found")
     if collab.collaborator_id != current_user_id():
         abort(403, description="Not your invitation")
-    updated = collaboration_service.accept(collaboration_id)
+    mode = (request.get_json(silent=True) or {}).get('mode')
+    if mode not in (None, 'full', 'partial'):
+        abort(400, description="mode must be 'full' or 'partial'")
+    updated = collaboration_service.accept(collaboration_id, mode=mode)
+    return jsonify({'success': True, 'collaboration': _serialize(updated)})
+
+
+@bp.route('/<collaboration_id>/consent', methods=['POST'])
+@login_required
+def consent(collaboration_id):
+    collab = db_manager.get_by_id(Collaboration, collaboration_id)
+    if collab is None:
+        abort(404, description="Collaboration not found")
+    if collab.master_id != current_user_id():
+        abort(403, description="Not your collaboration")
+    updated = collaboration_service.consent(collaboration_id)
     return jsonify({'success': True, 'collaboration': _serialize(updated)})
 
 
