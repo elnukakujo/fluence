@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...services import VocabularyService
+from ...services.system_data import ScoreService
 from ...schemas.features import VocabularyDict
 from ...core.exceptions import DuplicateEntityError
 from ...core.auth import login_required, require_owns, require_write, current_user_id
@@ -37,7 +38,7 @@ def get_all_vocabulary_from_language(language_id: str):
     """
     require_write(language_id)
     vocabulary = vocabulary_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(vocabulary)
+    return jsonify(ScoreService().merge(current_user_id(), vocabulary))
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
 @login_required
@@ -64,7 +65,7 @@ def get_all_vocabulary_from_lesson(lesson_id: str):
     """
     require_write(lesson_id)
     vocabulary = vocabulary_service.get_all(lesson_id=lesson_id, as_dict=True)
-    return jsonify(vocabulary)
+    return jsonify(ScoreService().merge(current_user_id(), vocabulary))
 
 
 @bp.route('/<vocabulary_id>', methods=['GET'])
@@ -94,7 +95,7 @@ def get_vocabulary(vocabulary_id: str):
     if not vocabulary:
         return jsonify({'error': 'Vocabulary not found'}), 404
     
-    return jsonify(vocabulary)
+    return jsonify(ScoreService().merge(current_user_id(), [vocabulary])[0])
 
 
 @bp.route('/', methods=['POST'])

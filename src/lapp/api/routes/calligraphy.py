@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import CalligraphyService
+from ...services.system_data import ScoreService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
 from ...core.auth import login_required, require_owns, require_write, current_user_id
@@ -35,7 +36,7 @@ def get_all_calligraphy_from_language(language_id: str):
     """
     require_write(language_id)
     calligraphy = calligraphy_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(calligraphy)
+    return jsonify(ScoreService().merge(current_user_id(), calligraphy))
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
@@ -63,7 +64,7 @@ def get_all_calligraphy_from_lesson(lesson_id: str):
     """
     require_write(lesson_id)
     calligraphy = calligraphy_service.get_all(lesson_id=lesson_id, as_dict=True)
-    return jsonify(calligraphy)
+    return jsonify(ScoreService().merge(current_user_id(), calligraphy))
 
 
 @bp.route('/<calligraphy_id>', methods=['GET'])
@@ -93,7 +94,7 @@ def get_calligraphy(calligraphy_id: str):
     if not calligraphy:
         return jsonify({'error': 'calligraphy not found'}), 404
     
-    return jsonify(calligraphy)
+    return jsonify(ScoreService().merge(current_user_id(), [calligraphy])[0])
 
 
 @bp.route('/', methods=['POST'])

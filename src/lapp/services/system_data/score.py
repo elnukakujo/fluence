@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
 from ...models.system_data import Score
-from ...utils.helpers import update_score, update_difficulty
+from ...utils.helpers import update_score, update_difficulty, status_for
 
 
 class ScoreService:
@@ -100,3 +100,25 @@ class ScoreService:
                 row.current_lesson_id = current_lesson_id
         session.flush()
         return row
+
+    @transactional
+    def merge(self, user_id: str, elements: list[dict],
+              session: Optional[Session] = None) -> list[dict]:
+        """Inject score/difficulty/status/last_seen_at into serialized element dicts."""
+        ids = [e["id"] for e in elements if e.get("id")]
+        rows = {r.element_id: r for r in session.query(Score).filter(
+            Score.user_id == user_id, Score.element_id.in_(ids)).all()}
+        for e in elements:
+            eid = e.get("id")
+            r = rows.get(eid)
+            if r is not None:
+                e["score"] = r.score
+                e["difficulty"] = r.difficulty
+                e["status"] = status_for(eid, r.score)
+                e["last_seen_at"] = r.last_seen_at
+            else:
+                e["score"] = 0.0
+                e["difficulty"] = 0.5
+                e["status"] = status_for(eid, 0.0)
+                e["last_seen_at"] = None
+        return elements

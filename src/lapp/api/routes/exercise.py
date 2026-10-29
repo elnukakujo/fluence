@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import ExerciseService
+from ...services.system_data import ScoreService
 from ...schemas import ExerciseDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
@@ -33,7 +34,7 @@ def get_all_exercise_from_language(language_id: str):
     """
     require_write(language_id)
     exercise = exercise_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(exercise)
+    return jsonify(ScoreService().merge(current_user_id(), exercise))
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
@@ -61,7 +62,7 @@ def get_all_exercise_from_lesson(lesson_id: str):
     """
     require_write(lesson_id)
     exercise = exercise_service.get_all(lesson_id=lesson_id, as_dict=True)
-    return jsonify(exercise)
+    return jsonify(ScoreService().merge(current_user_id(), exercise))
 
 
 @bp.route('/<exercise_id>', methods=['GET'])
@@ -93,7 +94,7 @@ def get_exercise(exercise_id: str):
     if not exercise:
         return jsonify({'error': 'exercise not found'}), 404
     
-    return jsonify(exercise)
+    return jsonify(ScoreService().merge(current_user_id(), [exercise])[0])
 
 
 @bp.route('/', methods=['POST'])

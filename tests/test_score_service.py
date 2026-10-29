@@ -1,6 +1,7 @@
 """ScoreService: per-user record/get/get_many."""
 from lapp.services.system_data import ScoreService
 from lapp.models.system_data import User
+from lapp.utils.helpers import status_for
 
 
 def _seed_users(db):
@@ -36,3 +37,14 @@ def test_get_many(db):
     assert m["voc_V1"].score > 0.0
     assert m["voc_V2"].score > 0.0
     assert "voc_V9" not in m   # unstarted → no row
+
+
+def test_merge_attaches_score(db):
+    _seed_users(db)
+    ScoreService().record("user_U1", "voc_V1", 0.8)
+    out = ScoreService().merge("user_U1", [{"id": "voc_V1"}, {"id": "voc_V9"}])
+    assert out[0]["score"] > 0.0
+    assert out[0]["status"] == status_for("voc_V1", out[0]["score"])
+    assert out[1]["score"] == 0.0          # unstarted default
+    assert out[1]["difficulty"] == 0.5
+    assert out[1]["status"] == "unstarted"

@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...services import LanguageService
-from ...services.system_data import CollaborationService
+from ...services.system_data import CollaborationService, ScoreService
 from ...schemas.containers import LanguageDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
@@ -36,7 +36,7 @@ def get_all_user_languages(user_id: str):
             languages.append(lang)
     if len(languages) == 0:
         return jsonify([]), 200
-    return jsonify(languages)
+    return jsonify(ScoreService().merge(current_user_id(), languages))
 
 
 @bp.route('/<language_id>', methods=['GET'])
@@ -66,8 +66,8 @@ def get_language(language_id: str):
 
     if not language:
         return jsonify({'error': 'Language not found'}), 404
-    
-    return jsonify(language)
+
+    return jsonify(ScoreService().merge(current_user_id(), [language])[0])
 
 
 @bp.route('/', methods=['POST'])

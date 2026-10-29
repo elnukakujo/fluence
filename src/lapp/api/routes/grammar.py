@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import GrammarService
+from ...services.system_data import ScoreService
 from ...schemas import GrammarDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
@@ -33,7 +34,7 @@ def get_all_grammar_from_language(language_id: str):
     """
     require_write(language_id)
     grammar = grammar_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(grammar)
+    return jsonify(ScoreService().merge(current_user_id(), grammar))
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
@@ -61,7 +62,7 @@ def get_all_grammar_from_lesson(lesson_id: str):
     """
     require_write(lesson_id)
     grammar = grammar_service.get_all(lesson_id=lesson_id, as_dict=True)
-    return jsonify(grammar)
+    return jsonify(ScoreService().merge(current_user_id(), grammar))
 
 
 @bp.route('/<grammar_id>', methods=['GET'])
@@ -92,7 +93,7 @@ def get_grammar(grammar_id: str):
     if not grammar:
         return jsonify({'error': 'grammar not found'}), 404
     
-    return jsonify(grammar), 200
+    return jsonify(ScoreService().merge(current_user_id(), [grammar])[0]), 200
 
 
 @bp.route('/', methods=['POST'])

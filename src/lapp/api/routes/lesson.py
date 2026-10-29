@@ -2,8 +2,9 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import LessonService
+from ...services.system_data import ScoreService
 from ...schemas.containers import LessonDict
-from ...core.auth import login_required, require_owns, require_write
+from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('lesson', __name__, url_prefix='/api/lessons')
 lesson_service = LessonService()
@@ -32,7 +33,7 @@ def get_all_lessons(language_id: str):
     """
     require_write(language_id)
     lessons = lesson_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(lessons)
+    return jsonify(ScoreService().merge(current_user_id(), lessons))
 
 
 @bp.route('/<lesson_id>', methods=['GET'])
@@ -62,7 +63,7 @@ def get_lesson(lesson_id: str):
     if not lesson:
         return jsonify({'error': 'Lesson not found'}), 404
     
-    return jsonify(lesson)
+    return jsonify(ScoreService().merge(current_user_id(), [lesson])[0])
 
 
 @bp.route('/', methods=['POST'])
