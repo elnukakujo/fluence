@@ -283,6 +283,11 @@ class LanguageService:
             logger.warning(f"Language not found: {language_id}")
             return False
 
+        # Clear the circular current_lesson_id FK before deleting, or the lesson
+        # delete violates fk_language_current_lesson_id.
+        existing.current_lesson_id = None
+        session.flush()
+
         # ponytail: delete dependent rows (FK to language, no DB cascade)
         from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking
         for model in (CommitmentLog, DailyStats, ProgressTracking):

@@ -75,15 +75,25 @@ class CollaborationService:
         pass_map: dict[str, str] = {}
         feature_map: dict[str, str] = {}
 
-        if target_type == "language":
-            lang = session.query(Language).filter(Language.id == target_id).first()
-            if not lang:
-                return
+        def get_or_create_language(lang) -> str:
+            """Dedupe: if the collaborator already has a language with the same name, merge into it."""
+            existing = session.query(Language).filter(
+                Language.user_id == collaborator_id,
+                Language.name == lang.name,
+            ).first()
+            if existing:
+                return existing.id
             new_lang = clone(Language, user_id=collaborator_id, name=lang.name, alias=lang.alias,
                              flag=lang.flag, level=lang.level, description=lang.description,
                              source_iso639_2t=lang.source_iso639_2t, target_iso639_2t=lang.target_iso639_2t)
             session.flush()
-            new_lang_id = new_lang.id
+            return new_lang.id
+
+        if target_type == "language":
+            lang = session.query(Language).filter(Language.id == target_id).first()
+            if not lang:
+                return
+            new_lang_id = get_or_create_language(lang)
             lessons = session.query(Lesson).filter(Lesson.language_id == target_id).all()
         else:
             lesson = session.query(Lesson).filter(Lesson.id == target_id).first()
@@ -91,11 +101,7 @@ class CollaborationService:
                 return
             # lesson fork: also fork the parent language so the lesson has a home
             plang = session.query(Language).filter(Language.id == lesson.language_id).first()
-            new_lang = clone(Language, user_id=collaborator_id, name=plang.name, alias=plang.alias,
-                             flag=plang.flag, level=plang.level, description=plang.description,
-                             source_iso639_2t=plang.source_iso639_2t, target_iso639_2t=plang.target_iso639_2t)
-            session.flush()
-            new_lang_id = new_lang.id
+            new_lang_id = get_or_create_language(plang)
             lessons = [lesson]
 
         # components under the (original) language

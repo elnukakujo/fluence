@@ -162,3 +162,21 @@ def test_accepted_collaboration_cannot_be_rejected(app, db):
     _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/accept")
     res = _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/reject")
     assert res.status_code == 403
+
+
+def test_fork_dedupes_into_existing_language(app, db):
+    _seed_users(db)
+    _seed_vocabulary(db)  # U1 has lang_L1 (Japanese) + lesson_L1 + voc_V1
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L2", user_id="user_U2", name="Japanese",
+                           target_iso639_2t="jpn", source_iso639_2t="eng"), session=s, commit=False)
+    inv = _client_for_user(app, db, "user_U1").post(
+        '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
+    cid = inv['collaboration']['id']
+    _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{cid}/accept")
+    res = _client_for_user(app, db, "user_U1").delete(f'/api/collaboration/{cid}')
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        langs = s.query(Language).filter(Language.user_id == "user_U2").all()
+        assert len(langs) == 1  # no duplicate "Japanese" created
+        assert langs[0].id == "lang_L2"  # merged into the existing one
