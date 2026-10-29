@@ -37,7 +37,7 @@ class CollaborationService:
                lesson_ids: Optional[list[str]] = None,
                session: Optional[Session] = None) -> Optional[Collaboration]:
         collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
-        if not collab:
+        if not collab or collab.status != "pending":
             return collab
         collab.mode = mode
         if mode == "partial":
@@ -97,12 +97,21 @@ class CollaborationService:
 
     @transactional
     def list_awaiting_consent(self, master_id: str, session: Optional[Session] = None) -> list[dict]:
+        from ...models.containers import Language
+        from ...models.system_data import User
         collabs = session.query(Collaboration).filter(
             Collaboration.master_id == master_id,
             Collaboration.status == "awaiting_master_consent",
         ).all()
-        return [{"id": c.id, "collaborator_id": c.collaborator_id, "target_id": c.target_id,
-                 "target_type": c.target_type, "mode": c.mode} for c in collabs]
+        result = []
+        for c in collabs:
+            user = session.query(User).filter(User.id == c.collaborator_id).first()
+            lang = session.query(Language).filter(Language.id == c.target_id).first()
+            result.append({"id": c.id, "collaborator_id": c.collaborator_id,
+                           "collaborator_name": (user.display_name or user.username) if user else c.collaborator_id,
+                           "target_id": c.target_id, "target_type": c.target_type, "mode": c.mode,
+                           "language_name": lang.name if lang else None})
+        return result
 
     @transactional
     def reject(self, collaboration_id: str, session: Optional[Session] = None) -> bool:
@@ -121,7 +130,8 @@ class CollaborationService:
             return False
         if collab.mode == "partial":
             self._unshare(collab, session)
-        else:
+        elif collab.status == "accepted":
+            # pending / awaiting-consent links never shared anything, so there is nothing to fork
             self._fork(collab.collaborator_id, collab.target_type, collab.target_id, session)
         session.delete(collab)
         return True
@@ -161,6 +171,7 @@ class CollaborationService:
             Collaboration.target_type == "language",
             Collaboration.target_id == lesson.language_id,
             Collaboration.status == "accepted",
+            Collaboration.mode == "partial",
         ).all():
             session.delete(collab)
 
@@ -276,6 +287,8 @@ class CollaborationService:
         from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
         from ...models.system_data import Score
 
+        if source_language_id == target_language_id:
+            return
         target = session.query(Language).filter(Language.id == target_language_id).first()
         if not target:
             return
@@ -362,7 +375,8 @@ class CollaborationService:
             Collaboration.target_type == target_type,
             Collaboration.target_id == target_id,
         ).all()
-        return [{"id": c.id, "collaborator_id": c.collaborator_id, "status": c.status} for c in collabs]
+        return [{"id": c.id, "collaborator_id": c.collaborator_id, "status": c.status, "mode": c.mode}
+                for c in collabs]
 
     @transactional
     def list_collaborated_target_ids(self, user_id: str, target_type: str,

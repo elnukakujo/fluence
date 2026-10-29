@@ -29,6 +29,10 @@ def invite():
     target_id = data.get('target_id')
     collaborator_id = data.get('collaborator_id')
 
+    if not target_id or not collaborator_id:
+        abort(400, description="target_id and collaborator_id are required")
+    if collaborator_id == current_user_id():
+        abort(400, description="You cannot invite yourself")
     if target_type not in ('language', 'lesson'):
         abort(400, description="target_type must be 'language' or 'lesson'")
     prefix = "lang_" if target_type == "language" else "lesson_"
@@ -57,6 +61,8 @@ def accept(collaboration_id):
         abort(404, description="Collaboration not found")
     if collab.collaborator_id != current_user_id():
         abort(403, description="Not your invitation")
+    if collab.status != "pending":
+        abort(403, description="Invitation already answered")
     mode = (request.get_json(silent=True) or {}).get('mode')
     if mode not in (None, 'full', 'partial'):
         abort(400, description="mode must be 'full' or 'partial'")
@@ -77,6 +83,21 @@ def consent(collaboration_id):
     return jsonify({'success': True, 'collaboration': _serialize(updated)})
 
 
+@bp.route('/<collaboration_id>/decline', methods=['POST'])
+@login_required
+def decline(collaboration_id):
+    """Master refuses a full merge: drops the link (the invitee's language is untouched)."""
+    collab = db_manager.get_by_id(Collaboration, collaboration_id)
+    if collab is None:
+        abort(404, description="Collaboration not found")
+    if collab.master_id != current_user_id():
+        abort(403, description="Not your collaboration")
+    if collab.status != "awaiting_master_consent":
+        abort(403, description="Nothing to decline")
+    collaboration_service.reject(collaboration_id)
+    return jsonify({'success': True})
+
+
 @bp.route('/<collaboration_id>/reject', methods=['POST'])
 @login_required
 def reject(collaboration_id):
@@ -86,7 +107,7 @@ def reject(collaboration_id):
     if collab.collaborator_id != current_user_id():
         abort(403, description="Not your invitation")
     if collab.status == "accepted":
-        abort(403, description="Already accepted — the master must remove you (or leave, which forks)")
+        abort(403, description="Already accepted — the master must remove you, or leave your shared lessons")
     collaboration_service.reject(collaboration_id)
     return jsonify({'success': True})
 

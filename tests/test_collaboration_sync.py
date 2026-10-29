@@ -285,3 +285,89 @@ def test_leave_last_lesson_ends_collaboration(db):
     CollaborationService().leave_lesson("lesson_M2", "user_U2")
     assert all(x["collaborator_id"] != "user_U2"
                for x in CollaborationService().list_collaborators("language", "lang_L1"))
+
+
+# --- review fixes -----------------------------------------------------------
+
+def _langs(db, uid):
+    with db.session_scope() as s:
+        return s.query(Language).filter(Language.user_id == uid).count()
+
+
+def test_remove_pending_invite_does_not_fork(db):
+    _seed_users(db)
+    _seed_lesson(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().remove(c.id)
+    assert _langs(db, "user_U2") == 0
+
+
+def test_accept_only_applies_to_pending(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")  # collision -> awaiting consent
+    CollaborationService().accept(c.id, None)    # must not bypass consent
+    with db.session_scope() as s:
+        cc = s.query(Collaboration).filter(Collaboration.id == c.id).one()
+        assert (cc.status, cc.mode) == ("awaiting_master_consent", "full")
+
+
+def test_accept_route_rejects_non_pending(app, db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    cl = _client_for_user(app, db, "user_U2")
+    assert cl.post(f'/api/collaboration/{c.id}/accept', json={'mode': 'partial'}).status_code == 200
+    assert cl.post(f'/api/collaboration/{c.id}/accept', json={'mode': 'partial'}).status_code == 403
+
+
+def test_invite_route_rejects_self_and_missing_fields(app, db):
+    _seed_users(db)
+    _seed_lesson(db)
+    cl = _client_for_user(app, db, "user_U1")
+    base = {'target_type': 'language', 'target_id': 'lang_L1'}
+    assert cl.post('/api/collaboration', json={**base, 'collaborator_id': 'user_U1'}).status_code == 400
+    assert cl.post('/api/collaboration', json={'target_type': 'language'}).status_code == 400
+    assert cl.post('/api/collaboration', json=base).status_code == 400
+
+
+def test_merge_language_into_itself_is_noop(db):
+    _seed_users(db)
+    _seed_lesson(db)
+    CollaborationService().merge_language("lang_L1", "lang_L1", "user_U1")
+    assert LanguageService().get_by_id("lang_L1") is not None
+
+
+def test_leave_lesson_keeps_full_collaboration(db):
+    _seed_users(db)
+    _seed_lesson(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")  # no collision -> accepted
+    CollaborationService().leave_lesson("lesson_L1", "user_U2")
+    assert any(x["collaborator_id"] == "user_U2"
+               for x in CollaborationService().list_collaborators("language", "lang_L1"))
+
+
+def test_list_payloads_carry_display_fields(db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")  # collision -> awaiting consent
+    listed = CollaborationService().list_collaborators("language", "lang_L1")
+    assert listed[0]["mode"] == "full"
+    req = CollaborationService().list_awaiting_consent("user_U1")[0]
+    assert req["collaborator_name"] == "b" and req["language_name"] == "Japanese"
+
+
+def test_master_declines_merge_request(app, db):
+    _seed_users(db)
+    _seed_merge(db)
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id, "full")  # collision -> awaiting consent
+    # only the master may decline, and only while awaiting consent
+    assert _client_for_user(app, db, "user_U2").post(f'/api/collaboration/{c.id}/decline').status_code == 403
+    assert _client_for_user(app, db, "user_U1").post(f'/api/collaboration/{c.id}/decline').status_code == 200
+    assert CollaborationService().list_awaiting_consent("user_U1") == []
+    assert LanguageService().get_by_id("lang_U2") is not None  # invitee's language untouched
+    assert _client_for_user(app, db, "user_U1").post(f'/api/collaboration/{c.id}/decline').status_code == 404

@@ -28,7 +28,9 @@ def _invite():
 
 def test_fork_dedupes_by_iso(db):
     _seed(db)
-    CollaborationService().remove(_invite().id)
+    c = _invite()
+    CollaborationService().accept(c.id)  # legacy link (no mode) -> accepted, forks on remove
+    CollaborationService().remove(c.id)
     with db.session_scope() as s:
         langs = s.query(Language).filter(Language.user_id == "user_U2").all()
         assert len(langs) == 1                       # merged into the existing "jpn" language
@@ -41,6 +43,7 @@ def test_fork_dedupes_by_iso(db):
 def test_fork_carries_score(db):
     _seed(db)
     c = _invite()
+    CollaborationService().accept(c.id)
     # collaborator scores the shared vocab while collaborating
     ScoreService().record("user_U2", "voc_V1", 0.9)
     before = ScoreService().get("user_U2", "voc_V1").score
