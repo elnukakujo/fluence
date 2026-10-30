@@ -41,6 +41,12 @@ PROVIDERS: dict[str, dict] = {
         "auth_type": "bearer",
         "api_format": "openai",
     },
+    "mistral_ocr": {
+        "label": "Mistral OCR (dedicated)",
+        "base_url": "https://api.mistral.ai/v1",
+        "auth_type": "bearer",
+        "api_format": "mistral_ocr",
+    },
     "openrouter": {
         "label": "OpenRouter",
         "base_url": "https://openrouter.ai/api/v1",

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ACTIVE_STATUSES, type Job, deleteJob, listJobs } from "@/api/ingestion";
 
 const LABEL: Record<Job["status"], string> = {
-  queued: "Waiting", parsing: "Reading…", extracting: "Finding vocabulary…", ready: "Ready to review", failed: "Failed",
+  queued: "Waiting", parsing: "Reading…", structure: "Choose the lessons", extracting: "Finding vocabulary…", ready: "Ready to review", failed: "Failed",
 };
 
 // Scans take minutes, so imports outlive the page that started them: this is the way back.
@@ -43,11 +43,10 @@ export default function ImportsIndicator() {
           {jobs.slice(0, 8).map((j) => (
             <li key={j.id} className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                {j.lesson_id ? (
-                  <Link className="link block truncate" href={`/languages/${j.language_id}/lesson/${j.lesson_id}/import?job=${j.id}`} onClick={() => setOpen(false)}>
-                    {j.filename}
-                  </Link>
-                ) : <span className="block truncate">{j.filename}</span>}
+                <Link className="link block truncate" onClick={() => setOpen(false)}
+                  href={j.lesson_id ? `/languages/${j.language_id}/lesson/${j.lesson_id}/import?job=${j.id}` : `/languages/${j.language_id}/import?job=${j.id}`}>
+                  {j.filename}
+                </Link>
                 <span className="opacity-70">{LABEL[j.status]}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}</span>
               </div>
               {!ACTIVE_STATUSES.includes(j.status) && (

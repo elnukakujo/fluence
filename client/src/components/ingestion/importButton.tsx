@@ -8,9 +8,11 @@ import { type Capabilities, getCapabilities } from "@/api/ingestion";
 // Always rendered. When the user can't import it is greyed out with the reasons on hover/focus.
 // aria-disabled (not `disabled`) so it still receives hover, focus and click: browsers swallow
 // those on a truly disabled button, which would hide the explanation.
-export default function ImportButton({ languageId, lessonId, settingsHref }: {
+export default function ImportButton({ languageId, lessonId, label = "Import from a document", href, settingsHref }: {
   languageId: string;
-  lessonId: string;
+  lessonId?: string;          // omit for a language-level import (a whole book into several lessons)
+  label?: string;
+  href?: string;
   settingsHref?: string;
 }) {
   const router = useRouter();
@@ -38,10 +40,10 @@ export default function ImportButton({ languageId, lessonId, settingsHref }: {
         className={`btn btn-secondary ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
         aria-disabled={disabled}
         aria-describedby={disabled ? tipId : undefined}
-        onClick={() => disabled ? setOpen((o) => !o) : router.push(`/languages/${languageId}/lesson/${lessonId}/import`)}
+        onClick={() => disabled ? setOpen((o) => !o) : router.push(href ?? `/languages/${languageId}/lesson/${lessonId}/import`)}
         onBlur={() => setOpen(false)}
       >
-        <p>Import from a document</p>
+        <p>{label}</p>
       </button>
       {disabled && (
         <div

@@ -75,6 +75,12 @@ class AppScheduler:
         self.scheduler.add_job(run_ingestion_job, args=[app, job_id], executor="ingest",
                                id=f"ingest-{job_id}", misfire_grace_time=None)
 
+    def schedule_extraction(self, app: Flask, job_id: str) -> None:
+        """Queue the per-lesson extraction of a confirmed language-level import (same one-worker executor)."""
+        from ..services.ingestion.jobs import run_language_extraction
+        self.scheduler.add_job(run_language_extraction, args=[app, job_id], executor="ingest",
+                               id=f"extract-{job_id}", misfire_grace_time=None)
+
     def is_running(self) -> bool:
         """Check if scheduler is running."""
         return self._running

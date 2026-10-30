@@ -24,6 +24,7 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { value: "mistral", label: "Mistral", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "openai" },
   { value: "openrouter", label: "OpenRouter", base_url: "https://openrouter.ai/api/v1", auth_type: "bearer", api_format: "openai" },
   { value: "anthropic", label: "Anthropic (Claude)", base_url: "https://api.anthropic.com/v1", auth_type: "x-api-key", api_format: "anthropic" },
+  { value: "mistral_ocr", label: "Mistral OCR (dedicated)", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "mistral_ocr" },
   { value: "gemini", label: "Google Gemini", base_url: "https://generativelanguage.googleapis.com/v1beta", auth_type: "param", api_format: "gemini" },
   { value: "llamacpp", label: "llama.cpp Server", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai" },
   { value: "localai", label: "LocalAI", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai" },
@@ -48,9 +49,12 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // Providers that only do TTS (never text-gen)
-// OCR/vision endpoints: only providers that host vision-capable models behind the OpenAI image format.
+// OCR/vision endpoints: only providers that host vision-capable models (OpenAI, Anthropic and Gemini image formats).
 // Vision is per-model, not per-provider - "Test connection" is what actually proves it.
-const OCR_PROVIDERS = new Set(["openai", "mistral", "openrouter", "ollama", "custom"]);
+const OCR_PROVIDERS = new Set(["openai", "anthropic", "gemini", "mistral", "mistral_ocr", "openrouter", "ollama", "custom"]);
+
+// Dedicated OCR APIs are not chat models: never offered for text generation or speech.
+const OCR_ONLY = new Set(["mistral_ocr"]);
 
 const TTS_ONLY = new Set(["elevenlabs", "google_tts", "local_tts"]);
 
@@ -112,14 +116,14 @@ export default function EndpointCard({
 
   // Filter providers by api_type
   const filteredProviders = useMemo(() => {
-    if (!endpoint.api_type || endpoint.api_type === "both") return providers;
-    // OCR/vision: the remote OCR engine only speaks the OpenAI image format
+    if (!endpoint.api_type || endpoint.api_type === "both") return providers.filter(p => !OCR_ONLY.has(p.value));
+    // OCR/vision: vision chat models (OpenAI/Anthropic/Gemini image formats) or a dedicated OCR API (Mistral OCR)
     if (endpoint.api_type === "ocr") return providers.filter(p => OCR_PROVIDERS.has(p.value));
     if (endpoint.api_type === "tts") {
       return providers.filter(p => p.value === "custom" || p.value === "local_tts" || p.value === "elevenlabs" || p.value === "google_tts" || p.value === "openai");
     }
     // text_gen: exclude TTS-only providers
-    return providers.filter(p => !TTS_ONLY.has(p.value));
+    return providers.filter(p => !TTS_ONLY.has(p.value) && !OCR_ONLY.has(p.value));
   }, [endpoint.api_type, providers]);
 
   const providerMap = useMemo(() => {
@@ -218,7 +222,7 @@ export default function EndpointCard({
                 } else if (newType === "ocr" && endpoint.provider && !OCR_PROVIDERS.has(endpoint.provider)) {
                   updates.provider = undefined;
                   updates.base_url = undefined;
-                } else if (newType === "text_gen" && endpoint.provider && TTS_ONLY.has(endpoint.provider)) {
+                } else if (newType === "text_gen" && endpoint.provider && (TTS_ONLY.has(endpoint.provider) || OCR_ONLY.has(endpoint.provider))) {
                   updates.provider = undefined;
                   updates.base_url = undefined;
                 }

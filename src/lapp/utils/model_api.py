@@ -147,6 +147,42 @@ def _synthesize_speech_openai(
 
 # ── Anthropic (Claude) ────────────────────────────────────────────────────────
 
+def _split_data_url(url: str) -> tuple[str, str]:
+    """"data:image/png;base64,XXXX" -> ("image/png", "XXXX"). Only data URLs: we never fetch remote images."""
+    head, sep, data = url.partition(",")
+    if not (head.startswith("data:") and head.endswith(";base64") and sep):
+        raise ModelAPIError(ModelAPIError.KIND_CLIENT, None, "Images must be sent as base64 data URLs for this provider")
+    return head[5:-7] or "image/png", data
+
+
+def _anthropic_content(content):
+    """OpenAI-style content (str or parts list) -> Anthropic content blocks."""
+    if isinstance(content, str):
+        return content
+    blocks = []
+    for part in content:
+        if part.get("type") == "image_url":
+            media_type, data = _split_data_url(part["image_url"]["url"])
+            blocks.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}})
+        else:
+            blocks.append({"type": "text", "text": part.get("text", "")})
+    return blocks
+
+
+def _gemini_parts(content):
+    """OpenAI-style content (str or parts list) -> Gemini parts."""
+    if isinstance(content, str):
+        return [{"text": content}]
+    parts = []
+    for part in content:
+        if part.get("type") == "image_url":
+            media_type, data = _split_data_url(part["image_url"]["url"])
+            parts.append({"inline_data": {"mime_type": media_type, "data": data}})
+        else:
+            parts.append({"text": part.get("text", "")})
+    return parts
+
+
 def _chat_completion_anthropic(
     base_url: str,
     api_key: str,
@@ -169,7 +205,7 @@ def _chat_completion_anthropic(
         if m["role"] == "system":
             system = m["content"]
         else:
-            cleaned.append({"role": m["role"], "content": m["content"]})
+            cleaned.append({"role": m["role"], "content": _anthropic_content(m["content"])})
 
     body: dict = {
         "model": model,
@@ -209,7 +245,7 @@ def _chat_completion_gemini(
     contents = []
     for m in messages:
         role = "user" if m["role"] == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": m["content"]}]})
+        contents.append({"role": role, "parts": _gemini_parts(m["content"])})
 
     body = {
         "contents": contents,
@@ -392,6 +428,42 @@ def synthesize_speech(
         ) from e
 
 
+# ── Dedicated OCR APIs (Mistral: POST {base}/ocr) ─────────────────────────────
+
+def ocr_markdown(base_url: str, api_key: str, model: str, data_url: str, auth_type: str = "bearer",
+                 *, timeout: float = 120) -> str:
+    """Send one page image to a dedicated OCR endpoint; returns its markdown (pages joined by newlines).
+
+    Request/response per https://docs.mistral.ai/api/endpoint/ocr (document.type "image_url", pages[].markdown).
+    Raises ModelAPIError on transport/auth/API failures, like chat_completion.
+    """
+    url, headers = auth_headers(base_url, api_key, auth_type)
+    body = {"model": model, "document": {"type": "image_url", "image_url": data_url}}
+    try:
+        with httpx.Client(base_url=url, headers=headers, timeout=timeout, trust_env=False) as client:
+            resp = client.post("/ocr", json=body)
+            resp.raise_for_status()
+            return "\n".join(p.get("markdown", "") for p in resp.json().get("pages", []))
+    except ModelAPIError:
+        raise
+    except httpx.HTTPStatusError as e:
+        raise ModelAPIError.from_httpx(e) from e
+    except httpx.RequestError as e:
+        raise ModelAPIError.from_connection(e, url=base_url) from e
+    except Exception as e:
+        raise ModelAPIError(ModelAPIError.KIND_UNKNOWN, None, str(e), url=base_url) from e
+
+
+def probe_ocr_api(base_url: str, api_key: str, model: str, auth_type: str = "bearer") -> str:
+    """Settings test for a dedicated OCR endpoint: same three outcomes as probe_vision."""
+    try:
+        text = ocr_markdown(base_url=base_url, api_key=api_key, model=model,
+                            data_url=_probe_png_data_url(), auth_type=auth_type, timeout=30)
+    except ModelAPIError:
+        return "unreachable"
+    return "reads_images" if _VISION_WORD.lower() in "".join(text.lower().split()) else "no_vision"
+
+
 # ── Vision probe (settings "Test connection" for OCR endpoints) ───────────────
 
 _VISION_WORD = "FLUENCE"
@@ -413,8 +485,8 @@ def _probe_png_data_url() -> str:
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
-def probe_vision(base_url: str, api_key: str, model: str, auth_type: str = "bearer") -> str:
-    """Can this OpenAI-format endpoint read an image? -> "reads_images" | "no_vision" | "unreachable".
+def probe_vision(base_url: str, api_key: str, model: str, auth_type: str = "bearer", api_format: str = "openai") -> str:
+    """Can this endpoint (OpenAI, Anthropic or Gemini format) read an image? -> "reads_images" | "no_vision" | "unreachable".
 
     Sends a generated PNG containing a fixed word and checks the model reads it back, so a text-only
     model that merely accepts the request is reported as "no_vision" instead of "connected".
@@ -426,7 +498,7 @@ def probe_vision(base_url: str, api_key: str, model: str, auth_type: str = "bear
     try:
         reply = chat_completion(
             base_url=base_url, api_key=api_key, model=model, messages=messages,
-            max_tokens=20, temperature=0, api_format="openai", auth_type=auth_type, timeout=30,
+            max_tokens=20, temperature=0, api_format=api_format, auth_type=auth_type, timeout=30,
         )
     except ModelAPIError as e:
         if e.kind == ModelAPIError.KIND_CLIENT and any(h in e.message.lower() for h in _NO_VISION_HINTS):

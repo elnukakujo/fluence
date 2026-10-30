@@ -4,7 +4,7 @@ import type { AcceptItem, Candidate } from "@/lib/ingestion/review";
 export type Notice = { code: string; message: string };
 export type Capabilities = { can_import: boolean; reasons: Notice[]; warnings: Notice[] };
 
-export type JobStatus = "queued" | "parsing" | "extracting" | "ready" | "failed";
+export type JobStatus = "queued" | "parsing" | "structure" | "extracting" | "ready" | "failed";
 export type Job = {
   id: string;
   language_id: string;
@@ -19,6 +19,18 @@ export type Job = {
   error: string | null;
   warnings: string[];
   created_at: string | null;
+};
+
+export type LessonProgress = {
+  index: number; title: string; start_page: number; end_page: number; verified: boolean | null; note: string | null;
+  status: "pending" | "done" | "failed"; error: string | null;
+  counts: { total: number; verified: number; flagged: number } | null;
+  created_lesson_id: string | null;
+  candidates?: Candidate[];
+};
+
+export type Structure = {
+  status: JobStatus; confirmed: boolean; first_page: number; last_page: number; lessons: LessonProgress[]; warnings: string[];
 };
 
 export const ACTIVE_STATUSES: JobStatus[] = ["queued", "parsing", "extracting"];
@@ -78,3 +90,31 @@ export async function deleteJob(jobId: string): Promise<void> {
 
 /** 1-based document page. Same-origin, so the session cookie authorises the <img>. */
 export const pageImageUrl = (jobId: string, page: number) => `${BASE_URL}/api/ingestion/${jobId}/pages/${page}.png`;
+
+export async function getStructure(jobId: string): Promise<Structure> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/structure`, { headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not load the lessons");
+  return res.json();
+}
+
+export async function confirmStructure(jobId: string, lessons: { title: string; start_page: number; end_page: number }[]) {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/structure`, {
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ lessons }),
+  });
+  if (!res.ok) return fail(res, "Could not start the extraction");
+  return res.json();
+}
+
+export async function getLanguageCandidates(jobId: string): Promise<{ status: JobStatus; lessons: LessonProgress[]; warnings: string[] }> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/candidates`, { headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not load the results");
+  return res.json();
+}
+
+export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string): Promise<{ lesson_id: string; created: number }> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/lessons/${index}/accept`, {
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ items, title }),
+  });
+  if (!res.ok) return fail(res, "Could not add this lesson");
+  return res.json();
+}

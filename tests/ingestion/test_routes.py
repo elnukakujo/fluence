@@ -73,7 +73,7 @@ def test_job_status_is_visible_to_the_owner_only(app, db, media_root, scheduled)
 
 def test_candidates_are_409_until_ready(app, db, media_root, scheduled):
     client = _setup(app, db, media_root)
-    job_id = _upload(client).get_json()["job_id"]
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]     # lesson-level job
     assert client.get(f"/api/ingestion/{job_id}/candidates").status_code == 409
     svc.update(job_id, status="ready")
     candidates_path(media_root, job_id).write_text(json.dumps({"candidates": [{"word": "a"}], "warnings": []}))
