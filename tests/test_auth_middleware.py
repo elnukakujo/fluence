@@ -1,23 +1,6 @@
 """Auth middleware + decorators tests (Task 5)."""
-import pytest
-from flask import jsonify
-
-from lapp.core.auth import login_required, admin_required
 from lapp.services.auth import AuthService
 from lapp.models.system_data import User
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _register_test_routes(app):
-    @app.route('/test/protected')
-    @login_required
-    def protected():
-        return jsonify({'ok': True})
-
-    @app.route('/test/admin')
-    @admin_required
-    def admin_only():
-        return jsonify({'ok': True})
 
 
 def _user_and_session(db, **kwargs):
