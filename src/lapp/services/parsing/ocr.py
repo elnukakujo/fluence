@@ -6,6 +6,7 @@ SCRIPT_BY_ISO1. test_ocr_languages.py fails until every app language is in exact
 """
 import base64
 import os
+import re
 from typing import Protocol
 
 import cv2
@@ -13,7 +14,7 @@ import numpy as np
 from rapidocr import LangRec, ModelType, OCRVersion, RapidOCR
 
 from ...utils.detect_language import get_language_by_iso2t
-from ...utils.model_api import chat_completion
+from ...utils.model_api import chat_completion, ocr_markdown
 from .types import Block, ParseError, Word
 
 # (ocr_version, model_type, lang) - see docs/superpowers/specs/2026-10-30-document-parser-ocr-models.md
@@ -158,3 +159,38 @@ class RemoteOcrEngine:
             return []
         page_box = (0.0, 0.0, size[0], size[1])  # the model gives no positions
         return [Block(text=ln, bbox=page_box, kind="body", words=[]) for ln in lines]
+
+
+class MistralOcrEngine:
+    """Dedicated OCR API (Mistral `/v1/ocr`): returns the page as markdown.
+
+    Like RemoteOcrEngine the output has no word boxes and, as used here, no confidence, so callers must label it
+    `llm_transcribed`. (The API can return per-word confidence; its response schema is not parsed yet.)
+    """
+
+    def __init__(self, api: dict):
+        self._api = api
+        self.cache_id = f"{api['base_url']}|{api['model']}"  # part of the parse cache key; never the API key
+
+    def ocr(self, image: np.ndarray, iso2t: str | None, size: tuple[float, float]) -> list[Block]:
+        ok, png = cv2.imencode(".png", image)
+        if not ok:
+            raise ParseError("corrupt", "Could not encode the page image")
+        markdown = ocr_markdown(
+            base_url=self._api["base_url"], api_key=self._api.get("api_key", ""), model=self._api["model"],
+            data_url="data:image/png;base64," + base64.b64encode(png.tobytes()).decode(),
+            auth_type=self._api.get("auth_type", "bearer"),
+        )
+        page_box = (0.0, 0.0, size[0], size[1])  # no positions available
+        lines = [ln.strip() for ln in markdown.splitlines() if ln.strip() and not _TABLE_RULE.fullmatch(ln.strip())]
+        return [Block(text=ln, bbox=page_box, kind="body", words=[]) for ln in lines]
+
+
+_TABLE_RULE = re.compile(r"[|\s:-]+")   # a markdown table's "| --- | --- |" separator row
+
+
+def remote_engine_for(api: dict) -> "OcrEngine":
+    """The right remote engine for an `ocr` endpoint's format (raises ParseError for unsupported ones)."""
+    if (api.get("api_format") or "openai") == "mistral_ocr":
+        return MistralOcrEngine(api)
+    return RemoteOcrEngine(api)

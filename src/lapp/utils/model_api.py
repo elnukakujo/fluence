@@ -428,6 +428,42 @@ def synthesize_speech(
         ) from e
 
 
+# ── Dedicated OCR APIs (Mistral: POST {base}/ocr) ─────────────────────────────
+
+def ocr_markdown(base_url: str, api_key: str, model: str, data_url: str, auth_type: str = "bearer",
+                 *, timeout: float = 120) -> str:
+    """Send one page image to a dedicated OCR endpoint; returns its markdown (pages joined by newlines).
+
+    Request/response per https://docs.mistral.ai/api/endpoint/ocr (document.type "image_url", pages[].markdown).
+    Raises ModelAPIError on transport/auth/API failures, like chat_completion.
+    """
+    url, headers = auth_headers(base_url, api_key, auth_type)
+    body = {"model": model, "document": {"type": "image_url", "image_url": data_url}}
+    try:
+        with httpx.Client(base_url=url, headers=headers, timeout=timeout, trust_env=False) as client:
+            resp = client.post("/ocr", json=body)
+            resp.raise_for_status()
+            return "\n".join(p.get("markdown", "") for p in resp.json().get("pages", []))
+    except ModelAPIError:
+        raise
+    except httpx.HTTPStatusError as e:
+        raise ModelAPIError.from_httpx(e) from e
+    except httpx.RequestError as e:
+        raise ModelAPIError.from_connection(e, url=base_url) from e
+    except Exception as e:
+        raise ModelAPIError(ModelAPIError.KIND_UNKNOWN, None, str(e), url=base_url) from e
+
+
+def probe_ocr_api(base_url: str, api_key: str, model: str, auth_type: str = "bearer") -> str:
+    """Settings test for a dedicated OCR endpoint: same three outcomes as probe_vision."""
+    try:
+        text = ocr_markdown(base_url=base_url, api_key=api_key, model=model,
+                            data_url=_probe_png_data_url(), auth_type=auth_type, timeout=30)
+    except ModelAPIError:
+        return "unreachable"
+    return "reads_images" if _VISION_WORD.lower() in "".join(text.lower().split()) else "no_vision"
+
+
 # ── Vision probe (settings "Test connection" for OCR endpoints) ───────────────
 
 _VISION_WORD = "FLUENCE"

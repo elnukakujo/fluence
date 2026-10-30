@@ -15,7 +15,7 @@ from ...models.system_data import IngestionJob
 from ...utils.llm_providers import resolve_api
 from ...utils.model_api import ModelAPIError
 from ...utils.detect_language import get_language_by_iso2t
-from ..parsing import ParseError, RemoteOcrEngine, parse
+from ..parsing import ParseError, parse, remote_engine_for
 from ..parsing.types import Document
 from .extract import ExtractionError
 from .pipeline import build_candidates
@@ -162,7 +162,7 @@ def _prepare(app: Flask, svc: IngestionJobService, job_id: str) -> Optional[_Ctx
     remote = None
     if ocr_api := (resolve_api(prefs, "ocr") if prefs else None):
         try:
-            remote = RemoteOcrEngine(ocr_api)
+            remote = remote_engine_for(ocr_api)
         except ParseError as e:
             warnings.append(f"Vision OCR endpoint ignored: {e}")
     language = LanguageService().get_by_id(job["language_id"], as_dict=True, include_relations=False)

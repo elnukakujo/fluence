@@ -221,7 +221,7 @@ def test_endpoint():
 
     import httpx
 
-    from ...utils.model_api import chat_completion, ModelAPIError, probe_vision
+    from ...utils.model_api import chat_completion, ModelAPIError, probe_ocr_api, probe_vision
     from ...utils.llm_providers import auth_headers
 
     _ERROR_MAP = {
@@ -284,11 +284,12 @@ def test_endpoint():
 
     # ── OCR: can the model actually read an image? ──
     if api_type == "ocr":
-        if api_format not in ("openai", "anthropic", "gemini"):
-            return jsonify({"ok": False, "error": "OCR endpoints must use the OpenAI, Anthropic or Gemini format"}), 400
+        if api_format not in ("openai", "anthropic", "gemini", "mistral_ocr"):
+            return jsonify({"ok": False, "error": "OCR endpoints must use the OpenAI, Anthropic, Gemini or Mistral OCR format"}), 400
         if not model:
             return jsonify({"ok": False, "error": "Enter a vision model name to test"}), 400
-        vision = probe_vision(base_url, api_key, model, auth_type, api_format)
+        vision = (probe_ocr_api(base_url, api_key, model, auth_type) if api_format == "mistral_ocr"
+                  else probe_vision(base_url, api_key, model, auth_type, api_format))
         ms = round((time.perf_counter() - start) * 1000)
         if vision == "unreachable":
             return jsonify({"ok": False, "ms": ms, "vision": vision,
