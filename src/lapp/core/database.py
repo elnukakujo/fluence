@@ -43,6 +43,7 @@ ID_PREFIXES = {
     "Collaboration": "collab_C",
     "Score": "sc_S",
     "LessonShare": "ls_L",
+    "IngestionJob": "ing_J",
 }
 
 # Backing store for generate_new_id()'s atomic counters. One row per entity

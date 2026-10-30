@@ -20,6 +20,7 @@ from .commitment_log import commitment_log_bp
 from .review import bp as review_bp
 from .auth import bp as auth_bp
 from .collaboration import bp as collaboration_bp
+from .ingestion import bp as ingestion_bp
 __all__ = [
     language_bp,
     lesson_bp,
@@ -43,4 +44,5 @@ __all__ = [
     review_bp,
     auth_bp,
     collaboration_bp,
+    ingestion_bp,
 ]
