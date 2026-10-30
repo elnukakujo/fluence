@@ -9,7 +9,7 @@ VALID_PROVIDERS = {
 }
 VALID_API_FORMATS = {"openai", "anthropic", "gemini", "elevenlabs", "google_tts"}
 VALID_AUTH_TYPES = {"bearer", "x-api-key", "param", "none"}
-VALID_API_TYPES = {"text_gen", "tts", "both"}
+VALID_API_TYPES = {"text_gen", "tts", "both", "ocr"}  # "both" = text_gen + tts only
 
 
 def _normalize_base_url(v: Optional[str]) -> Optional[str]:

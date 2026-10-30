@@ -26,7 +26,7 @@ export default interface UserPreferences {
 export interface ApiEndpointConfig {
     name?: string;
     provider?: string;       // provider key: "openai", "ollama", "local_tts", etc.
-    api_type?: "text_gen" | "tts" | "both";
+    api_type?: "text_gen" | "tts" | "both" | "ocr";
     base_url?: string;
     api_key?: string;
     model?: string;

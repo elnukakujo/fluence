@@ -134,7 +134,8 @@ def auth_headers(base_url: str, api_key: str, auth_type: str) -> tuple[str, dict
 
 def resolve_api(prefs, api_type: str = "text_gen") -> dict | None:
     """Return {base_url, api_key, model, api_format, auth_type[, voice, voice_gender]}
-    from the first active endpoint matching api_type ("text_gen" or "tts"),
+    from the first active endpoint matching api_type ("text_gen", "tts" or "ocr";
+    "both" endpoints serve text_gen and tts only, and "ocr" has no legacy fallback),
     falling back to legacy flat fields if no ai_endpoints match.
 
     Returns None when no API is configured — callers should skip the LLM call.
@@ -142,9 +143,10 @@ def resolve_api(prefs, api_type: str = "text_gen") -> dict | None:
     if not prefs:
         return None
 
+    accepted = (api_type, "both") if api_type in ("text_gen", "tts") else (api_type,)
     # Check ai_endpoints first
     for ep in getattr(prefs, "ai_endpoints", None) or []:
-        if isinstance(ep, dict) and ep.get("is_active") and ep.get("api_type") in (api_type, "both"):
+        if isinstance(ep, dict) and ep.get("is_active") and ep.get("api_type") in accepted:
             api = {
                 "base_url": ep.get("base_url", "") or "",
                 "api_key": ep.get("api_key", "") or "",
@@ -156,6 +158,9 @@ def resolve_api(prefs, api_type: str = "text_gen") -> dict | None:
                 api["voice"] = ep.get("voice") or ""
                 api["voice_gender"] = ep.get("voice_gender") or None
             return api
+
+    if api_type == "ocr":
+        return None
 
     # Legacy fallback — kept for backward compatibility with pre-multi-endpoint users
     if api_type == "tts":

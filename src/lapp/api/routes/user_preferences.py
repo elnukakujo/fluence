@@ -213,7 +213,7 @@ def test_endpoint():
 
     Branches on api_type:
       - tts:        POST /audio/speech probe
-      - text_gen:   GET /models → mini chat completion
+      - text_gen:   GET /models → mini chat completion (also used for ocr)
       - both:       TTS probe first, then text-gen; reports per-path status
     """
     import time

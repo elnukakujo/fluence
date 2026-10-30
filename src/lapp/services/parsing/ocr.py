@@ -4,13 +4,16 @@ Adding a language: put its ISO 639-1 code in SCRIPT_BY_ISO1 (and, for a brand-ne
 one RECOGNIZERS entry). Un-deferring a script is moving its codes from DEFERRED_ISO1 to
 SCRIPT_BY_ISO1. test_ocr_languages.py fails until every app language is in exactly one of the two.
 """
+import base64
 import os
 from typing import Protocol
 
+import cv2
 import numpy as np
 from rapidocr import LangRec, ModelType, OCRVersion, RapidOCR
 
 from ...utils.detect_language import get_language_by_iso2t
+from ...utils.model_api import chat_completion
 from .types import Block, ParseError, Word
 
 # (ocr_version, model_type, lang) - see docs/superpowers/specs/2026-10-30-document-parser-ocr-models.md
@@ -92,3 +95,48 @@ def _group_lines(words: list[Word]) -> list[Block]:
                max(w.bbox[2] for w in line), max(w.bbox[3] for w in line))
         blocks.append(Block(text=" ".join(w.text for w in line), bbox=box, kind="body", words=line))
     return blocks
+
+
+NO_TEXT = "[[NO_TEXT]]"
+_SYSTEM = (
+    "You are an OCR engine. Transcribe the text in the image verbatim, line by line, exactly as written, "
+    "preserving spelling, accents and scripts. Do not translate, correct, complete, explain or add anything. "
+    f"If a word is illegible write [?] in its place. If the image has no legible text, reply exactly {NO_TEXT}."
+)
+
+
+class RemoteOcrEngine:
+    """Last-resort fallback: a vision LLM reading the page via the user's own "ocr" endpoint.
+
+    Output is a model's reading, not a measurement: callers must label it `llm_transcribed` and no
+    confidence or word boxes exist. `api` is the dict from llm_providers.resolve_api(prefs, "ocr").
+    """
+
+    def __init__(self, api: dict):
+        if (api.get("api_format") or "openai") != "openai":
+            raise ParseError("unsupported", "Remote OCR needs an OpenAI-format endpoint (image input)")
+        self._api = api
+
+    def ocr(self, image: np.ndarray, iso2t: str | None, size: tuple[float, float]) -> list[Block]:
+        ok, png = cv2.imencode(".png", image)
+        if not ok:
+            raise ParseError("corrupt", "Could not encode the page image")
+        url = "data:image/png;base64," + base64.b64encode(png.tobytes()).decode()
+        text = chat_completion(
+            base_url=self._api["base_url"], api_key=self._api.get("api_key", ""), model=self._api["model"],
+            api_format="openai", auth_type=self._api.get("auth_type", "bearer"),
+            messages=[
+                {"role": "system", "content": _SYSTEM},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "Transcribe this page."},
+                    {"type": "image_url", "image_url": {"url": url}},
+                ]},
+            ],
+            max_tokens=4096, temperature=0, timeout=120,
+        )
+        # ponytail: weak guard - only empty / NO_TEXT is caught; a polite refusal still passes as text
+        lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+        if not lines or lines == [NO_TEXT]:
+            return []
+        page_box = (0.0, 0.0, size[0], size[1])  # the model gives no positions
+        return [Block(text=ln, bbox=page_box, kind="body", words=[]) for ln in lines]
