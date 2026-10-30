@@ -285,3 +285,44 @@ def test_unreadable_cache_file_is_ignored(rotated_png, tmp_path):
         f.write_bytes(b"\xff\xfe not json")
     again = Stub()
     assert _parse(rotated_png, tmp_path, local=again).pages and again.calls
+
+
+# ---- page ranges ------------------------------------------------------------
+
+def test_page_range_processes_only_those_pages_and_keeps_document_page_numbers(mixed_pdf, tmp_path):
+    local = Stub()
+    doc = _parse(mixed_pdf, tmp_path, local=local, pages=(2, 2))
+    assert [p.index for p in doc.pages] == [1] and len(local.calls) == 1
+
+
+def test_range_end_beyond_the_document_is_clamped(native_pdf, tmp_path):
+    assert [p.index for p in _parse(native_pdf, tmp_path, pages=(1, 99)).pages] == [0, 1]
+
+
+@pytest.mark.parametrize("bad", [(0, 1), (3, 9), (2, 1)])
+def test_invalid_page_range_raises(native_pdf, tmp_path, bad):
+    with pytest.raises(ParseError) as e:
+        _parse(native_pdf, tmp_path, pages=bad)
+    assert e.value.code == "invalid_range"
+
+
+def test_page_limit_counts_only_the_selected_pages(scanned_pdf, tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "MAX_PAGES", 1)
+    assert len(_parse(scanned_pdf, tmp_path, pages=(1, 1)).pages) == 1
+    with pytest.raises(ParseError) as e:
+        _parse(scanned_pdf, tmp_path, pages=(1, 2))
+    assert e.value.code == "too_many_pages"
+
+
+def test_page_range_is_part_of_the_cache_key(scanned_pdf, tmp_path):
+    _parse(scanned_pdf, tmp_path, pages=(1, 1))
+    other = Stub()
+    _parse(scanned_pdf, tmp_path, local=other, pages=(2, 2))
+    assert other.calls
+
+
+def test_image_accepts_page_one_only(rotated_png, tmp_path):
+    assert len(_parse(rotated_png, tmp_path, pages=(1, 1)).pages) == 1
+    with pytest.raises(ParseError) as e:
+        _parse(rotated_png, tmp_path, pages=(2, 3))
+    assert e.value.code == "invalid_range"
