@@ -351,8 +351,12 @@ class CollaborationService:
     def _remap_scores(self, user_id: str, element_map: dict[str, str],
                       lesson_map: dict[str, str], session: Session) -> None:
         """Repoint `user_id`'s Score rows from old element ids to new ones, and their
-        `current_lesson_id` from old lesson ids to new ones. On a collision with a row
-        already at the destination, the destination row wins and the old one is dropped."""
+        `current_lesson_id` from old lesson ids to new ones.
+
+        Only feature scores (vocabulary/grammar/calligraphy/exercise) are primary data, and a
+        cloned feature always gets a fresh id, so they can never collide. Language, lesson and
+        component rows are aggregates recomputed from those features: if one already exists at
+        the destination it simply stays and the old row is dropped."""
         from ...models.system_data import Score
         scores = session.query(Score).filter(Score.user_id == user_id).all()
         taken = {sc.element_id for sc in scores}
@@ -363,7 +367,6 @@ class CollaborationService:
             if new_id is None or new_id == sc.element_id:
                 continue
             if new_id in taken:
-                # TODO: confirm with the owner which Score wins on collision (kept: destination row)
                 session.delete(sc)
             else:
                 sc.element_id = new_id
