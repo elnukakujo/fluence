@@ -6,11 +6,17 @@ export async function listUsers(): Promise<{ id: string; display_name: string }[
   return res.json();
 }
 
-export async function invite(collaboratorId: string, targetType: string, targetId: string) {
+export async function invite(
+  collaboratorId: string, targetType: string, targetId: string,
+  offer?: { mode: "full" | "partial"; lessonIds?: string[] },
+) {
   const res = await fetch(`${BASE_URL}/api/collaboration`, {
     method: "POST",
     headers: await getAuthHeaders(),
-    body: JSON.stringify({ collaborator_id: collaboratorId, target_type: targetType, target_id: targetId }),
+    body: JSON.stringify({
+      collaborator_id: collaboratorId, target_type: targetType, target_id: targetId,
+      mode: offer?.mode, lesson_ids: offer?.mode === "partial" ? offer.lessonIds : undefined,
+    }),
   });
   if (!res.ok) throw new Error("Failed to invite");
   return res.json();
@@ -59,7 +65,7 @@ export async function listAwaitingConsent(): Promise<{ id: string; collaborator_
   return res.json();
 }
 
-export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string; description?: string; level?: number }[] }[]> {
+export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; proposed_mode?: "full" | "partial" | null; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string; description?: string; level?: number }[] }[]> {
   const res = await fetch(`${BASE_URL}/api/collaboration/invites`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list invites");
   return res.json();
@@ -80,5 +86,27 @@ export async function decline(collaborationId: string) {
     headers: await getAuthHeaders(),
   });
   if (!res.ok) throw new Error("Failed to decline");
+  return res.json();
+}
+
+export async function listLessonRecipients(lessonId: string): Promise<{ user_id: string; name: string }[]> {
+  const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}/collaborators`, { headers: await getAuthHeaders() });
+  if (!res.ok) throw new Error("Failed to list lesson collaborators");
+  return res.json();
+}
+
+export async function unshareLesson(lessonId: string, userId: string) {
+  const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}/share`, {
+    method: "DELETE",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ user_id: userId }),
+  });
+  if (!res.ok) throw new Error("Failed to stop sharing");
+  return res.json();
+}
+
+export async function listLanguageLessons(languageId: string): Promise<{ id: string; title: string }[]> {
+  const res = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`, { headers: await getAuthHeaders() });
+  if (!res.ok) throw new Error("Failed to list lessons");
   return res.json();
 }

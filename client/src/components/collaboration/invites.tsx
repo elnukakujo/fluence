@@ -37,9 +37,12 @@ export default function Invites() {
   const route = (inv: Invite) =>
     inv.source_language && inv.target_language ? `${inv.source_language} → ${inv.target_language}` : null;
 
+  // A partial offer only allows a partial collaboration, so skip the choice.
+  const partialOnly = accepting?.proposed_mode === "partial";
+
   function openAccept(inv: Invite) {
     setAccepting(inv);
-    setMode(null);
+    setMode(inv.proposed_mode === "partial" ? "partial" : null);
     setError(null);
     setSelected(new Set((inv.lessons ?? []).map((l) => l.id)));
   }
@@ -87,9 +90,15 @@ export default function Invites() {
               </span>
             </span>
             <span className="flex gap-2">
-              <button type="button" className="btn btn-primary" onClick={() => openAccept(inv)}>
-                Review
-              </button>
+              {inv.target_type === "lesson" ? (
+                <button type="button" className="btn btn-primary" onClick={() => run(() => accept(inv.id))}>
+                  Accept
+                </button>
+              ) : (
+                <button type="button" className="btn btn-primary" onClick={() => openAccept(inv)}>
+                  Review
+                </button>
+              )}
               <button type="button" className="btn btn-secondary"
                 onClick={() => run(() => reject(inv.id))}>
                 Decline
@@ -116,7 +125,13 @@ export default function Invites() {
             </>
           }
         >
-          <div role="radiogroup" aria-label="Sync mode" className="flex flex-col gap-2">
+          {partialOnly && (
+            <p className="text-sm text-muted">
+              {accepting.master_name ?? accepting.master_id} offered {lessons.length} lesson{lessons.length === 1 ? "" : "s"} only.
+              Choose which to keep, or take them all.
+            </p>
+          )}
+          {!partialOnly && <div role="radiogroup" aria-label="Sync mode" className="flex flex-col gap-2">
             {MODES.map(({ value, title, body, Icon }) => {
               const active = mode === value;
               return (
@@ -132,7 +147,7 @@ export default function Invites() {
                 </button>
               );
             })}
-          </div>
+          </div>}
 
           {mode === "full" && (
             <p className="text-xs text-muted">

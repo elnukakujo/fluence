@@ -42,6 +42,9 @@ export default function LanguageOverviewCard({ language }: { language: Language 
                     {language.collaborators && language.collaborators.length > 0 && (
                         <SharedBadge count={language.collaborators.length} />
                     )}
+                    {language.partial_collaborators && language.partial_collaborators.length > 0 && (
+                        <SharedBadge partial count={language.partial_collaborators.length} />
+                    )}
                 </div>
                 <ScoreDisplay score={language.score} />
             </footer>

@@ -14,6 +14,9 @@ export default function LanguageHeaderCard({ language }: { language: Language })
                 {language.collaborators && language.collaborators.length > 0 && (
                     <SharedBadge count={language.collaborators.length} />
                 )}
+                {language.partial_collaborators && language.partial_collaborators.length > 0 && (
+                    <SharedBadge partial count={language.partial_collaborators.length} />
+                )}
             </header>
             <div className="index-divider pt-3 flex flex-col space-y-2">
                 <div className="grid gap-2 sm:grid-cols-2">

@@ -15,7 +15,9 @@ import { getCurrentUserId } from "@/utils/user_cookie";
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
     const { language_id } = await params;
     const { language, lessons } = await getLanguageData(language_id);
-    const sharedLessons = await getSharedLessons();
+    const sharedLessons = (await getSharedLessons()).filter(
+        (l) => l.target_iso639_2t === language.target_iso639_2t
+    );
     const allLessons = [...lessons, ...sharedLessons.map((l) => ({ ...l, shared: true }))];
     const userId = await getCurrentUserId();
     const isOwner = userId === language.user_id;

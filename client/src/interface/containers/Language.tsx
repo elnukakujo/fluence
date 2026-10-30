@@ -12,4 +12,5 @@ export default interface Language extends BaseContainer {
     current_lesson_id?: string;
     lessons?: Partial<Lesson>[];
     collaborators?: string[];
+    partial_collaborators?: string[];
 };
