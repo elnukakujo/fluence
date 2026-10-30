@@ -294,7 +294,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
               )}
               <p className="text-sm opacity-70">
                 Page {c.page + 1} · “{c.quote}”{" "}
-                <button type="button" className="link" onClick={() => setPreview(c.page + 1)}>View page</button>
+                <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button>
               </p>
             </li>
           );
