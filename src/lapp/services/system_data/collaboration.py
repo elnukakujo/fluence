@@ -36,6 +36,17 @@ class CollaborationService:
             Collaboration.target_id == target_id,
         ).first()
         if existing:
+            if mode is None:  # legacy idempotent re-invite
+                return existing
+            if existing.status == "pending":  # a new offer replaces the pending one
+                existing.proposed_mode = mode
+                existing.offered_lesson_ids = list(lesson_ids) if mode == "partial" else None
+            elif target_type == "language" and existing.status == "accepted" \
+                    and existing.mode == "partial" and mode == "partial":
+                self._offer_more_lessons(existing, lesson_ids, session)
+            else:
+                raise ValueError("this person already collaborates on this language; remove their access first to change the offer")
+            session.flush()
             return existing
         collab = Collaboration(
             id=db_manager.generate_new_id(Collaboration, session=session),
@@ -50,6 +61,26 @@ class CollaborationService:
         session.add(collab)
         session.flush()
         return collab
+
+    def _offer_more_lessons(self, collab: Collaboration, lesson_ids: list[str], session: Session) -> None:
+        """An invitee who already accepted a partial offer gets further lessons as lesson-only
+        invites (each needs their consent). Lessons already shared or already offered are skipped."""
+        from ...models.system_data import LessonShare
+        ids = set(lesson_ids)
+        shared = {l for (l,) in session.query(LessonShare.lesson_id).filter(
+            LessonShare.user_id == collab.collaborator_id, LessonShare.lesson_id.in_(ids)).all()}
+        offered = {t for (t,) in session.query(Collaboration.target_id).filter(
+            Collaboration.master_id == collab.master_id, Collaboration.collaborator_id == collab.collaborator_id,
+            Collaboration.target_type == "lesson", Collaboration.target_id.in_(ids)).all()}
+        todo = sorted(ids - shared - offered)
+        if not todo:
+            raise ValueError("those lessons are already shared with this person or awaiting their answer")
+        for lid in todo:
+            session.add(Collaboration(
+                id=db_manager.generate_new_id(Collaboration, session=session),
+                master_id=collab.master_id, collaborator_id=collab.collaborator_id,
+                target_type="lesson", target_id=lid, status="pending"))
+            session.flush()
 
     @transactional
     def accept(self, collaboration_id: str, mode: Optional[str] = None,
@@ -273,6 +304,22 @@ class CollaborationService:
                 LessonShare.user_id == collab.collaborator_id,
                 LessonShare.lesson_id.in_(lesson_ids),
             ).delete(synchronize_session=False)
+
+    @transactional
+    def purge_target(self, target_type: str, target_id: str, session: Optional[Session] = None) -> None:
+        """Drop every collaboration pointing at a language/lesson that is about to be deleted
+        (a language also takes its lessons' invitations), so no dangling invites survive."""
+        from ...models.containers import Lesson
+        q = session.query(Collaboration)
+        if target_type == "language":
+            lesson_ids = [l for (l,) in session.query(Lesson.id).filter(Lesson.language_id == target_id).all()]
+            cond = ((Collaboration.target_type == "language") & (Collaboration.target_id == target_id))
+            if lesson_ids:
+                cond = cond | ((Collaboration.target_type == "lesson") & Collaboration.target_id.in_(lesson_ids))
+            q = q.filter(cond)
+        else:
+            q = q.filter(Collaboration.target_type == "lesson", Collaboration.target_id == target_id)
+        q.delete(synchronize_session=False)
 
     @transactional
     def leave_lesson(self, lesson_id: str, user_id: str, session: Optional[Session] = None) -> None:
@@ -562,11 +609,13 @@ class CollaborationService:
             master_name = (master.display_name or master.username) if master else c.master_id
 
             lang = None
+            lesson_title = None
             if c.target_type == "language":
                 lang = session.query(Language).filter(Language.id == c.target_id).first()
             elif c.target_type == "lesson":
                 lesson = session.query(Lesson).filter(Lesson.id == c.target_id).first()
                 if lesson:
+                    lesson_title = lesson.title
                     lang = session.query(Language).filter(Language.id == lesson.language_id).first()
 
             result.append({
@@ -579,6 +628,7 @@ class CollaborationService:
                 "source_language": get_language_by_iso2t(lang.source_iso639_2t).name if lang else None,
                 "target_language": get_language_by_iso2t(lang.target_iso639_2t).name if lang else None,
                 "proposed_mode": c.proposed_mode,
+                "lesson_title": lesson_title,
                 "lessons": self._target_lessons(c, session),
             })
         return result

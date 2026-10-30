@@ -4,12 +4,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...services import LanguageService
-from ...services.system_data import CollaborationService, ScoreService
+from ...services.system_data import CollaborationService, LessonShareService, ScoreService
 from ...schemas.containers import LanguageDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('language', __name__, url_prefix='/api/languages')
 language_service = LanguageService()
+
+
+def _with_shared_counts(languages: list[dict]) -> list[dict]:
+    """On the caller's own languages, add `shared_lesson_count`: lessons others shared with them
+    that live under this language (matched on the source+target ISO couple)."""
+    uid = current_user_id()
+    shared = LessonShareService().list_shared_lessons(uid)
+    for lang in languages:
+        if lang.get("user_id") == uid:
+            lang["shared_lesson_count"] = sum(
+                1 for l in shared
+                if l.get("target_iso639_2t") == lang.get("target_iso639_2t")
+                and l.get("source_iso639_2t") == lang.get("source_iso639_2t"))
+    return languages
 
 @bp.route('/all/<user_id>', methods=['GET'])
 @login_required
@@ -37,7 +51,7 @@ def get_all_user_languages(user_id: str):
             languages.append(lang)
     if len(languages) == 0:
         return jsonify([]), 200
-    return jsonify(ScoreService().merge(current_user_id(), languages))
+    return jsonify(ScoreService().merge(current_user_id(), _with_shared_counts(languages)))
 
 
 @bp.route('/<language_id>', methods=['GET'])
@@ -68,7 +82,7 @@ def get_language(language_id: str):
     if not language:
         return jsonify({'error': 'Language not found'}), 404
 
-    return jsonify(ScoreService().merge(current_user_id(), [language])[0])
+    return jsonify(ScoreService().merge(current_user_id(), _with_shared_counts([language]))[0])
 
 
 @bp.route('/', methods=['POST'])
@@ -242,6 +256,7 @@ def delete_language(language_id: str):
             description: Language not found
     """
     require_owns(language_id)
+    CollaborationService().purge_target("language", language_id)
     success = language_service.delete(language_id)
 
     if success:

@@ -83,7 +83,9 @@ export default function Invites() {
             <span className="flex items-start gap-3 text-sm">
               <Users size={18} aria-hidden className="mt-0.5 shrink-0 text-accent" />
               <span className="flex flex-col gap-0.5">
-                <span className="font-medium">{inv.master_name ?? inv.master_id} invited you</span>
+                <span className="font-medium">
+                  {inv.master_name ?? inv.master_id} {inv.lesson_title ? `shared the lesson “${inv.lesson_title}” with you` : "invited you"}
+                </span>
                 <span className="text-muted">
                   {inv.language_name ?? inv.target_id}{route(inv) && ` · ${route(inv)}`}
                 </span>

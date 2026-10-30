@@ -69,6 +69,7 @@ class LessonShareService:
             # The frontend groups shared lessons under the invitee's language of the
             # same target ISO, so carry it alongside the (master's) language_id.
             d["target_iso639_2t"] = lang.target_iso639_2t if lang else None
+            d["source_iso639_2t"] = lang.source_iso639_2t if lang else None
             result.append(d)
         return result
 

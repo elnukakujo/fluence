@@ -219,6 +219,7 @@ def delete_lesson(lesson_id: str):
             description: Lesson not found
     """
     require_owns(lesson_id)
+    CollaborationService().purge_target("lesson", lesson_id)
     success = lesson_service.delete(lesson_id)
 
     if success:
@@ -251,7 +252,8 @@ def unshare_lesson(lesson_id: str):
     if not user_id:
         return jsonify({'error': 'user_id required'}), 400
     require_owns(lesson_id)
-    LessonShareService().unshare(lesson_id, user_id)
+    # also ends the partial collaboration once nothing is shared any more, so the master can re-invite
+    CollaborationService().leave_lesson(lesson_id, user_id)
     return jsonify({'success': True}), 200
 
 

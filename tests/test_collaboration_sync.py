@@ -832,3 +832,73 @@ def test_user_list_search_matches_name_username_email_returns_only_display(app, 
     assert [u["id"] for u in get("mail.org")] == ["user_U2"]                 # email, never returned
     assert {u["id"] for u in get("")} == {"user_U2", "user_U3"}              # caller excluded
     assert get("zzz") == []
+
+
+def test_partial_invitee_can_be_offered_more_lessons(db):
+    c = _partial_offer(db, ["lesson_M1"])
+    CollaborationService().accept(c.id, "partial")
+    # the second offer used to be swallowed (idempotent invite returned the accepted row)
+    again = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1",
+                                          mode="partial", lesson_ids=["lesson_M1", "lesson_M2"])
+    assert again.id == c.id
+    with db.session_scope() as s:
+        pending = s.query(Collaboration).filter(Collaboration.status == "pending").all()
+        assert [(p.target_type, p.target_id) for p in pending] == [("lesson", "lesson_M2")]  # M1 already shared
+    lesson_invite = CollaborationService().list_invites("user_U2")[0]
+    assert lesson_invite["target_type"] == "lesson"
+    CollaborationService().accept(lesson_invite["id"])
+    assert LessonShareService().is_recipient("user_U2", "lesson_M2")
+
+
+def test_reinviting_with_nothing_new_or_full_is_rejected_not_swallowed(db):
+    c = _partial_offer(db, ["lesson_M1"])
+    CollaborationService().accept(c.id, "partial")
+    with pytest.raises(ValueError):
+        CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1",
+                                      mode="partial", lesson_ids=["lesson_M1"])
+    with pytest.raises(ValueError):
+        CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1", mode="full")
+
+
+def test_new_offer_replaces_pending_offer(db):
+    c = _partial_offer(db, ["lesson_M1"])
+    CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1",
+                                  mode="partial", lesson_ids=["lesson_M2"])
+    with db.session_scope() as s:
+        assert s.get(Collaboration, c.id).offered_lesson_ids == ["lesson_M2"]
+
+
+def test_invitee_languages_report_shared_lesson_count(app, db):
+    c = _partial_offer(db, ["lesson_M1", "lesson_M2"])
+    CollaborationService().accept(c.id, "partial")   # invitee already has lang_U2 (same couple)
+    langs = _client_for_user(app, db, "user_U2").get('/api/languages/all/user_U2').get_json()
+    mine = [l for l in langs if l["user_id"] == "user_U2"]
+    assert [l["shared_lesson_count"] for l in mine] == [2]
+
+
+def test_master_unsharing_last_lesson_ends_collaboration_so_full_can_be_offered(app, db):
+    c = _partial_offer(db, ["lesson_M1"])
+    CollaborationService().accept(c.id, "partial")
+    res = _client_for_user(app, db, "user_U1").delete('/api/lessons/lesson_M1/share', json={'user_id': 'user_U2'})
+    assert res.status_code == 200
+    assert _collab_rows(db) == 0
+    CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1", mode="full")  # no longer blocked
+
+
+def test_deleting_language_or_lesson_purges_collaborations(app, db):
+    _seed_users(db); _seed_merge(db)
+    CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().invite("user_U1", "user_U2", "lesson", "lesson_M1")
+    cl = _client_for_user(app, db, "user_U1")
+    cl.delete('/api/lessons/lesson_M1')
+    with db.session_scope() as s:
+        assert [(c.target_type) for c in s.query(Collaboration)] == ["language"]
+    cl.delete('/api/languages/lang_L1')
+    with db.session_scope() as s:
+        assert s.query(Collaboration).count() == 0
+
+
+def test_lesson_invite_payload_names_the_lesson(db):
+    _seed_users(db); _seed_merge(db)
+    CollaborationService().invite("user_U1", "user_U2", "lesson", "lesson_M1")
+    assert CollaborationService().list_invites("user_U2")[0]["lesson_title"] == "M1"

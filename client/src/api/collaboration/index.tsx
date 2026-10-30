@@ -19,7 +19,11 @@ export async function invite(
       mode: offer?.mode, lesson_ids: offer?.mode === "partial" ? offer.lessonIds : undefined,
     }),
   });
-  if (!res.ok) throw new Error("Failed to invite");
+  if (!res.ok) {
+    // surface the server's reason (e.g. "already shared") instead of a generic failure
+    const msg = (await res.json().catch(() => null))?.message as string | undefined;
+    throw new Error(msg?.split(": ").slice(1).join(": ") || "Failed to invite");
+  }
   return res.json();
 }
 
@@ -66,7 +70,7 @@ export async function listAwaitingConsent(): Promise<{ id: string; collaborator_
   return res.json();
 }
 
-export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; proposed_mode?: "full" | "partial" | null; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string; description?: string; level?: number }[] }[]> {
+export async function listInvites(): Promise<{ id: string; master_id: string; master_name?: string; target_type: string; target_id: string; proposed_mode?: "full" | "partial" | null; lesson_title?: string | null; language_name?: string; source_language?: string; target_language?: string; lessons?: { id: string; title: string; description?: string; level?: number }[] }[]> {
   const res = await fetch(`${BASE_URL}/api/collaboration/invites`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list invites");
   return res.json();

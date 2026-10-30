@@ -16,7 +16,7 @@ export default async function Language({ params }: { params: Promise<{ language_
     const { language_id } = await params;
     const { language, lessons } = await getLanguageData(language_id);
     const sharedLessons = (await getSharedLessons()).filter(
-        (l) => l.target_iso639_2t === language.target_iso639_2t
+        (l) => l.target_iso639_2t === language.target_iso639_2t && l.source_iso639_2t === language.source_iso639_2t
     );
     const allLessons = [...lessons, ...sharedLessons.map((l) => ({ ...l, shared: true }))];
     const userId = await getCurrentUserId();
