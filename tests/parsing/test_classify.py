@@ -32,3 +32,7 @@ def test_measured_values_are_returned(native_pdf):
     with pymupdf.open(native_pdf) as doc:
         _, m = is_native_page(doc[0])
     assert {"chars_per_1000pt2", "garbage_ratio", "image_coverage"} <= m.keys()
+
+
+def test_invisible_ocr_text_layer_is_not_native(searchable_scan_pdf):
+    assert _decisions(searchable_scan_pdf) == [False]

@@ -104,3 +104,27 @@ def blank_png(tmp_path_factory):
     p = tmp_path_factory.mktemp("fx") / "blank.png"
     Image.new("RGB", (800, 600), "white").save(p)
     return p
+
+
+@pytest.fixture(scope="session")
+def image_then_text_pdf(tmp_path_factory):
+    """An image block precedes the text blocks, which shifts block numbering."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=A4.width, height=A4.height)
+    page.insert_image(pymupdf.Rect(72, 40, 172, 90), stream=_png_bytes(text_image(["logo"], size=(200, 100))))
+    page.insert_text((72, 200), "alpha beta gamma delta " * 4, fontsize=11)
+    page.insert_text((72, 400), "apple manzana casa libro " * 4, fontsize=11)
+    p = tmp_path_factory.mktemp("fx") / "image_then_text.pdf"
+    doc.save(p)
+    return p
+
+
+@pytest.fixture(scope="session")
+def searchable_scan_pdf(tmp_path_factory):
+    """A scan with a third party's invisible OCR text layer on top (render mode 3)."""
+    doc = pymupdf.open()
+    page = _image_page(doc, ["bonjour le monde"])
+    page.insert_text((72, 100), "\n".join(["bonjour le monde et merci beaucoup"] * 40), fontsize=11, render_mode=3)
+    p = tmp_path_factory.mktemp("fx") / "searchable.pdf"
+    doc.save(p)
+    return p

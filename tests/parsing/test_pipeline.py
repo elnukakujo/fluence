@@ -166,3 +166,36 @@ def test_real_engine_end_to_end_on_rotated_image(rotated_png, tmp_path):
     doc = parse(rotated_png, target_iso639_2t="fra", cache_dir=tmp_path / "c")
     text = " ".join(b.text for b in doc.pages[0].blocks).lower()
     assert "bonjour" in text and doc.pages[0].trust == "ocr"
+
+
+def test_oversized_pdf_page_is_rejected_before_rendering(scanned_pdf, tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "MAX_PAGE_PIXELS", 1_000_000)
+    monkeypatch.setattr(pipeline, "_render", lambda *a: pytest.fail("rendered"))
+    with pytest.raises(ParseError) as e:
+        _parse(scanned_pdf, tmp_path)
+    assert e.value.code == "too_large"
+
+
+def test_oversized_image_is_rejected_before_decoding(tmp_path, monkeypatch):
+    from PIL import Image
+    p = tmp_path / "big.png"
+    Image.new("L", (2000, 1000), 255).save(p)
+    monkeypatch.setattr(pipeline, "MAX_PAGE_PIXELS", 1_000_000)
+    monkeypatch.setattr(pipeline.cv2, "imdecode", lambda *a: pytest.fail("decoded"))
+    with pytest.raises(ParseError) as e:
+        _parse(p, tmp_path)
+    assert e.value.code == "too_large"
+
+
+def test_failed_remote_result_is_not_cached(rotated_png, tmp_path):
+    err = ModelAPIError(ModelAPIError.KIND_CONNECT, None, "timeout")
+    first = _parse(rotated_png, tmp_path, local=Stub(conf=0.2), remote=Stub(fail=err))
+    assert first.pages[0].source == "ocr_local"
+    second = _parse(rotated_png, tmp_path, local=Stub(conf=0.2), remote=Stub(conf=None))
+    assert second.pages[0].source == "ocr_remote"          # retried, not served from cache
+
+
+def test_local_ocr_crash_is_not_cached(rotated_png, tmp_path):
+    _parse(rotated_png, tmp_path, local=Stub(fail=RuntimeError("boom")))
+    second = _parse(rotated_png, tmp_path, local=Stub())
+    assert second.pages[0].blocks

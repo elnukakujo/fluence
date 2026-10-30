@@ -16,9 +16,16 @@ def extract_native_page(page: pymupdf.Page, index: int) -> Page:
     sizes = [s["size"] for b in raw for ln in b["lines"] for s in ln["spans"] for _ in s["text"].strip()]
     median = statistics.median(sizes) if sizes else 0.0
 
-    words_by_block: dict[int, list[Word]] = {}
-    for x0, y0, x1, y1, text, block_no, *_ in page.get_text("words"):
-        words_by_block.setdefault(block_no, []).append(Word(text=text, bbox=(x0, y0, x1, y1)))
+    all_words = [
+        Word(text=text, bbox=(x0, y0, x1, y1))
+        for x0, y0, x1, y1, text, *_ in page.get_text("words")
+    ]
+
+    def words_in(box) -> list[Word]:
+        # by position: get_text("words") numbers blocks differently from "dict" once the page has images
+        bx0, by0, bx1, by1 = box
+        return [w for w in all_words
+                if bx0 <= (w.bbox[0] + w.bbox[2]) / 2 <= bx1 and by0 <= (w.bbox[1] + w.bbox[3]) / 2 <= by1]
 
     blocks = []
     for b in raw:
@@ -35,6 +42,6 @@ def extract_native_page(page: pymupdf.Page, index: int) -> Page:
         else:
             kind = "body"
         blocks.append(Block(text="\n".join(lines), bbox=tuple(b["bbox"]), kind=kind,
-                            font_size=size, words=words_by_block.get(b["number"], [])))
+                            font_size=size, words=words_in(b["bbox"])))
     return Page(index=index, width=page.rect.width, height=page.rect.height,
                 source="native", trust="native", blocks=blocks, mean_confidence=None)

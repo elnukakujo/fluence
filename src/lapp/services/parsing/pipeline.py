@@ -1,5 +1,6 @@
 """parse(): route each page native vs OCR, escalate low-confidence pages, cache by content hash."""
 import hashlib
+import io
 import logging
 import os
 import tempfile
@@ -8,6 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pymupdf
+from PIL import Image
 
 from ...utils.model_api import ModelAPIError
 from .classify import is_native_page
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
 PIPELINE_VERSION = "1"
 MAX_FILE_BYTES = 50 * 1024 * 1024
 MAX_PAGES = 100
+MAX_PAGE_PIXELS = 80_000_000      # per page after rendering/decoding (~320 MB as BGR)
 RENDER_DPI = 200
 # TODO(calibrate): needs real sample files - placeholders, not measured values
 ESCALATE_MEAN_CONF = 0.80
@@ -67,18 +70,37 @@ def parse(
     if suffix == ".pdf":
         _parse_pdf(data, ctx, doc)
     else:
+        _check_image_size(data)
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             raise ParseError("corrupt", "Could not read the image")
         doc.pages.append(_ocr_page(img, 0, (float(img.shape[1]), float(img.shape[0])), ctx))
 
-    if cache_file:
+    if cache_file and not _has_transient_failure(doc):
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=cache_file.parent, suffix=".tmp")
         with os.fdopen(fd, "w") as f:
             f.write(doc.model_dump_json())
         os.replace(tmp, cache_file)
     return doc
+
+
+# Warnings that mean "this might work next time": never cached, so a retry can redo the work.
+_TRANSIENT_WARNINGS = ("remote OCR failed", "remote OCR returned no text", "OCR failed")
+
+
+def _has_transient_failure(doc: Document) -> bool:
+    return any(w.startswith(_TRANSIENT_WARNINGS) for p in doc.pages for w in p.warnings)
+
+
+def _check_image_size(data: bytes) -> None:
+    try:
+        with Image.open(io.BytesIO(data)) as im:   # header only, no pixel decode
+            w, h = im.size
+    except Exception as e:
+        raise ParseError("corrupt", "Could not read the image") from e
+    if w * h > MAX_PAGE_PIXELS:
+        raise ParseError("too_large", "The image is too large")
 
 
 class _Ctx:
@@ -110,6 +132,9 @@ def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document) -> None:
             if native:
                 doc.pages.append(extract_native_page(page, i))
             else:
+                scale = RENDER_DPI / 72
+                if page.rect.width * scale * page.rect.height * scale > MAX_PAGE_PIXELS:
+                    raise ParseError("too_large", f"Page {i + 1} is too large to scan")
                 doc.pages.append(_ocr_page(_render(page), i, (page.rect.width, page.rect.height), ctx))
 
 

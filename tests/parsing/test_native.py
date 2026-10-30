@@ -33,3 +33,10 @@ def test_bboxes_lie_inside_the_page(native_pdf):
     for b in page.blocks:
         x0, y0, x1, y1 = b.bbox
         assert 0 <= x0 <= x1 <= page.width and 0 <= y0 <= y1 <= page.height
+
+
+def test_words_stay_with_their_block_when_an_image_precedes_the_text(image_then_text_pdf):
+    with pymupdf.open(image_then_text_pdf) as doc:
+        page = extract_native_page(doc[0], 0)
+    for b in page.blocks:
+        assert " ".join(w.text for w in b.words) == " ".join(b.text.split())

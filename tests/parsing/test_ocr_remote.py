@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from lapp.schemas.system_data.user_preferences import ApiEndpoint
 from lapp.services.parsing import ocr as ocr_module
-from lapp.services.parsing.ocr import NO_TEXT, RemoteOcrEngine
+from lapp.services.parsing.ocr import END, NO_TEXT, RemoteOcrEngine
 from lapp.services.parsing.types import ParseError
 from lapp.utils.llm_providers import resolve_api
 
@@ -51,7 +51,7 @@ def test_remote_engine_rejects_non_openai_format():
 
 
 def test_remote_engine_sends_image_as_data_url(monkeypatch):
-    engine, calls = _engine(monkeypatch, "bonjour")
+    engine, calls = _engine(monkeypatch, f"bonjour\n{END}")
     engine.ocr(IMG, "fra", (80, 40))
     messages = calls[0]["messages"]
     assert messages[0]["role"] == "system"
@@ -62,7 +62,7 @@ def test_remote_engine_sends_image_as_data_url(monkeypatch):
 
 
 def test_remote_blocks_have_no_confidence_or_fake_boxes(monkeypatch):
-    engine, _ = _engine(monkeypatch, "bonjour\nmerci")
+    engine, _ = _engine(monkeypatch, f"bonjour\nmerci\n{END}")
     blocks = engine.ocr(IMG, "fra", (80, 40))
     assert [b.text for b in blocks] == ["bonjour", "merci"]
     assert all(b.words == [] and b.bbox == (0, 0, 80, 40) for b in blocks)
@@ -72,3 +72,17 @@ def test_remote_blocks_have_no_confidence_or_fake_boxes(monkeypatch):
 def test_remote_empty_response_returns_no_blocks(monkeypatch, reply):
     engine, _ = _engine(monkeypatch, reply)
     assert engine.ocr(IMG, "fra", (80, 40)) == []
+
+
+@pytest.mark.parametrize("reply", ["bonjour le monde", "I'm sorry, I can't read this image.", "bonjour\nmer"])
+def test_remote_reply_without_end_marker_is_rejected(monkeypatch, reply):
+    # truncated output and polite refusals both lack the terminator the prompt demands
+    engine, _ = _engine(monkeypatch, reply)
+    with pytest.raises(ParseError) as e:
+        engine.ocr(IMG, "fra", (80, 40))
+    assert e.value.code == "ocr_incomplete"
+
+
+def test_end_marker_is_not_part_of_the_text(monkeypatch):
+    engine, _ = _engine(monkeypatch, f"bonjour\n{END}")
+    assert [b.text for b in engine.ocr(IMG, "fra", (80, 40))] == ["bonjour"]

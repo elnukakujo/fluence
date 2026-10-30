@@ -99,10 +99,12 @@ def _group_lines(words: list[Word]) -> list[Block]:
 
 
 NO_TEXT = "[[NO_TEXT]]"
+END = "[[END]]"
 _SYSTEM = (
     "You are an OCR engine. Transcribe the text in the image verbatim, line by line, exactly as written, "
     "preserving spelling, accents and scripts. Do not translate, correct, complete, explain or add anything. "
-    f"If a word is illegible write [?] in its place. If the image has no legible text, reply exactly {NO_TEXT}."
+    f"If a word is illegible write [?] in its place. End your reply with {END} on its own line. "
+    f"If the image has no legible text, reply exactly {NO_TEXT}."
 )
 
 
@@ -135,9 +137,13 @@ class RemoteOcrEngine:
             ],
             max_tokens=4096, temperature=0, timeout=120,
         )
-        # ponytail: weak guard - only empty / NO_TEXT is caught; a polite refusal still passes as text
-        lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
-        if not lines or lines == [NO_TEXT]:
+        text = (text or "").strip()
+        if not text or text == NO_TEXT:
+            return []
+        if not text.endswith(END):  # truncated by max_tokens, or a refusal/chatter: never present as a transcription
+            raise ParseError("ocr_incomplete", "Remote OCR reply was cut short or not a transcription")
+        lines = [ln.strip() for ln in text[: -len(END)].splitlines() if ln.strip()]
+        if not lines:
             return []
         page_box = (0.0, 0.0, size[0], size[1])  # the model gives no positions
         return [Block(text=ln, bbox=page_box, kind="body", words=[]) for ln in lines]
