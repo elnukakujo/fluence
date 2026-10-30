@@ -1,28 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Modal from "@/components/ui/dialogs/modal";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Capabilities, type Job, acceptCandidates, deleteJob, getCandidates, getCapabilities,
-  getJob, pageImageUrl, uploadDocument,
+  getJob, uploadDocument,
 } from "@/api/ingestion";
-import {
-  type ConflictMode, type Filter, type Row, countRows, filterRows, infoNotes, initialRows, parsePageRange,
-  toAcceptItems, warningReasons,
-} from "@/lib/ingestion/review";
+import { type Candidate, parsePageRange } from "@/lib/ingestion/review";
+import ReviewPanel from "./reviewPanel";
 
 type Props = { languageId: string; lessonId: string; lessonTitle: string; settingsHref: string };
 
 // ?job=<id> in the URL makes an import resumable: refresh, or come back from the Imports menu.
 export default function ImportWizard(props: Props) {
   const jobId = useSearchParams().get("job");
-  return jobId ? <JobView key={jobId} jobId={jobId} {...props} /> : <UploadStep {...props} />;
+  return jobId ? <JobView key={jobId} jobId={jobId} {...props} /> : (
+    <UploadStep languageId={props.languageId} lessonId={props.lessonId} heading={`Import into “${props.lessonTitle}”`}
+      settingsHref={props.settingsHref} base={`/languages/${props.languageId}/lesson/${props.lessonId}/import`}
+      cancelHref={`/languages/${props.languageId}/lesson/${props.lessonId}`} />
+  );
 }
 
-function UploadStep({ languageId, lessonId, lessonTitle, settingsHref }: Props) {
+// Shared by lesson-level (lessonId set) and language-level (no lesson) imports.
+export function UploadStep({ languageId, lessonId, heading, settingsHref, base, cancelHref }: {
+  languageId: string; lessonId?: string; heading: string; settingsHref: string; base: string; cancelHref: string;
+}) {
   const router = useRouter();
   const [caps, setCaps] = useState<Capabilities | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -45,14 +49,14 @@ function UploadStep({ languageId, lessonId, lessonTitle, settingsHref }: Props) 
     const form = new FormData();
     form.append("file", file);
     form.append("language_id", languageId);
-    form.append("lesson_id", lessonId);
+    if (lessonId) form.append("lesson_id", lessonId);
     if (handwritten) form.append("handwritten", "true");
     if (range.range) { form.append("page_from", String(range.range[0])); form.append("page_to", String(range.range[1])); }
     setBusy(true);
     setError(null);
     try {
       const { job_id } = await uploadDocument(form);
-      router.replace(`/languages/${languageId}/lesson/${lessonId}/import?job=${job_id}`);
+      router.replace(`${base}?job=${job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
       setBusy(false);
@@ -62,7 +66,7 @@ function UploadStep({ languageId, lessonId, lessonTitle, settingsHref }: Props) 
   return (
     <form onSubmit={submit} className="card flex max-w-2xl flex-col gap-4">
       <div>
-        <h2>Import into “{lessonTitle}”</h2>
+        <h2>{heading}</h2>
         <p className="text-sm opacity-70">
           We read the document, find the vocabulary and show you everything to check. Nothing is added until you confirm.
         </p>
@@ -109,13 +113,13 @@ function UploadStep({ languageId, lessonId, lessonTitle, settingsHref }: Props) 
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
       <div className="btn-row">
         <button type="submit" className="btn btn-primary" disabled={blocked || busy || !file}>{busy ? "Uploading…" : "Start import"}</button>
-        <Link href={`/languages/${languageId}/lesson/${lessonId}`} className="btn btn-secondary">Cancel</Link>
+        <Link href={cancelHref} className="btn btn-secondary">Cancel</Link>
       </div>
     </form>
   );
 }
 
-const STATUS_TEXT: Record<string, string> = {
+export const STATUS_TEXT: Record<string, string> = {
   queued: "Waiting for its turn…", parsing: "Reading the document…", extracting: "Finding the vocabulary…",
 };
 
@@ -175,46 +179,18 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   return <Review job={job} lessonId={job.lesson_id ?? lessonId} lessonTitle={lessonTitle} languageId={languageId} base={base} />;
 }
 
-const CONFLICTS: { value: ConflictMode; label: string }[] = [
-  { value: "keep", label: "Keep the existing word" }, { value: "merge", label: "Merge into it" },
-  { value: "overwrite", label: "Overwrite it" },
-];
-
 function Review({ job, lessonId, lessonTitle, languageId, base }: {
   job: Job; lessonId: string; lessonTitle: string; languageId: string; base: string;
 }) {
   const router = useRouter();
-  const [rows, setRows] = useState<Row[] | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [preview, setPreview] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [added, setAdded] = useState<number | null>(null);
 
   useEffect(() => {
-    getCandidates(job.id).then((r) => { setRows(initialRows(r.candidates)); setNotes(r.warnings); })
-      .catch((e) => setError(e.message));
+    getCandidates(job.id).then((r) => { setCandidates(r.candidates); setNotes(r.warnings); }).catch((e) => setError(e.message));
   }, [job.id]);
-
-  const counts = useMemo(() => (rows ? countRows(rows) : null), [rows]);
-  const visible = useMemo(() => (rows ? filterRows(rows, filter) : []), [rows, filter]);
-  const patch = (id: string, change: Partial<Row>) =>
-    setRows((rs) => rs!.map((r) => (r.candidate.id === id ? { ...r, ...change } : r)));
-  const toggleVerified = (on: boolean) =>
-    setRows((rs) => rs!.map((r) => (r.candidate.status === "verified" ? { ...r, selected: on } : r)));
-
-  const accept = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      setAdded((await acceptCandidates(job.id, lessonId, toAcceptItems(rows!))).created);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add the words");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (added !== null) {
     return (
@@ -228,29 +204,14 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
       </div>
     );
   }
-  if (error && !rows) return <div role="alert" className="card max-w-2xl">✗ {error}</div>;
-  if (!rows || !counts) return <div className="card max-w-2xl" aria-busy="true">Loading the results…</div>;
+  if (error) return <div role="alert" className="card max-w-2xl">✗ {error}</div>;
+  if (!candidates) return <div className="card max-w-2xl" aria-busy="true">Loading the results…</div>;
 
   const warnings = [...job.warnings, ...notes.filter((n) => !job.warnings.includes(n))];
   return (
     <section className="flex flex-col gap-4">
       <header className="card flex flex-col gap-2">
         <h2>Review what we found in {job.filename}</h2>
-        <p aria-live="polite">
-          {counts.total} found · {counts.verified} confirmed in the text · {counts.flagged} need your check · {counts.selected} selected
-        </p>
-        <p className="text-xs opacity-60">
-          “Confirmed” means the word and its quote appear in the document text. Items that need your check are unselected: compare them with the page before adding.
-        </p>
-        <div className="btn-row">
-          {(["all", "verified", "flagged"] as Filter[]).map((f) => (
-            <button key={f} className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-              {f === "all" ? "All" : f === "verified" ? "Confirmed" : "Need checking"}
-            </button>
-          ))}
-          <button className="btn btn-secondary" onClick={() => toggleVerified(true)}>Select all confirmed</button>
-          <button className="btn btn-secondary" onClick={() => toggleVerified(false)}>Clear confirmed</button>
-        </div>
         {warnings.length > 0 && (
           <details>
             <summary className="cursor-pointer text-sm">{warnings.length} note{warnings.length > 1 ? "s" : ""} from the import</summary>
@@ -258,63 +219,12 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
           </details>
         )}
       </header>
-
-      {counts.total === 0 && <p className="card">No vocabulary was found in this document.</p>}
-
-      <ul className="flex flex-col gap-2">
-        {visible.map((row) => {
-          const c = row.candidate;
-          const reasons = warningReasons(c);
-          const info = infoNotes(c);
-          const exists = c.flags.some((f) => f.code.startsWith("already_in_"));
-          return (
-            <li key={c.id} className="card flex flex-col gap-2">
-              <div className="flex flex-wrap items-start gap-3">
-                <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include ${row.word || "this word"}`}
-                  onChange={(e) => patch(c.id, { selected: e.target.checked })} />
-                {(["word", "translation", "phonetic", "word_type"] as const).map((key) => (
-                  <label key={key} className="flex min-w-32 flex-1 flex-col gap-1">
-                    <span className="text-xs opacity-60">{key === "word_type" ? "type" : key}</span>
-                    <input className="input" value={row[key]} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
-                  </label>
-                ))}
-                <span className="badge mt-5" title={c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
-                  {c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
-                </span>
-              </div>
-              {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
-              {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
-              {exists && (
-                <label className="flex items-center gap-2 text-sm">
-                  If it already exists:
-                  <select className="input w-auto" value={row.on_conflict} onChange={(e) => patch(c.id, { on_conflict: e.target.value as ConflictMode })}>
-                    {CONFLICTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </label>
-              )}
-              <p className="text-sm opacity-70">
-                Page {c.page + 1} · “{c.quote}”{" "}
-                <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button>
-              </p>
-            </li>
-          );
-        })}
-      </ul>
-
-      {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
-      <div className="btn-row sticky bottom-0 bg-surface py-2">
-        <button className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={accept}>
-          {saving ? "Adding…" : `Add ${counts.selected} to “${lessonTitle}”`}
-        </button>
+      <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates}
+        addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
+        onAdd={async (items) => { setAdded((await acceptCandidates(job.id, lessonId, items)).created); }} />
+      <div className="btn-row">
         <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>Leave without adding</button>
       </div>
-
-      {preview !== null && (
-        <Modal title={`Page ${preview} of ${job.filename}`} onClose={() => setPreview(null)}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={pageImageUrl(job.id, preview)} alt={`The original page ${preview} of the document`} className="mx-auto max-h-[70vh]" />
-        </Modal>
-      )}
     </section>
   );
 }
