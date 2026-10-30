@@ -65,37 +65,38 @@ class RapidOcrEngine:
 
     def ocr(self, image: np.ndarray, iso2t: str | None, size: tuple[float, float]) -> list[Block]:
         result = self._model_for(iso2t)(image, return_word_box=True)
-        if not result.word_results:
+        if not result.txts or not result.word_results:
             return []
         sx, sy = size[0] / image.shape[1], size[1] / image.shape[0]
-        words = []
-        for box_words in result.word_results:   # one tuple per detected box, possibly several words
-            for text, conf, quad in box_words:
+        blocks = []
+        # one Block per line the detector found; its own text keeps correct spacing (CJK word boxes are per character)
+        for text, line_words in zip(result.txts, result.word_results):
+            words = []
+            for word, conf, quad in line_words:
                 xs, ys = [p[0] for p in quad], [p[1] for p in quad]
-                words.append(Word(text=text, conf=float(conf),
+                words.append(Word(text=word, conf=float(conf),
                                   bbox=(min(xs) * sx, min(ys) * sy, max(xs) * sx, max(ys) * sy)))
-        return _group_lines(words)
+            if not words:
+                continue
+            box = (min(w.bbox[0] for w in words), min(w.bbox[1] for w in words),
+                   max(w.bbox[2] for w in words), max(w.bbox[3] for w in words))
+            blocks.append(Block(text=text, bbox=box, kind="body", words=words))
+        return _reading_order(blocks)
 
 
-def _group_lines(words: list[Word]) -> list[Block]:
-    """Group word boxes into one Block per visual line (reading order)."""
-    lines: list[list[Word]] = []
-    for w in sorted(words, key=lambda w: (w.bbox[1] + w.bbox[3]) / 2):
-        mid, height = (w.bbox[1] + w.bbox[3]) / 2, w.bbox[3] - w.bbox[1]
+def _reading_order(blocks: list[Block]) -> list[Block]:
+    """Top-to-bottom, then left-to-right within a visual line (the detector's own order is not reliable)."""
+    lines: list[list[Block]] = []
+    for b in sorted(blocks, key=lambda b: (b.bbox[1] + b.bbox[3]) / 2):
+        mid, height = (b.bbox[1] + b.bbox[3]) / 2, b.bbox[3] - b.bbox[1]
         for line in lines:
             ref = line[0].bbox
             if abs(mid - (ref[1] + ref[3]) / 2) <= max(height, ref[3] - ref[1]) / 2:
-                line.append(w)
+                line.append(b)
                 break
         else:
-            lines.append([w])
-    blocks = []
-    for line in lines:
-        line.sort(key=lambda w: w.bbox[0])
-        box = (min(w.bbox[0] for w in line), min(w.bbox[1] for w in line),
-               max(w.bbox[2] for w in line), max(w.bbox[3] for w in line))
-        blocks.append(Block(text=" ".join(w.text for w in line), bbox=box, kind="body", words=line))
-    return blocks
+            lines.append([b])
+    return [b for line in lines for b in sorted(line, key=lambda b: b.bbox[0])]
 
 
 NO_TEXT = "[[NO_TEXT]]"
