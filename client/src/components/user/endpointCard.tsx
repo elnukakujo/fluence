@@ -48,6 +48,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // Providers that only do TTS (never text-gen)
+// OCR/vision endpoints: only providers that host vision-capable models behind the OpenAI image format.
+// Vision is per-model, not per-provider - "Test connection" is what actually proves it.
+const OCR_PROVIDERS = new Set(["openai", "mistral", "openrouter", "ollama", "custom"]);
+
 const TTS_ONLY = new Set(["elevenlabs", "google_tts", "local_tts"]);
 
 // Map backend error patterns to user-friendly hints
@@ -110,7 +114,7 @@ export default function EndpointCard({
   const filteredProviders = useMemo(() => {
     if (!endpoint.api_type || endpoint.api_type === "both") return providers;
     // OCR/vision: the remote OCR engine only speaks the OpenAI image format
-    if (endpoint.api_type === "ocr") return providers.filter(p => p.api_format === "openai");
+    if (endpoint.api_type === "ocr") return providers.filter(p => OCR_PROVIDERS.has(p.value));
     if (endpoint.api_type === "tts") {
       return providers.filter(p => p.value === "custom" || p.value === "local_tts" || p.value === "elevenlabs" || p.value === "google_tts" || p.value === "openai");
     }
@@ -211,7 +215,7 @@ export default function EndpointCard({
                 if (newType === "tts" && endpoint.provider && !TTS_ONLY.has(endpoint.provider) && endpoint.provider !== "openai" && endpoint.provider !== "custom") {
                   updates.provider = undefined;
                   updates.base_url = undefined;
-                } else if (newType === "ocr" && endpoint.provider && providerMap[endpoint.provider]?.api_format !== "openai") {
+                } else if (newType === "ocr" && endpoint.provider && !OCR_PROVIDERS.has(endpoint.provider)) {
                   updates.provider = undefined;
                   updates.base_url = undefined;
                 } else if (newType === "text_gen" && endpoint.provider && TTS_ONLY.has(endpoint.provider)) {
