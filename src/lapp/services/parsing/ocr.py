@@ -119,6 +119,7 @@ class RemoteOcrEngine:
         if (api.get("api_format") or "openai") != "openai":
             raise ParseError("unsupported", "Remote OCR needs an OpenAI-format endpoint (image input)")
         self._api = api
+        self.cache_id = f"{api['base_url']}|{api['model']}"  # part of the parse cache key; never the API key
 
     def ocr(self, image: np.ndarray, iso2t: str | None, size: tuple[float, float]) -> list[Block]:
         ok, png = cv2.imencode(".png", image)

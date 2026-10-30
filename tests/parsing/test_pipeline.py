@@ -199,3 +199,21 @@ def test_local_ocr_crash_is_not_cached(rotated_png, tmp_path):
     _parse(rotated_png, tmp_path, local=Stub(fail=RuntimeError("boom")))
     second = _parse(rotated_png, tmp_path, local=Stub())
     assert second.pages[0].blocks
+
+
+def test_cache_key_distinguishes_remote_endpoints(rotated_png, tmp_path):
+    a, b = Stub(conf=None), Stub(conf=None)
+    a.cache_id, b.cache_id = "https://a/v1|vision-a", "https://b/v1|vision-b"
+    _parse(rotated_png, tmp_path, local=Stub(conf=0.2), remote=a)
+    _parse(rotated_png, tmp_path, local=Stub(conf=0.2), remote=b)
+    assert a.calls and b.calls                    # user B's endpoint is not skipped by A's cached result
+    again = Stub(conf=None)
+    again.cache_id = a.cache_id
+    _parse(rotated_png, tmp_path, local=Boom(), remote=again)
+    assert not again.calls                        # same endpoint and model: cache hit
+
+
+def test_remote_engine_cache_id_excludes_the_api_key():
+    from lapp.services.parsing.ocr import RemoteOcrEngine
+    e = RemoteOcrEngine({"base_url": "https://x/v1", "api_key": "SECRET", "model": "m", "api_format": "openai"})
+    assert e.cache_id == "https://x/v1|m" and "SECRET" not in e.cache_id

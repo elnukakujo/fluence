@@ -54,7 +54,7 @@ def parse(
     sha = hashlib.sha256(data).hexdigest()
 
     key = hashlib.sha256(
-        f"{target_iso639_2t}|{source_iso639_2t}|{handwritten}|{remote is not None}".encode()
+        f"{target_iso639_2t}|{source_iso639_2t}|{handwritten}|{getattr(remote, 'cache_id', remote is not None)}".encode()
     ).hexdigest()[:10]
     cache_file = cache_dir / f"{sha}-v{PIPELINE_VERSION}-{key}.json" if cache_dir else None
     if cache_file and cache_file.is_file():
