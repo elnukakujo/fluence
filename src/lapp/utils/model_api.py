@@ -390,3 +390,46 @@ def synthesize_speech(
         raise ModelAPIError(
             ModelAPIError.KIND_UNKNOWN, None, str(e), url=base_url,
         ) from e
+
+
+# ── Vision probe (settings "Test connection" for OCR endpoints) ───────────────
+
+_VISION_WORD = "FLUENCE"
+_NO_VISION_HINTS = ("image", "vision", "multimodal", "multi-modal", "content type")
+
+
+def _probe_png_data_url() -> str:
+    import io
+    from PIL import Image, ImageDraw, ImageFont
+
+    im = Image.new("RGB", (360, 120), "white")
+    try:
+        font = ImageFont.load_default(size=56)
+    except TypeError:  # Pillow < 10.1 has no sized default font
+        font = ImageFont.load_default()
+    ImageDraw.Draw(im).text((20, 28), _VISION_WORD, font=font, fill="black")
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def probe_vision(base_url: str, api_key: str, model: str, auth_type: str = "bearer") -> str:
+    """Can this OpenAI-format endpoint read an image? -> "reads_images" | "no_vision" | "unreachable".
+
+    Sends a generated PNG containing a fixed word and checks the model reads it back, so a text-only
+    model that merely accepts the request is reported as "no_vision" instead of "connected".
+    """
+    messages = [{"role": "user", "content": [
+        {"type": "text", "text": "Reply with only the word written in this image."},
+        {"type": "image_url", "image_url": {"url": _probe_png_data_url()}},
+    ]}]
+    try:
+        reply = chat_completion(
+            base_url=base_url, api_key=api_key, model=model, messages=messages,
+            max_tokens=20, temperature=0, api_format="openai", auth_type=auth_type, timeout=30,
+        )
+    except ModelAPIError as e:
+        if e.kind == ModelAPIError.KIND_CLIENT and any(h in e.message.lower() for h in _NO_VISION_HINTS):
+            return "no_vision"
+        return "unreachable"
+    return "reads_images" if _VISION_WORD.lower() in "".join((reply or "").lower().split()) else "no_vision"

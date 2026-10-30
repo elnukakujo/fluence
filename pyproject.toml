@@ -65,6 +65,7 @@ dependencies = [
     "opencv-python-headless>=5.0.0.93",
     "rapidocr>=3.10.0",
     "onnxruntime>=1.23.2",
+    "pillow>=13.0.0",
 ]
 [build-system]
 requires = ["hatchling"]
