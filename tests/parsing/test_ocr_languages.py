@@ -29,3 +29,17 @@ def test_deferred_language_raises(iso2t):
 def test_script_for_in_scope_and_unknown():
     assert [script_for(c) for c in ("fra", "jpn", "kor", "zho")] == ["latin", "japan", "korean", "ch"]
     assert script_for("") is None and script_for(None) is None and script_for("xxx") is None
+
+
+
+def _b(text, x0, y0, x1, y1):
+    from lapp.services.parsing.types import Block
+    return Block(text=text, bbox=(x0, y0, x1, y1))
+
+
+def test_reading_order_is_top_to_bottom_then_left_to_right():
+    from lapp.services.parsing.ocr import _reading_order
+    blocks = [_b("monde", 300, 12, 420, 52), _b("second line", 0, 100, 200, 140),
+              _b("bonjour", 0, 10, 140, 50), _b("le", 170, 14, 230, 50)]
+    # "le" sits a few px off the baseline of "monde" but on the same visual line
+    assert [b.text for b in _reading_order(blocks)] == ["bonjour", "le", "monde", "second line"]

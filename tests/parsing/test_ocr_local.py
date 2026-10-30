@@ -49,3 +49,17 @@ def test_deferred_language_is_refused(engine):
     with pytest.raises(ParseError) as e:
         engine.ocr(_line("привет", LAT), "rus", (900, 140))
     assert e.value.code == "ocr_language_unsupported"
+
+
+def test_cjk_and_latin_text_keep_the_engines_own_spacing(engine):
+    """Word boxes are per character for CJK; the block text must not gain spaces between them."""
+    blocks = engine.ocr(_line("我是学生 hello world", CJK), "zho", (900, 140))
+    text = " ".join(b.text for b in blocks)
+    assert "我是学生" in text and "hello world" in text
+
+
+def test_blocks_are_detector_boxes_and_lose_no_words(engine):
+    """The detector may split short Latin text at word gaps; every word must still appear once, in order."""
+    blocks = engine.ocr(_line("bonjour le monde", LAT), "fra", (900, 140))
+    assert " ".join(b.text for b in blocks) == "bonjour le monde"
+    assert [w.text for b in blocks for w in b.words] == ["bonjour", "le", "monde"]
