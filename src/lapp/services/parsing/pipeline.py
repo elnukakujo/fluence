@@ -60,7 +60,7 @@ def parse(
     if cache_file and cache_file.is_file():
         try:
             return Document.model_validate_json(cache_file.read_text())
-        except ValueError:
+        except (ValueError, OSError):
             logger.warning("Ignoring unreadable parse cache %s", cache_file)
 
     ctx = _Ctx(target_iso639_2t, local, remote, handwritten)
@@ -70,19 +70,32 @@ def parse(
     if suffix == ".pdf":
         _parse_pdf(data, ctx, doc)
     else:
-        _check_image_size(data)
+        frames = _check_image_size(data)
+        if frames > 1:
+            doc.warnings.append(f"The image has {frames} frames; only the first frame was read")
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             raise ParseError("corrupt", "Could not read the image")
         doc.pages.append(_ocr_page(img, 0, (float(img.shape[1]), float(img.shape[0])), ctx))
 
     if cache_file and not _has_transient_failure(doc):
+        _write_cache(cache_file, doc)
+    return doc
+
+
+def _write_cache(cache_file: Path, doc: Document) -> None:
+    """Best effort: a full disk or a bad cache directory must never lose a finished parse."""
+    tmp = None
+    try:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=cache_file.parent, suffix=".tmp")
         with os.fdopen(fd, "w") as f:
             f.write(doc.model_dump_json())
         os.replace(tmp, cache_file)
-    return doc
+    except OSError:
+        logger.warning("Could not write parse cache %s", cache_file, exc_info=True)
+        if tmp:
+            Path(tmp).unlink(missing_ok=True)
 
 
 # Warnings that mean "this might work next time": never cached, so a retry can redo the work.
@@ -93,14 +106,17 @@ def _has_transient_failure(doc: Document) -> bool:
     return any(w.startswith(_TRANSIENT_WARNINGS) for p in doc.pages for w in p.warnings)
 
 
-def _check_image_size(data: bytes) -> None:
+def _check_image_size(data: bytes) -> int:
+    """Reject oversized images from the header alone; returns the number of frames."""
     try:
         with Image.open(io.BytesIO(data)) as im:   # header only, no pixel decode
             w, h = im.size
+            frames = getattr(im, "n_frames", 1)
     except Exception as e:
         raise ParseError("corrupt", "Could not read the image") from e
     if w * h > MAX_PAGE_PIXELS:
         raise ParseError("too_large", "The image is too large")
+    return frames
 
 
 class _Ctx:
@@ -151,21 +167,37 @@ def _stats(blocks: list[Block]) -> tuple[float | None, float]:
     return sum(confs) / len(confs), sum(c < LOW_WORD_CONF for c in confs) / len(confs)
 
 
+# TODO(calibrate): needs real sample files. A page is blank when it has fewer than MIN_GLYPH_COMPONENTS
+# ink blobs of at least MIN_GLYPH_AREA pixels (scanner specks are 1-4 px; a full stop is ~36 px at 200 DPI).
+MIN_GLYPH_AREA = 12
+MIN_GLYPH_COMPONENTS = 3
+
+
+def _is_blank(clean: np.ndarray) -> bool:
+    ink = (clean == 0).astype(np.uint8)
+    if not ink.any():
+        return True
+    _, _, stats, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
+    return int((stats[1:, cv2.CC_STAT_AREA] >= MIN_GLYPH_AREA).sum()) < MIN_GLYPH_COMPONENTS
+
+
 def _ocr_page(img: np.ndarray, index: int, size: tuple[float, float], ctx: _Ctx) -> Page:
-    script_for(ctx.target)  # raises for deferred languages before any work is done
+    family = script_for(ctx.target)  # raises for deferred languages before any work is done
     w, h = size
+    warnings: list[str] = []
+    if family is None:
+        warnings.append("language not recognized: used the default multilingual OCR model")
+
     clean = preprocess(img)
-    if (clean == 255).all():
+    if _is_blank(clean):
         return Page(index=index, width=w, height=h, source="ocr_local", trust="ocr",
-                    warnings=["blank page: no text found"])
+                    warnings=warnings + ["blank page: no text found"])
 
     if ctx.handwritten and ctx.remote:
         remote_page = _try_remote(img, index, size, ctx)
         if isinstance(remote_page, Page):
             return remote_page
-        warnings = [remote_page]
-    else:
-        warnings = []
+        warnings.append(remote_page)
 
     try:
         blocks = ctx.local.ocr(clean, ctx.target, size)
@@ -173,8 +205,13 @@ def _ocr_page(img: np.ndarray, index: int, size: tuple[float, float], ctx: _Ctx)
         raise
     except Exception as e:
         logger.exception("Local OCR failed on page %s", index)
-        return Page(index=index, width=w, height=h, source="ocr_local", trust="ocr",
-                    warnings=warnings + [f"OCR failed: {e}"])
+        warnings.append(f"OCR failed: {e}")
+        if ctx.remote and not ctx.handwritten:  # remote already tried above for handwritten documents
+            remote_page = _try_remote(img, index, size, ctx)
+            if isinstance(remote_page, Page):
+                return remote_page
+            warnings.append(remote_page)
+        return Page(index=index, width=w, height=h, source="ocr_local", trust="ocr", warnings=warnings)
 
     mean, low_share = _stats(blocks)
     page = Page(index=index, width=w, height=h, source="ocr_local", trust="ocr", blocks=blocks,

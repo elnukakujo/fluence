@@ -123,7 +123,7 @@ class RemoteOcrEngine:
 
     def __init__(self, api: dict):
         if (api.get("api_format") or "openai") != "openai":
-            raise ParseError("unsupported", "Remote OCR needs an OpenAI-format endpoint (image input)")
+            raise ParseError("remote_unsupported", "Remote OCR needs an OpenAI-format endpoint (image input)")
         self._api = api
         self.cache_id = f"{api['base_url']}|{api['model']}"  # part of the parse cache key; never the API key
 

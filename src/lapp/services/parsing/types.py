@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 BBox = tuple[float, float, float, float]  # x0, y0, x1, y1 in page units
 
 ParseErrorCode = Literal[
-    "encrypted", "corrupt", "unsupported", "too_large", "too_many_pages", "ocr_language_unsupported", "ocr_incomplete",
+    "encrypted", "corrupt", "unsupported", "too_large", "too_many_pages", "ocr_language_unsupported", "remote_unsupported", "ocr_incomplete",
 ]
 
 _TRUST_BY_SOURCE = {"native": "native", "ocr_local": "ocr", "ocr_remote": "llm_transcribed"}

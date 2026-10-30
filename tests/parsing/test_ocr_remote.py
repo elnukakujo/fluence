@@ -47,7 +47,7 @@ def test_resolve_api_ocr_ignores_other_types_and_legacy_fields():
 def test_remote_engine_rejects_non_openai_format():
     with pytest.raises(ParseError) as e:
         RemoteOcrEngine({**API, "api_format": "anthropic"})
-    assert e.value.code == "unsupported"
+    assert e.value.code == "remote_unsupported"
 
 
 def test_remote_engine_sends_image_as_data_url(monkeypatch):

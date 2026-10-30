@@ -217,3 +217,71 @@ def test_remote_engine_cache_id_excludes_the_api_key():
     from lapp.services.parsing.ocr import RemoteOcrEngine
     e = RemoteOcrEngine({"base_url": "https://x/v1", "api_key": "SECRET", "model": "m", "api_format": "openai"})
     assert e.cache_id == "https://x/v1|m" and "SECRET" not in e.cache_id
+
+
+# ---- deferred review minors -------------------------------------------------
+
+def _noisy_blank(path, density=0.002):
+    import numpy as np
+    from PIL import Image
+    rng = np.random.default_rng(0)
+    arr = np.full((1200, 900), 235, np.uint8)
+    arr[rng.random(arr.shape) < density] = 40          # isolated 1-pixel specks, like scanner noise
+    Image.fromarray(arr).save(path)
+
+
+def test_scan_noise_page_is_blank_and_never_reaches_the_remote(tmp_path):
+    p = tmp_path / "noise.png"
+    _noisy_blank(p)
+    page = _parse(p, tmp_path, local=Boom(), remote=Boom()).pages[0]
+    assert page.blocks == [] and any("blank" in w for w in page.warnings)
+
+
+def test_a_page_with_one_short_line_is_not_blank(tmp_path):
+    from PIL import Image, ImageDraw, ImageFont
+    p = tmp_path / "line.png"
+    im = Image.new("RGB", (1240, 1754), "white")
+    ImageDraw.Draw(im).text((100, 120), "bonjour le monde",
+                            font=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 44), fill="black")
+    im.save(p)
+    local = Stub()
+    assert _parse(p, tmp_path, local=local).pages[0].blocks and local.calls
+
+
+def test_local_ocr_crash_falls_back_to_the_remote_when_configured(rotated_png, tmp_path):
+    page = _parse(rotated_png, tmp_path, local=Stub(fail=RuntimeError("model download failed")),
+                  remote=Stub(conf=None)).pages[0]
+    assert page.source == "ocr_remote" and page.blocks
+
+
+def test_unknown_language_is_warned_about_and_still_parsed(rotated_png, tmp_path):
+    page = parse(rotated_png, target_iso639_2t="", local=Stub(), cache_dir=tmp_path / "c").pages[0]
+    assert page.source == "ocr_local" and any("language" in w for w in page.warnings)
+
+
+def test_known_language_gets_no_language_warning(rotated_png, tmp_path):
+    assert not any("language" in w for w in _parse(rotated_png, tmp_path).pages[0].warnings)
+
+
+def test_multi_frame_image_warns_that_only_the_first_frame_was_read(tmp_path):
+    from PIL import Image
+    p = tmp_path / "two.tiff"
+    a, b = Image.new("L", (300, 300), 255), Image.new("L", (300, 300), 0)
+    a.save(p, save_all=True, append_images=[b])
+    doc = _parse(p, tmp_path)
+    assert any("frame" in w for w in doc.warnings)
+
+
+def test_unwritable_cache_does_not_lose_the_result(rotated_png, tmp_path):
+    blocker = tmp_path / "cache"
+    blocker.write_text("a file where the cache directory should be")
+    doc = parse(rotated_png, target_iso639_2t="fra", local=Stub(), cache_dir=blocker / "sub")
+    assert doc.pages[0].blocks
+
+
+def test_unreadable_cache_file_is_ignored(rotated_png, tmp_path):
+    first = _parse(rotated_png, tmp_path)
+    for f in (tmp_path / "cache").glob("*.json"):
+        f.write_bytes(b"\xff\xfe not json")
+    again = Stub()
+    assert _parse(rotated_png, tmp_path, local=again).pages and again.calls

@@ -33,10 +33,8 @@ def is_native_page(page: pymupdf.Page) -> tuple[bool, dict]:
     area = page.rect.width * page.rect.height
     density = len(chars) / area * 1000 if area else 0.0
     garbage = sum(_is_garbage(c) for c in chars) / len(chars) if chars else 1.0
-    coverage = max(
-        (pymupdf.Rect(i["bbox"]) & page.rect).get_area() / page.rect.get_area()
-        for i in page.get_image_info()
-    ) if page.get_image_info() else 0.0
+    images = page.get_image_info()
+    coverage = max((pymupdf.Rect(i["bbox"]) & page.rect).get_area() / area for i in images) if images and area else 0.0
     invisible = _invisible_ratio(page)
     measured = {"chars_per_1000pt2": density, "garbage_ratio": garbage, "image_coverage": coverage,
                 "invisible_ratio": invisible}
