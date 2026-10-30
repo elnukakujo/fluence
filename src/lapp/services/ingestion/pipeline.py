@@ -1,7 +1,7 @@
 """chunk -> extract -> verify for one parsed Document. DB-free: the caller supplies `exists`."""
 import logging
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Literal
 
 from ...utils.detect_language import get_language_by_iso2t
 from ...utils.model_api import ModelAPIError
@@ -28,7 +28,7 @@ def build_candidates(
     api: dict,
     target_iso639_2t: str | None,
     source_iso639_2t: str | None,
-    exists: Callable[[str], bool],
+    lookup: Callable[[str], Literal["lesson", "language"] | None],
     progress: Callable[[int, int], None] | None = None,
 ) -> BuildResult:
     target = get_language_by_iso2t(target_iso639_2t or "")
@@ -47,7 +47,7 @@ def build_candidates(
     for i, chunk in enumerate(chunks, start=1):
         try:
             for item in extract_chunk(chunk, api, target_name, source_name):
-                result.candidates.append(verify(item, chunk, iso1, exists))
+                result.candidates.append(verify(item, chunk, iso1, lookup))
         except ExtractionError as e:
             failed += 1
             result.warnings.append(f"page {chunk.page + 1}: could not read the model's answer ({e})")

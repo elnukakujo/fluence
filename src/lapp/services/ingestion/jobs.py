@@ -10,6 +10,7 @@ from flask import Flask
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
+from ...models.features import Vocabulary
 from ...models.system_data import IngestionJob
 from ...utils.llm_providers import resolve_api
 from ...utils.model_api import ModelAPIError
@@ -140,9 +141,20 @@ def _run(app: Flask, svc: IngestionJobService, job_id: str) -> None:
 
     svc.update(job_id, status="extracting", pages_done=0, pages_total=len(doc.pages))
     word_service = WordService()
+
+    def lookup(w: str):
+        word = word_service.get_by_word(w, language_id=job["language_id"])
+        if word is None:
+            return None
+        if job["lesson_id"]:
+            with db_manager.session_scope() as s:
+                if s.query(Vocabulary).filter(Vocabulary.word_id == word.id,
+                                              Vocabulary.lesson_id == job["lesson_id"]).first():
+                    return "lesson"
+        return "language"
+
     result = build_candidates(
-        doc, text_api, target, source,
-        exists=lambda w: word_service.get_by_word(w, language_id=job["language_id"]) is not None,
+        doc, text_api, target, source, lookup,
         progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total),
     )
     warnings += result.warnings + [w for p in doc.pages for w in p.warnings]

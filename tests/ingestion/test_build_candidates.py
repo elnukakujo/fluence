@@ -20,7 +20,7 @@ def _doc(*texts):
 
 
 def _build(doc, extractor, **kw):
-    return build_candidates(doc, API, "fra", "eng", kw.pop("exists", lambda w: False), **kw)
+    return build_candidates(doc, API, "fra", "eng", kw.pop("lookup", lambda w: None), **kw)
 
 
 def _patch(monkeypatch, fn):
@@ -99,7 +99,7 @@ def test_progress_is_reported_per_chunk(monkeypatch):
     assert seen == [(1, 2), (2, 2)]
 
 
-def test_exists_callback_flags_known_words(monkeypatch):
+def test_lookup_callback_annotates_known_words(monkeypatch):
     _patch(monkeypatch, lambda c: [RawItem(word="bonjour", quote="bonjour hello")])
-    cand = _build(_doc("bonjour hello"), None, exists=lambda w: w == "bonjour").candidates[0]
-    assert "already_exists" in {f.code for f in cand.flags}
+    cand = _build(_doc("bonjour hello"), None, lookup=lambda w: "language" if w == "bonjour" else None).candidates[0]
+    assert {f.code for f in cand.flags} == {"already_in_language"} and cand.status == "verified"
