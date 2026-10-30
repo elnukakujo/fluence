@@ -1,5 +1,6 @@
 import logging
 import os
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
 
@@ -14,7 +15,11 @@ class AppScheduler:
     """
     
     def __init__(self):
-        self.scheduler = BackgroundScheduler()
+        # 'ingest' has ONE worker: a 150-page scan used ~1.6 GB, so uploads must never run in parallel.
+        self.scheduler = BackgroundScheduler(executors={
+            "default": ThreadPoolExecutor(10),
+            "ingest": ThreadPoolExecutor(1),
+        })
         self._running = False
     
     def init_app(self, app: Flask):
@@ -29,6 +34,11 @@ class AppScheduler:
         # Register all scheduled tasks
         self._register_tasks()
         
+        from ..services.ingestion.jobs import IngestionJobService
+        interrupted = IngestionJobService().fail_interrupted()
+        if interrupted:
+            logger.warning("Marked %s interrupted ingestion job(s) as failed", interrupted)
+
         logger.info("✅ AppScheduler initialized with Flask app")
     
     def _register_tasks(self):
@@ -59,6 +69,12 @@ class AppScheduler:
             self._running = False
             logger.info("🛑 AppScheduler stopped")
     
+    def schedule_ingestion(self, app: Flask, job_id: str) -> None:
+        """Queue a document-ingestion job on the single-worker 'ingest' executor."""
+        from ..services.ingestion.jobs import run_ingestion_job
+        self.scheduler.add_job(run_ingestion_job, args=[app, job_id], executor="ingest",
+                               id=f"ingest-{job_id}", misfire_grace_time=None)
+
     def is_running(self) -> bool:
         """Check if scheduler is running."""
         return self._running

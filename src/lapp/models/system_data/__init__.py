@@ -6,6 +6,7 @@ from .session import UserSession
 from .collaboration import Collaboration
 from .score import Score
 from .lesson_share import LessonShare
+from .ingestion_job import IngestionJob
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "Collaboration",
     "Score",
     "LessonShare",
+    "IngestionJob",
 ]

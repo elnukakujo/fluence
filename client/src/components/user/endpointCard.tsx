@@ -48,6 +48,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // Providers that only do TTS (never text-gen)
+// OCR/vision endpoints: only providers that host vision-capable models behind the OpenAI image format.
+// Vision is per-model, not per-provider - "Test connection" is what actually proves it.
+const OCR_PROVIDERS = new Set(["openai", "mistral", "openrouter", "ollama", "custom"]);
+
 const TTS_ONLY = new Set(["elevenlabs", "google_tts", "local_tts"]);
 
 // Map backend error patterns to user-friendly hints
@@ -86,7 +90,7 @@ export default function EndpointCard({
   onMoveUp: () => void;
   onMoveDown: () => void;
   onTestConnection: () => void;
-  testResult: { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string } | null;
+  testResult: { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string } | null;
   disabled: boolean;
   providers?: ProviderOption[];
   testing?: boolean;
@@ -109,6 +113,8 @@ export default function EndpointCard({
   // Filter providers by api_type
   const filteredProviders = useMemo(() => {
     if (!endpoint.api_type || endpoint.api_type === "both") return providers;
+    // OCR/vision: the remote OCR engine only speaks the OpenAI image format
+    if (endpoint.api_type === "ocr") return providers.filter(p => OCR_PROVIDERS.has(p.value));
     if (endpoint.api_type === "tts") {
       return providers.filter(p => p.value === "custom" || p.value === "local_tts" || p.value === "elevenlabs" || p.value === "google_tts" || p.value === "openai");
     }
@@ -207,6 +213,9 @@ export default function EndpointCard({
                 const updates: ApiEndpointConfig = { ...endpoint, api_type: newType };
                 // Clear provider if incompatible with new type
                 if (newType === "tts" && endpoint.provider && !TTS_ONLY.has(endpoint.provider) && endpoint.provider !== "openai" && endpoint.provider !== "custom") {
+                  updates.provider = undefined;
+                  updates.base_url = undefined;
+                } else if (newType === "ocr" && endpoint.provider && !OCR_PROVIDERS.has(endpoint.provider)) {
                   updates.provider = undefined;
                   updates.base_url = undefined;
                 } else if (newType === "text_gen" && endpoint.provider && TTS_ONLY.has(endpoint.provider)) {
@@ -373,7 +382,7 @@ export default function EndpointCard({
                     type="text"
                     value={endpoint.model ?? ""}
                     onChange={(e) => onUpdate({ ...endpoint, model: e.target.value || undefined })}
-                    placeholder={modelDisabled ? "Enter base URL first" : "e.g. gpt-4o"}
+                    placeholder={modelDisabled ? "Enter base URL first" : endpoint.api_type === "ocr" ? "A vision model, e.g. gpt-4o" : "e.g. gpt-4o"}
                     disabled={disabled || modelDisabled}
                   />
                   <button
@@ -389,6 +398,11 @@ export default function EndpointCard({
                     )}
                   </button>
                 </div>
+                {endpoint.api_type === "ocr" && (
+                  <span className="text-xs opacity-60">
+                    Used only to read pages the local OCR can&apos;t (handwriting, poor scans). The model must accept images; the test sends one.
+                  </span>
+                )}
                 {modelWarning && (
                   <span className="text-xs" style={{ color: "var(--color-warning, #e6a817)" }}>⚠ {modelWarning}</span>
                 )}
@@ -400,7 +414,7 @@ export default function EndpointCard({
                 {testResult?.ok && (
                   <div className="flex flex-col gap-1">
                     <span className="text-xs" style={{ color: "var(--color-success)" }}>
-                      ✓ Connected — {testResult.ms} ms
+                      ✓ {testResult.vision === "reads_images" ? "Connected and reads images" : "Connected"} — {testResult.ms} ms
                     </span>
                     {/* Per-path breakdown for "both" endpoints */}
                     {testResult.tts_ok !== undefined && (

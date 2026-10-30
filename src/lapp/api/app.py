@@ -179,6 +179,7 @@ def register_blueprints(app: Flask) -> None:
         review_bp,
         auth_bp,
         collaboration_bp,
+        ingestion_bp,
     )
 
     # Register blueprints
@@ -205,6 +206,7 @@ def register_blueprints(app: Flask) -> None:
         review_bp,
         auth_bp,
         collaboration_bp,
+        ingestion_bp,
     ]
 
     for blueprint in blueprints:

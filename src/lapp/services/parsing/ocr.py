@@ -84,8 +84,8 @@ class RapidOcrEngine:
         return _reading_order(blocks)
 
 
-def _reading_order(blocks: list[Block]) -> list[Block]:
-    """Top-to-bottom, then left-to-right within a visual line (the detector's own order is not reliable)."""
+def group_lines(blocks: list[Block]) -> list[list[Block]]:
+    """Group blocks into visual lines (top-to-bottom), each line sorted left-to-right."""
     lines: list[list[Block]] = []
     for b in sorted(blocks, key=lambda b: (b.bbox[1] + b.bbox[3]) / 2):
         mid, height = (b.bbox[1] + b.bbox[3]) / 2, b.bbox[3] - b.bbox[1]
@@ -96,7 +96,12 @@ def _reading_order(blocks: list[Block]) -> list[Block]:
                 break
         else:
             lines.append([b])
-    return [b for line in lines for b in sorted(line, key=lambda b: b.bbox[0])]
+    return [sorted(line, key=lambda b: b.bbox[0]) for line in lines]
+
+
+def _reading_order(blocks: list[Block]) -> list[Block]:
+    """The detector's own box order is not reliable (it returned "bonjour monde le")."""
+    return [b for line in group_lines(blocks) for b in line]
 
 
 NO_TEXT = "[[NO_TEXT]]"

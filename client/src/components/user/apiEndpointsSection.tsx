@@ -19,7 +19,7 @@ export default function ApiEndpointsSection({
   const [endpoints, setEndpoints] = useState<ApiEndpointConfig[]>(initial);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<number, { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string } | null>>({});
+  const [testResults, setTestResults] = useState<Record<number, { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string } | null>>({});
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
   const [providers, setProviders] = useState<ProviderOption[]>(FALLBACK_PROVIDERS);
   const [testingIdx, setTestingIdx] = useState<number | null>(null);

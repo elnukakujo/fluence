@@ -213,14 +213,15 @@ def test_endpoint():
 
     Branches on api_type:
       - tts:        POST /audio/speech probe
-      - text_gen:   GET /models → mini chat completion (also used for ocr)
+      - text_gen:   GET /models → mini chat completion 
       - both:       TTS probe first, then text-gen; reports per-path status
+      - ocr:        sends a generated image and checks the model reads it back (vision probe)
     """
     import time
 
     import httpx
 
-    from ...utils.model_api import chat_completion, ModelAPIError
+    from ...utils.model_api import chat_completion, ModelAPIError, probe_vision
     from ...utils.llm_providers import auth_headers
 
     _ERROR_MAP = {
@@ -280,6 +281,20 @@ def test_endpoint():
     api_type = body.get("api_type") or "text_gen"
 
     start = time.perf_counter()
+
+    # ── OCR: can the model actually read an image? ──
+    if api_type == "ocr":
+        if api_format != "openai":
+            return jsonify({"ok": False, "error": "OCR endpoints must use the OpenAI format"}), 400
+        if not model:
+            return jsonify({"ok": False, "error": "Enter a vision model name to test"}), 400
+        vision = probe_vision(base_url, api_key, model, auth_type)
+        ms = round((time.perf_counter() - start) * 1000)
+        if vision == "unreachable":
+            return jsonify({"ok": False, "ms": ms, "vision": vision,
+                            "error": "Cannot reach the endpoint - check URL, key and model name"})
+        return jsonify({"ok": vision == "reads_images", "ms": ms, "vision": vision,
+                        **({"error": "Connected, but this model can't read images"} if vision == "no_vision" else {})})
 
     # ── TTS / both: probe /audio/speech ──
     if api_type in ("tts", "both"):
