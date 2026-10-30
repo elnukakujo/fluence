@@ -44,9 +44,9 @@ def test_resolve_api_ocr_ignores_other_types_and_legacy_fields():
     assert resolve_api(prefs, "text_gen") is not None  # unchanged behaviour
 
 
-def test_remote_engine_rejects_non_openai_format():
+def test_remote_engine_rejects_formats_without_image_input():
     with pytest.raises(ParseError) as e:
-        RemoteOcrEngine({**API, "api_format": "anthropic"})
+        RemoteOcrEngine({**API, "api_format": "elevenlabs"})
     assert e.value.code == "remote_unsupported"
 
 

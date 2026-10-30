@@ -48,9 +48,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // Providers that only do TTS (never text-gen)
-// OCR/vision endpoints: only providers that host vision-capable models behind the OpenAI image format.
+// OCR/vision endpoints: only providers that host vision-capable models (OpenAI, Anthropic and Gemini image formats).
 // Vision is per-model, not per-provider - "Test connection" is what actually proves it.
-const OCR_PROVIDERS = new Set(["openai", "mistral", "openrouter", "ollama", "custom"]);
+const OCR_PROVIDERS = new Set(["openai", "anthropic", "gemini", "mistral", "openrouter", "ollama", "custom"]);
 
 const TTS_ONLY = new Set(["elevenlabs", "google_tts", "local_tts"]);
 

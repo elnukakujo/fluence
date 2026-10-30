@@ -284,11 +284,11 @@ def test_endpoint():
 
     # ── OCR: can the model actually read an image? ──
     if api_type == "ocr":
-        if api_format != "openai":
-            return jsonify({"ok": False, "error": "OCR endpoints must use the OpenAI format"}), 400
+        if api_format not in ("openai", "anthropic", "gemini"):
+            return jsonify({"ok": False, "error": "OCR endpoints must use the OpenAI, Anthropic or Gemini format"}), 400
         if not model:
             return jsonify({"ok": False, "error": "Enter a vision model name to test"}), 400
-        vision = probe_vision(base_url, api_key, model, auth_type)
+        vision = probe_vision(base_url, api_key, model, auth_type, api_format)
         ms = round((time.perf_counter() - start) * 1000)
         if vision == "unreachable":
             return jsonify({"ok": False, "ms": ms, "vision": vision,

@@ -114,6 +114,10 @@ _SYSTEM = (
 )
 
 
+_VISION_FORMATS = ("openai", "anthropic", "gemini")
+_USER_PROMPT = "Transcribe this page."
+
+
 class RemoteOcrEngine:
     """Last-resort fallback: a vision LLM reading the page via the user's own "ocr" endpoint.
 
@@ -122,8 +126,8 @@ class RemoteOcrEngine:
     """
 
     def __init__(self, api: dict):
-        if (api.get("api_format") or "openai") != "openai":
-            raise ParseError("remote_unsupported", "Remote OCR needs an OpenAI-format endpoint (image input)")
+        if (api.get("api_format") or "openai") not in _VISION_FORMATS:
+            raise ParseError("remote_unsupported", "Remote OCR needs an OpenAI, Anthropic or Gemini endpoint (image input)")
         self._api = api
         self.cache_id = f"{api['base_url']}|{api['model']}"  # part of the parse cache key; never the API key
 
@@ -132,17 +136,17 @@ class RemoteOcrEngine:
         if not ok:
             raise ParseError("corrupt", "Could not encode the page image")
         url = "data:image/png;base64," + base64.b64encode(png.tobytes()).decode()
+        fmt = self._api.get("api_format") or "openai"
+        image_part = {"type": "image_url", "image_url": {"url": url}}
+        if fmt == "openai":
+            messages = [{"role": "system", "content": _SYSTEM},
+                        {"role": "user", "content": [{"type": "text", "text": _USER_PROMPT}, image_part]}]
+        else:   # Anthropic / Gemini: one user turn, so we don't depend on each provider's system-prompt handling
+            messages = [{"role": "user", "content": [{"type": "text", "text": f"{_SYSTEM}\n\n{_USER_PROMPT}"}, image_part]}]
         text = chat_completion(
             base_url=self._api["base_url"], api_key=self._api.get("api_key", ""), model=self._api["model"],
-            api_format="openai", auth_type=self._api.get("auth_type", "bearer"),
-            messages=[
-                {"role": "system", "content": _SYSTEM},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Transcribe this page."},
-                    {"type": "image_url", "image_url": {"url": url}},
-                ]},
-            ],
-            max_tokens=4096, temperature=0, timeout=120,
+            api_format=fmt, auth_type=self._api.get("auth_type", "bearer"),
+            messages=messages, max_tokens=4096, temperature=0, timeout=120,
         )
         text = (text or "").strip()
         if not text or text == NO_TEXT:
