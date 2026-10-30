@@ -33,3 +33,16 @@ def test_output_is_binary_single_channel(rotated_png):
 def test_blank_image_is_stable(blank_png):
     out = preprocess(cv2.imread(str(blank_png)))
     assert out.shape == (600, 800) and (out == 255).all()
+
+
+
+def test_straight_text_keeps_its_ink_and_orientation():
+    from PIL import Image, ImageDraw, ImageFont
+    im = Image.new("RGB", (1240, 1754), "white")
+    ImageDraw.Draw(im).text(
+        (100, 120), "bonjour le monde",
+        font=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 44), fill="black")
+    out = preprocess(np.array(im)[:, :, ::-1])
+    assert (out == 0).sum() > 1000          # a bad rotation blanked the page
+    ys, xs = np.where(out == 0)
+    assert xs.max() - xs.min() > 3 * (ys.max() - ys.min())  # still a horizontal line of text

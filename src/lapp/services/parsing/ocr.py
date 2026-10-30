@@ -69,10 +69,11 @@ class RapidOcrEngine:
             return []
         sx, sy = size[0] / image.shape[1], size[1] / image.shape[0]
         words = []
-        for (text, conf, quad), in result.word_results:
-            xs, ys = [p[0] for p in quad], [p[1] for p in quad]
-            words.append(Word(text=text, conf=float(conf),
-                              bbox=(min(xs) * sx, min(ys) * sy, max(xs) * sx, max(ys) * sy)))
+        for box_words in result.word_results:   # one tuple per detected box, possibly several words
+            for text, conf, quad in box_words:
+                xs, ys = [p[0] for p in quad], [p[1] for p in quad]
+                words.append(Word(text=text, conf=float(conf),
+                                  bbox=(min(xs) * sx, min(ys) * sy, max(xs) * sx, max(ys) * sy)))
         return _group_lines(words)
 
 

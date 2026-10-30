@@ -10,7 +10,7 @@ def _deskew(gray: np.ndarray) -> np.ndarray:
     if len(xs) < MIN_INK_PIXELS:
         return gray
     angle = cv2.minAreaRect(np.column_stack((xs, ys)).astype(np.float32))[-1]
-    angle = angle - 90 if angle > 45 else angle   # minAreaRect reports (0, 90]
+    angle = (angle + 45) % 90 - 45   # fold into [-45, 45): minAreaRect's range/sign varies by OpenCV version
     if abs(angle) < 0.1:
         return gray
     h, w = gray.shape
