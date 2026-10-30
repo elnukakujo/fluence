@@ -902,3 +902,15 @@ def test_lesson_invite_payload_names_the_lesson(db):
     _seed_users(db); _seed_merge(db)
     CollaborationService().invite("user_U1", "user_U2", "lesson", "lesson_M1")
     assert CollaborationService().list_invites("user_U2")[0]["lesson_title"] == "M1"
+
+
+def test_create_lesson_is_owned_by_the_language_owner(app, db):
+    _seed_users(db); _seed_merge(db)
+    own = _client_for_user(app, db, "user_U2").post(
+        '/api/lessons/', json={'language_id': 'lang_U2', 'title': 'mine'})
+    assert own.status_code == 201 and own.get_json()['lesson']['user_id'] == "user_U2"
+    c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
+    CollaborationService().accept(c.id)  # legacy full link: collaborator may write
+    shared = _client_for_user(app, db, "user_U2").post(
+        '/api/lessons/', json={'language_id': 'lang_L1', 'title': 'added'})
+    assert shared.status_code == 201 and shared.get_json()['lesson']['user_id'] == "user_U1"

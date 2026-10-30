@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from ...services import LessonService
 from ...services.system_data import ScoreService, LessonShareService, CollaborationService
 from ...schemas.containers import LessonDict
-from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...core.auth import login_required, require_owns, require_write, current_user_id, owner_user_id
 
 bp = Blueprint('lesson', __name__, url_prefix='/api/lessons')
 lesson_service = LessonService()
@@ -125,6 +125,9 @@ def create_lesson():
         # Validate request data
         data = LessonDict(**request.json)
         require_write(data.language_id)
+        # A lesson belongs to its language's owner (a collaborator adds to the master's course);
+        # never the model default "user_U0".
+        data.user_id = owner_user_id(data.language_id)
 
         # Create lesson
         lesson = lesson_service.create(data, as_dict=True)
