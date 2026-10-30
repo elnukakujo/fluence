@@ -24,6 +24,19 @@ def _public(job: dict) -> dict:
     return {k: v for k, v in job.items() if k not in ("file_path", "user_id")}
 
 
+def _page_range(first, last):
+    """(range, error): both bounds or neither; 1-based, last >= first."""
+    first, last = (first or "").strip(), (last or "").strip()
+    if not first and not last:
+        return None, None
+    if not (first.isdigit() and last.isdigit()):
+        return None, "Give both the first and the last page as whole numbers"
+    first, last = int(first), int(last)
+    if first < 1 or last < first:
+        return None, "The page range must start at 1 or later and end on or after its first page"
+    return (first, last), None
+
+
 def _owned_job_or_404(job_id: str):
     job = job_service.get(job_id, user_id=current_user_id())
     if job is None:
@@ -45,6 +58,8 @@ def upload():
         - {name: language_id, in: formData, type: string, required: true}
         - {name: lesson_id, in: formData, type: string, required: false}
         - {name: handwritten, in: formData, type: boolean, required: false}
+        - {name: page_from, in: formData, type: integer, required: false}
+        - {name: page_to, in: formData, type: integer, required: false}
     responses:
         202: {description: Job queued}
         400: {description: Invalid upload or no text-generation endpoint configured}
@@ -59,6 +74,10 @@ def upload():
     if (request.content_length or 0) > MAX_FILE_BYTES + 1_000_000:
         return jsonify({"error": "File is too large"}), 400
 
+    page_range, error = _page_range(request.form.get("page_from"), request.form.get("page_to"))
+    if error:
+        return jsonify({"error": error}), 400
+
     require_write(language_id)
     if lesson_id:
         require_write(lesson_id)
@@ -71,7 +90,9 @@ def upload():
         return jsonify({"error": "Add and activate a text-generation endpoint in Settings first - it is used to extract the vocabulary"}), 400
 
     handwritten = (request.form.get("handwritten") or "").lower() in ("1", "true", "on", "yes")
-    job = job_service.create(current_user_id(), language_id, lesson_id, file.filename, handwritten)
+    job = job_service.create(current_user_id(), language_id, lesson_id, file.filename, handwritten,
+                             page_from=page_range[0] if page_range else None,
+                             page_to=page_range[1] if page_range else None)
     media_root = Path(current_app.config["MEDIA_ROOT"])
     try:
         job_dir(media_root, job["id"]).mkdir(parents=True, exist_ok=True)

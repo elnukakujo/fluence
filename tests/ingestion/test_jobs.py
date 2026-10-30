@@ -139,3 +139,22 @@ def test_user_ocr_endpoint_becomes_the_remote_engine(app, db, media_root, monkey
     run_ingestion_job(app, j["id"])
     assert seen["remote"] is not None and seen["handwritten"] is True
     assert seen["target_iso639_2t"] == "fra" and seen["cache_dir"].name == "parse_cache"
+
+
+def test_runner_passes_the_page_range_to_the_parser(app, db, media_root, monkeypatch):
+    make_user(db, "user_U5")
+    make_language(db, "user_U5", "lang_L5", "lesson_L5")
+    j = svc.create("user_U5", "lang_L5", None, "n.pdf", page_from=3, page_to=9)
+    seen = {}
+    monkeypatch.setattr(jobs_module, "parse", lambda path, **kw: seen.update(kw) or _doc())
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
+    run_ingestion_job(app, j["id"])
+    assert seen["pages"] == (3, 9)
+
+
+def test_runner_without_a_range_parses_everything(app, job, media_root, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(jobs_module, "parse", lambda path, **kw: seen.update(kw) or _doc())
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
+    run_ingestion_job(app, job["id"])
+    assert seen["pages"] is None
