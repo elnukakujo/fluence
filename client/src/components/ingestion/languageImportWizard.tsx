@@ -228,36 +228,47 @@ function LessonsReview({ job, languageId, languageName }: { job: Job; languageId
         <div className="btn-row"><Link href={`/languages/${languageId}`} className="btn btn-secondary">Back to the language</Link></div>
       </header>
 
-      {lessons.map((l, i) => {
-        const done = added[l.index]?.lessonId ?? l.created_lesson_id;
-        return (
-          <details key={l.index} className="card" open={i === firstOpen ? true : undefined}>
-            <summary className="cursor-pointer">
-              <strong>{l.title}</strong> · pages {l.start_page}–{l.end_page} ·{" "}
-              {done ? "✓ Added" : l.status === "pending" ? "Waiting…" : l.status === "failed" ? "⚠ Failed"
-                : `${l.counts?.total ?? 0} found, ${l.counts?.flagged ?? 0} to check`}
-            </summary>
-            <div className="mt-3">
-              {l.status === "failed" && <p role="alert">✗ {l.error ?? "This lesson could not be read."}</p>}
-              {l.status === "pending" && <p className="opacity-70">This lesson has not been read yet.</p>}
-              {done && (
-                <p role="status">
-                  Added {added[l.index]?.count ?? "its"} entries.{" "}
-                  <Link className="link underline" href={`/languages/${languageId}/lesson/${done}`}>Open the lesson</Link>
-                </p>
-              )}
-              {l.status === "done" && !done && (
-                <ReviewPanel jobId={job.id} filename={job.filename} candidates={l.candidates ?? []}
-                  addLabel={(n) => `Add ${n} to a new lesson “${l.title}”`}
-                  onAdd={async (items) => {
-                    const r = await acceptLesson(job.id, l.index, items);
-                    setAdded((a) => ({ ...a, [l.index]: { lessonId: r.lesson_id, count: r.created } }));
-                  }} />
-              )}
-            </div>
-          </details>
-        );
-      })}
+      {lessons.map((l, i) => (
+        <LessonSection key={l.index} job={job} lesson={l} languageId={languageId} defaultOpen={i === firstOpen}
+          added={added[l.index]} onAdded={(r) => setAdded((a) => ({ ...a, [l.index]: r }))} />
+      ))}
     </section>
+  );
+}
+
+// Each lesson owns its open/closed state: adding one must not collapse it (its confirmation is inside) or
+// shift which section is open.
+function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded }: {
+  job: Job; lesson: LessonProgress; languageId: string; defaultOpen: boolean;
+  added?: { lessonId: string; count: number }; onAdded: (r: { lessonId: string; count: number }) => void;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const createdId = added?.lessonId ?? l.created_lesson_id;
+  return (
+    <details className="card" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary className="cursor-pointer">
+        <strong>{l.title}</strong> · pages {l.start_page}–{l.end_page} ·{" "}
+        {createdId ? "✓ Added" : l.status === "pending" ? "Waiting…" : l.status === "failed" ? "⚠ Failed"
+          : `${l.counts?.total ?? 0} found, ${l.counts?.flagged ?? 0} to check`}
+      </summary>
+      <div className="mt-3">
+        {l.status === "failed" && <p role="alert">✗ {l.error ?? "This lesson could not be read."}</p>}
+        {l.status === "pending" && <p className="opacity-70">This lesson has not been read yet.</p>}
+        {createdId && (
+          <p role="status">
+            Added {added ? `${added.count} ${added.count === 1 ? "entry" : "entries"}` : "its entries"}.{" "}
+            <Link className="link underline" href={`/languages/${languageId}/lesson/${createdId}`}>Open the lesson</Link>
+          </p>
+        )}
+        {l.status === "done" && !createdId && (
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={l.candidates ?? []}
+            addLabel={(n) => `Add ${n} to a new lesson “${l.title}”`}
+            onAdd={async (items) => {
+              const r = await acceptLesson(job.id, l.index, items);
+              onAdded({ lessonId: r.lesson_id, count: r.created });
+            }} />
+        )}
+      </div>
+    </details>
   );
 }
