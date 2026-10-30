@@ -54,10 +54,27 @@ class LessonShareService:
     @transactional
     def list_shared_lessons(self, user_id: str, session: Optional[Session] = None) -> list[dict]:
         """Return dicts for the lessons shared with `user_id` (serialized inside the session)."""
-        from ...models.containers import Lesson
+        from ...models.containers import Lesson, Language
         rows = session.query(LessonShare).filter(LessonShare.user_id == user_id).all()
         ids = [r.lesson_id for r in rows]
         if not ids:
             return []
         lessons = session.query(Lesson).filter(Lesson.id.in_(ids)).all()
-        return [l.to_dict() for l in lessons]
+        langs = {l.id: l for l in session.query(Language).filter(
+            Language.id.in_([le.language_id for le in lessons])).all()}
+        result = []
+        for le in lessons:
+            d = le.to_dict()
+            lang = langs.get(le.language_id)
+            # The frontend groups shared lessons under the invitee's language of the
+            # same target ISO, so carry it alongside the (master's) language_id.
+            d["target_iso639_2t"] = lang.target_iso639_2t if lang else None
+            result.append(d)
+        return result
+
+    @transactional
+    def list_recipients(self, lesson_id: str, session: Optional[Session] = None) -> list[dict]:
+        from ...models.system_data import User
+        rows = session.query(LessonShare, User).join(User, User.id == LessonShare.user_id).filter(
+            LessonShare.lesson_id == lesson_id).all()
+        return [{"user_id": u.id, "name": u.display_name or u.username} for _, u in rows]

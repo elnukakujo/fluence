@@ -57,7 +57,7 @@ def test_tts_success_writes_wav(tmp_path):
     assert path == f"/{tmp_path.name}/audio/{filename}"
     assert (tmp_path / "audio" / filename).read_bytes() == b"wav-bytes"
     mock.assert_called_once_with(
-        base_url=API["base_url"], api_key=API["api_key"], model=API["model"], text="hello"
+        base_url=API["base_url"], api_key=API["api_key"], model=API["model"], voice="en_f", text="hello"
     )
 
 

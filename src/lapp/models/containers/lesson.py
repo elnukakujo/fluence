@@ -59,14 +59,10 @@ class Lesson(BaseContainerModel):
     def _collaborator_names(self) -> list[str]:
         from sqlalchemy.orm import object_session
         from ...core.database import db_manager
-        from ...models.system_data import Collaboration, User
+        from ...models.system_data import LessonShare, User
         session = object_session(self) or db_manager.get_session()
-        collabs = session.query(Collaboration).filter(
-            Collaboration.target_type == "lesson",
-            Collaboration.target_id == self.id,
-            Collaboration.status == "accepted",
-        ).all()
-        user_ids = [c.collaborator_id for c in collabs]
+        shares = session.query(LessonShare).filter(LessonShare.lesson_id == self.id).all()
+        user_ids = [sh.user_id for sh in shares]
         if not user_ids:
             return []
         users = session.query(User).filter(User.id.in_(user_ids)).all()

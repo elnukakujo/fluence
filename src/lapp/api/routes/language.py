@@ -27,6 +27,7 @@ def get_all_user_languages(user_id: str):
           items:
             type: object
     """
+    CollaborationService().ensure_shared_hosts(current_user_id())
     languages = language_service.get_by_user_id(user_id=current_user_id(), as_dict=True) or []
     # include languages the current user collaborates on
     collab_ids = CollaborationService().list_collaborated_target_ids(current_user_id(), "language")

@@ -236,6 +236,13 @@ def register_error_handlers(app: Flask) -> None:
             'message': str(error)
         }), 403
     
+    @app.errorhandler(409)
+    def conflict(error):
+        return jsonify({
+            'error': 'Conflict',
+            'message': str(error)
+        }), 409
+
     @app.errorhandler(500)
     def internal_error(error):
         logger.error(f"Internal server error: {error}")

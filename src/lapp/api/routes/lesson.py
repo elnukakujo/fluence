@@ -235,6 +235,9 @@ def share_lesson(lesson_id: str):
     if not user_id:
         return jsonify({'error': 'user_id required'}), 400
     require_owns(lesson_id)
+    lesson = LessonService().get_by_id(lesson_id)
+    if not CollaborationService().has_partial_collaboration(current_user_id(), user_id, lesson.language_id):
+        return jsonify({'error': 'Invite this user first'}), 403
     LessonShareService().share(lesson_id, user_id)
     return jsonify({'success': True}), 200
 
@@ -250,6 +253,14 @@ def unshare_lesson(lesson_id: str):
     require_owns(lesson_id)
     LessonShareService().unshare(lesson_id, user_id)
     return jsonify({'success': True}), 200
+
+
+@bp.route('/<lesson_id>/collaborators', methods=['GET'])
+@login_required
+def lesson_collaborators(lesson_id: str):
+    """Users this lesson is shared with (owner only)."""
+    require_owns(lesson_id)
+    return jsonify(LessonShareService().list_recipients(lesson_id))
 
 
 @bp.route('/shared', methods=['GET'])

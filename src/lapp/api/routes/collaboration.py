@@ -18,6 +18,8 @@ def _serialize(collab: Collaboration) -> dict:
         "target_id": collab.target_id,
         "status": collab.status,
         "mode": collab.mode,
+        "proposed_mode": collab.proposed_mode,
+        "offered_lesson_ids": collab.offered_lesson_ids,
     }
 
 
@@ -49,7 +51,11 @@ def invite():
     if collaborator is None:
         abort(404, description="Collaborator not found")
 
-    collab = collaboration_service.invite(current_user_id(), collaborator_id, target_type, target_id)
+    try:
+        collab = collaboration_service.invite(current_user_id(), collaborator_id, target_type, target_id,
+                                              mode=data.get('mode'), lesson_ids=data.get('lesson_ids'))
+    except ValueError as e:
+        abort(400, description=str(e))
     return jsonify({'success': True, 'collaboration': _serialize(collab)})
 
 
@@ -67,8 +73,15 @@ def accept(collaboration_id):
     if mode not in (None, 'full', 'partial'):
         abort(400, description="mode must be 'full' or 'partial'")
     lesson_ids = (request.get_json(silent=True) or {}).get('lesson_ids')
-    updated = collaboration_service.accept(collaboration_id, mode=mode, lesson_ids=lesson_ids)
-    return jsonify({'success': True, 'collaboration': _serialize(updated)})
+    if mode == 'partial' and lesson_ids == []:
+        abort(400, description="lesson_ids must not be empty for partial mode")
+    try:
+        updated = collaboration_service.accept(collaboration_id, mode=mode, lesson_ids=lesson_ids)
+    except ValueError as e:
+        abort(400, description=str(e))
+    except LookupError as e:
+        abort(409, description=str(e))
+    return jsonify({'success': True, 'collaboration': _serialize(updated) if updated else None})
 
 
 @bp.route('/<collaboration_id>/consent', methods=['POST'])
@@ -107,7 +120,7 @@ def reject(collaboration_id):
     if collab.collaborator_id != current_user_id():
         abort(403, description="Not your invitation")
     if collab.status == "accepted":
-        abort(403, description="Already accepted — the master must remove you, or leave your shared lessons")
+        abort(403, description="Already accepted — ask the master to remove you, or leave your shared lessons")
     collaboration_service.reject(collaboration_id)
     return jsonify({'success': True})
 

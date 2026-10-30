@@ -158,8 +158,6 @@ def can_write(user_id: str, element_id: str) -> bool:
     collab_service = CollaborationService()
     if language_id and collab_service.is_collaborator(user_id, "language", language_id):
         return True
-    if lesson_id and collab_service.is_collaborator(user_id, "lesson", lesson_id):
-        return True
     if lesson_id and LessonShareService().is_recipient(user_id, lesson_id):
         return True
     return False

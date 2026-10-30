@@ -51,18 +51,25 @@ class Language(BaseContainerModel):
                 "lesson_ids": [lesson.id for lesson in self.lessons],
             })
         base_dict["collaborators"] = self._collaborator_names()
+        base_dict["partial_collaborators"] = self._collaborator_names(partial=True)
 
         return base_dict
 
-    def _collaborator_names(self) -> list[str]:
+    def _collaborator_names(self, partial: bool = False) -> list[str]:
+        """Display names of accepted collaborators: full (or legacy NULL mode) by default,
+        partial ones when `partial=True`."""
+        from sqlalchemy import or_
         from sqlalchemy.orm import object_session
         from ...core.database import db_manager
         from ...models.system_data import Collaboration, User
         session = object_session(self) or db_manager.get_session()
+        mode_filter = (Collaboration.mode == "partial") if partial else or_(
+            Collaboration.mode.is_(None), Collaboration.mode == "full")
         collabs = session.query(Collaboration).filter(
             Collaboration.target_type == "language",
             Collaboration.target_id == self.id,
             Collaboration.status == "accepted",
+            mode_filter,
         ).all()
         user_ids = [c.collaborator_id for c in collabs]
         if not user_ids:
