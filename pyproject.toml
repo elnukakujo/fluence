@@ -61,6 +61,10 @@ dependencies = [
     "alembic>=1.18.5",
     "psycopg[binary]>=3.3.4",
     "soundfile>=0.14.0",
+    "pymupdf>=2.0",
+    "opencv-python-headless>=5.0.0.93",
+    "rapidocr>=3.10.0",
+    "onnxruntime>=1.23.2",
 ]
 [build-system]
 requires = ["hatchling"]
@@ -115,4 +119,7 @@ dev = [
 server = "lapp.__main__:main"
 
 [tool.pytest.ini_options]
-markers = ["smoke: real LLM endpoint tests requiring env vars"]
+markers = [
+    "smoke: real LLM endpoint tests requiring env vars",
+    "ocr: runs the real local OCR models (CPU, a few seconds)",
+]

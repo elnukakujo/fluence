@@ -15,6 +15,9 @@ COPY pyproject.toml uv.lock README.md ./
 COPY wheels/ ./wheels/
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 
+COPY docker/prefetch_ocr_models.py /tmp/prefetch_ocr_models.py
+RUN uv run --frozen --no-dev python /tmp/prefetch_ocr_models.py && rm /tmp/prefetch_ocr_models.py
+
 COPY src/ ./src/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./

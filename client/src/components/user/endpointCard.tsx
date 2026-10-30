@@ -37,12 +37,14 @@ const TYPE_OPTIONS = [
   { value: "text_gen", label: "Text Generation" },
   { value: "tts", label: "Text-to-Speech" },
   { value: "both", label: "Both" },
+  { value: "ocr", label: "Document OCR (vision model)" },
 ] as const;
 
 const TYPE_LABELS: Record<string, string> = {
   text_gen: "Text Gen",
   tts: "TTS",
   both: "Both",
+  ocr: "OCR",
 };
 
 // Providers that only do TTS (never text-gen)
