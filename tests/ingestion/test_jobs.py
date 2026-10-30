@@ -74,15 +74,20 @@ def test_successful_run_writes_candidates_and_marks_ready(app, job, media_root, 
     assert by_word["chat"]["status"] == "flagged"   # invented word is listed, flagged
 
 
-def test_existing_words_are_flagged_already_exists(app, job, db, media_root, monkeypatch):
+def test_existing_words_are_annotated_by_where_they_exist(app, job, db, media_root, monkeypatch):
     from lapp.models.components import Word as WordModel
+    from lapp.models.features import Vocabulary
     with db.session_scope() as s:
         db.insert(WordModel(id="word_W1", language_id="lang_L1", word="bonjour"), session=s, commit=False)
+        db.insert(WordModel(id="word_W2", language_id="lang_L1", word="hello"), session=s, commit=False)
+        db.insert(Vocabulary(id="voc_V1", lesson_id="lesson_L1", word_id="word_W2"), session=s, commit=False)
     monkeypatch.setattr(jobs_module, "parse", lambda *a, **k: _doc())
-    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [RawItem(word="bonjour", quote="bonjour hello")])
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [
+        RawItem(word="bonjour", quote="bonjour hello"), RawItem(word="hello", quote="bonjour hello")])
     run_ingestion_job(app, job["id"])
-    cand = json.loads(candidates_path(media_root, job["id"]).read_text())["candidates"][0]
-    assert "already_exists" in {f["code"] for f in cand["flags"]}
+    cands = {c["word"]: c for c in json.loads(candidates_path(media_root, job["id"]).read_text())["candidates"]}
+    assert [f["code"] for f in cands["bonjour"]["flags"]] == ["already_in_language"] and cands["bonjour"]["status"] == "verified"
+    assert [f["code"] for f in cands["hello"]["flags"]] == ["already_in_lesson"] and cands["hello"]["status"] == "flagged"
 
 
 def test_parse_error_fails_the_job_with_its_code(app, job, monkeypatch):
@@ -134,3 +139,22 @@ def test_user_ocr_endpoint_becomes_the_remote_engine(app, db, media_root, monkey
     run_ingestion_job(app, j["id"])
     assert seen["remote"] is not None and seen["handwritten"] is True
     assert seen["target_iso639_2t"] == "fra" and seen["cache_dir"].name == "parse_cache"
+
+
+def test_runner_passes_the_page_range_to_the_parser(app, db, media_root, monkeypatch):
+    make_user(db, "user_U5")
+    make_language(db, "user_U5", "lang_L5", "lesson_L5")
+    j = svc.create("user_U5", "lang_L5", None, "n.pdf", page_from=3, page_to=9)
+    seen = {}
+    monkeypatch.setattr(jobs_module, "parse", lambda path, **kw: seen.update(kw) or _doc())
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
+    run_ingestion_job(app, j["id"])
+    assert seen["pages"] == (3, 9)
+
+
+def test_runner_without_a_range_parses_everything(app, job, media_root, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(jobs_module, "parse", lambda path, **kw: seen.update(kw) or _doc())
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
+    run_ingestion_job(app, job["id"])
+    assert seen["pages"] is None

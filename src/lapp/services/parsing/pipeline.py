@@ -42,8 +42,13 @@ def parse(
     local: OcrEngine | None = None,
     handwritten: bool = False,
     cache_dir: Path | None = None,
+    pages: tuple[int, int] | None = None,
 ) -> Document:
-    """Parse a PDF or image into a Document. `cache_dir=None` disables caching (the library is Flask-free)."""
+    """Parse a PDF or image into a Document. `cache_dir=None` disables caching (the library is Flask-free).
+
+    `pages=(first, last)` (1-based, inclusive; `last` is clamped to the document) processes only those pages;
+    page indexes in the result stay the document's own. An image has one page.
+    """
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix != ".pdf" and suffix not in _IMAGE_SUFFIXES:
@@ -54,7 +59,7 @@ def parse(
     sha = hashlib.sha256(data).hexdigest()
 
     key = hashlib.sha256(
-        f"{target_iso639_2t}|{source_iso639_2t}|{handwritten}|{getattr(remote, 'cache_id', remote is not None)}".encode()
+        f"{target_iso639_2t}|{source_iso639_2t}|{handwritten}|{getattr(remote, 'cache_id', remote is not None)}|{pages}".encode()
     ).hexdigest()[:10]
     cache_file = cache_dir / f"{sha}-v{PIPELINE_VERSION}-{key}.json" if cache_dir else None
     if cache_file and cache_file.is_file():
@@ -68,7 +73,7 @@ def parse(
     if handwritten and remote is None:
         doc.warnings.append("handwritten requested but no remote OCR is configured; used local OCR")
     if suffix == ".pdf":
-        _parse_pdf(data, ctx, doc)
+        _parse_pdf(data, ctx, doc, pages)
     else:
         frames = _check_image_size(data)
         if frames > 1:
@@ -76,6 +81,7 @@ def parse(
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             raise ParseError("corrupt", "Could not read the image")
+        _select_pages(pages, 1)
         doc.pages.append(_ocr_page(img, 0, (float(img.shape[1]), float(img.shape[0])), ctx))
 
     if cache_file and not _has_transient_failure(doc):
@@ -131,7 +137,17 @@ class _Ctx:
         return self._local
 
 
-def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document) -> None:
+def _select_pages(pages: tuple[int, int] | None, count: int) -> range:
+    """Zero-based page indexes to process for a 1-based inclusive `pages` range (None = all)."""
+    if pages is None:
+        return range(count)
+    first, last = pages
+    if first < 1 or last < first or first > count:
+        raise ParseError("invalid_range", f"Pages {first}-{last} are outside this document ({count} page(s))")
+    return range(first - 1, min(last, count))
+
+
+def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages: tuple[int, int] | None = None) -> None:
     try:
         pdf = pymupdf.open(stream=data, filetype="pdf")
     except Exception as e:
@@ -141,9 +157,11 @@ def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document) -> None:
             raise ParseError("encrypted", "The PDF is password-protected")
         if pdf.page_count == 0:
             raise ParseError("corrupt", "The PDF has no pages")
-        if pdf.page_count > MAX_PAGES:
-            raise ParseError("too_many_pages", f"The PDF has more than {MAX_PAGES} pages")
-        for i, page in enumerate(pdf):
+        selected = _select_pages(pages, pdf.page_count)
+        if len(selected) > MAX_PAGES:
+            raise ParseError("too_many_pages", f"More than {MAX_PAGES} pages selected - choose a page range")
+        for i in selected:
+            page = pdf[i]
             native, _ = is_native_page(page)
             if native:
                 doc.pages.append(extract_native_page(page, i))

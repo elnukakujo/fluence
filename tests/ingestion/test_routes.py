@@ -139,3 +139,150 @@ def test_delete_removes_the_row_and_the_files(app, db, media_root, scheduled):
     assert folder.is_dir()
     assert client.delete(f"/api/ingestion/{job_id}").status_code == 204
     assert not folder.exists() and client.get(f"/api/ingestion/{job_id}").status_code == 404
+
+
+def test_upload_stores_a_page_range(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, page_from="40", page_to="55").get_json()["job_id"]
+    job = svc.get(job_id)
+    assert (job["page_from"], job["page_to"]) == (40, 55)
+
+
+def test_upload_without_a_range_keeps_it_null(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job = svc.get(_upload(client).get_json()["job_id"])
+    assert (job["page_from"], job["page_to"]) == (None, None)
+
+
+def test_invalid_page_ranges_are_rejected(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    for form in ({"page_from": "5"}, {"page_to": "5"}, {"page_from": "0", "page_to": "3"},
+                 {"page_from": "9", "page_to": "3"}, {"page_from": "a", "page_to": "3"}):
+        assert _upload(client, **form).status_code == 400, form
+    assert scheduled == []
+
+
+# ---- capabilities -----------------------------------------------------------
+
+def _caps(client, **q):
+    return client.get("/api/ingestion/capabilities", query_string={"language_id": "lang_L1", **q})
+
+
+def _codes(items):
+    return [i["code"] for i in items]
+
+
+def test_capabilities_ok_with_a_text_endpoint_and_warns_about_vision(app, db, media_root):
+    client = _setup(app, db, media_root)
+    body = _caps(client, lesson_id="lesson_L1").get_json()
+    assert body["can_import"] is True and body["reasons"] == []
+    assert _codes(body["warnings"]) == ["no_vision_endpoint"]
+
+
+def test_capabilities_blocks_without_a_text_endpoint_and_explains_where_to_fix_it(app, db, media_root):
+    make_user(db, "user_U1", endpoints=())
+    make_language(db, "user_U1")
+    body = _caps(client_for(app, "user_U1")).get_json()
+    assert body["can_import"] is False and _codes(body["reasons"]) == ["no_text_endpoint"]
+    assert "Settings" in body["reasons"][0]["message"]
+
+
+def test_capabilities_blocks_without_write_access(app, db, media_root):
+    _setup(app, db, media_root)
+    make_user(db, "user_U2")
+    body = _caps(client_for(app, "user_U2")).get_json()
+    assert body["can_import"] is False and "no_write_access" in _codes(body["reasons"])
+
+
+def test_capabilities_with_a_vision_endpoint_has_no_vision_warning(app, db, media_root):
+    from ingestion_seeds import OCR_ENDPOINT, TEXT_ENDPOINT
+    make_user(db, "user_U1", endpoints=(TEXT_ENDPOINT, OCR_ENDPOINT))
+    make_language(db, "user_U1")
+    assert _caps(client_for(app, "user_U1")).get_json()["warnings"] == []
+
+
+def test_capabilities_warns_for_a_custom_language(app, db, media_root):
+    from lapp.models.containers import Language
+    make_user(db, "user_U1")
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Klingon", target_iso639_2t="",
+                           source_iso639_2t="eng"), session=s, commit=False)
+    body = _caps(client_for(app, "user_U1")).get_json()
+    assert "custom_language" in _codes(body["warnings"]) and body["can_import"] is True
+
+
+def test_capabilities_needs_a_known_language(app, db, media_root):
+    client = _setup(app, db, media_root)
+    assert client.get("/api/ingestion/capabilities").status_code == 400
+    assert _caps(client, language_id="lang_nope").status_code == 404
+
+
+# ---- imports list -----------------------------------------------------------
+
+def test_list_returns_only_my_jobs_newest_first_without_internal_fields(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    a = _upload(client, "a.pdf").get_json()["job_id"]
+    b = _upload(client, "b.pdf").get_json()["job_id"]
+    make_user(db, "user_U2")
+    make_language(db, "user_U2", "lang_L7", "lesson_L7")
+    client_for(app, "user_U2").post("/api/ingestion", data={"language_id": "lang_L7",
+                                    "file": (io.BytesIO(b"%PDF"), "other.pdf")}, content_type="multipart/form-data")
+    jobs = client.get("/api/ingestion").get_json()
+    assert [j["id"] for j in jobs] == [b, a]
+    assert all("file_path" not in j and "user_id" not in j for j in jobs)
+    assert jobs[0]["filename"] == "b.pdf"
+
+
+# ---- page preview -----------------------------------------------------------
+
+def _job_with_pdf(client, media_root, pages=2):
+    import pymupdf
+    job_id = _upload(client).get_json()["job_id"]
+    doc = pymupdf.open()
+    for i in range(pages):
+        doc.new_page(width=300, height=400).insert_text((20, 50), f"page {i + 1}")
+    doc.save(media_root / svc.get(job_id)["file_path"])
+    return job_id
+
+
+def test_page_preview_renders_a_png_for_the_owner(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _job_with_pdf(client, media_root)
+    res = client.get(f"/api/ingestion/{job_id}/pages/2.png")
+    assert res.status_code == 200 and res.mimetype == "image/png" and res.data.startswith(b"\x89PNG")
+    assert "private" in res.headers["Cache-Control"]
+
+
+def test_page_preview_rejects_out_of_range_and_other_users(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _job_with_pdf(client, media_root)
+    assert client.get(f"/api/ingestion/{job_id}/pages/3.png").status_code == 404
+    assert client.get(f"/api/ingestion/{job_id}/pages/0.png").status_code == 404
+    make_user(db, "user_U2")
+    assert client_for(app, "user_U2").get(f"/api/ingestion/{job_id}/pages/1.png").status_code == 404
+
+
+def test_page_preview_of_an_uploaded_image(app, db, media_root, scheduled):
+    from PIL import Image
+    client = _setup(app, db, media_root)
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 100), "white").save(buf, "PNG")
+    job_id = _upload(client, "scan.png", buf.getvalue()).get_json()["job_id"]
+    assert client.get(f"/api/ingestion/{job_id}/pages/1.png").status_code == 200
+    assert client.get(f"/api/ingestion/{job_id}/pages/2.png").status_code == 404
+
+
+# ---- source tagging ---------------------------------------------------------
+
+def test_accept_tags_created_vocabulary_with_one_reused_source(app, db, media_root, scheduled):
+    from lapp.models.system_data import Source
+    client = _setup(app, db, media_root)
+    for words in (["bonjour"], ["merci"]):
+        job_id = _ready_job(client)
+        client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1",
+                                                             "items": [{"word": w} for w in words]})
+    with db.session_scope() as s:
+        sources = s.query(Source).filter(Source.user_id == "user_U1").all()
+        assert [x.title for x in sources] == ["Imported from notes.pdf"]
+        vocs = s.query(Vocabulary).filter(Vocabulary.lesson_id == "lesson_L1").all()
+        assert len(vocs) == 2 and all([src.id for src in v.sources] == [sources[0].id] for v in vocs)

@@ -14,8 +14,8 @@ def _item(word="apple", quote="apple - manzana", translation="manzana", **kw):
     return RawItem(word=word, quote=quote, translation=translation, **kw)
 
 
-def _verify(item, chunk, iso1="en", exists=lambda w: False):
-    return verify(item, chunk, iso1, exists)
+def _verify(item, chunk, iso1="en", lookup=lambda w: None):
+    return verify(item, chunk, iso1, lookup)
 
 
 def _codes(cand):
@@ -76,9 +76,21 @@ def test_llm_transcribed_source_is_always_flagged():
     assert _codes(cand) == {"llm_transcribed_source"}
 
 
-def test_existing_word_is_flagged():
-    cand = _verify(_item(), _chunk("apple - manzana"), exists=lambda w: w == "apple")
-    assert _codes(cand) == {"already_exists"}
+def test_word_already_in_the_language_is_a_note_not_a_trust_problem():
+    cand = _verify(_item(), _chunk("apple - manzana"), lookup=lambda w: "language")
+    assert cand.status == "verified" and _codes(cand) == {"already_in_language"}
+    assert cand.flags[0].severity == "info"
+
+
+def test_word_already_in_this_lesson_is_a_warning():
+    cand = _verify(_item(), _chunk("apple - manzana"), lookup=lambda w: "lesson")
+    assert cand.status == "flagged" and _codes(cand) == {"already_in_lesson"}
+    assert cand.flags[0].severity == "warning"
+
+
+def test_trust_flags_still_flag_when_the_word_also_exists():
+    cand = _verify(_item(word="banana", quote="banana"), _chunk("apple - manzana"), lookup=lambda w: "language")
+    assert cand.status == "flagged" and {"word_not_in_source", "already_in_language"} <= _codes(cand)
 
 
 def test_chinese_phonetic_syllables_must_match():

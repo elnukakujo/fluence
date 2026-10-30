@@ -10,6 +10,7 @@ from flask import Flask
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
+from ...models.features import Vocabulary
 from ...models.system_data import IngestionJob
 from ...utils.llm_providers import resolve_api
 from ...utils.model_api import ModelAPIError
@@ -40,12 +41,13 @@ def candidates_path(media_root: str | Path, job_id: str) -> Path:
 class IngestionJobService:
     @transactional
     def create(self, user_id: str, language_id: str, lesson_id: Optional[str], filename: str,
-               handwritten: bool = False, session: Optional[Session] = None) -> dict:
+               handwritten: bool = False, page_from: Optional[int] = None, page_to: Optional[int] = None,
+               session: Optional[Session] = None) -> dict:
         job_id = db_manager.generate_new_id(IngestionJob, session=session)
         job = IngestionJob(
             id=job_id, user_id=user_id, language_id=language_id, lesson_id=lesson_id,
             filename=filename, file_path=f"ingestion/{job_id}/{safe_filename(filename)}",
-            handwritten=handwritten, status="queued", warnings=[],
+            handwritten=handwritten, page_from=page_from, page_to=page_to, status="queued", warnings=[],
         )
         session.add(job)
         session.flush()
@@ -58,6 +60,12 @@ class IngestionJobService:
         if job is None or (user_id is not None and job.user_id != user_id):
             return None
         return job.to_dict()
+
+    @transactional
+    def list_for_user(self, user_id: str, limit: int = 50, session: Optional[Session] = None) -> list[dict]:
+        rows = (session.query(IngestionJob).filter(IngestionJob.user_id == user_id)
+                .order_by(IngestionJob.created_at.desc(), IngestionJob.id.desc()).limit(limit).all())
+        return [r.to_dict() for r in rows]
 
     @transactional
     def update(self, job_id: str, session: Optional[Session] = None, **fields) -> None:
@@ -136,13 +144,25 @@ def _run(app: Flask, svc: IngestionJobService, job_id: str) -> None:
 
     svc.update(job_id, status="parsing")
     doc = parse(media_root / job["file_path"], target_iso639_2t=target, source_iso639_2t=source,
-                remote=remote, handwritten=job["handwritten"], cache_dir=media_root / "parse_cache")
+                remote=remote, handwritten=job["handwritten"], cache_dir=media_root / "parse_cache",
+                pages=(job["page_from"], job["page_to"]) if job["page_from"] else None)
 
     svc.update(job_id, status="extracting", pages_done=0, pages_total=len(doc.pages))
     word_service = WordService()
+
+    def lookup(w: str):
+        word = word_service.get_by_word(w, language_id=job["language_id"])
+        if word is None:
+            return None
+        if job["lesson_id"]:
+            with db_manager.session_scope() as s:
+                if s.query(Vocabulary).filter(Vocabulary.word_id == word.id,
+                                              Vocabulary.lesson_id == job["lesson_id"]).first():
+                    return "lesson"
+        return "language"
+
     result = build_candidates(
-        doc, text_api, target, source,
-        exists=lambda w: word_service.get_by_word(w, language_id=job["language_id"]) is not None,
+        doc, text_api, target, source, lookup,
         progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total),
     )
     warnings += result.warnings + [w for p in doc.pages for w in p.warnings]

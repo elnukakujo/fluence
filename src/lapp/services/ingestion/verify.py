@@ -2,7 +2,7 @@
 import logging
 import unicodedata
 import uuid
-from typing import Callable
+from typing import Callable, Literal
 
 from ...utils.phonetics import get_phonetic
 from ..parsing.pipeline import LOW_WORD_CONF
@@ -38,12 +38,13 @@ def _min_confidence(word: str, chunk: Chunk) -> float | None:
     return min(covered) if covered else None
 
 
-def verify(item: RawItem, chunk: Chunk, iso1: str | None, exists: Callable[[str], bool]) -> Candidate:
+def verify(item: RawItem, chunk: Chunk, iso1: str | None,
+           lookup: Callable[[str], Literal["lesson", "language"] | None]) -> Candidate:
     text = normalise(chunk.text)
     flags: list[Flag] = []
 
-    def flag(code, message):
-        flags.append(Flag(code=code, message=message))
+    def flag(code, message, severity="warning"):
+        flags.append(Flag(code=code, message=message, severity=severity))
 
     if normalise(item.word) not in text:
         flag("word_not_in_source", f'"{item.word}" does not appear in the source text')
@@ -67,11 +68,15 @@ def verify(item: RawItem, chunk: Chunk, iso1: str | None, exists: Callable[[str]
         if expected and _strip_marks(expected) != _strip_marks(item.phonetic):
             flag("phonetic_mismatch", f'The model gave "{item.phonetic}", expected "{expected}"')
 
-    if exists(item.word):
-        flag("already_exists", "This word is already in the language")
+    # existing words are reused, not suspicious: only a duplicate inside the target lesson needs a decision
+    where = lookup(item.word)
+    if where == "lesson":
+        flag("already_in_lesson", "This word is already in this lesson")
+    elif where == "language":
+        flag("already_in_language", "Already in your language - the existing word will be reused", "info")
 
     return Candidate(
         id=uuid.uuid4().hex, word=item.word, translation=item.translation, phonetic=item.phonetic,
         word_type=item.word_type, quote=item.quote, page=chunk.page, chunk_id=chunk.id,
-        status="flagged" if flags else "verified", flags=flags, min_conf=min_conf,
+        status="flagged" if any(f.severity == "warning" for f in flags) else "verified", flags=flags, min_conf=min_conf,
     )

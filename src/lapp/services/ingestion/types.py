@@ -7,7 +7,8 @@ from ..parsing.types import Word
 
 FlagCode = Literal[
     "word_not_in_source", "quote_not_in_source", "translation_not_in_source",
-    "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch", "already_exists",
+    "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
+    "already_in_language", "already_in_lesson",
 ]
 
 
@@ -22,6 +23,8 @@ class Chunk(BaseModel):
 class Flag(BaseModel):
     code: FlagCode
     message: str
+    # "warning" = the candidate cannot be confirmed / needs a decision; "info" = just a note
+    severity: Literal["warning", "info"] = "warning"
 
 
 class Candidate(BaseModel):
