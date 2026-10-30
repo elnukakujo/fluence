@@ -263,6 +263,83 @@
     color: var(--color-accent);
   }
 
+  /* People list (collaborator menu): avatar, row, search field, segmented choice */
+  .avatar {
+    display: flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  .avatar-active {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+  .person-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.625rem;
+    transition: background-color 0.15s ease;
+  }
+  .person-row:hover {
+    background: var(--color-accent-soft);
+  }
+  .search-field {
+    position: relative;
+  }
+  .search-field > svg {
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-muted);
+    pointer-events: none;
+  }
+  .search-field .input {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+    min-height: 2.75rem;
+    border-radius: var(--radius-full);
+  }
+  .choice {
+    display: flex;
+    flex: 1;
+    align-items: flex-start;
+    gap: 0.625rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .choice:hover {
+    background: var(--color-accent-soft);
+  }
+  .choice[aria-checked="true"] {
+    border-color: var(--color-primary);
+    background: var(--color-accent-soft);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+  .skeleton {
+    border-radius: 0.75rem;
+    background: var(--color-accent-soft);
+    animation: skeleton-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes skeleton-pulse {
+    50% { opacity: 0.45; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton { animation: none; }
+  }
+
   /* Selected-item pill used by entity selectors (sources, tags, ...) */
   .chip {
     display: inline-flex;

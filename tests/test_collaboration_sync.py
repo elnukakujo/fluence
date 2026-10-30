@@ -817,3 +817,18 @@ def test_share_lesson_requires_accepted_partial_collaboration(app, db):
     CollaborationService().accept(c.id, "partial", lesson_ids=[])  # service-level: shares nothing
     assert cl.post('/api/lessons/lesson_M1/share', json={'user_id': 'user_U2'}).status_code == 200
     assert LessonShareService().is_recipient("user_U2", "lesson_M1")
+
+
+def test_user_list_search_matches_name_username_email_returns_only_display(app, db):
+    with db.session_scope() as s:
+        db.insert(User(id="user_U1", username="me", email="me@x.com"), session=s, commit=False)
+        db.insert(User(id="user_U2", username="bob", email="bob@mail.org", display_name="Robert"),
+                  session=s, commit=False)
+        db.insert(User(id="user_U3", username="amy", email="amy@x.com"), session=s, commit=False)
+    cl = _client_for_user(app, db, "user_U1")
+    get = lambda q: cl.get(f'/api/user/list?q={q}').get_json()
+    assert get("robert") == [{"id": "user_U2", "display_name": "Robert"}]   # display name
+    assert [u["id"] for u in get("bob")] == ["user_U2"]                      # username
+    assert [u["id"] for u in get("mail.org")] == ["user_U2"]                 # email, never returned
+    assert {u["id"] for u in get("")} == {"user_U2", "user_U3"}              # caller excluded
+    assert get("zzz") == []

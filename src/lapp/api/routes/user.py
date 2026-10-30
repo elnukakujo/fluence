@@ -35,11 +35,16 @@ def get_all_users():
 @bp.route('/list', methods=['GET'])
 @login_required
 def list_users_for_collaboration():
-    """All users except the caller (id + display_name) for the invite menu. Non-admin."""
+    """Users except the caller (id + display_name only) for the invite menu. Non-admin.
+    `?q=` matches display name, username or email (case-insensitive substring); the
+    email/username are matched server-side and never returned."""
+    q = (request.args.get('q') or '').strip().lower()
     users = db_manager.find_all(UserModel)
     return jsonify([
         {"id": u.id, "display_name": u.display_name or u.username}
-        for u in users if u.id != current_user_id()
+        for u in users
+        if u.id != current_user_id()
+        and (not q or any(q in (v or '').lower() for v in (u.display_name, u.username, u.email)))
     ])
 
 

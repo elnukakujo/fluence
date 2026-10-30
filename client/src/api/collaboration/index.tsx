@@ -1,7 +1,8 @@
 import { BASE_URL, getAuthHeaders } from "..";
 
-export async function listUsers(): Promise<{ id: string; display_name: string }[]> {
-  const res = await fetch(`${BASE_URL}/api/user/list`, { headers: await getAuthHeaders() });
+// `query` matches display name, username or email on the server; only display names come back.
+export async function listUsers(query = ""): Promise<{ id: string; display_name: string }[]> {
+  const res = await fetch(`${BASE_URL}/api/user/list?q=${encodeURIComponent(query)}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error("Failed to list users");
   return res.json();
 }
