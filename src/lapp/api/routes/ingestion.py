@@ -1,16 +1,19 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
-from ...core.auth import current_user_id, login_required, require_write
+from ...core.auth import current_user_id, login_required, owner_user_id, require_write
 from ...core.database import db_manager
 from ...schemas.components import WordDict
 from ...schemas.features import VocabularyDict
+from ...schemas.system_data import SourceDict
 from ...services import LessonService, VocabularyService
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, job_dir, remove_job_files)
+from ...services.ingestion.capabilities import capabilities, has_text_endpoint
+from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
-from ...services.system_data import UserPreferencesService
+from ...services.system_data import SourceService, UserPreferencesService
 from ...utils.llm_providers import resolve_api
 
 bp = Blueprint("ingestion", __name__, url_prefix="/api/ingestion")
@@ -42,6 +45,66 @@ def _owned_job_or_404(job_id: str):
     if job is None:
         return None, (jsonify({"error": "Job not found"}), 404)
     return job, None
+
+
+@bp.route("/capabilities", methods=["GET"])
+@login_required
+def get_capabilities():
+    """Whether the current user can import into a language/lesson, and why not.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: language_id, in: query, type: string, required: true}
+        - {name: lesson_id, in: query, type: string, required: false}
+    responses:
+        200: {description: "can_import, blocking reasons and non-blocking warnings"}
+        400: {description: language_id missing}
+        404: {description: Language not found}
+    """
+    language_id = (request.args.get("language_id") or "").strip()
+    lesson_id = (request.args.get("lesson_id") or "").strip() or None
+    if not language_id:
+        return jsonify({"error": "language_id is required"}), 400
+    if owner_user_id(language_id) is None or (lesson_id and owner_user_id(lesson_id) is None):
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(capabilities(current_user_id(), language_id, lesson_id))
+
+
+@bp.route("", methods=["GET"])
+@login_required
+def list_jobs():
+    """My imports, newest first.
+    ---
+    tags:
+        - Ingestion
+    responses:
+        200: {description: List of jobs}
+    """
+    return jsonify([_public(j) for j in job_service.list_for_user(current_user_id())])
+
+
+@bp.route("/<job_id>/pages/<int:page>.png", methods=["GET"])
+@login_required
+def page_preview(job_id: str, page: int):
+    """PNG of one page of the uploaded document (1-based).
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - {name: page, in: path, type: integer, required: true}
+    responses:
+        200: {description: PNG image}
+        404: {description: Not found, not yours, or no such page}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    png = render_page_png(Path(current_app.config["MEDIA_ROOT"]) / job["file_path"], page)
+    if png is None:
+        return jsonify({"error": "Page not found"}), 404
+    return Response(png, mimetype="image/png", headers={"Cache-Control": "private, max-age=3600"})
 
 
 @bp.route("", methods=["POST"])
@@ -86,7 +149,7 @@ def upload():
             return jsonify({"error": "The lesson does not belong to that language"}), 400
 
     prefs = UserPreferencesService().get_by_user_id(current_user_id())
-    if not (prefs and resolve_api(prefs, "text_gen")):
+    if not has_text_endpoint(prefs):
         return jsonify({"error": "Add and activate a text-generation endpoint in Settings first - it is used to extract the vocabulary"}), 400
 
     handwritten = (request.form.get("handwritten") or "").lower() in ("1", "true", "on", "yes")
@@ -197,17 +260,31 @@ def accept(job_id: str):
             return jsonify({"error": "on_conflict must be keep, merge or overwrite"}), 400
 
     vocabulary_service = VocabularyService()
+    source_service = SourceService()
     created = 0
     with db_manager.session_scope() as session:   # one transaction: all or nothing
+        source = _import_source(session, current_user_id(), job["filename"])
         for item in items:
             word = WordDict(
                 word=str(item["word"]).strip(), translation=item.get("translation") or None,
                 phonetic=item.get("phonetic") or None, word_type=item.get("word_type") or None,
             )
-            if vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
-                                         on_conflict=item.get("on_conflict", "keep")):
+            vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
+                                                   on_conflict=item.get("on_conflict", "keep"))
+            if vocabulary:
+                source_service.add_source_to_element(source.id, vocabulary.id, session=session)
                 created += 1
     return jsonify({"created": created})
+
+
+def _import_source(session, user_id: str, filename: str):
+    """The user's "Imported from <file>" source, created on first use and reused after."""
+    from ...models.system_data import Source
+    title = f"Imported from {filename}"
+    existing = session.query(Source).filter(Source.user_id == user_id, Source.title == title).first()
+    if existing:
+        return existing
+    return SourceService().create(SourceDict(user_id=user_id, title=title, source_type="other"), session=session)
 
 
 @bp.route("/<job_id>", methods=["DELETE"])

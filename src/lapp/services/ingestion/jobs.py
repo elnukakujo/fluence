@@ -62,6 +62,12 @@ class IngestionJobService:
         return job.to_dict()
 
     @transactional
+    def list_for_user(self, user_id: str, limit: int = 50, session: Optional[Session] = None) -> list[dict]:
+        rows = (session.query(IngestionJob).filter(IngestionJob.user_id == user_id)
+                .order_by(IngestionJob.created_at.desc(), IngestionJob.id.desc()).limit(limit).all())
+        return [r.to_dict() for r in rows]
+
+    @transactional
     def update(self, job_id: str, session: Optional[Session] = None, **fields) -> None:
         job = session.get(IngestionJob, job_id)
         if job is not None:
