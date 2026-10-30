@@ -36,3 +36,17 @@ def test_measured_values_are_returned(native_pdf):
 
 def test_invisible_ocr_text_layer_is_not_native(searchable_scan_pdf):
     assert _decisions(searchable_scan_pdf) == [False]
+
+
+def test_zero_area_page_with_an_image_does_not_crash():
+    import pymupdf
+
+    class Flat:
+        number = 0
+        rect = pymupdf.Rect(0, 0, 0, 0)
+        def get_text(self, *_): return ""
+        def get_image_info(self): return [{"bbox": (0, 0, 10, 10)}]
+        def get_texttrace(self): return []
+
+    native, measured = is_native_page(Flat())
+    assert native is False and measured["image_coverage"] == 0.0
