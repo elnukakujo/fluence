@@ -119,4 +119,7 @@ dev = [
 server = "lapp.__main__:main"
 
 [tool.pytest.ini_options]
-markers = ["smoke: real LLM endpoint tests requiring env vars"]
+markers = [
+    "smoke: real LLM endpoint tests requiring env vars",
+    "ocr: runs the real local OCR models (CPU, a few seconds)",
+]
