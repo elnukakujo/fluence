@@ -23,6 +23,7 @@ import { getCalligraphyByLesson } from "@/api/calligraphy";
 import { getExercisesByLesson } from "@/api/exercise";
 import LessonHeaderCard from "@/components/lesson/lessonHeaderCard";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import ImportButton from "@/components/ingestion/importButton";
 
 
 export default async function Lesson({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }) {
@@ -47,6 +48,7 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                     <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/update`}>
                         <p>Update this Lesson Informations</p>
                     </NavButton>
+                    <ImportButton languageId={language_id} lessonId={lesson_id} settingsHref={`/user/${userId}/update`} />
                     {isOwner && <CollaborateButton targetType="lesson" targetId={lesson_id} />}
                     {isOwner ? (
                         <DeleteButton element_id={lesson_id}>
