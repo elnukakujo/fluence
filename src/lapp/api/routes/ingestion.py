@@ -6,10 +6,13 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from ...core.auth import current_user_id, login_required, owner_user_id, require_write
 from ...core.database import db_manager
 from ...schemas.components import WordDict
+from ...schemas.containers import LessonDict
 from ...schemas.features import VocabularyDict
 from ...schemas.system_data import SourceDict
 from ...services import LessonService, VocabularyService
-from ...services.ingestion.jobs import (IngestionJobService, candidates_path, job_dir, remove_job_files)
+from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir,
+                                        remove_job_files)
+from ...services.ingestion.structure import validate_structure
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
@@ -202,12 +205,167 @@ def get_candidates(job_id: str):
     job, err = _owned_job_or_404(job_id)
     if err:
         return err
+    if job["lesson_id"] is None:
+        return _language_candidates(job)
     if job["status"] != "ready":
         return jsonify({"error": f"Job is {job['status']}", "status": job["status"]}), 409
     path = candidates_path(current_app.config["MEDIA_ROOT"], job_id)
     if not path.is_file():
         return jsonify({"error": "Candidates are no longer available"}), 404
     return jsonify(json.loads(path.read_text()))
+
+
+def _lessons_view(job: dict, with_candidates: bool = False) -> list[dict]:
+    """The structure's lessons, plus the id of the Lesson created on accept and (optionally) their candidates."""
+    media_root = current_app.config["MEDIA_ROOT"]
+    out = []
+    for lesson in (job["structure"] or {}).get("lessons", []):
+        item = dict(lesson)
+        created = created_lesson_path(media_root, job["id"], lesson["index"])
+        item["created_lesson_id"] = created.read_text().strip() if created.is_file() else None
+        if with_candidates and lesson["status"] == "done":
+            path = candidates_path(media_root, job["id"], lesson["index"])
+            item["candidates"] = json.loads(path.read_text())["candidates"] if path.is_file() else []
+        out.append(item)
+    return out
+
+
+def _language_candidates(job: dict):
+    structure = job["structure"]
+    if not structure or not structure.get("confirmed") or job["status"] not in ("extracting", "ready"):
+        return jsonify({"error": f"Job is {job['status']}", "status": job["status"]}), 409
+    return jsonify({"status": job["status"], "lessons": _lessons_view(job, with_candidates=True),
+                    "warnings": job["warnings"]})
+
+
+@bp.route("/<job_id>/structure", methods=["GET"])
+@login_required
+def get_structure(job_id: str):
+    """The proposed (or confirmed) lessons of a language-level import.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "confirmed, first_page, last_page, lessons"}
+        409: {description: The lessons have not been proposed yet}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if not job["structure"]:
+        return jsonify({"error": f"Job is {job['status']}", "status": job["status"]}), 409
+    s = job["structure"]
+    return jsonify({"status": job["status"], "confirmed": s["confirmed"], "first_page": s["first_page"],
+                    "last_page": s["last_page"], "lessons": _lessons_view(job), "warnings": job["warnings"]})
+
+
+@bp.route("/<job_id>/structure", methods=["POST"])
+@login_required
+def confirm_structure(job_id: str):
+    """Confirm (after editing) the lessons to extract; starts the per-lesson extraction.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - name: body
+          in: body
+          required: true
+          schema:
+              type: object
+              properties:
+                  lessons:
+                      type: array
+                      items:
+                          type: object
+                          properties:
+                              title: {type: string}
+                              start_page: {type: integer}
+                              end_page: {type: integer}
+    responses:
+        200: {description: Extraction started}
+        400: {description: Invalid lessons}
+        409: {description: Not awaiting confirmation}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["lesson_id"] is not None:
+        return jsonify({"error": "This import targets a single lesson"}), 400
+    if job["status"] != "structure" or not job["structure"] or job["structure"]["confirmed"]:
+        return jsonify({"error": "The lessons were already confirmed or are not ready yet"}), 409
+    old = job["structure"]
+    clean, error = validate_structure((request.get_json(silent=True) or {}).get("lessons"),
+                                      old["first_page"], old["last_page"])
+    if error:
+        return jsonify({"error": error}), 400
+    lessons = [{**c, "index": i, "verified": None, "note": None, "status": "pending", "error": None, "counts": None}
+               for i, c in enumerate(clean)]
+    job_service.update(job_id, status="extracting", pages_done=0, pages_total=len(lessons),
+                       structure={**old, "confirmed": True, "lessons": lessons})
+    current_app.scheduler.schedule_extraction(current_app._get_current_object(), job_id)
+    return jsonify({"status": "extracting", "lessons": len(lessons)})
+
+
+@bp.route("/<job_id>/lessons/<int:index>/accept", methods=["POST"])
+@login_required
+def accept_lesson(job_id: str, index: int):
+    """Create the lesson (once) and its vocabulary from the items the user kept for one proposed lesson.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - {name: index, in: path, type: integer, required: true}
+        - name: body
+          in: body
+          required: true
+          schema:
+              type: object
+              properties:
+                  title: {type: string}
+                  items: {type: array, items: {type: object}}
+    responses:
+        200: {description: "lesson_id and created"}
+        400: {description: Invalid items}
+        404: {description: Unknown job or lesson}
+        409: {description: The lesson is not finished}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["lesson_id"] is not None:
+        return jsonify({"error": "This import targets a single lesson - use /accept"}), 400
+    structure = job["structure"]
+    if not structure or not structure["confirmed"]:
+        return jsonify({"error": "Confirm the lessons first"}), 409
+    if not 0 <= index < len(structure["lessons"]):
+        return jsonify({"error": "Lesson not found"}), 404
+    lesson = structure["lessons"][index]
+    if lesson["status"] != "done":
+        return jsonify({"error": f"This lesson is {lesson['status']}"}), 409
+    body = request.get_json(silent=True) or {}
+    items = body.get("items")
+    if not isinstance(items, list) or not items:
+        return jsonify({"error": "A non-empty items list is required"}), 400
+    if error := _invalid_items(items):
+        return jsonify({"error": error}), 400
+    require_write(job["language_id"])
+
+    created_file = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index)
+    with db_manager.session_scope() as session:   # lesson + vocabulary in one transaction
+        lesson_id = created_file.read_text().strip() if created_file.is_file() else None
+        if not lesson_id or not LessonService().get_by_id(lesson_id, session=session):
+            created = LessonService().create(LessonDict(
+                title=(body.get("title") or lesson["title"]).strip(), language_id=job["language_id"],
+                user_id=owner_user_id(job["language_id"])), session=session)
+            lesson_id = created.id
+        added = _add_vocabulary(session, job, lesson_id, items)
+    created_file.parent.mkdir(parents=True, exist_ok=True)
+    created_file.write_text(lesson_id)
+    return jsonify({"lesson_id": lesson_id, "created": added})
 
 
 @bp.route("/<job_id>/accept", methods=["POST"])
@@ -253,28 +411,39 @@ def accept(job_id: str):
     if not lesson or lesson.get("language_id") != job["language_id"]:
         return jsonify({"error": "The lesson does not belong to the document's language"}), 400
 
+    if error := _invalid_items(items):
+        return jsonify({"error": error}), 400
+
+    with db_manager.session_scope() as session:   # one transaction: all or nothing
+        created = _add_vocabulary(session, job, lesson_id, items)
+    return jsonify({"created": created})
+
+
+def _invalid_items(items) -> str | None:
     for item in items:
         if not isinstance(item, dict) or not str(item.get("word") or "").strip():
-            return jsonify({"error": "Every item needs a word"}), 400
+            return "Every item needs a word"
         if item.get("on_conflict", "keep") not in _CONFLICT_MODES:
-            return jsonify({"error": "on_conflict must be keep, merge or overwrite"}), 400
+            return "on_conflict must be keep, merge or overwrite"
+    return None
 
-    vocabulary_service = VocabularyService()
-    source_service = SourceService()
+
+def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
+    """Create Word + Vocabulary for each item in `lesson_id`, tagged with the import's Source."""
+    vocabulary_service, source_service = VocabularyService(), SourceService()
+    source = _import_source(session, current_user_id(), job["filename"])
     created = 0
-    with db_manager.session_scope() as session:   # one transaction: all or nothing
-        source = _import_source(session, current_user_id(), job["filename"])
-        for item in items:
-            word = WordDict(
-                word=str(item["word"]).strip(), translation=item.get("translation") or None,
-                phonetic=item.get("phonetic") or None, word_type=item.get("word_type") or None,
-            )
-            vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
-                                                   on_conflict=item.get("on_conflict", "keep"))
-            if vocabulary:
-                source_service.add_source_to_element(source.id, vocabulary.id, session=session)
-                created += 1
-    return jsonify({"created": created})
+    for item in items:
+        word = WordDict(
+            word=str(item["word"]).strip(), translation=item.get("translation") or None,
+            phonetic=item.get("phonetic") or None, word_type=item.get("word_type") or None,
+        )
+        vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
+                                               on_conflict=item.get("on_conflict", "keep"))
+        if vocabulary:
+            source_service.add_source_to_element(source.id, vocabulary.id, session=session)
+            created += 1
+    return created
 
 
 def _import_source(session, user_id: str, filename: str):
