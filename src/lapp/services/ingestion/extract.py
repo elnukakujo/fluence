@@ -42,8 +42,10 @@ def _system_prompt(target: str, source: str | None) -> str:
     return (
         f"You extract {target} vocabulary from text that comes from a language-learning document.{gloss}\n"
         "Rules:\n"
-        "- Extract only words and phrases that actually appear in the text. Invent nothing: no extra words, "
-        "no translations the text does not give (use null), no corrections.\n"
+        "- Extract only vocabulary the text presents as an entry with its translation (a word list, glossary or "
+        "table row). Skip words that only occur inside example sentences, dialogues, grammar notes or exercises.\n"
+        "- Invent nothing: no extra words, no translations the text does not give, no corrections. "
+        "If the text gives no translation for a word, leave that word out.\n"
         "- For every item give a `quote`: a short span copied verbatim from the text that contains the word.\n"
         "- Reply with ONLY a JSON array, no prose. Each item: "
         '{"word": str, "translation": str|null, "phonetic": str|null, "word_type": str|null, "quote": str}.\n'
@@ -87,7 +89,10 @@ def _validated(data) -> list[RawItem]:
     items = []
     for raw in data if isinstance(data, list) else [data]:
         try:
-            items.append(RawItem.model_validate(raw))
+            item = RawItem.model_validate(raw)
         except ValidationError:
             logger.info("Dropping malformed extraction item: %r", raw)
+            continue
+        if item.translation:  # a bare word is not an import candidate, whatever the model says
+            items.append(item)
     return items

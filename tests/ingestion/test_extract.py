@@ -78,9 +78,15 @@ def test_items_missing_word_or_quote_are_dropped(monkeypatch):
 
 
 def test_blank_optional_fields_become_none(monkeypatch):
-    _stub(monkeypatch, json.dumps([{**ITEM, "translation": "  ", "phonetic": "", "word_type": None}]))
+    _stub(monkeypatch, json.dumps([{**ITEM, "phonetic": "", "word_type": None}]))
     item = _run()[0]
-    assert (item.translation, item.phonetic, item.word_type) == (None, None, None)
+    assert (item.phonetic, item.word_type) == (None, None)
+
+
+def test_bare_words_without_a_translation_are_dropped(monkeypatch):
+    bare = [{**ITEM, "word": "吃", "translation": None}, {**ITEM, "word": "米饭", "translation": "  "}, ITEM]
+    _stub(monkeypatch, json.dumps(bare))
+    assert [i.word for i in _run()] == ["苹果"]
 
 
 def test_request_is_deterministic_and_forbids_invention(monkeypatch):
