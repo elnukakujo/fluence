@@ -48,7 +48,33 @@ def _ask_batch(batch: list[int], texts: dict[int, str], api: dict, target_name: 
         data = _parse_json(reply)
         if isinstance(data, list):
             valid = set(batch)
-            return {i["page"]: [k for k in ALL_KINDS if k in i["kinds"]] for i in data
+            return {i["page"]: _known(i["kinds"]) for i in data
                     if isinstance(i, dict) and isinstance(i.get("page"), int) and i["page"] in valid
                     and isinstance(i.get("kinds"), list)}
     return None
+
+
+def _known(kinds: list) -> list[Kind]:
+    """The recognised kinds; a non-empty reply with none of them is unreadable, so every kind. A real [] stays."""
+    known = [k for k in ALL_KINDS if k in kinds]
+    return known or ([] if not kinds else list(ALL_KINDS))
+
+
+def validate_page_kinds(raw, first_page: int, last_page: int,
+                        stored: dict | None = None) -> tuple[dict[int, list[str]] | None, str | None]:
+    """The user's {page: [kinds]} -> (every page of the range, None) or (None, reason).
+    JSON keys are strings. Pages left out keep their stored kinds, else every kind."""
+    if not isinstance(raw, dict):
+        return None, "page_kinds must be an object of page -> kinds"
+    clean: dict[int, list[str]] = {}
+    for page, kinds in raw.items():
+        if not (isinstance(page, int) and not isinstance(page, bool) or isinstance(page, str) and page.isdigit()):
+            return None, f"Page “{page}” is not a whole number"
+        page = int(page)
+        if not first_page <= page <= last_page:
+            return None, f"Page {page} is outside {first_page}-{last_page}"
+        if not isinstance(kinds, list) or any(not isinstance(k, str) or k not in ALL_KINDS for k in kinds):
+            return None, f"Page {page}: kinds must be a list from {', '.join(ALL_KINDS)}"
+        clean[page] = [k for k in ALL_KINDS if k in kinds]
+    stored = stored or {}
+    return {n: clean.get(n, stored.get(str(n), list(ALL_KINDS))) for n in range(first_page, last_page + 1)}, None

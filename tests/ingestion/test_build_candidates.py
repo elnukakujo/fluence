@@ -165,3 +165,19 @@ def test_every_attempted_call_failing_raises(monkeypatch):
     _patch_kinds(monkeypatch, lambda k, c: (_ for _ in ()).throw(ExtractionError("bad")))
     with pytest.raises(ExtractionError):
         _build(_doc("a b"), None, page_kinds={1: ["grammar"]})
+
+
+def test_one_kind_failing_in_a_chunk_is_a_warning_while_another_succeeds(monkeypatch):
+    def fn(kind, chunk):
+        if kind == "passage":
+            raise ExtractionError("bad json")
+        return [dict(GRAMMAR)]
+    _patch_kinds(monkeypatch, fn)
+    result = _build(_doc("Le passé Le passé composé"), None, page_kinds={1: ["grammar", "passage"]})
+    assert len(result.elements) == 1 and result.warnings == ["page 1 (passage): could not read the model's answer (bad json)"]
+
+
+def test_auth_error_from_an_element_call_propagates(monkeypatch):
+    _patch_kinds(monkeypatch, lambda k, c: (_ for _ in ()).throw(ModelAPIError(ModelAPIError.KIND_AUTH, 401, "bad key")))
+    with pytest.raises(ModelAPIError):
+        _build(_doc("a b"), None, page_kinds={1: ["grammar"]})

@@ -3,7 +3,7 @@ import json
 import pytest
 
 from lapp.services.ingestion import classify as classify_module
-from lapp.services.ingestion.classify import classify_pages
+from lapp.services.ingestion.classify import classify_pages, validate_page_kinds
 from lapp.services.ingestion.types import ALL_KINDS
 from lapp.utils.model_api import ModelAPIError
 from lapp.services.parsing.types import Block, Document, Page, Word
@@ -56,3 +56,32 @@ def test_auth_error_propagates(monkeypatch):
     _stub(monkeypatch, [ModelAPIError(ModelAPIError.KIND_AUTH, 401, "bad key")])
     with pytest.raises(ModelAPIError):
         _classify(_doc({1: "a"}))
+
+
+def test_only_unknown_kinds_means_all_kinds_but_empty_stays_empty(monkeypatch):
+    _stub(monkeypatch, [[{"page": 1, "kinds": ["wizard"]}, {"page": 2, "kinds": []}]])
+    assert _classify(_doc({1: "a", 2: "b"})) == {1: list(ALL_KINDS), 2: []}
+
+
+def test_retry_after_an_unreadable_reply(monkeypatch):
+    _stub(monkeypatch, ["nope", [{"page": 1, "kinds": ["grammar"]}]])
+    assert _classify(_doc({1: "a"})) == {1: ["grammar"]}
+
+
+def test_non_abort_api_error_means_all_kinds(monkeypatch):
+    _stub(monkeypatch, [ModelAPIError(ModelAPIError.KIND_SERVER, 500, "boom")])
+    assert _classify(_doc({1: "a", 2: "b"})) == {1: list(ALL_KINDS), 2: list(ALL_KINDS)}
+
+
+def test_validate_page_kinds_accepts_and_defaults():
+    ok, err = validate_page_kinds({"1": ["grammar"], "2": []}, 1, 3, stored={"3": ["passage"]})
+    assert err is None and ok == {1: ["grammar"], 2: [], 3: ["passage"]}
+    ok, err = validate_page_kinds({}, 1, 2)
+    assert ok == {1: list(ALL_KINDS), 2: list(ALL_KINDS)}
+
+
+@pytest.mark.parametrize("raw", [None, [], {"x": ["grammar"]}, {"9": ["grammar"]}, {"0": []}, {"1": ["wizard"]},
+                                 {"1": "grammar"}, {"1": [True]}, {"1": [1]}])
+def test_validate_page_kinds_rejects(raw):
+    ok, err = validate_page_kinds(raw, 1, 3)
+    assert ok is None and err
