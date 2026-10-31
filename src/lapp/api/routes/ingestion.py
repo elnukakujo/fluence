@@ -24,7 +24,7 @@ from ...services.system_data import SourceService, UserPreferencesService
 from ...utils.llm_providers import resolve_api
 from ...schemas.components import PassageDict, CharacterDict
 from ...schemas.features import GrammarDict
-from ...services.ingestion.elements import exercise_content_ok
+from ...services.ingestion.elements import conversation_json_ok, exercise_content_ok
 
 bp = Blueprint("ingestion", __name__, url_prefix="/api/ingestion")
 job_service = IngestionJobService()
@@ -673,6 +673,10 @@ def _invalid_elements(elements) -> str | None:
             exercise_type = fields.get("exercise_type")
             if exercise_type not in VALID_TYPES:
                 return f"Exercise requires a valid exercise_type, got: {exercise_type}"
+            if exercise_type == "conversation":
+                if not conversation_json_ok(fields["question"], fields["answer"]):
+                    return "A conversation needs its question and answer as speakers/lines JSON"
+                continue
             content = fields.get("content")
             if not exercise_content_ok(exercise_type, content):
                 return f"Exercise content does not match the required shape for type '{exercise_type}'"

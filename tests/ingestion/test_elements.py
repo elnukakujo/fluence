@@ -161,7 +161,6 @@ def test_exercise_content_ok_non_structured():
     assert el.exercise_content_ok("answering", None)
     assert el.exercise_content_ok("translate", None)
     assert el.exercise_content_ok("speaking", None)
-    assert el.exercise_content_ok("conversation", None)
     assert not el.exercise_content_ok("essay", {"x": 1})
 
 
@@ -184,8 +183,8 @@ def test_exercise_essay_generated_answer_has_sample_message():
     assert msg == "Sample answer written by the model - check it"
 
 
-def test_exercise_speaking_generated_answer_has_sample_message():
-    raw = {"exercise_type": "speaking", "question": "Say", "answer": "Words", "text_support": None, "content": None, "quote": "Say"}
+def test_exercise_essay_generated_answer_has_sample_message():
+    raw = {"exercise_type": "essay", "question": "Say", "answer": "Words", "text_support": None, "content": None, "quote": "Say"}
     c = el.verify_element("exercise", raw, _chunk("Say"), "en")
     msg = next((f.message for f in c.flags if f.code == "answer_generated"), None)
     assert msg == "Sample answer written by the model - check it"
@@ -339,3 +338,33 @@ def test_structured_exercises_are_stored_the_way_the_apps_form_stores_them():
     t = el.verify_element("exercise", tf, _chunk("Q The sky is blue"), "en")
     assert (t.fields["question"], t.fields["answer"]) == ("The sky is blue", "true")
     assert any(f.code == "answer_generated" for f in t.flags)      # the model decided true/false
+
+
+CONVERSATION = {"speakers": [{"name": "A", "is_learner": False}, {"name": "You", "is_learner": True}],
+                "lines": [{"speaker": "A", "text": "你好吗?"}, {"speaker": "You", "text": "我很好。"}]}
+
+
+def test_conversation_content_needs_a_learner_and_another_speaker_with_known_lines():
+    assert el.exercise_content_ok("conversation", CONVERSATION)
+    assert not el.exercise_content_ok("conversation", None)
+    assert not el.exercise_content_ok("conversation", {**CONVERSATION, "speakers": [{"name": "A", "is_learner": False}, {"name": "B", "is_learner": False}]})
+    assert not el.exercise_content_ok("conversation", {**CONVERSATION, "speakers": [{"name": "A", "is_learner": True}, {"name": "B", "is_learner": True}]})
+    assert not el.exercise_content_ok("conversation", {**CONVERSATION, "lines": [{"speaker": "Nobody", "text": "x"}, {"speaker": "A", "text": "y"}]})
+    assert not el.exercise_content_ok("conversation", {**CONVERSATION, "lines": [{"speaker": "A", "text": "x"}]})
+
+
+def test_a_conversation_is_stored_as_the_json_the_apps_runner_parses():
+    import json
+    raw = {"exercise_type": "conversation", "question": "Practise the dialogue", "answer": None, "text_support": None, "content": CONVERSATION, "quote": "你好吗"}
+    c = el.verify_element("exercise", raw, _chunk("Practise the dialogue 你好吗? 我很好。"), "zh")
+    q, a = json.loads(c.fields["question"]), json.loads(c.fields["answer"])
+    assert [s["isUser"] for s in q["speakers"]] == [False, True] and q["speakers"][0]["id"] == "s1"
+    assert q["lines"] == [{"speakerId": "s1", "text": "你好吗?", "audioIndex": None}, {"speakerId": "s2", "text": "我很好。", "audioIndex": None}]
+    assert a["speakers"] == [q["speakers"][1]] and a["lines"] == [q["lines"][1]]       # the answer is the learner's part only
+    assert c.fields["content"] is None and c.status == "verified"
+
+
+def test_a_speaking_exercise_stores_its_prompt_as_the_answer_like_the_form():
+    raw = {"exercise_type": "speaking", "question": "Read aloud: 你好", "answer": "something else", "text_support": None, "content": None, "quote": "你好"}
+    c = el.verify_element("exercise", raw, _chunk("Read aloud: 你好"), "zh")
+    assert c.fields["answer"] == c.fields["question"] and c.status == "verified"

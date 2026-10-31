@@ -1,4 +1,5 @@
 """Grammar, calligraphy and exercise extraction and deterministic verification (vocabulary lives in extract/verify)."""
+import json
 import re
 import uuid
 
@@ -17,14 +18,16 @@ _SHAPES = {
                  "an exercise is a numbered task or question for the learner to answer; a vocabulary list, a dialogue or a grammar note is NOT an exercise. "
                  "`exercise_type` MUST be exactly one of: essay, answering, translate, speaking, conversation, organize, type_in_the_blank, select_in_the_blank, matching, true_false, quizz "
                  "(short free answers = answering; translating a sentence = translate; reading aloud / pair or group talk = speaking or conversation; writing a text = essay). "
-                 "`content` is null for essay, answering, translate, speaking and conversation, and otherwise exactly: "
+                 "`content` is null for essay, answering, translate and speaking, and otherwise exactly: "
                  'quizz {"options": [str, ...], "correct": [indexes of every right option, e.g. [1]]}; '
                  'true_false {"statement": str, "answer": true|false}; '
                  'organize {"items": [str, ...], "answer_order": a permutation of 0..n-1}; '
                  'type_in_the_blank {"segments": [str, ...], "blanks": [{"answer": str}, ...]} with one more segment than blanks (the text around each gap); '
                  'select_in_the_blank the same, but every blank is {"answer": str, "options": [str, ...]} with at least 2 options that include the answer; '
-                 'matching {"pairs": [[str, str], ...]}. '
-                 "Copy `question` verbatim. `answer` is never null: use the answer the page gives (an answer key), otherwise WRITE a short answer yourself. "
+                 'matching {"pairs": [[str, str], ...]}; '
+                 'conversation {"speakers": [{"name": str, "is_learner": true|false}, ...], "lines": [{"speaker": a speaker name, "text": str}, ...]} '
+                 "(a dialogue the learner takes part in: one learner speaker, at least one other, lines in page order; `question` is the instruction line and `answer` may be empty). "
+                 "Copy `question` verbatim. `answer` is never null (except conversation): use the answer the page gives (an answer key), otherwise WRITE a short answer yourself. "
                  "Invent no exercises that are not on the page"),
 }
 
@@ -115,6 +118,18 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
             if exercise_type == "select_in_the_blank" and not (options and len(options) >= 2 and blank["answer"] in options):
                 return False
         return True
+    elif exercise_type == "conversation":
+        if not (isinstance(content, dict) and isinstance(content.get("speakers"), list) and isinstance(content.get("lines"), list)):
+            return False
+        speakers, lines = content["speakers"], content["lines"]
+        names = [sp["name"].strip() if isinstance(sp, dict) and isinstance(sp.get("name"), str) else "" for sp in speakers]
+        if not (2 <= len(names) <= 5) or "" in names or len(set(names)) != len(names):
+            return False
+        learners = [sp.get("is_learner") for sp in speakers]
+        if not all(isinstance(x, bool) for x in learners) or not (1 <= sum(learners) < len(names)):
+            return False
+        return len(lines) >= 2 and all(isinstance(l, dict) and l.get("speaker") in names and isinstance(l.get("text"), str) and l["text"].strip()
+                                       for l in lines)
     elif exercise_type == "matching":
         return (isinstance(content, dict) and not isinstance(content, bool) and "pairs" in content and
                 isinstance(content.get("pairs"), list) and
@@ -123,6 +138,27 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
     else:
         # Non-structured types: content must be None or empty dict
         return content is None or (isinstance(content, dict) and not isinstance(content, bool) and len(content) == 0)
+
+
+def conversation_json_ok(question: str, answer: str) -> bool:
+    """`question` / `answer` of a stored conversation, as the app's runner parses them (speakers + lines JSON)."""
+    try:
+        q, a = json.loads(question), json.loads(answer)
+    except (TypeError, ValueError):
+        return False
+    for data in (q, a):
+        if not (isinstance(data, dict) and isinstance(data.get("speakers"), list) and isinstance(data.get("lines"), list)):
+            return False
+        ids = [sp.get("id") for sp in data["speakers"] if isinstance(sp, dict)]
+        if len(ids) != len(data["speakers"]) or not all(isinstance(i, str) and i for i in ids) or len(set(ids)) != len(ids):
+            return False
+        if not all(isinstance(sp.get("name"), str) and isinstance(sp.get("isUser"), bool) for sp in data["speakers"]):
+            return False
+        if not all(isinstance(l, dict) and l.get("speakerId") in ids and isinstance(l.get("text"), str)
+                   and (l.get("audioIndex") is None or isinstance(l["audioIndex"], int)) for l in data["lines"]):
+            return False
+    users = [sp for sp in q["speakers"] if sp["isUser"]]
+    return bool(users) and len(users) < len(q["speakers"]) and len(q["lines"]) >= 2
 
 
 def app_form(exercise_type: str, content) -> tuple[str | None, str, list[str]] | None:
@@ -138,6 +174,15 @@ def app_form(exercise_type: str, content) -> tuple[str | None, str, list[str]] |
         return " ".join(content["items"]), ordered, [ordered]
     if exercise_type == "true_false":
         return content["statement"], "true" if content["answer"] else "false", []
+    if exercise_type == "conversation":
+        speakers = [{"id": f"s{i + 1}", "name": sp["name"].strip(), "isUser": sp["is_learner"]} for i, sp in enumerate(content["speakers"])]
+        ids = {sp["name"]: sp["id"] for sp in speakers}
+        lines = [{"speakerId": ids[l["speaker"].strip()], "text": l["text"].strip(), "audioIndex": None} for l in content["lines"]]
+        learner = {sp["id"] for sp in speakers if sp["isUser"]}
+        mine = [l for l in lines if l["speakerId"] in learner]
+        return (json.dumps({"speakers": speakers, "lines": lines}, ensure_ascii=False),
+                json.dumps({"speakers": [sp for sp in speakers if sp["isUser"]], "lines": mine}, ensure_ascii=False),
+                [l["text"] for l in mine])
     if exercise_type == "quizz":
         return None, ", ".join(content["options"][i] for i in content["correct"]), [content["options"][i] for i in content["correct"]]
     return None
@@ -197,8 +242,11 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         form = app_form(exercise_type, content)
         pieces = None
         if form:
-            form_question, answer, pieces = form
+            form_question, form_answer, pieces = form
             question = form_question or question
+            answer = form_answer or answer
+        if exercise_type == "speaking":
+            answer, pieces = question, None          # the app's form stores the prompt as the answer
         if not question or not answer:
             return None
 
@@ -218,7 +266,7 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
             "question": question,
             "answer": answer,
             "text_support": raw.get("text_support"),
-            "content": content,
+            "content": None if exercise_type == "conversation" else content,
         }
 
     if normalise(raw["quote"]) not in text and not any(f.code == "quote_not_in_source" for f in flags):

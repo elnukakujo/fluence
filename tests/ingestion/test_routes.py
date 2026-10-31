@@ -563,3 +563,24 @@ def test_a_lesson_level_import_is_finished_once_something_was_added(app, db, med
     res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "zzfin"}]})
     assert res.status_code == 200, res.get_json()
     assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is True
+
+
+def test_accept_stores_exercises_in_the_shapes_the_app_loads(app, db, media_root, scheduled):
+    from lapp.models.features import Exercise
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    svc.update(job_id, status="ready")
+    conv_q = '{"speakers":[{"id":"s1","name":"A","isUser":false},{"id":"s2","name":"You","isUser":true}],"lines":[{"speakerId":"s1","text":"hi","audioIndex":null},{"speakerId":"s2","text":"hello","audioIndex":null}]}'
+    elements = [
+        {"kind": "exercise", "fields": {"exercise_type": "quizz", "question": "Pick", "answer": "b", "content": {"options": ["a", "b"], "correct": [1]}}},
+        {"kind": "exercise", "fields": {"exercise_type": "type_in_the_blank", "question": "The __ is red", "answer": "car",
+                                        "content": {"segments": ["The ", " is red"], "blanks": [{"answer": "car"}]}}},
+        {"kind": "exercise", "fields": {"exercise_type": "conversation", "question": conv_q, "answer": conv_q, "content": None}},
+    ]
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "elements": elements})
+    assert res.status_code == 200 and res.get_json()["created_elements"] == 3
+    with db.session_scope() as s:
+        by_type = {e.exercise_type: e for e in s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").all()}
+        assert by_type["quizz"].content == {"options": ["a", "b"], "correct": [1]}
+        assert by_type["type_in_the_blank"].content["blanks"] == [{"answer": "car"}]
+        assert by_type["conversation"].question == conv_q
