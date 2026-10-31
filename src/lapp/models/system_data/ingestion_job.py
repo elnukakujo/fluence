@@ -25,6 +25,8 @@ class IngestionJob(Base):
     error = Column(Text, nullable=True)
     # language-level imports: proposed/confirmed lessons {confirmed, first_page, last_page, lessons:[...]}
     structure = Column(JSON, nullable=True)
+    # {"1-based page": [kind, ...]} from the per-page kind classifier; null until classified
+    page_kinds = Column(JSON, nullable=True)
     warnings = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
@@ -35,7 +37,7 @@ class IngestionJob(Base):
             "lesson_id": self.lesson_id, "filename": self.filename, "file_path": self.file_path,
             "handwritten": self.handwritten, "page_from": self.page_from, "page_to": self.page_to, "status": self.status,
             "pages_done": self.pages_done, "pages_total": self.pages_total,
-            "error": self.error, "structure": self.structure, "warnings": self.warnings or [],
+            "error": self.error, "structure": self.structure, "page_kinds": self.page_kinds, "warnings": self.warnings or [],
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

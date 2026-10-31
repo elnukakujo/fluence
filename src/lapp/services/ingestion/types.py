@@ -9,7 +9,10 @@ FlagCode = Literal[
     "word_not_in_source", "quote_not_in_source", "translation_generated",
     "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
     "already_in_language", "already_in_lesson",
+    "explanation_not_in_source",
 ]
+Kind = Literal["vocabulary", "grammar", "passage", "character"]
+ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "passage", "character"]
 
 
 class Chunk(BaseModel):
@@ -33,6 +36,19 @@ class Candidate(BaseModel):
     translation: str | None = None
     phonetic: str | None = None
     word_type: str | None = None
+    quote: str
+    page: int
+    chunk_id: str
+    status: Literal["verified", "flagged"]
+    flags: list[Flag] = []
+    min_conf: float | None = None
+
+
+class ElementCandidate(BaseModel):
+    """A non-vocabulary element (grammar, passage, character) proposed for import."""
+    id: str
+    kind: Kind
+    fields: dict
     quote: str
     page: int
     chunk_id: str

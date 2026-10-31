@@ -44,6 +44,12 @@ def test_create_persists_a_queued_job_with_a_path_inside_its_own_folder(job):
     assert job["file_path"] == f"ingestion/{job['id']}/notes.pdf"
 
 
+def test_job_stores_page_kinds(job):
+    assert job["page_kinds"] is None
+    svc.update(job["id"], page_kinds={"3": ["grammar"]})
+    assert svc.get(job["id"])["page_kinds"] == {"3": ["grammar"]}
+
+
 def test_only_the_owner_can_get_or_delete_a_job(job, db):
     make_user(db, "user_U2")
     assert svc.get(job["id"], user_id="user_U2") is None
