@@ -224,4 +224,13 @@ describe("ReviewPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Show the original page" }));
     expect(screen.getByRole("button", { name: "Hide the page" })).toBeInTheDocument();
   });
+
+  it("says on the card whether it is confirmed, and Undo confirm takes it back", async () => {
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getByText(/To confirm - not added yet/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(screen.getByText(/Confirmed - will be added/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Undo confirm" }));
+    expect(screen.getByText(/To confirm - not added yet/)).toBeInTheDocument();
+  });
 });

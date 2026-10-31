@@ -33,7 +33,8 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
 
   const shown = existing ? Object.entries(existing).filter(([, v]) => v !== null && v !== "") : [];
   return (
-    <li className="card flex flex-col gap-2" onFocus={onFocus} onClick={onFocus}>
+    <li className="card review-card flex flex-col gap-2" data-state={row.selected ? "confirmed" : "pending"} onFocus={onFocus} onClick={onFocus}>
+      <p className="review-state text-sm font-semibold">{row.selected ? "✓ Confirmed - will be added" : "To confirm - not added yet"}</p>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1 break-words">{summary}</div>
         <span className="badge" title={badgeTitle}>{badge}</span>
@@ -59,8 +60,8 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
       )}
       {footer}
       <div className="btn-row flex-wrap">
-        <button type="button" className={`btn ${row.selected ? "btn-primary" : "btn-secondary"}`} aria-pressed={row.selected}
-          onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? "✓ Confirmed" : "Confirm"}</button>
+        <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`}
+          onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? "Undo confirm" : "Confirm"}</button>
         <button type="button" className="btn btn-secondary" aria-expanded={editing} onClick={() => setEditing((e) => !e)}>{editing ? "Done editing" : "Edit"}</button>
         <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true, selected: false })}>Delete</button>
       </div>

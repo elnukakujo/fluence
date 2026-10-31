@@ -826,6 +826,12 @@
     opacity: 1;
   }
 
+  /* Import review card: the user's decision (confirmed or not) is the card's colour and edge, not just a button label */
+  .review-card { border-left: 5px solid #c9a227; }
+  .review-card[data-state="confirmed"] { border-left-color: var(--color-primary); background: rgb(74 93 62 / 0.08); }
+  .review-card[data-state="pending"] .review-state { color: #8a6d00; }
+  .review-card[data-state="confirmed"] .review-state { color: var(--color-primary); }
+
   .btn-row {
     display: flex;
     gap: 0.5rem;

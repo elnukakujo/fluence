@@ -79,7 +79,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("grammar_generated");
       return (
         <ReviewCard {...common} summary={<><strong>{row.title}</strong> <span className="opacity-70">{clip(row.explanation ?? "")}</span></>}
-          badge={generated ? "✎ Generated" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+          badge={generated ? "✎ Generated" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
           badgeTitle={generated ? "Written by the model from the page text - check it" : confirmedTitle}>
           <label className="flex flex-col gap-1">
             <span className="field-label">Title</span>
@@ -101,7 +101,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     if (kind === "calligraphy") {
       return (
         <ReviewCard {...common} existing={c.existing} summary={<><span className="mr-2 text-2xl">{row.character}</span>{row.meaning}</>}
-          badge={c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"} badgeTitle={confirmedTitle}>
+          badge={c.status === "verified" ? "✓ Found in text" : "⚠ Check this"} badgeTitle={confirmedTitle}>
           <div className="flex flex-wrap gap-3">
             <label className="flex min-w-16 flex-col gap-1">
               <span className="field-label">Character</span>
@@ -125,7 +125,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("answer_generated");
       return (
         <ReviewCard {...common} summary={<><span className="badge mr-2">{row.exercise_type || "exercise"}</span>{clip(row.question ?? "")}</>}
-          badge={generated ? "✎ Generated answer" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+          badge={generated ? "✎ Generated answer" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
           badgeTitle={generated ? "The model wrote this answer, not found in the document" : confirmedTitle}>
           <label className="flex flex-col gap-1">
             <span className="field-label">Question</span>
@@ -144,7 +144,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     return (
       <ReviewCard {...common} existing={exists}
         summary={<><strong>{row.word}</strong> {row.phonetic && <span className="opacity-70">{row.phonetic} </span>}— {row.translation}{row.word_type && <span className="opacity-60"> ({row.word_type})</span>}</>}
-        badge={generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+        badge={generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
         badgeTitle={generated ? "The document gave no translation; the model wrote this one" : confirmedTitle}>
         <div className="flex flex-wrap gap-3">
           {(["word", "translation", "phonetic"] as const).map((key) => (
@@ -169,10 +169,10 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-2">
           <p aria-live="polite">
-            {counts.total} found · {counts.verified} confirmed in the text · {counts.flagged} need your check · {counts.selected} to add
+            {counts.total} found · {counts.verified} found in the text · {counts.flagged} need your check · {counts.selected} to add
           </p>
           <p className="text-xs opacity-60">
-            Only items you confirm are added. "Confirmed in the text" means the item and its quote appear in the document; anything written by the model starts unconfirmed: compare it with the page.
+            Only items you confirm are added. "Found in the text" means the item and its quote appear in the document; anything written by the model starts unconfirmed: compare it with the page.
           </p>
         </div>
 
@@ -193,7 +193,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           <div className="btn-row flex-wrap">
             {(["all", "verified", "flagged"] as Filter[]).map((f) => (
               <button key={f} type="button" className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-                {f === "all" ? "All" : f === "verified" ? "Confirmed in the text" : "Need checking"}
+                {f === "all" ? "All" : f === "verified" ? "Found in the text" : "Need checking"}
               </button>
             ))}
             <button type="button" className="btn btn-secondary" onClick={confirmVerified}>Confirm all verified</button>
