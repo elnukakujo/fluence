@@ -140,6 +140,8 @@ class GrammarService:
             title=data.title,
             explanation=data.explanation,
             example_sentences=example_sentences,
+            image_files=data.image_files or [],
+            audio_files=data.audio_files or [],
             tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
             sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
         )

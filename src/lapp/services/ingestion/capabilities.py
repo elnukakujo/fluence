@@ -40,4 +40,5 @@ def capabilities(user_id: str, language_id: str, lesson_id: Optional[str] = None
     language = LanguageService().get_by_id(language_id, as_dict=True, include_relations=False)
     if language and get_language_by_iso2t(language.get("target_iso639_2t") or "").iso1 == "unknown":
         warnings.append(_item(CUSTOM_LANGUAGE))
-    return {"can_import": not reasons, "reasons": reasons, "warnings": warnings}
+    return {"can_import": not reasons, "reasons": reasons, "warnings": warnings,
+            "can_generate_audio": bool(prefs and prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts"))}

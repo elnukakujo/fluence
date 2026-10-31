@@ -10,6 +10,7 @@ from ...schemas.components.word import WORD_TYPES
 from ...schemas.containers import LessonDict
 from ...schemas.features import VocabularyDict, ExerciseDict, CalligraphyDict
 from ...schemas.system_data import SourceDict
+from ...models.containers import Language
 from ...services import LessonService, VocabularyService
 from ...services.components import PassageService, CharacterService
 from ...services.features import GrammarService, ExerciseService, CalligraphyService
@@ -17,6 +18,7 @@ from ...services.ingestion.jobs import (IngestionJobService, candidates_path, cr
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
 from ...services.ingestion.structure import validate_structure
+from ...services.ingestion.attach import attach_audio, attach_image, save_upload, with_audio_indexes
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
@@ -433,6 +435,32 @@ def confirm_pages(job_id: str):
     return jsonify({"status": "extracting"})
 
 
+@bp.route("/<job_id>/media", methods=["POST"])
+@login_required
+def upload_media(job_id: str):
+    """Keep an image or audio file the user chose to replace a suggested one; it is attached when the item is added.
+    ---
+    tags:
+        - Ingestion
+    consumes:
+        - multipart/form-data
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - {name: file, in: formData, type: file, required: true}
+    responses:
+        200: {description: "id and kind (image or audio)"}
+        400: {description: Missing or unsupported file}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    file = request.files.get("file")
+    if file is None:
+        return jsonify({"error": "Choose a file"}), 400
+    saved = save_upload(current_app.config["MEDIA_ROOT"], job_id, file)
+    return (jsonify(saved), 400) if "error" in saved else jsonify(saved)
+
+
 @bp.route("/<job_id>/back", methods=["POST"])
 @login_required
 def step_back(job_id: str):
@@ -512,6 +540,7 @@ def accept_lesson(job_id: str, index: int):
     require_write(job["language_id"])
 
     created_file = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index)
+    notes: list[str] = []
     with db_manager.session_scope() as session:   # lesson + vocabulary in one transaction
         lesson_id = created_file.read_text().strip() if created_file.is_file() else None
         if not lesson_id or not LessonService().get_by_id(lesson_id, session=session):
@@ -520,10 +549,10 @@ def accept_lesson(job_id: str, index: int):
                 user_id=owner_user_id(job["language_id"]), level=job.get("level")), session=session)
             lesson_id = created.id
         added = _add_vocabulary(session, job, lesson_id, items)
-        added_elements = _add_elements(session, job, lesson_id, job["language_id"], elements)
+        added_elements = _add_elements(session, job, lesson_id, job["language_id"], elements, notes)
     created_file.parent.mkdir(parents=True, exist_ok=True)
     created_file.write_text(lesson_id)
-    return jsonify({"lesson_id": lesson_id, "created": added, "created_elements": added_elements})
+    return jsonify({"lesson_id": lesson_id, "created": added, "created_elements": added_elements, "notes": notes})
 
 
 @bp.route("/<job_id>/accept", methods=["POST"])
@@ -583,14 +612,14 @@ def accept(job_id: str):
     if error := _invalid_items(items) or _invalid_elements(elements):
         return jsonify({"error": error}), 400
 
+    notes: list[str] = []
     with db_manager.session_scope() as session:   # one transaction: all or nothing
         created = _add_vocabulary(session, job, lesson_id, items)
-        created_elements = _add_elements(session, job, lesson_id, job["language_id"], elements)
+        created_elements = _add_elements(session, job, lesson_id, job["language_id"], elements, notes)
     marker = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, 0)   # lesson-level: marks the import as finished
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(lesson_id)
-    return jsonify({"created": created, "created_elements": created_elements})
-
+    return jsonify({"created": created, "created_elements": created_elements, "notes": notes})
 
 
 def _invalid_items(items) -> str | None:
@@ -600,6 +629,20 @@ def _invalid_items(items) -> str | None:
         if item.get("on_conflict", "keep") not in _CONFLICT_MODES:
             return "on_conflict must be keep, merge or overwrite"
     return None
+
+
+def _speaker(job: dict):
+    """speak(text) -> stored audio path through the user's TTS endpoint, or None when they have none (or switched it off)."""
+    from ...services import TTSService
+    from ...utils.detect_language import get_language_by_iso2t
+    prefs = UserPreferencesService().get_by_user_id(current_user_id())
+    api = resolve_api(prefs, "tts") if prefs and prefs.ai_tts_enabled is not False else None
+    if not api or not api.get("base_url"):
+        return None
+    language = db_manager.find_by_attr(model_class=Language, attr_values={"id": job["language_id"]})
+    code = get_language_by_iso2t(language.target_iso639_2t).iso1 if language else None
+    tts = TTSService()
+    return lambda text: tts.generate_audio(text=text, language_code=code, api=api)
 
 
 def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
@@ -613,7 +656,8 @@ def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
             phonetic=item.get("phonetic") or None,
             word_type=item["word_type"] if item.get("word_type") in WORD_TYPES else None,
         )
-        vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
+        picture = attach_image(current_app.config["MEDIA_ROOT"], job, item.get("media"))
+        vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word, image_files=[picture] if picture else []), session=session,
                                                on_conflict=item.get("on_conflict", "keep"))
         if vocabulary:
             source_service.add_source_to_element(source.id, vocabulary.id, session=session)
@@ -688,10 +732,13 @@ def _normalize_text(text: str) -> str:
     return " ".join(str(text).split()).lower()
 
 
-def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list) -> int:
+def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list, notes_out: list | None = None) -> int:
     """Create grammar (with nested passages), calligraphy (with nested character) and exercises for each element, tagged with import source."""
     if not isinstance(elements, list):
         return 0
+    notes_out = notes_out if notes_out is not None else []
+    media_root = current_app.config["MEDIA_ROOT"]
+    speak = _speaker(job) if any((e.get("media") or {}).get("audio", {}).get("tts") for e in elements if isinstance(e, dict)) else None
 
     grammar_service = GrammarService()
     exercise_service = ExerciseService()
@@ -720,11 +767,13 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     if sent_text:
                         example_sentences.append(PassageDict(text=sent_text, language_id=language_id))
 
+                picture = attach_image(media_root, job, elem.get("media"))
                 grammar_dict = GrammarDict(
                     lesson_id=lesson_id,
                     title=title,
                     explanation=str(fields.get("explanation", "")).strip(),
-                    example_sentences=example_sentences if example_sentences else None
+                    example_sentences=example_sentences if example_sentences else None,
+                    image_files=[picture] if picture else [],
                 )
                 grammar = grammar_service.create(grammar_dict, session=session)
                 if grammar:
@@ -766,13 +815,21 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 Exercise.question == question
             ).first()
             if not existing:
+                answer = fields.get("answer") or ""
+                picture = attach_image(media_root, job, elem.get("media"))
+                audio_files, line_index, notes = attach_audio(media_root, job, elem.get("media"), speak)
+                notes_out.extend(notes)
+                if fields.get("exercise_type") == "conversation":
+                    question, answer = with_audio_indexes(question, answer, line_index)
                 exercise_dict = ExerciseDict(
                     lesson_id=lesson_id,
                     exercise_type=fields.get("exercise_type") or "",
                     question=question,
-                    answer=fields.get("answer") or "",
+                    answer=answer,
                     text_support=fields.get("text_support") or None,
                     content=fields.get("content") or None,
+                    image_files=[picture] if picture else [],
+                    audio_files=audio_files,
                 )
                 created_exercise = exercise_service.create(exercise_dict, session=session)
                 if created_exercise:

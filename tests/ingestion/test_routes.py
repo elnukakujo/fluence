@@ -584,3 +584,81 @@ def test_accept_stores_exercises_in_the_shapes_the_app_loads(app, db, media_root
         assert by_type["quizz"].content == {"options": ["a", "b"], "correct": [1]}
         assert by_type["type_in_the_blank"].content["blanks"] == [{"answer": "car"}]
         assert by_type["conversation"].question == conv_q
+
+
+def _lesson_job(client):
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    svc.update(job_id, status="ready")
+    return job_id
+
+
+def test_media_upload_accepts_images_and_audio_and_rejects_other_files(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _lesson_job(client)
+    post = lambda name: client.post(f"/api/ingestion/{job_id}/media", data={"file": (io.BytesIO(b"x"), name)}, content_type="multipart/form-data")
+    assert post("pic.png").get_json()["kind"] == "image" and post("clip.mp3").get_json()["kind"] == "audio"
+    assert post("run.exe").status_code == 400
+    assert client.post(f"/api/ingestion/{job_id}/media").status_code == 400
+
+
+def test_accept_attaches_a_crop_an_upload_and_tts_clips_to_an_exercise(app, db, media_root, scheduled, monkeypatch):
+    import json
+    import pymupdf
+    from lapp.models.features import Exercise
+    from lapp.api.routes import ingestion as routes
+    client = _setup(app, db, media_root)
+    job_id = _lesson_job(client)
+    doc = pymupdf.open()
+    doc.new_page(width=200, height=400).insert_text((20, 120), "hello")
+    doc.save(media_root / svc.get(job_id)["file_path"])
+    clip = client.post(f"/api/ingestion/{job_id}/media", data={"file": (io.BytesIO(b"RIFFx"), "mine.wav")}, content_type="multipart/form-data").get_json()["id"]
+
+    def speak(text):
+        path = media_root / "audio" / f"{abs(hash(text))}.wav"
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(b"RIFFtts")
+        return f"audio/{path.name}"
+    monkeypatch.setattr(routes, "_speaker", lambda job: speak)
+    q = {"speakers": [{"id": "s1", "name": "A", "isUser": False}, {"id": "s2", "name": "You", "isUser": True}],
+         "lines": [{"speakerId": "s1", "text": "hi", "audioIndex": None}, {"speakerId": "s2", "text": "hello", "audioIndex": None},
+                   {"speakerId": "s1", "text": "bye", "audioIndex": None}]}
+    a = {"speakers": [q["speakers"][1]], "lines": [q["lines"][1]]}
+    el = {"kind": "exercise", "fields": {"exercise_type": "conversation", "question": json.dumps(q), "answer": json.dumps(a), "content": None},
+          "media": {"image": {"crop": {"page": 0, "bbox": [0, 100, 100, 140], "page_size": [200, 400]}},
+                    "audio": {"lines": ["hi", "hello", "bye"], "uploads": {"1": clip}, "tts": True}}}
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "elements": [el]})
+    assert res.status_code == 200 and res.get_json()["created_elements"] == 1
+    with db.session_scope() as s:
+        e = s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").one()
+        assert len(e.image_files) == 1 and e.image_files[0].endswith(".png") and len(e.audio_files) == 3
+        lines = json.loads(e.question)["lines"]
+        assert [l["audioIndex"] for l in lines] == [0, 1, 2]
+        assert [l["audioIndex"] for l in json.loads(e.answer)["lines"]] == [1]       # the learner's line keeps its own clip
+
+
+def test_a_failed_tts_clip_is_reported_and_the_exercise_is_still_added(app, db, media_root, scheduled, monkeypatch):
+    from lapp.api.routes import ingestion as routes
+    client = _setup(app, db, media_root)
+    job_id = _lesson_job(client)
+
+    def boom(text):
+        raise RuntimeError("endpoint down")
+    monkeypatch.setattr(routes, "_speaker", lambda job: boom)
+    el = {"kind": "exercise", "fields": {"exercise_type": "speaking", "question": "Say hi", "answer": "Say hi", "content": None},
+          "media": {"audio": {"lines": ["Say hi"], "tts": True}}}
+    body = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "elements": [el]}).get_json()
+    assert body["created_elements"] == 1 and "endpoint down" in body["notes"][0]
+
+
+def test_accept_attaches_an_uploaded_picture_to_vocabulary_and_grammar(app, db, media_root, scheduled):
+    from lapp.models.features import Grammar, Vocabulary
+    client = _setup(app, db, media_root)
+    job_id = _lesson_job(client)
+    pic = client.post(f"/api/ingestion/{job_id}/media", data={"file": (io.BytesIO(b"\x89PNGx"), "p.png")}, content_type="multipart/form-data").get_json()["id"]
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1",
+        "items": [{"word": "zzpic", "translation": "picture", "media": {"image": {"upload": pic}}}],
+        "elements": [{"kind": "grammar", "fields": {"title": "Pic grammar", "explanation": "x", "example_sentences": []}, "media": {"image": {"upload": pic}}}]})
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        assert all(len(m.image_files) == 1 for m in s.query(Vocabulary).filter(Vocabulary.lesson_id == "lesson_L1").all())
+        assert len(s.query(Grammar).filter(Grammar.title == "Pic grammar").one().image_files) == 1
