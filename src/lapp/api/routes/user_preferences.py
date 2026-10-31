@@ -246,19 +246,22 @@ def test_endpoint():
             except Exception:
                 return False, str(e)
 
-    def _text_gen_probe() -> tuple[bool, str | None, list]:
-        """GET /models + optional mini chat completion."""
+    def _list_models() -> tuple[bool, str | None, list]:
+        """GET /models: proves connectivity and key, and lists the models the provider offers."""
         tg_url, tg_headers = auth_headers(f"{base_url.rstrip('/')}/models", api_key, auth_type)
         try:
             with httpx.Client(trust_env=False, timeout=8) as client:
                 resp = client.get(tg_url, headers=tg_headers)
                 resp.raise_for_status()
                 models_data = resp.json()
-                models = [m["id"] for m in models_data.get("data", [])]
+                return True, None, [m["id"] for m in models_data.get("data", [])]
         except Exception as e:
             return False, str(e), []
 
-        if model:
+    def _text_gen_probe() -> tuple[bool, str | None, list]:
+        """GET /models + optional mini chat completion."""
+        ok, error, models = _list_models()
+        if ok and model:
             try:
                 chat_completion(
                     base_url=base_url, api_key=api_key, model=model,
@@ -267,7 +270,7 @@ def test_endpoint():
                 )
             except Exception:
                 pass  # /models passed, chat probe is optional
-        return True, None, models
+        return ok, error, models
 
     body = request.json or {}
     base_url = (body.get("base_url") or "").strip()
@@ -286,15 +289,20 @@ def test_endpoint():
     if api_type == "ocr":
         if api_format not in ("openai", "anthropic", "gemini", "mistral_ocr"):
             return jsonify({"ok": False, "error": "OCR endpoints must use the OpenAI, Anthropic, Gemini or Mistral OCR format"}), 400
+        # Connection first (and the model list, so the user can pick one); the vision probe needs a model.
+        ok, error, models = _list_models()
+        ms = round((time.perf_counter() - start) * 1000)
+        if not ok:
+            return jsonify({"ok": False, "ms": ms, "error": error, "available_models": models})
         if not model:
-            return jsonify({"ok": False, "error": "Enter a vision model name to test"}), 400
+            return jsonify({"ok": True, "ms": ms, "available_models": models})
         vision = (probe_ocr_api(base_url, api_key, model, auth_type) if api_format == "mistral_ocr"
                   else probe_vision(base_url, api_key, model, auth_type, api_format))
         ms = round((time.perf_counter() - start) * 1000)
         if vision == "unreachable":
-            return jsonify({"ok": False, "ms": ms, "vision": vision,
+            return jsonify({"ok": False, "ms": ms, "vision": vision, "available_models": models,
                             "error": "Cannot reach the endpoint - check URL, key and model name"})
-        return jsonify({"ok": vision == "reads_images", "ms": ms, "vision": vision,
+        return jsonify({"ok": vision == "reads_images", "ms": ms, "vision": vision, "available_models": models,
                         **({"error": "Connected, but this model can't read images"} if vision == "no_vision" else {})})
 
     # ── TTS / both: probe /audio/speech ──
