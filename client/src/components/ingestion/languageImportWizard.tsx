@@ -6,12 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Job, type LessonProgress, type Structure, acceptLesson, confirmStructure, deleteJob, getJob,
-  flattenElements, getLanguageCandidates, getStructure,
+  flattenElements, getLanguageCandidates, getStructure, stepBack,
 } from "@/api/ingestion";
 import {
   type Draft, addDraft, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
 } from "@/lib/ingestion/structure";
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
+import StepProgress from "./stepProgress";
 import { STATUS_TEXT, UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
 import { PageKindsWithViewer } from "./pageKinds";
@@ -64,6 +65,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
   if (job.status === "queued" || job.status === "parsing") {
     return (
       <div className="card flex max-w-2xl flex-col gap-3">
+        <StepProgress step={1} second="Choose the lessons" />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
         <p className="text-sm opacity-70">
@@ -83,12 +85,13 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
     );
   }
   if (job.status === "structure") {
-    return <StructureStep job={job} onConfirmed={() => { setJob({ ...job, status: "extracting" }); setNonce((n) => n + 1); }} />;
+    return <StructureStep job={job} onRestart={startOver} onConfirmed={() => { setJob({ ...job, status: "extracting" }); setNonce((n) => n + 1); }} />;
   }
-  return <LessonsReview job={job} languageId={languageId} languageName={languageName} />;
+  return <LessonsReview job={job} languageId={languageId} languageName={languageName}
+    onBack={async () => { await stepBack(jobId); setJob({ ...job, status: "structure" }); setNonce((n) => n + 1); }} />;
 }
 
-function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void }) {
+function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed: () => void; onRestart: () => void }) {
   const [structure, setStructure] = useState<Structure | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +139,7 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
   return (
     <section className="flex max-w-4xl flex-col gap-4">
       <header className="card flex flex-col gap-2">
+        <StepProgress step={2} second="Choose the lessons" />
         <h2>Which lessons are in {job.filename}?</h2>
         <p className="text-sm opacity-70">
           We looked at the top of every page to guess where each lesson starts. Check the titles and page numbers, rename,
@@ -201,7 +205,8 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
           {included} lesson{included === 1 ? "" : "s"} · up to {calls} model call{calls === 1 ? "" : "s"} (one per page; pages without text cost nothing). The calls use your own text endpoint.
         </p>
         {(problem || error) && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error ?? problem}</p>}
-        <div className="btn-row">
+        <div className="btn-row flex-wrap">
+          <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>← Choose another document</button>
           <button type="button" className="btn btn-secondary" onClick={() => setDrafts((ds) => addDraft(ds, structure.last_page))}>Add a lesson</button>
           <button type="button" className="btn btn-primary" disabled={!!problem || saving} onClick={confirm}>
             {saving ? "Starting…" : `Extract the content of ${included} lesson${included === 1 ? "" : "s"}`}
@@ -212,7 +217,7 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
   );
 }
 
-function LessonsReview({ job, languageId, languageName }: { job: Job; languageId: string; languageName: string }) {
+function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; languageId: string; languageName: string; onBack: () => Promise<void> }) {
   const [lessons, setLessons] = useState<LessonProgress[] | null>(null);
   const [status, setStatus] = useState(job.status);
   const [notes, setNotes] = useState<string[]>([]);
@@ -252,6 +257,7 @@ function LessonsReview({ job, languageId, languageName }: { job: Job; languageId
   return (
     <section className="flex flex-col gap-4">
       <header className="card flex flex-col gap-2">
+        <StepProgress step={3} second="Choose the lessons" />
         <h2>{job.filename}</h2>
         <p aria-live="polite">
           {ready} of {lessons.length} lessons ready · {addedCount} added to "{languageName}"
@@ -259,6 +265,9 @@ function LessonsReview({ job, languageId, languageName }: { job: Job; languageId
         </p>
         {status === "extracting" && <ProgressBar current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
         <p className="text-xs opacity-60">Review each lesson and add it when you are happy. Nothing is created until you press "Add".</p>
+        {status !== "extracting" && addedCount === 0 && (
+          <div className="btn-row"><button type="button" className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : "Could not go back"))}>← Back to the lessons</button></div>
+        )}
         {notes.length > 0 && (
           <details>
             <summary className="cursor-pointer text-sm">{notes.length} note{notes.length > 1 ? "s" : ""} from the import</summary>

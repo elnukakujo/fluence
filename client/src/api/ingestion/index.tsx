@@ -108,6 +108,12 @@ export async function deleteJob(jobId: string): Promise<void> {
   if (!res.ok) return fail(res, "Could not delete this import");
 }
 
+/** Back from the review to the pages / lessons step (the results are discarded). */
+export async function stepBack(jobId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/back`, { method: "POST", headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not go back");
+}
+
 /** 1-based document page. Same-origin, so the session cookie authorises the <img>. */
 export const pageImageUrl = (jobId: string, page: number) => `${BASE_URL}/api/ingestion/${jobId}/pages/${page}.png`;
 

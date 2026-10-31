@@ -7,11 +7,12 @@ import { type AcceptPayload } from "@/lib/ingestion/review";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Capabilities, type Job, type SourceMetadata, acceptCandidates, confirmPages, deleteJob, getCandidates, getCapabilities,
-  getJob, getPages, uploadDocument,
+  getJob, getPages, stepBack, uploadDocument,
 } from "@/api/ingestion";
 import { type Candidate, pageSpan, parsePageRange } from "@/lib/ingestion/review";
 import ReviewPanel from "./reviewPanel";
 import { PageKindsWithViewer } from "./pageKinds";
+import StepProgress from "./stepProgress";
 import FilePreview from "./filePreview";
 import SourceStep, { type SourceStepData } from "./sourceStep";
 
@@ -78,6 +79,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
 
   return (
     <form onSubmit={submit} className="card flex max-w-2xl flex-col gap-4">
+      <StepProgress step={1} second={lessonId ? "Choose the pages" : "Choose the lessons"} />
       <div>
         <h2>{heading}</h2>
         <p className="text-sm opacity-70">
@@ -184,11 +186,12 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   if (!job) return <div className="card max-w-2xl" aria-busy="true">Loading…</div>;
 
   if (job.status === "pages") {
-    return <PagesStep job={job} lessonId={lessonId} lessonTitle={lessonTitle} base={base} />;
+    return <PagesStep job={job} lessonId={lessonId} lessonTitle={lessonTitle} base={base} onRestart={startOver} />;
   }
   if (ACTIVE_STATUSES.includes(job.status)) {
     return (
       <div className="card flex max-w-2xl flex-col gap-3">
+        <StepProgress step={job.status === "extracting" ? 3 : 1} second="Choose the pages" />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
         {job.status === "extracting" && <ProgressBar current={job.pages_done} total={job.pages_total} />}
@@ -208,12 +211,13 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
       </div>
     );
   }
-  return <Review job={job} lessonId={job.lesson_id ?? lessonId} lessonTitle={lessonTitle} languageId={languageId} base={base} />;
+  return <Review job={job} lessonId={job.lesson_id ?? lessonId} lessonTitle={lessonTitle} languageId={languageId} base={base}
+    onBack={async () => { await stepBack(jobId); setJob(await getJob(jobId)); }} />;
 }
 
 
-function PagesStep({ job, lessonId, lessonTitle, base }: {
-  job: Job; lessonId: string; lessonTitle: string; base: string;
+function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
+  onRestart: () => void; job: Job; lessonId: string; lessonTitle: string; base: string;
 }) {
   const router = useRouter();
   const [pagesData, setPagesData] = useState<{ page_kinds: Record<string, string[]>; first_page: number; last_page: number; warnings: string[] } | null>(null);
@@ -261,13 +265,15 @@ function PagesStep({ job, lessonId, lessonTitle, base }: {
   return (
     <section className="flex max-w-4xl flex-col gap-4">
       <header className="card flex flex-col gap-2">
+        <StepProgress step={2} second="Choose the pages" />
         <h2>Confirm page kinds in {job.filename}</h2>
         <p className="text-sm opacity-70">We detected which kinds of content are on each page. Review and edit as needed, then continue to extraction.</p>
         {pagesData.warnings.length > 0 && (<ul className="list-disc pl-5 text-sm">{pagesData.warnings.map((w) => <li key={w}>{w}</li>)}</ul>)}
       </header>
       <PageKindsWithViewer pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>Error: {error}</p>}
-      <div className="btn-row">
+      <div className="btn-row flex-wrap">
+        <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>← Choose another document</button>
         <button type="button" className="btn btn-primary" disabled={saving} onClick={confirm}>{saving ? "Starting..." : "Continue to extraction"}</button>
       </div>
     </section>
@@ -275,8 +281,8 @@ function PagesStep({ job, lessonId, lessonTitle, base }: {
 }
 
 
-function Review({ job, lessonId, lessonTitle, languageId, base }: {
-  job: Job; lessonId: string; lessonTitle: string; languageId: string; base: string;
+function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
+  onBack: () => Promise<void>; job: Job; lessonId: string; lessonTitle: string; languageId: string; base: string;
 }) {
   const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
@@ -307,6 +313,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
   return (
     <section className="flex flex-col gap-4">
       <header className="card flex flex-col gap-2">
+        <StepProgress step={3} second="Choose the pages" />
         <h2>Review what we found in {job.filename}</h2>
         {warnings.length > 0 && (
           <details>
@@ -319,6 +326,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
         addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
         onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">
+        <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : "Could not go back"))}>← Back to the pages</button>
         <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>Leave without adding</button>
       </div>
     </section>
