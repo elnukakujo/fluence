@@ -109,3 +109,59 @@ def test_the_same_word_on_two_pages_is_one_candidate(monkeypatch):
     _patch(monkeypatch, lambda c: [RawItem(word="bonjour", quote="bonjour", translation="hello")])
     result = _build(_doc("bonjour hello", "bonjour again"), None)
     assert [c.page for c in result.candidates] == [0]
+
+
+def _patch_kinds(monkeypatch, fn):
+    """Stub both paths; records ('vocabulary'|kind, page) per model call."""
+    calls = []
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda chunk, api, t, s: calls.append(("vocabulary", chunk.page)) or [])
+
+    def fake(kind, chunk, api, target, source):
+        calls.append((kind, chunk.page))
+        return fn(kind, chunk)
+
+    monkeypatch.setattr(pipeline_module, "extract_kind", fake)
+    return calls
+
+
+def test_none_page_makes_no_model_call(monkeypatch):
+    calls = _patch_kinds(monkeypatch, lambda k, c: [])
+    result = _build(_doc("bonjour hello"), None, page_kinds={1: []})
+    assert calls == [] and result.candidates == [] and result.elements == []
+
+
+def test_only_confirmed_kinds_run(monkeypatch):
+    calls = _patch_kinds(monkeypatch, lambda k, c: [])
+    _build(_doc("bonjour hello"), None, page_kinds={1: ["grammar"]})
+    assert calls == [("grammar", 0)]
+
+
+def test_unlisted_page_runs_every_kind(monkeypatch):
+    calls = _patch_kinds(monkeypatch, lambda k, c: [])
+    _build(_doc("bonjour hello", "merci thanks"), None, page_kinds={1: []})
+    assert {k for k, p in calls} == {"vocabulary", "grammar", "passage", "character"} and {p for k, p in calls} == {1}
+
+
+GRAMMAR = {"title": "Le passé", "explanation": "Le passé composé", "example_sentences": [], "quote": "Le passé"}
+
+
+def test_duplicate_grammar_across_pages_is_one_candidate(monkeypatch):
+    _patch_kinds(monkeypatch, lambda k, c: [dict(GRAMMAR)])
+    result = _build(_doc("Le passé Le passé composé", "Le passé Le passé composé"), None, page_kinds={1: ["grammar"], 2: ["grammar"]})
+    assert [(e.kind, e.page) for e in result.elements] == [("grammar", 0)]
+
+
+def test_failing_element_call_adds_a_warning_not_a_crash(monkeypatch):
+    def fn(kind, chunk):
+        if chunk.page == 0:
+            raise ExtractionError("bad json")
+        return [dict(GRAMMAR)]
+    _patch_kinds(monkeypatch, fn)
+    result = _build(_doc("x y", "Le passé Le passé composé"), None, page_kinds={1: ["grammar"], 2: ["grammar"]})
+    assert len(result.elements) == 1 and result.warnings == ["page 1 (grammar): could not read the model's answer (bad json)"]
+
+
+def test_every_attempted_call_failing_raises(monkeypatch):
+    _patch_kinds(monkeypatch, lambda k, c: (_ for _ in ()).throw(ExtractionError("bad")))
+    with pytest.raises(ExtractionError):
+        _build(_doc("a b"), None, page_kinds={1: ["grammar"]})
