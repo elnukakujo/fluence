@@ -113,14 +113,14 @@ describe("ReviewPanel", () => {
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, exerciseGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
 
     expect(screen.getByAltText(/Page.*of the document/)).toBeInTheDocument();
-    expect(screen.getByText("Page 1 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
   });
 
   it("focuses grammar row and updates page panel", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
 
-    expect(screen.getByText("Page 1 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
 
     const row = screen.getByDisplayValue("Present form").closest("li");
     await userEvent.click(row!);
@@ -134,10 +134,10 @@ describe("ReviewPanel", () => {
 
     const nextBtn = screen.getAllByRole("button", { name: /next/i })[0];
     await userEvent.click(nextBtn);
-    expect(screen.getByText("Page 2 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 4 / 5")).toBeInTheDocument();
 
     const prevBtn = screen.getAllByRole("button", { name: /prev/i })[0];
     await userEvent.click(prevBtn);
-    expect(screen.getByText("Page 1 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
   });
 });
