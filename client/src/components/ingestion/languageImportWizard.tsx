@@ -263,8 +263,8 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         {l.status === "done" && !createdId && (
           <ReviewPanel jobId={job.id} filename={job.filename} candidates={l.candidates ?? []}
             addLabel={(n) => `Add ${n} to a new lesson “${l.title}”`}
-            onAdd={async (items) => {
-              const r = await acceptLesson(job.id, l.index, items);
+            onAdd={async (payload) => {
+              const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);
               onAdded({ lessonId: r.lesson_id, count: r.created });
             }} />
         )}

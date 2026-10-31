@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ACTIVE_STATUSES, type Job, deleteJob, listJobs } from "@/api/ingestion";
 
 const LABEL: Record<Job["status"], string> = {
-  queued: "Waiting", parsing: "Reading…", structure: "Choose the lessons", extracting: "Finding vocabulary…", ready: "Ready to review", failed: "Failed",
+  queued: "Waiting", parsing: "Reading…", pages: "Choose content types", structure: "Choose the lessons", extracting: "Finding vocabulary…", ready: "Ready to review", failed: "Failed",
 };
 
 // Scans take minutes, so imports outlive the page that started them: this is the way back.

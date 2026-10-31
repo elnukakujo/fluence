@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { type AcceptPayload } from "@/lib/ingestion/review";
 import ProgressBar from "@/components/ui/progressBar";
 import {
-  ACTIVE_STATUSES, type Capabilities, type Job, acceptCandidates, deleteJob, getCandidates, getCapabilities,
-  getJob, uploadDocument,
+  ACTIVE_STATUSES, type Capabilities, type Job, acceptCandidates, confirmPages, deleteJob, getCandidates, getCapabilities,
+  getJob, getPages, uploadDocument,
 } from "@/api/ingestion";
 import { type Candidate, parsePageRange } from "@/lib/ingestion/review";
 import ReviewPanel from "./reviewPanel";
+import PageKinds from "./pageKinds";
 
 type Props = { languageId: string; lessonId: string; lessonTitle: string; settingsHref: string };
 
@@ -120,7 +122,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
 }
 
 export const STATUS_TEXT: Record<string, string> = {
-  queued: "Waiting for its turn…", parsing: "Reading the document…", extracting: "Finding the vocabulary…",
+  queued: "Waiting for its turn…", parsing: "Reading the document…", pages: "Classifying pages…", extracting: "Finding the vocabulary…",
 };
 
 function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Props & { jobId: string }) {
@@ -154,6 +156,9 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   if (error) return <div role="alert" className="card max-w-2xl">✗ {error} <Link href={base} className="link">Start a new import</Link></div>;
   if (!job) return <div className="card max-w-2xl" aria-busy="true">Loading…</div>;
 
+  if (job.status === "pages") {
+    return <PagesStep job={job} lessonId={lessonId} lessonTitle={lessonTitle} base={base} />;
+  }
   if (ACTIVE_STATUSES.includes(job.status)) {
     return (
       <div className="card flex max-w-2xl flex-col gap-3">
@@ -178,6 +183,70 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   }
   return <Review job={job} lessonId={job.lesson_id ?? lessonId} lessonTitle={lessonTitle} languageId={languageId} base={base} />;
 }
+
+
+function PagesStep({ job, lessonId, lessonTitle, base }: {
+  job: Job; lessonId: string; lessonTitle: string; base: string;
+}) {
+  const router = useRouter();
+  const [pagesData, setPagesData] = useState<{ page_kinds: Record<string, string[]>; first_page: number; last_page: number; warnings: string[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [pageKinds, setPageKinds] = useState<Record<number, string[]>>({});
+
+  useEffect(() => {
+    getPages(job.id)
+      .then((data) => {
+        setPagesData(data);
+        const kindsByNumber: Record<number, string[]> = {};
+        for (const [key, kinds] of Object.entries(data.page_kinds)) {
+          kindsByNumber[parseInt(key, 10)] = kinds;
+        }
+        setPageKinds(kindsByNumber);
+      })
+      .catch((e) => setError(e.message));
+  }, [job.id]);
+
+  if (error && !pagesData) return <div role="alert" className="card max-w-2xl">Error: {error}</div>;
+  if (!pagesData) return <div className="card max-w-2xl" aria-busy="true">Loading pages...</div>;
+
+  const pages = Array.from(
+    { length: pagesData.last_page - pagesData.first_page + 1 },
+    (_, i) => pagesData.first_page + i
+  );
+
+  const confirm = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const pageKindsStr: Record<string, string[]> = {};
+      for (const [key, kinds] of Object.entries(pageKinds)) {
+        pageKindsStr[key] = kinds;
+      }
+      await confirmPages(job.id, pageKindsStr);
+      router.push(base);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not confirm the pages");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="flex max-w-4xl flex-col gap-4">
+      <header className="card flex flex-col gap-2">
+        <h2>Confirm page kinds in {job.filename}</h2>
+        <p className="text-sm opacity-70">We detected which kinds of content are on each page. Review and edit as needed, then continue to extraction.</p>
+        {pagesData.warnings.length > 0 && (<ul className="list-disc pl-5 text-sm">{pagesData.warnings.map((w) => <li key={w}>{w}</li>)}</ul>)}
+      </header>
+      <PageKinds pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
+      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>Error: {error}</p>}
+      <div className="btn-row">
+        <button type="button" className="btn btn-primary" disabled={saving} onClick={confirm}>{saving ? "Starting..." : "Continue to extraction"}</button>
+      </div>
+    </section>
+  );
+}
+
 
 function Review({ job, lessonId, lessonTitle, languageId, base }: {
   job: Job; lessonId: string; lessonTitle: string; languageId: string; base: string;
@@ -221,7 +290,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
       </header>
       <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates}
         addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
-        onAdd={async (items) => { setAdded((await acceptCandidates(job.id, lessonId, items)).created); }} />
+        onAdd={async (payload) => { setAdded((await acceptCandidates(job.id, lessonId, payload.items, payload.elements)).created); }} />
       <div className="btn-row">
         <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>Leave without adding</button>
       </div>

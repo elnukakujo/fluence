@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
-  type AcceptItem, type Candidate, type ConflictMode, type Filter, type Row, countRows, filterRows, infoNotes,
+  type AcceptPayload, type Candidate, type ConflictMode, type Filter, type Row, countRows, filterRows, infoNotes,
   initialRows, toAcceptItems, warningReasons,
 } from "@/lib/ingestion/review";
 
@@ -20,7 +20,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   filename: string;
   candidates: Candidate[];
   addLabel: (selected: number) => string;
-  onAdd: (items: AcceptItem[]) => Promise<void>;
+  onAdd: (payload: AcceptPayload) => Promise<void>;
 }) {
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");

@@ -4,7 +4,7 @@ import type { AcceptItem, Candidate } from "@/lib/ingestion/review";
 export type Notice = { code: string; message: string };
 export type Capabilities = { can_import: boolean; reasons: Notice[]; warnings: Notice[] };
 
-export type JobStatus = "queued" | "parsing" | "structure" | "extracting" | "ready" | "failed";
+export type JobStatus = "queued" | "parsing" | "pages" | "structure" | "extracting" | "ready" | "failed";
 export type Job = {
   id: string;
   language_id: string;
@@ -19,6 +19,7 @@ export type Job = {
   error: string | null;
   warnings: string[];
   created_at: string | null;
+  page_kinds?: Record<string, string[]> | null;
 };
 
 export type LessonProgress = {
@@ -30,10 +31,10 @@ export type LessonProgress = {
 };
 
 export type Structure = {
-  status: JobStatus; confirmed: boolean; first_page: number; last_page: number; lessons: LessonProgress[]; warnings: string[];
+  status: JobStatus; confirmed: boolean; first_page: number; last_page: number; lessons: LessonProgress[]; warnings: string[]; page_kinds?: Record<string, string[]> | null;
 };
 
-export const ACTIVE_STATUSES: JobStatus[] = ["queued", "parsing", "extracting"];
+export const ACTIVE_STATUSES: JobStatus[] = ["queued", "parsing", "pages", "extracting"];
 
 // The server explains itself ({error}); surface that instead of a generic message.
 async function fail(res: Response, fallback: string): Promise<never> {
@@ -73,11 +74,13 @@ export async function getCandidates(jobId: string): Promise<{ candidates: Candid
   return res.json();
 }
 
-export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[]): Promise<{ created: number }> {
+export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[], elements?: { kind: string; fields: Record<string, unknown> }[]): Promise<{ created: number; created_elements: number }> {
+  const body: { lesson_id: string; items: AcceptItem[]; elements?: { kind: string; fields: Record<string, unknown> }[] } = { lesson_id: lessonId, items };
+  if (elements && elements.length > 0) body.elements = elements;
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/accept`, {
     method: "POST",
     headers: await getAuthHeaders(),
-    body: JSON.stringify({ lesson_id: lessonId, items }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) return fail(res, "Could not add the words");
   return res.json();
@@ -97,11 +100,27 @@ export async function getStructure(jobId: string): Promise<Structure> {
   return res.json();
 }
 
-export async function confirmStructure(jobId: string, lessons: { title: string; start_page: number; end_page: number }[]) {
+export async function confirmStructure(jobId: string, lessons: { title: string; start_page: number; end_page: number }[], pageKinds?: Record<string, string[]>) {
+  const body: { lessons: { title: string; start_page: number; end_page: number }[]; page_kinds?: Record<string, string[]> } = { lessons };
+  if (pageKinds) body.page_kinds = pageKinds;
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/structure`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ lessons }),
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),
   });
   if (!res.ok) return fail(res, "Could not start the extraction");
+  return res.json();
+}
+
+export async function getPages(jobId: string): Promise<{ status: JobStatus; page_kinds: Record<string, string[]>; first_page: number; last_page: number; warnings: string[] }> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/pages`, { headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not load the pages");
+  return res.json();
+}
+
+export async function confirmPages(jobId: string, pageKinds: Record<string, string[]>): Promise<{ status: JobStatus }> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/pages`, {
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ page_kinds: pageKinds }),
+  });
+  if (!res.ok) return fail(res, "Could not confirm the pages");
   return res.json();
 }
 
@@ -111,9 +130,12 @@ export async function getLanguageCandidates(jobId: string): Promise<{ status: Jo
   return res.json();
 }
 
-export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string): Promise<{ lesson_id: string; created: number }> {
+export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string, elements?: { kind: string; fields: Record<string, unknown> }[]): Promise<{ lesson_id: string; created: number; created_elements: number }> {
+  const body: { items: AcceptItem[]; title?: string; elements?: { kind: string; fields: Record<string, unknown> }[] } = { items };
+  if (title) body.title = title;
+  if (elements && elements.length > 0) body.elements = elements;
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/lessons/${index}/accept`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ items, title }),
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),
   });
   if (!res.ok) return fail(res, "Could not add this lesson");
   return res.json();

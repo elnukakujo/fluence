@@ -51,17 +51,17 @@ describe("toAcceptItems", () => {
     const rows = initialRows([cand(), cand({ id: "c2", word: "merci", status: "flagged" })]);
     rows[0].translation = "  hello  ";
     rows[0].phonetic = "   ";
-    expect(toAcceptItems(rows)).toEqual([{ word: "bonjour", translation: "hello", on_conflict: "keep" }]);
+    expect(toAcceptItems(rows)).toEqual({ items: [{ word: "bonjour", translation: "hello", on_conflict: "keep" }] });
   });
   it("drops a selected row whose word was emptied", () => {
     const rows = initialRows([cand()]);
     rows[0].word = "  ";
-    expect(toAcceptItems(rows)).toEqual([]);
+    expect(toAcceptItems(rows)).toEqual({ items: [] });
   });
   it("carries the chosen conflict mode", () => {
     const rows = initialRows([cand()]);
     rows[0].on_conflict = "merge";
-    expect(toAcceptItems(rows)[0].on_conflict).toBe("merge");
+    expect(toAcceptItems(rows).items[0].on_conflict).toBe("merge");
   });
 });
 
