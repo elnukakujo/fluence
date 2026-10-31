@@ -116,12 +116,13 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
     key = raw[_SHAPES[kind][0]]
 
     if kind == "grammar":
-        if not raw.get("explanation") or normalise(raw["explanation"]) not in text:
+        # Drop only if title or explanation is empty
+        if not raw.get("title") or not raw.get("explanation"):
             return None
-        if normalise(raw["title"]) not in text:
-            flag("word_not_in_source", "The title does not appear in the source text")
+        flag("grammar_generated", "Written by the model from the page text - check it")
         fields = {"title": raw["title"], "explanation": raw["explanation"],
-                  "example_sentences": [e for e in raw.get("example_sentences", []) if normalise(e) in text]}
+                  "example_sentences": [e for e in raw.get("example_sentences", []) if normalise(e) in text],
+                  "original_text": chunk.text}
     elif kind == "calligraphy":
         if normalise(key) not in text:
             return None

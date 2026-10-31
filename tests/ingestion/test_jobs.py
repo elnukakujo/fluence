@@ -225,8 +225,12 @@ def test_confirmed_kinds_drive_extraction_and_elements_are_written(app, job, med
     svc.update(job["id"], page_kinds={"1": ["grammar"]}, status="extracting")
     seen = []
     from lapp.services.ingestion.types import ElementCandidate
-    monkeypatch.setattr(pipeline_module, "extract_kind", lambda kind, chunk, *a: seen.append(kind) or [
-        {"title": "bonjour", "explanation": "bonjour hello", "example_sentences": [], "quote": "bonjour"}])
+
+    def mock_generate_grammar(chunk, api, target, source):
+        seen.append("grammar")
+        return [{"title": "bonjour", "explanation": "bonjour hello", "example_sentences": [], "quote": "bonjour"}]
+
+    monkeypatch.setattr(pipeline_module, "generate_grammar", mock_generate_grammar)
     run_language_extraction(app, job["id"])
     data = json.loads(candidates_path(media_root, job["id"]).read_text())
     assert seen == ["grammar"] and data["candidates"] == [] and [e["kind"] for e in data["elements"]] == ["grammar"]

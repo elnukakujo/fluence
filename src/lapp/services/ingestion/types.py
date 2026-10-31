@@ -9,7 +9,7 @@ FlagCode = Literal[
     "word_not_in_source", "quote_not_in_source", "translation_generated",
     "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
     "already_in_language", "already_in_lesson",
-    "explanation_not_in_source", "answer_generated",
+    "explanation_not_in_source", "answer_generated", "grammar_generated",
 ]
 Kind = Literal["vocabulary", "grammar", "calligraphy", "exercise"]
 ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "calligraphy", "exercise"]

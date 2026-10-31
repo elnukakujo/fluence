@@ -1,6 +1,6 @@
 import pytest
 
-from lapp.services.ingestion import pipeline as pipeline_module
+from lapp.services.ingestion import pipeline as pipeline_module, grammar as grammar_module
 from lapp.services.ingestion.extract import ExtractionError, RawItem
 from lapp.services.ingestion.pipeline import build_candidates
 from lapp.services.parsing.types import Block, Document, Page, Word
@@ -116,11 +116,16 @@ def _patch_kinds(monkeypatch, fn):
     calls = []
     monkeypatch.setattr(pipeline_module, "extract_chunk", lambda chunk, api, t, s: calls.append(("vocabulary", chunk.page)) or [])
 
-    def fake(kind, chunk, api, target, source):
+    def fake_extract_kind(kind, chunk, api, target, source):
         calls.append((kind, chunk.page))
         return fn(kind, chunk)
 
-    monkeypatch.setattr(pipeline_module, "extract_kind", fake)
+    def fake_generate_grammar(chunk, api, target, source):
+        calls.append(("grammar", chunk.page))
+        return fn("grammar", chunk)
+
+    monkeypatch.setattr(pipeline_module, "extract_kind", fake_extract_kind)
+    monkeypatch.setattr(pipeline_module, "generate_grammar", fake_generate_grammar)
     return calls
 
 
@@ -191,3 +196,21 @@ def test_a_translation_from_the_document_beats_an_earlier_generated_one(monkeypa
     _patch(monkeypatch, fn)
     result = _build(_doc("bonjour", "bonjour hello"), None)
     assert [(c.translation, c.page, c.status) for c in result.candidates] == [("hello", 1, "verified")]
+
+
+def test_grammar_kind_uses_generate_grammar(monkeypatch):
+    """Verify that grammar kind calls generate_grammar instead of extract_kind."""
+    calls = []
+
+    def fake_generate(chunk, api, target, source):
+        calls.append(("generate_grammar", chunk.page))
+        return []
+
+    def fake_extract(kind, chunk, api, target, source):
+        calls.append(("extract_kind", kind, chunk.page))
+        return []
+
+    monkeypatch.setattr(pipeline_module, "generate_grammar", fake_generate)
+    monkeypatch.setattr(pipeline_module, "extract_kind", fake_extract)
+    _build(_doc("Le passé Le passé composé"), None, page_kinds={1: ["grammar"]})
+    assert ("generate_grammar", 0) in calls

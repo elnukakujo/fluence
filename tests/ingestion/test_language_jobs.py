@@ -141,9 +141,13 @@ def test_extraction_uses_the_stored_kinds_and_writes_elements(app, job, media_ro
     _confirmed(job, media_root)
     svc.update(job["id"], page_kinds={"1": [], "2": [], "3": [], "4": ["grammar"]})
     monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: pytest.fail("vocabulary call"))
-    monkeypatch.setattr(pipeline_module, "extract_kind", lambda kind, chunk, *a: [
-        {"title": "merci", "explanation": "merci - thanks", "example_sentences": [], "quote": "merci"}]
-        if chunk.page == 3 else [])
+
+    def mock_generate_grammar(chunk, api, target, source):
+        if chunk.page == 3:
+            return [{"title": "merci", "explanation": "merci - thanks", "example_sentences": [], "quote": "merci"}]
+        return []
+
+    monkeypatch.setattr(pipeline_module, "generate_grammar", mock_generate_grammar)
     run_language_extraction(app, job["id"])
     j = _status(job["id"])
     assert [l["counts"] for l in j["structure"]["lessons"]] == [

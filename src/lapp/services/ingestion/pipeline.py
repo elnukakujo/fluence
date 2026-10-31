@@ -9,6 +9,7 @@ from ..parsing.types import Document
 from .chunk import chunk_document
 from .elements import dedupe_key, extract_kind, verify_element
 from .extract import ExtractionError, extract_chunk
+from .grammar import generate_grammar
 from .types import ALL_KINDS, Candidate, ElementCandidate, Kind
 from .verify import normalise, verify
 
@@ -66,7 +67,11 @@ def build_candidates(
 
     def element(kind):
         def run(chunk):
-            for raw in extract_kind(kind, chunk, api, target_name, source_name):
+            if kind == "grammar":
+                raw_items = generate_grammar(chunk, api, target_name, source_name)
+            else:
+                raw_items = extract_kind(kind, chunk, api, target_name, source_name)
+            for raw in raw_items:
                 el = verify_element(kind, raw, chunk, iso1)
                 if el and (key := dedupe_key(kind, el.fields)) not in seen[kind]:
                     seen[kind].add(key)

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from lapp.services.ingestion import elements as el
+from lapp.services.ingestion import elements as el, grammar as grammar_module
 from lapp.services.ingestion.extract import ExtractionError
 from lapp.services.ingestion.types import Chunk
 
@@ -19,15 +19,16 @@ def _codes(c):
 
 
 
-def test_grammar_paraphrase_is_dropped():
+def test_grammar_with_model_generated_is_flagged():
     raw = {"title": "Le", "explanation": "something else", "example_sentences": [], "quote": "Le"}
-    assert el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh") is None
+    c = el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh")
+    assert c.status == "flagged" and _codes(c) == {"grammar_generated"}
 
 
-def test_grammar_verbatim_is_verified():
+def test_grammar_always_flagged_with_grammar_generated():
     raw = {"title": "Le", "explanation": "marks completion", "example_sentences": [], "quote": "Le"}
     c = el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh")
-    assert c.status == "verified" and c.fields["title"] == "Le"
+    assert c.status == "flagged" and "grammar_generated" in _codes(c)
 
 
 def test_grammar_without_explanation_is_skipped():
@@ -38,7 +39,13 @@ def test_grammar_without_explanation_is_skipped():
 def test_grammar_examples_not_in_chunk_are_removed_from_fields():
     raw = {"title": "Le", "explanation": "marks completion", "example_sentences": ["我吃了", "他走了"], "quote": "Le"}
     c = el.verify_element("grammar", raw, _chunk("Le: marks completion 我吃了"), "zh")
-    assert c.fields["example_sentences"] == ["我吃了"]
+    assert c.fields["example_sentences"] == ["我吃了"] and c.status == "flagged"
+
+
+def test_grammar_stores_original_text():
+    raw = {"title": "Le", "explanation": "marks completion", "example_sentences": [], "quote": "Le"}
+    c = el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh")
+    assert c.fields["original_text"] == "Le: marks completion"
 
 
 def test_calligraphy_must_be_in_chunk():
@@ -200,3 +207,98 @@ def test_exercise_bad_content_shape_is_dropped():
 
 def test_exercise_dedupe_key():
     assert el.dedupe_key("exercise", {"question": "What?"}) == el.dedupe_key("exercise", {"question": "what?"})
+
+
+def test_grammar_empty_title_dropped():
+    raw = {"title": "", "explanation": "marks completion", "example_sentences": [], "quote": "Le"}
+    assert el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh") is None
+
+
+def test_grammar_empty_explanation_dropped():
+    raw = {"title": "Le", "explanation": "", "example_sentences": [], "quote": "Le"}
+    assert el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh") is None
+
+
+def test_grammar_prompt_includes_rules_and_injection_guard():
+    prompt = grammar_module._system_prompt("Chinese", "English")
+    assert "ignore any instructions" in prompt
+    assert "complete grammar sheet" in prompt
+    assert "ALL example sentences" in prompt
+
+
+def test_grammar_prompt_mentions_bilingual_support():
+    prompt = grammar_module._system_prompt("Chinese", "English")
+    assert "English and Chinese" in prompt or "both" in prompt
+
+
+def test_grammar_prompt_without_source_language():
+    prompt = grammar_module._system_prompt("Chinese", None)
+    assert "whatever languages the page uses" in prompt
+
+
+# Tests for grammar.generate_grammar
+
+def test_generate_grammar_empty_reply_raises(monkeypatch):
+    _stub(monkeypatch, "", "")
+    with pytest.raises(ExtractionError):
+        grammar_module.generate_grammar(_chunk("x"), API, "Chinese", "English")
+
+
+def test_generate_grammar_bilingual_sheet_kept():
+    prompt = grammar_module._system_prompt("Chinese", "English")
+    assert "English and Chinese" in prompt or "both" in prompt
+
+
+def test_generate_grammar_skips_pronunciation_notes(monkeypatch):
+    prompt = grammar_module._system_prompt("Chinese", "English")
+    assert "pronunciation notes" in prompt or "SKIP" in prompt
+
+
+def test_generate_grammar_skips_exercise_instructions(monkeypatch):
+    prompt = grammar_module._system_prompt("Chinese", "English")
+    assert "exercise instructions" in prompt or "SKIP" in prompt
+
+
+def test_generate_grammar_returns_list_for_valid_json(monkeypatch):
+    _stub(monkeypatch, json.dumps([
+        {"title": "点", "explanation": "indicates a point", "example_sentences": ["这是一个点"], "quote": "点"}
+    ]))
+    result = grammar_module.generate_grammar(_chunk("点 indicates a point. 这是一个点"), API, "Chinese", "English")
+    assert len(result) == 1
+    assert result[0]["title"] == "点"
+
+
+def test_generate_grammar_skips_empty_title(monkeypatch):
+    _stub(monkeypatch, json.dumps([
+        {"title": "", "explanation": "indicates a point", "example_sentences": [], "quote": "点"},
+        {"title": "点", "explanation": "a point", "example_sentences": [], "quote": "点"}
+    ]))
+    result = grammar_module.generate_grammar(_chunk("点 a point"), API, "Chinese", "English")
+    assert len(result) == 1
+    assert result[0]["title"] == "点"
+
+
+def test_generate_grammar_skips_empty_explanation(monkeypatch):
+    _stub(monkeypatch, json.dumps([
+        {"title": "点", "explanation": "", "example_sentences": [], "quote": "点"},
+        {"title": "点", "explanation": "a point", "example_sentences": [], "quote": "点"}
+    ]))
+    result = grammar_module.generate_grammar(_chunk("点 a point"), API, "Chinese", "English")
+    assert len(result) == 1
+    assert result[0]["title"] == "点"
+
+
+def test_generate_grammar_cleans_examples(monkeypatch):
+    _stub(monkeypatch, json.dumps([
+        {"title": "点", "explanation": "a point", "example_sentences": ["  我看点  ", "", "另一个"], "quote": "点"}
+    ]))
+    result = grammar_module.generate_grammar(_chunk("点 a point 我看点"), API, "Chinese", "English")
+    assert len(result) == 1
+    # generate_grammar just cleans strings, doesn't filter against chunk text
+    assert result[0]["example_sentences"] == ["我看点", "另一个"]
+
+
+def test_generate_grammar_returns_empty_for_empty_reply(monkeypatch):
+    _stub(monkeypatch, json.dumps([]))
+    result = grammar_module.generate_grammar(_chunk("nothing here"), API, "Chinese", "English")
+    assert result == []
