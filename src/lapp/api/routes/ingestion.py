@@ -12,6 +12,7 @@ from ...schemas.system_data import SourceDict
 from ...services import LessonService, VocabularyService
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir,
                                         remove_job_files)
+from ...services.ingestion.classify import validate_page_kinds
 from ...services.ingestion.structure import validate_structure
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
@@ -258,7 +259,8 @@ def get_structure(job_id: str):
         return jsonify({"error": f"Job is {job['status']}", "status": job["status"]}), 409
     s = job["structure"]
     return jsonify({"status": job["status"], "confirmed": s["confirmed"], "first_page": s["first_page"],
-                    "last_page": s["last_page"], "lessons": _lessons_view(job), "warnings": job["warnings"]})
+                    "last_page": s["last_page"], "lessons": _lessons_view(job), "page_kinds": job["page_kinds"],
+                    "warnings": job["warnings"]})
 
 
 @bp.route("/<job_id>/structure", methods=["POST"])
@@ -284,6 +286,9 @@ def confirm_structure(job_id: str):
                               title: {type: string}
                               start_page: {type: integer}
                               end_page: {type: integer}
+                  page_kinds:
+                      type: object
+                      description: "optional {page: [kind, ...]}; pages left out keep their stored kinds"
     responses:
         200: {description: Extraction started}
         400: {description: Invalid lessons}
@@ -297,16 +302,91 @@ def confirm_structure(job_id: str):
     if job["status"] != "structure" or not job["structure"] or job["structure"]["confirmed"]:
         return jsonify({"error": "The lessons were already confirmed or are not ready yet"}), 409
     old = job["structure"]
-    clean, error = validate_structure((request.get_json(silent=True) or {}).get("lessons"),
-                                      old["first_page"], old["last_page"])
+    body = request.get_json(silent=True) or {}
+    clean, error = validate_structure(body.get("lessons"), old["first_page"], old["last_page"])
     if error:
         return jsonify({"error": error}), 400
+    fields = {}
+    if "page_kinds" in body:
+        kinds, error = validate_page_kinds(body["page_kinds"], old["first_page"], old["last_page"], job["page_kinds"])
+        if error:
+            return jsonify({"error": error}), 400
+        fields["page_kinds"] = {str(n): k for n, k in kinds.items()}
     lessons = [{**c, "index": i, "verified": None, "note": None, "status": "pending", "error": None, "counts": None}
                for i, c in enumerate(clean)]
     job_service.update(job_id, status="extracting", pages_done=0, pages_total=len(lessons),
-                       structure={**old, "confirmed": True, "lessons": lessons})
+                       structure={**old, "confirmed": True, "lessons": lessons}, **fields)
     current_app.scheduler.schedule_extraction(current_app._get_current_object(), job_id)
     return jsonify({"status": "extracting", "lessons": len(lessons)})
+
+
+@bp.route("/<job_id>/pages", methods=["GET"])
+@login_required
+def get_pages(job_id: str):
+    """The kinds of content found on each page of a lesson-level import, awaiting confirmation.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "status, page_kinds ({page: [kind]}), first_page, last_page, warnings"}
+        409: {description: The pages have not been classified yet (status other than pages)}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["status"] != "pages":
+        return jsonify({"error": f"Job is {job['status']}", "status": job["status"]}), 409
+    first, last = _page_bounds(job)
+    return jsonify({"status": job["status"], "page_kinds": job["page_kinds"], "first_page": first,
+                    "last_page": last, "warnings": job["warnings"]})
+
+
+def _page_bounds(job: dict) -> tuple[int, int]:
+    pages = [int(p) for p in job["page_kinds"] or {}]
+    return min(pages, default=1), max(pages, default=0)
+
+
+@bp.route("/<job_id>/pages", methods=["POST"])
+@login_required
+def confirm_pages(job_id: str):
+    """Confirm (after editing) which kinds of content to extract per page; starts the extraction.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - name: body
+          in: body
+          required: true
+          schema:
+              type: object
+              properties:
+                  page_kinds:
+                      type: object
+                      description: "{page: [kind, ...]} with kinds from vocabulary, grammar, passage, character; pages left out keep their classified kinds"
+    responses:
+        200: {description: Extraction started}
+        400: {description: Invalid page_kinds}
+        409: {description: Not awaiting confirmation}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["lesson_id"] is None:
+        return jsonify({"error": "This import covers a whole language - confirm the lessons instead"}), 400
+    if job["status"] != "pages":
+        return jsonify({"error": "The pages were already confirmed or are not ready yet"}), 409
+    first, last = _page_bounds(job)
+    kinds, error = validate_page_kinds((request.get_json(silent=True) or {}).get("page_kinds"), first, last,
+                                       job["page_kinds"])
+    if error:
+        return jsonify({"error": error}), 400
+    job_service.update(job_id, status="extracting", pages_done=0, pages_total=len(kinds),
+                       page_kinds={str(n): k for n, k in kinds.items()})
+    current_app.scheduler.schedule_extraction(current_app._get_current_object(), job_id)
+    return jsonify({"status": "extracting"})
 
 
 @bp.route("/<job_id>/lessons/<int:index>/accept", methods=["POST"])

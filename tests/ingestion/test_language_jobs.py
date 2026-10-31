@@ -90,7 +90,7 @@ def test_extraction_runs_per_lesson_and_writes_each_result(app, job, media_root,
     first = json.loads(candidates_path(media_root, job["id"], 0).read_text())
     second = json.loads(candidates_path(media_root, job["id"], 1).read_text())
     assert [c["word"] for c in first["candidates"]] == ["bonjour"] and [c["word"] for c in second["candidates"]] == ["merci"]
-    assert j["structure"]["lessons"][0]["counts"] == {"total": 1, "verified": 1, "flagged": 0}
+    assert j["structure"]["lessons"][0]["counts"] == {"total": 1, "verified": 1, "flagged": 0, "elements": 0}
 
 
 def test_one_failing_lesson_does_not_stop_the_others(app, job, media_root, monkeypatch):
@@ -128,3 +128,25 @@ def test_only_the_pages_of_each_lesson_reach_the_extractor(app, job, media_root,
     monkeypatch.setattr(pipeline_module, "extract_chunk", lambda chunk, *a: seen.append(chunk.page) or [])
     run_language_extraction(app, job["id"])
     assert seen == [2, 3]          # 0-based pages 3 and 4
+
+
+def test_proposal_classifies_the_pages_and_stores_page_kinds(app, job, media_root, monkeypatch):
+    _patch_proposal(monkeypatch, [{"page": 1, "title": "Leçon 1"}])
+    monkeypatch.setattr(jobs_module, "classify_pages", lambda doc, api, name: {1: [], 2: ["vocabulary"], 3: ["grammar"], 4: ["passage"]})
+    run_ingestion_job(app, job["id"])
+    assert _status(job["id"])["page_kinds"] == {"1": [], "2": ["vocabulary"], "3": ["grammar"], "4": ["passage"]}
+
+
+def test_extraction_uses_the_stored_kinds_and_writes_elements(app, job, media_root, monkeypatch):
+    _confirmed(job, media_root)
+    svc.update(job["id"], page_kinds={"1": [], "2": [], "3": [], "4": ["grammar"]})
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: pytest.fail("vocabulary call"))
+    monkeypatch.setattr(pipeline_module, "extract_kind", lambda kind, chunk, *a: [
+        {"title": "merci", "explanation": "merci - thanks", "example_sentences": [], "quote": "merci"}]
+        if chunk.page == 3 else [])
+    run_language_extraction(app, job["id"])
+    j = _status(job["id"])
+    assert [l["counts"] for l in j["structure"]["lessons"]] == [
+        {"total": 0, "verified": 0, "flagged": 0, "elements": 0}, {"total": 0, "verified": 0, "flagged": 0, "elements": 1}]
+    second = json.loads(candidates_path(media_root, job["id"], 1).read_text())
+    assert [e["kind"] for e in second["elements"]] == ["grammar"]

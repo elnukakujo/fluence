@@ -17,9 +17,11 @@ from ...utils.model_api import ModelAPIError
 from ...utils.detect_language import get_language_by_iso2t
 from ..parsing import ParseError, parse, remote_engine_for
 from ..parsing.types import Document
+from .classify import classify_pages
 from .extract import ExtractionError
 from .pipeline import build_candidates
-from .structure import propose_structure
+from .structure import _ABORT_KINDS, propose_structure
+from .types import ALL_KINDS
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,8 @@ class IngestionJobService:
 
     @transactional
     def fail_interrupted(self, session: Optional[Session] = None) -> int:
-        """At server start, jobs still parsing/extracting died with the previous process."""
+        """At server start, jobs still parsing/extracting died with the previous process.
+        Jobs waiting on the user (`pages`, `structure`) survive a restart: their document is on disk."""
         jobs = session.query(IngestionJob).filter(IngestionJob.status.in_(["parsing", "extracting"])).all()
         for job in jobs:
             job.status, job.error = "failed", "Interrupted by a server restart - please upload again"
@@ -114,14 +117,15 @@ def remove_job_files(media_root: str | Path, job_id: str) -> None:
 
 
 def run_ingestion_job(app: Flask, job_id: str) -> None:
-    """Background entry point. Lesson-level: parse -> chunk -> extract -> verify -> candidates.json.
-    Language-level: parse -> propose lessons -> wait for the user. Never raises."""
+    """Background entry point. Parse -> classify the pages -> wait for the user (status `pages` for a lesson,
+    `structure` for a language, which also proposes the lessons). Never raises."""
     _guarded(app, job_id, _run)
 
 
 def run_language_extraction(app: Flask, job_id: str) -> None:
-    """Second background step of a language-level import, scheduled once the user confirmed the lessons."""
-    _guarded(app, job_id, _run_language_extraction)
+    """Second background step, scheduled once the user confirmed the pages' kinds (lesson-level) or the
+    lessons (language-level)."""
+    _guarded(app, job_id, _run_extraction)
 
 
 def _guarded(app: Flask, job_id: str, step) -> None:
@@ -199,6 +203,34 @@ def _lookup_for(job: dict):
     return lookup
 
 
+def _classify(ctx: _Ctx, doc: Document, target_name: str) -> dict[str, list]:
+    """{"page": kinds} for every page. A failed step (not a bad key/URL) means every kind, never a failed job."""
+    try:
+        kinds = classify_pages(doc, ctx.text_api, target_name)
+    except ModelAPIError as e:
+        if e.kind in _ABORT_KINDS:
+            raise
+        logger.warning("Page classification failed: %s", e)
+        kinds = {p.index + 1: list(ALL_KINDS) for p in doc.pages}
+    return {str(n): k for n, k in kinds.items()}
+
+
+def _target_name(ctx: _Ctx) -> str:
+    target = get_language_by_iso2t(ctx.target or "")
+    return "the target language" if target.iso1 == "unknown" else target.name
+
+
+def _save_document(ctx: _Ctx, doc: Document) -> None:
+    out = document_path(ctx.media_root, ctx.job["id"])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(doc.model_dump_json())
+
+
+def _kinds_by_page(job: dict) -> dict[int, list] | None:
+    """The job's confirmed kinds with int page keys; None (legacy job) = vocabulary only."""
+    return {int(k): v for k, v in job["page_kinds"].items()} if job["page_kinds"] else None
+
+
 def _run(app: Flask, svc: IngestionJobService, job_id: str) -> None:
     ctx = _prepare(app, svc, job_id)
     if ctx is None:
@@ -206,35 +238,48 @@ def _run(app: Flask, svc: IngestionJobService, job_id: str) -> None:
     doc = _parse_job(svc, ctx)
     if ctx.job["lesson_id"] is None:
         return _propose_lessons(svc, ctx, doc)
+    _save_document(ctx, doc)
+    svc.update(job_id, status="pages", page_kinds=_classify(ctx, doc, _target_name(ctx)),
+               warnings=ctx.warnings + [w for p in doc.pages for w in p.warnings])
 
+
+def _run_extraction(app: Flask, svc: IngestionJobService, job_id: str) -> None:
+    job = svc.get(job_id)
+    if job is not None and job["lesson_id"] is None:
+        return _run_language_extraction(app, svc, job_id)
+    _run_lesson_extraction(app, svc, job_id)
+
+
+def _run_lesson_extraction(app: Flask, svc: IngestionJobService, job_id: str) -> None:
+    ctx = _prepare(app, svc, job_id)
+    if ctx is None:
+        return
+    doc = Document.model_validate_json(document_path(ctx.media_root, job_id).read_text())
     svc.update(job_id, status="extracting", pages_done=0, pages_total=len(doc.pages))
     result = build_candidates(
         doc, ctx.text_api, ctx.target, ctx.source, _lookup_for(ctx.job),
         progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total),
+        page_kinds=_kinds_by_page(ctx.job),
     )
     warnings = ctx.warnings + result.warnings + [w for p in doc.pages for w in p.warnings]
     out = candidates_path(ctx.media_root, job_id)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({"candidates": [c.model_dump() for c in result.candidates], "warnings": warnings}))
+    out.write_text(json.dumps({"candidates": [c.model_dump() for c in result.candidates],
+                               "elements": [e.model_dump() for e in result.elements], "warnings": warnings}))
     svc.update(job_id, status="ready", warnings=warnings)
 
 
 def _propose_lessons(svc: IngestionJobService, ctx: _Ctx, doc: Document) -> None:
     job_id = ctx.job["id"]
-    out = document_path(ctx.media_root, job_id)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(doc.model_dump_json())
-
-    target = get_language_by_iso2t(ctx.target or "")
-    proposals, warnings = propose_structure(
-        doc, ctx.text_api, "the target language" if target.iso1 == "unknown" else target.name, ctx.job["filename"])
+    _save_document(ctx, doc)
+    name = _target_name(ctx)
+    proposals, warnings = propose_structure(doc, ctx.text_api, name, ctx.job["filename"])
     numbers = [p.index + 1 for p in doc.pages]
     structure = {
         "confirmed": False, "first_page": min(numbers), "last_page": max(numbers),
         "lessons": [{**p.model_dump(), "index": i, "status": "pending", "error": None, "counts": None}
                     for i, p in enumerate(proposals)],
     }
-    svc.update(job_id, status="structure", structure=structure,
+    svc.update(job_id, status="structure", structure=structure, page_kinds=_classify(ctx, doc, name),
                warnings=ctx.warnings + warnings + [w for p in doc.pages for w in p.warnings])
 
 
@@ -247,19 +292,22 @@ def _run_language_extraction(app: Flask, svc: IngestionJobService, job_id: str) 
     doc = Document.model_validate_json(document_path(ctx.media_root, job_id).read_text())
     lookup = _lookup_for(job)
     lessons = structure["lessons"]
+    page_kinds = _kinds_by_page(job)
     svc.update(job_id, status="extracting", pages_done=0, pages_total=len(lessons))
 
     for lesson in lessons:
         part = Document(sha256=doc.sha256, pipeline_version=doc.pipeline_version, pages=[
             p for p in doc.pages if lesson["start_page"] <= p.index + 1 <= lesson["end_page"]])
         try:
-            result = build_candidates(part, ctx.text_api, ctx.target, ctx.source, lookup)
+            result = build_candidates(part, ctx.text_api, ctx.target, ctx.source, lookup, page_kinds=page_kinds)
             candidates = [c.model_dump() for c in result.candidates]
             verified = sum(c["status"] == "verified" for c in candidates)
             out = candidates_path(ctx.media_root, job_id, lesson["index"])
-            out.write_text(json.dumps({"candidates": candidates, "warnings": result.warnings}))
+            out.write_text(json.dumps({"candidates": candidates, "elements": [e.model_dump() for e in result.elements],
+                                       "warnings": result.warnings}))
             lesson.update(status="done", counts={"total": len(candidates), "verified": verified,
-                                                 "flagged": len(candidates) - verified})
+                                                 "flagged": len(candidates) - verified,
+                                                 "elements": len(result.elements)})
         except ExtractionError as e:
             lesson.update(status="failed", error=str(e))
         # a ModelAPIError (bad key, wrong URL) propagates: the whole job fails once, not once per lesson

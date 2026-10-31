@@ -169,3 +169,31 @@ def test_nothing_is_created_when_a_lesson_accept_fails_validation(app, db, media
     client.post(f"/api/ingestion/{job_id}/lessons/0/accept", json={"items": [{"word": "ok"}, {"word": "x", "on_conflict": "boom"}]})
     with db.session_scope() as s:
         assert s.query(Lesson).filter(Lesson.id != "lesson_L1").count() == 0
+
+
+KINDS = {"1": ["vocabulary"], "2": [], "3": ["grammar"], "4": ["passage"]}
+
+
+def test_language_structure_includes_page_kinds(app, db, media_root, scheduled):
+    client = _setup(app, db)
+    job_id = _awaiting_structure(client)
+    svc.update(job_id, page_kinds=KINDS)
+    assert client.get(f"/api/ingestion/{job_id}/structure").get_json()["page_kinds"] == KINDS
+
+
+def test_structure_post_overrides_page_kinds(app, db, media_root, scheduled, monkeypatch):
+    client = _setup(app, db)
+    job_id = _awaiting_structure(client)
+    svc.update(job_id, page_kinds=KINDS)
+    monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: None)
+    res = client.post(f"/api/ingestion/{job_id}/structure", json={"lessons": LESSONS, "page_kinds": {"2": ["grammar"]}})
+    assert res.status_code == 200
+    assert svc.get(job_id)["page_kinds"] == {**KINDS, "2": ["grammar"]}
+
+
+def test_structure_post_rejects_bad_page_kinds(app, db, media_root, scheduled, monkeypatch):
+    client = _setup(app, db)
+    job_id = _awaiting_structure(client)
+    monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: pytest.fail("scheduled"))
+    res = client.post(f"/api/ingestion/{job_id}/structure", json={"lessons": LESSONS, "page_kinds": {"1": ["wizard"]}})
+    assert res.status_code == 400 and svc.get(job_id)["status"] == "structure"

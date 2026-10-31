@@ -7,8 +7,9 @@ from lapp.models.system_data import IngestionJob
 from lapp.services.ingestion import jobs as jobs_module
 from lapp.services.ingestion import pipeline as pipeline_module
 from lapp.services.ingestion.extract import RawItem
-from lapp.services.ingestion.jobs import IngestionJobService, candidates_path, run_ingestion_job, safe_filename
+from lapp.services.ingestion.jobs import IngestionJobService, candidates_path, document_path, run_ingestion_job, run_language_extraction, safe_filename
 from lapp.services.parsing.types import Block, Document, ParseError, Page, Word
+from lapp.services.ingestion.types import ALL_KINDS
 from lapp.utils.model_api import ModelAPIError
 
 svc = IngestionJobService()
@@ -30,6 +31,13 @@ def job(app, db, media_root):
 
 def _status(job_id):
     return svc.get(job_id)
+
+
+def _run_all(app, job_id):
+    """Parse + classify, then (as the confirm route does) extract with the stored kinds."""
+    run_ingestion_job(app, job_id)
+    if _status(job_id)["status"] == "pages":
+        run_language_extraction(app, job_id)
 
 
 def test_safe_filename_strips_directories_and_odd_characters():
@@ -71,7 +79,7 @@ def test_successful_run_writes_candidates_and_marks_ready(app, job, media_root, 
     monkeypatch.setattr(pipeline_module, "extract_chunk",
                         lambda *a: [RawItem(word="bonjour", quote="bonjour hello", translation="hello"),
                                     RawItem(word="chat", quote="le chat")])
-    run_ingestion_job(app, job["id"])
+    _run_all(app, job["id"])
     j = _status(job["id"])
     assert (j["status"], j["pages_done"], j["pages_total"]) == ("ready", 1, 1)
     data = json.loads(candidates_path(media_root, job["id"]).read_text())
@@ -90,7 +98,7 @@ def test_existing_words_are_annotated_by_where_they_exist(app, job, db, media_ro
     monkeypatch.setattr(jobs_module, "parse", lambda *a, **k: _doc())
     monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [
         RawItem(word="bonjour", quote="bonjour hello"), RawItem(word="hello", quote="bonjour hello")])
-    run_ingestion_job(app, job["id"])
+    _run_all(app, job["id"])
     cands = {c["word"]: c for c in json.loads(candidates_path(media_root, job["id"]).read_text())["candidates"]}
     assert [f["code"] for f in cands["bonjour"]["flags"]] == ["already_in_language"] and cands["bonjour"]["status"] == "verified"
     assert [f["code"] for f in cands["hello"]["flags"]] == ["already_in_lesson"] and cands["hello"]["status"] == "flagged"
@@ -121,7 +129,7 @@ def test_bad_api_key_fails_the_job_once(app, job, monkeypatch):
         calls.append(1)
         raise ModelAPIError(ModelAPIError.KIND_AUTH, 401, "Authentication failed (401)")
     monkeypatch.setattr(pipeline_module, "extract_chunk", auth_fail)
-    run_ingestion_job(app, job["id"])
+    _run_all(app, job["id"])
     assert _status(job["id"])["status"] == "failed" and "Authentication" in _status(job["id"])["error"]
 
 
@@ -164,3 +172,56 @@ def test_runner_without_a_range_parses_everything(app, job, media_root, monkeypa
     monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
     run_ingestion_job(app, job["id"])
     assert seen["pages"] is None
+
+
+def _patch_run(monkeypatch, kinds, grammar=None):
+    monkeypatch.setattr(jobs_module, "parse", lambda *a, **k: _doc())
+    monkeypatch.setattr(jobs_module, "classify_pages", lambda doc, api, name: kinds)
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
+
+
+def test_lesson_import_stops_at_pages_status(app, job, media_root, monkeypatch):
+    _patch_run(monkeypatch, {1: ["vocabulary", "grammar"]})
+    run_ingestion_job(app, job["id"])
+    j = _status(job["id"])
+    assert j["status"] == "pages" and j["page_kinds"] == {"1": ["vocabulary", "grammar"]}
+    assert document_path(media_root, job["id"]).is_file() and not candidates_path(media_root, job["id"]).exists()
+
+
+def test_failed_classification_step_gives_every_kind(app, job, monkeypatch):
+    _patch_run(monkeypatch, None)
+    monkeypatch.setattr(jobs_module, "classify_pages",
+                        lambda *a: (_ for _ in ()).throw(ModelAPIError(ModelAPIError.KIND_SERVER, 500, "boom")))
+    run_ingestion_job(app, job["id"])
+    assert _status(job["id"])["status"] == "pages" and _status(job["id"])["page_kinds"] == {"1": list(ALL_KINDS)}
+
+
+def test_bad_key_while_classifying_fails_the_job(app, job, monkeypatch):
+    _patch_run(monkeypatch, None)
+    monkeypatch.setattr(jobs_module, "classify_pages",
+                        lambda *a: (_ for _ in ()).throw(ModelAPIError(ModelAPIError.KIND_AUTH, 401, "Authentication failed (401)")))
+    run_ingestion_job(app, job["id"])
+    assert _status(job["id"])["status"] == "failed"
+
+
+def test_confirmed_kinds_drive_extraction_and_elements_are_written(app, job, media_root, monkeypatch):
+    _patch_run(monkeypatch, {1: ["vocabulary"]})
+    run_ingestion_job(app, job["id"])
+    svc.update(job["id"], page_kinds={"1": ["grammar"]}, status="extracting")
+    seen = []
+    from lapp.services.ingestion.types import ElementCandidate
+    monkeypatch.setattr(pipeline_module, "extract_kind", lambda kind, chunk, *a: seen.append(kind) or [
+        {"title": "bonjour", "explanation": "bonjour hello", "example_sentences": [], "quote": "bonjour"}])
+    run_language_extraction(app, job["id"])
+    data = json.loads(candidates_path(media_root, job["id"]).read_text())
+    assert seen == ["grammar"] and data["candidates"] == [] and [e["kind"] for e in data["elements"]] == ["grammar"]
+    assert _status(job["id"])["status"] == "ready"
+
+
+def test_legacy_job_without_page_kinds_runs_vocabulary_only(app, job, media_root, monkeypatch):
+    _patch_run(monkeypatch, {1: ["vocabulary"]})
+    run_ingestion_job(app, job["id"])
+    svc.update(job["id"], page_kinds=None, status="extracting")
+    monkeypatch.setattr(pipeline_module, "extract_kind", lambda *a: pytest.fail("element call"))
+    run_language_extraction(app, job["id"])
+    assert json.loads(candidates_path(media_root, job["id"]).read_text())["elements"] == []

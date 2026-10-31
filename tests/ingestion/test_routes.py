@@ -1,3 +1,5 @@
+import pytest
+
 import io
 import json
 
@@ -286,3 +288,45 @@ def test_accept_tags_created_vocabulary_with_one_reused_source(app, db, media_ro
         assert [x.title for x in sources] == ["Imported from notes.pdf"]
         vocs = s.query(Vocabulary).filter(Vocabulary.lesson_id == "lesson_L1").all()
         assert len(vocs) == 2 and all([src.id for src in v.sources] == [sources[0].id] for v in vocs)
+
+
+def _pages_job(client, kinds=None):
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    svc.update(job_id, status="pages", page_kinds=kinds or {"1": ["vocabulary"], "2": ["grammar"]})
+    return job_id
+
+
+def test_get_pages_returns_kinds_and_range(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    body = client.get(f"/api/ingestion/{_pages_job(client)}/pages").get_json()
+    assert body["status"] == "pages" and body["page_kinds"] == {"1": ["vocabulary"], "2": ["grammar"]}
+    assert (body["first_page"], body["last_page"], body["warnings"]) == (1, 2, [])
+
+
+def test_post_pages_starts_extraction_and_stores_the_kinds(app, db, media_root, scheduled, monkeypatch):
+    client = _setup(app, db, media_root)
+    job_id = _pages_job(client)
+    started = []
+    monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: started.append(jid))
+    res = client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {"1": [], "2": ["grammar", "passage"]}})
+    assert res.status_code == 200 and started == [job_id]
+    job = svc.get(job_id)
+    assert job["status"] == "extracting" and job["page_kinds"] == {"1": [], "2": ["grammar", "passage"]}
+
+
+@pytest.mark.parametrize("kinds", [{"1": ["wizard"]}, {"9": ["grammar"]}, {"x": []}, None])
+def test_post_pages_rejects_bad_input_without_changes(app, db, media_root, scheduled, monkeypatch, kinds):
+    client = _setup(app, db, media_root)
+    job_id = _pages_job(client)
+    monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: pytest.fail("scheduled"))
+    res = client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": kinds})
+    assert res.status_code == 400 and svc.get(job_id)["status"] == "pages"
+
+
+def test_second_post_pages_is_409(app, db, media_root, scheduled, monkeypatch):
+    client = _setup(app, db, media_root)
+    job_id = _pages_job(client)
+    monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: None)
+    assert client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {}}).status_code == 200
+    assert client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {}}).status_code == 409
+    assert client.get(f"/api/ingestion/{job_id}/pages").status_code == 409
