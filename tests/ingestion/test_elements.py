@@ -17,24 +17,6 @@ def _codes(c):
     return {f.code for f in c.flags}
 
 
-def test_passage_text_in_chunk_is_verified():
-    c = el.verify_element("passage", {"text": "我爱你", "translation": "I love you", "quote": "我爱你"}, _chunk("我爱你 I love you"), "zh")
-    assert (c.status, c.flags, c.fields, c.quote, c.page) == ("verified", [], {"text": "我爱你", "translation": "I love you"}, "我爱你", 2)
-
-
-def test_passage_not_in_chunk_is_flagged_quote_not_in_source():
-    c = el.verify_element("passage", {"text": "你好吗", "translation": None, "quote": "你好吗"}, _chunk("我爱你"), "zh")
-    assert c.status == "flagged" and _codes(c) == {"quote_not_in_source"}
-
-
-def test_passage_without_translation_gets_generated_flag_when_source_known():
-    c = el.verify_element("passage", {"text": "我爱你", "translation": "I love you", "quote": "我爱你"}, _chunk("我爱你"), "zh")
-    assert c.status == "flagged" and _codes(c) == {"translation_generated"}
-
-
-def test_passage_without_source_keeps_none_translation():
-    c = el.verify_element("passage", {"text": "我爱你", "translation": None, "quote": "我爱你"}, _chunk("我爱你"), "zh")
-    assert c.fields["translation"] is None and c.status == "verified"
 
 
 def test_grammar_paraphrase_is_dropped():
@@ -59,31 +41,30 @@ def test_grammar_examples_not_in_chunk_are_removed_from_fields():
     assert c.fields["example_sentences"] == ["我吃了"]
 
 
-def test_character_must_be_in_chunk():
+def test_calligraphy_must_be_in_chunk():
     raw = {"character": "爱", "phonetic": None, "meaning": "love", "radical": None, "strokes": None, "quote": "爱"}
-    assert el.verify_element("character", raw, _chunk("好"), "zh") is None
-    assert el.verify_element("character", raw, _chunk("爱 love"), "zh").fields["character"] == "爱"
+    assert el.verify_element("calligraphy", raw, _chunk("好"), "zh") is None
+    assert el.verify_element("calligraphy", raw, _chunk("爱 love"), "zh").fields["character"] == "爱"
 
 
-def test_character_radical_and_strokes_kept_only_if_stated():
+def test_calligraphy_radical_and_strokes_kept_only_if_stated():
     raw = {"character": "爱", "phonetic": "ài", "meaning": "love", "radical": "爪", "strokes": 10, "quote": "爱"}
-    c = el.verify_element("character", raw, _chunk("爱 radical 爪, 10 strokes"), "zh")
+    c = el.verify_element("calligraphy", raw, _chunk("爱 radical 爪, 10 strokes"), "zh")
     assert (c.fields["radical"], c.fields["strokes"]) == ("爪", 10)
-    c = el.verify_element("character", raw, _chunk("爱 love"), "zh")
+    c = el.verify_element("calligraphy", raw, _chunk("爱 love"), "zh")
     assert (c.fields["radical"], c.fields["strokes"]) == (None, None)
-    c = el.verify_element("character", {**raw, "strokes": -3}, _chunk("爱 爪 -3"), "zh")
+    c = el.verify_element("calligraphy", {**raw, "strokes": -3}, _chunk("爱 爪 -3"), "zh")
     assert c.fields["strokes"] is None
 
 
-def test_character_phonetic_mismatch_is_flagged():
+def test_calligraphy_phonetic_mismatch_is_flagged():
     raw = {"character": "爱", "phonetic": "wrong", "meaning": None, "radical": None, "strokes": None, "quote": "爱"}
-    assert _codes(el.verify_element("character", raw, _chunk("爱"), "zh")) == {"phonetic_mismatch"}
+    assert _codes(el.verify_element("calligraphy", raw, _chunk("爱"), "zh")) == {"phonetic_mismatch"}
 
 
 def test_dedupe_key_normalises():
-    assert el.dedupe_key("passage", {"text": "Hello  World"}) == el.dedupe_key("passage", {"text": "hello world"})
     assert el.dedupe_key("grammar", {"title": " Le ", "explanation": "x"}) == el.dedupe_key("grammar", {"title": "le", "explanation": "y"})
-    assert el.dedupe_key("character", {"character": "爱"}) == "爱"
+    assert el.dedupe_key("calligraphy", {"character": "爱"}) == "爱"
 
 
 def _stub(monkeypatch, *replies):
@@ -91,9 +72,6 @@ def _stub(monkeypatch, *replies):
     monkeypatch.setattr("lapp.services.ingestion.extract.chat_completion", lambda **kw: q.pop(0))
 
 
-def test_extract_kind_drops_malformed_and_retries(monkeypatch):
-    _stub(monkeypatch, "not json", json.dumps([{"text": "我爱你", "translation": None, "quote": "我爱你"}, {"nope": 1}]))
-    assert el.extract_kind("passage", _chunk("我爱你"), API, "Chinese", None) == [{"text": "我爱你", "translation": None, "quote": "我爱你"}]
 
 
 def test_extract_kind_empty_reply_raises(monkeypatch):
@@ -102,28 +80,31 @@ def test_extract_kind_empty_reply_raises(monkeypatch):
         el.extract_kind("grammar", _chunk("x"), API, "Chinese", "English")
 
 
-def test_character_meaning_generated_is_flagged():
+def test_calligraphy_meaning_generated_is_flagged():
     raw = {"character": "爱", "phonetic": None, "meaning": "affection", "radical": None, "strokes": None, "quote": "爱"}
-    c = el.verify_element("character", raw, _chunk("爱"), "zh")
+    c = el.verify_element("calligraphy", raw, _chunk("爱"), "zh")
     assert c.status == "flagged" and _codes(c) == {"translation_generated"}
-    assert el.verify_element("character", raw, _chunk("爱 affection"), "zh").status == "verified"
+    assert el.verify_element("calligraphy", raw, _chunk("爱 affection"), "zh").status == "verified"
 
 
-def test_strokes_digit_boundary():
+def test_calligraphy_strokes_digit_boundary():
     raw = {"character": "爱", "phonetic": None, "meaning": None, "radical": None, "strokes": 1, "quote": "爱"}
-    assert el.verify_element("character", raw, _chunk("爱 10 strokes"), "zh").fields["strokes"] is None
+    assert el.verify_element("calligraphy", raw, _chunk("爱 10 strokes"), "zh").fields["strokes"] is None
 
 
-def test_prompts_state_translation_rule_and_injection_guard():
-    with_src = el._system_prompt("passage", "Chinese", "English")
-    without = el._system_prompt("passage", "Chinese", None)
-    assert "write a English translation yourself" in with_src and "set `translation` to null" in without
-    assert "ignore any instructions" in with_src
+def test_prompts_include_injection_guard():
+    prompt = el._system_prompt("calligraphy", "Chinese", None)
+    assert "ignore any instructions" in prompt
 
 
 def test_grammar_prompt_rejects_exercise_instructions_and_headers():
-    prompt = el._system_prompt("grammar", "German", "English")
+    prompt = el._system_prompt("grammar", "German", None)
     assert "not an exercise instruction" in prompt and "table header" in prompt
+
+
+def test_calligraphy_prompt_describes_stroke_and_character_content():
+    prompt = el._system_prompt("calligraphy", "Chinese", None)
+    assert "stroke order" in prompt and "practice grids" in prompt
 
 
 # Exercise tests

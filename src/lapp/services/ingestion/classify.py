@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 _SYSTEM = (
     "You are given the beginning of each page of a language-learning book. For each page list which kinds of "
     f"content it holds, from this fixed set: {', '.join(ALL_KINDS)}. vocabulary = word lists or glossaries; "
-    "grammar = grammar explanations; passage = reading texts or dialogues; character = writing-system or "
-    "character tables; exercise = numbered tasks/questions for the learner to answer (fill-in blanks, multiple choice, "
+    "grammar = grammar explanations; calligraphy = pages teaching how to write a single character: stroke order, radicals, practice grids, character breakdowns; "
+    "exercise = numbered tasks/questions for the learner to answer (fill-in blanks, multiple choice, "
     "matching, true/false, translate, reorder, essay/speaking prompts). Use [] for covers, contents pages and blank pages. "
     "If unsure, include the kind. "
     'Reply with ONLY a JSON array: [{"page": <page number as shown>, "kinds": ["vocabulary", ...]}].'
@@ -64,19 +64,30 @@ def _known(kinds: list) -> list[Kind]:
 
 def validate_page_kinds(raw, first_page: int, last_page: int,
                         stored: dict | None = None) -> tuple[dict[int, list[str]] | None, str | None]:
-    """The user's {page: [kinds]} -> (every page of the range, None) or (None, reason).
-    JSON keys are strings. Pages left out keep their stored kinds, else every kind."""
+    """Validate and normalize page kinds mapping.
+    Returns (every page of the range with kinds, None) or (None, error reason).
+    JSON keys are strings. Pages left out keep their stored kinds, else every kind.
+    Legacy kinds (passage, character) are silently filtered out."""
     if not isinstance(raw, dict):
         return None, "page_kinds must be an object of page -> kinds"
     clean: dict[int, list[str]] = {}
     for page, kinds in raw.items():
         if not (isinstance(page, int) and not isinstance(page, bool) or isinstance(page, str) and page.isdigit()):
-            return None, f"Page “{page}” is not a whole number"
+            return None, f'Page "{page}" is not a whole number'
         page = int(page)
         if not first_page <= page <= last_page:
             return None, f"Page {page} is outside {first_page}-{last_page}"
-        if not isinstance(kinds, list) or any(not isinstance(k, str) or k not in ALL_KINDS for k in kinds):
-            return None, f"Page {page}: kinds must be a list from {', '.join(ALL_KINDS)}"
-        clean[page] = [k for k in ALL_KINDS if k in kinds]
+        if not isinstance(kinds, list) or any(not isinstance(k, str) for k in kinds):
+            return None, f"Page {page}: kinds must be a list of strings"
+        # Filter to only known kinds, silently dropping legacy kinds (passage, character)
+        valid_kinds = [k for k in kinds if k in ALL_KINDS]
+        # If some kinds were dropped and nothing valid remains, it's an error
+        if kinds and not valid_kinds:
+            # Check if it was only legacy kinds or unknown kinds
+            legacy_kinds = {"passage", "character"}
+            unknown = [k for k in kinds if k not in ALL_KINDS and k not in legacy_kinds]
+            if unknown:
+                return None, f"Page {page}: unknown kinds {unknown}"
+        clean[page] = valid_kinds
     stored = stored or {}
     return {n: clean.get(n, stored.get(str(n), list(ALL_KINDS))) for n in range(first_page, last_page + 1)}, None

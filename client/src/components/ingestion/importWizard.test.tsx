@@ -38,11 +38,11 @@ describe("lesson ImportWizard", () => {
     render(<ImportWizard languageId="l" lessonId="les" lessonTitle="L1" settingsHref="/s" />);
 
     expect(await screen.findByText(/Confirm page kinds in book.pdf/)).toBeInTheDocument();
-    // add "Passage" to page 1 (first Passage chip)
-    await userEvent.click(screen.getAllByRole("button", { name: /Passage/ })[0]);
+    // add "Calligraphy" to page 1 (first Calligraphy chip)
+    await userEvent.click(screen.getAllByRole("button", { name: /Calligraphy/ })[0]);
     await userEvent.click(screen.getByRole("button", { name: "Continue to extraction" }));
 
-    expect(api.confirmPages).toHaveBeenCalledWith("j1", { "1": ["vocabulary", "passage"], "2": ["grammar"] });
+    expect(api.confirmPages).toHaveBeenCalledWith("j1", { "1": ["vocabulary", "calligraphy"], "2": ["grammar"] });
     expect(push).toHaveBeenCalledWith("/languages/l/lesson/les/import?job=j1");
   });
 });

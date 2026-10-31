@@ -12,12 +12,12 @@ describe("PageKinds", () => {
     const onChange = vi.fn();
     render(<PageKinds pages={[1, 2]} value={{ 1: ["vocabulary"], 2: ["grammar"] }} onChange={onChange} />);
     const [vocab1] = screen.getAllByRole("button", { name: /Vocabulary/ });
-    const [passage1] = screen.getAllByRole("button", { name: /Passage/ });
+    const [calligraphy1] = screen.getAllByRole("button", { name: /Calligraphy/ });
     expect(vocab1).toHaveAttribute("aria-pressed", "true");
-    expect(passage1).toHaveAttribute("aria-pressed", "false");
+    expect(calligraphy1).toHaveAttribute("aria-pressed", "false");
 
-    await userEvent.click(passage1);
-    expect(onChange).toHaveBeenLastCalledWith({ 1: ["vocabulary", "passage"], 2: ["grammar"] });
+    await userEvent.click(calligraphy1);
+    expect(onChange).toHaveBeenLastCalledWith({ 1: ["vocabulary", "calligraphy"], 2: ["grammar"] });
     await userEvent.click(vocab1);
     expect(onChange).toHaveBeenLastCalledWith({ 1: [], 2: ["grammar"] });
   });
@@ -26,8 +26,8 @@ describe("PageKinds", () => {
     const onChange = vi.fn();
     render(<PageKinds pages={[3]} value={{ 3: [] }} onChange={onChange} />);
     expect(screen.getByText(/skipped/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Character/ }));
-    expect(onChange).toHaveBeenCalledWith({ 3: ["character"] });
+    await userEvent.click(screen.getByRole("button", { name: /Calligraphy/ }));
+    expect(onChange).toHaveBeenCalledWith({ 3: ["calligraphy"] });
   });
 
   it("does not show skipped text for a page with kinds", () => {

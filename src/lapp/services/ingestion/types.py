@@ -11,8 +11,8 @@ FlagCode = Literal[
     "already_in_language", "already_in_lesson",
     "explanation_not_in_source", "answer_generated",
 ]
-Kind = Literal["vocabulary", "grammar", "passage", "character", "exercise"]
-ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "passage", "character", "exercise"]
+Kind = Literal["vocabulary", "grammar", "calligraphy", "exercise"]
+ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "calligraphy", "exercise"]
 
 
 class Chunk(BaseModel):
@@ -45,7 +45,7 @@ class Candidate(BaseModel):
 
 
 class ElementCandidate(BaseModel):
-    """A non-vocabulary element (grammar, passage, character) proposed for import."""
+    """A non-vocabulary element (grammar, calligraphy, exercise) proposed for import."""
     id: str
     kind: Kind
     fields: dict

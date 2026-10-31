@@ -15,11 +15,10 @@ export type Candidate = {
   flags: Flag[];
   min_conf: number | null;
   // For non-vocabulary elements
-  kind?: "grammar" | "passage" | "character" | "exercise";
+  kind?: "grammar" | "calligraphy" | "exercise";
   title?: string;
   explanation?: string;
   character?: string;
-  text?: string;
   meaning?: string;
   radical?: string | null;
   strokes?: string | null;
@@ -47,10 +46,10 @@ export type Row = {
   title?: string;
   explanation?: string;
   character?: string;
-  text?: string;
   meaning?: string;
   radical?: string | null;
   strokes?: string | null;
+  example_sentences?: string[];
   // For exercise
   exercise_type?: string;
   question?: string;
@@ -72,12 +71,11 @@ export function initialRows(candidates: Candidate[]): Row[] {
     if (candidate.kind === "grammar") {
       row.title = candidate.title ?? "";
       row.explanation = candidate.explanation ?? "";
-    } else if (candidate.kind === "passage") {
-      row.text = candidate.text ?? "";
-      row.translation = candidate.translation ?? "";
-    } else if (candidate.kind === "character") {
+      row.example_sentences = candidate.example_sentences ?? [];
+    } else if (candidate.kind === "calligraphy") {
       row.character = candidate.character ?? "";
       row.meaning = candidate.meaning ?? "";
+      row.phonetic = candidate.phonetic ?? "";
       row.radical = candidate.radical ?? null;
       row.strokes = candidate.strokes ?? null;
     } else if (candidate.kind === "exercise") {
@@ -134,28 +132,18 @@ export function toAcceptItems(rows: Row[]): AcceptPayload {
           fields: {
             title,
             explanation,
-            example_sentences: r.candidate.example_sentences ?? [],
+            example_sentences: r.example_sentences ?? [],
           },
         });
       }
-    } else if (r.candidate.kind === "passage") {
-      const text = (r.text ?? "").trim();
-      if (text) {
-        elements.push({
-          kind: "passage",
-          fields: {
-            text,
-            translation: (r.translation ?? "").trim() || null,
-          },
-        });
-      }
-    } else if (r.candidate.kind === "character") {
+    } else if (r.candidate.kind === "calligraphy") {
       const character = (r.character ?? "").trim();
-      if (character) {
+      if (character && character.length === 1) {
         elements.push({
-          kind: "character",
+          kind: "calligraphy",
           fields: {
             character,
+            phonetic: (r.phonetic ?? "").trim() || null,
             meaning: (r.meaning ?? "").trim() || null,
             radical: (r.radical ?? "").trim() || null,
             strokes: r.strokes ? Number(r.strokes) : null,

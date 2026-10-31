@@ -139,7 +139,7 @@ def test_only_confirmed_kinds_run(monkeypatch):
 def test_unlisted_page_runs_every_kind(monkeypatch):
     calls = _patch_kinds(monkeypatch, lambda k, c: [])
     _build(_doc("bonjour hello", "merci thanks"), None, page_kinds={1: []})
-    assert {k for k, p in calls} == {"vocabulary", "grammar", "passage", "character", "exercise"} and {p for k, p in calls} == {1}
+    assert {k for k, p in calls} == {"vocabulary", "grammar", "calligraphy", "exercise"} and {p for k, p in calls} == {1}
 
 
 GRAMMAR = {"title": "Le passé", "explanation": "Le passé composé", "example_sentences": [], "quote": "Le passé"}

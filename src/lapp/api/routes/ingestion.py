@@ -7,11 +7,11 @@ from ...core.auth import current_user_id, login_required, owner_user_id, require
 from ...core.database import db_manager
 from ...schemas.components import WordDict
 from ...schemas.containers import LessonDict
-from ...schemas.features import VocabularyDict, ExerciseDict
+from ...schemas.features import VocabularyDict, ExerciseDict, CalligraphyDict
 from ...schemas.system_data import SourceDict
 from ...services import LessonService, VocabularyService
 from ...services.components import PassageService, CharacterService
-from ...services.features import GrammarService, ExerciseService
+from ...services.features import GrammarService, ExerciseService, CalligraphyService
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
@@ -372,7 +372,7 @@ def confirm_pages(job_id: str):
               properties:
                   page_kinds:
                       type: object
-                      description: "{page: [kind, ...]} with kinds from vocabulary, grammar, passage, character; pages left out keep their classified kinds"
+                      description: "{page: [kind, ...]} with kinds from vocabulary, grammar, calligraphy, exercise; pages left out keep their classified kinds"
     responses:
         200: {description: Extraction started}
         400: {description: Invalid page_kinds}
@@ -492,7 +492,7 @@ def accept(job_id: str):
                       items:
                           type: object
                           properties:
-                              kind: {type: string, enum: [passage, grammar, character, exercise]}
+                              kind: {type: string, enum: [grammar, calligraphy, exercise]}
                               fields: {type: object}
     responses:
         200: {description: Entries created}
@@ -569,23 +569,21 @@ def _invalid_elements(elements) -> str | None:
         if not isinstance(elem, dict):
             return "Every element must be an object"
         kind = elem.get("kind")
-        if kind not in ("passage", "grammar", "character", "exercise"):
-            return f"Element kind must be passage, grammar, character or exercise, got: {kind}"
+        if kind not in ("grammar", "calligraphy", "exercise"):
+            return f"Element kind must be grammar, calligraphy or exercise, got: {kind}"
         fields = elem.get("fields")
         if not isinstance(fields, dict):
             return "Every element needs a fields dict"
         # Check required fields per kind
-        if kind == "passage":
-            if not isinstance(fields.get("text"), str) or not str(fields.get("text", "")).strip():
-                return "Passage requires a non-empty text field"
-        elif kind == "grammar":
+        if kind == "grammar":
             if not isinstance(fields.get("title"), str) or not str(fields.get("title", "")).strip():
                 return "Grammar requires a non-empty title field"
             if not isinstance(fields.get("explanation"), str) or not str(fields.get("explanation", "")).strip():
                 return "Grammar requires a non-empty explanation field"
-        elif kind == "character":
-            if not isinstance(fields.get("character"), str) or not str(fields.get("character", "")).strip():
-                return "Character requires a non-empty character field"
+        elif kind == "calligraphy":
+            char = str(fields.get("character", "")).strip()
+            if not char or len(char) != 1:
+                return "Calligraphy requires a non-empty 1-character character field"
         elif kind == "exercise":
             if not isinstance(fields.get("question"), str) or not str(fields.get("question", "")).strip():
                 return "Exercise requires a non-empty question field"
@@ -606,43 +604,23 @@ def _normalize_text(text: str) -> str:
 
 
 def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list) -> int:
-    """Create passages, grammar, characters and exercises for each element, tagged with import source."""
+    """Create grammar (with nested passages), calligraphy (with nested character) and exercises for each element, tagged with import source."""
     if not isinstance(elements, list):
         return 0
 
-    passage_service = PassageService()
     grammar_service = GrammarService()
-    character_service = CharacterService()
     exercise_service = ExerciseService()
     source_service = SourceService()
     source = _import_source(session, current_user_id(), job["filename"])
+    calligraphy_service = CalligraphyService()
 
     created = 0
-    # First pass: collect created passages for grammar linking
-    created_passages = {}  # normalized_text -> passage object
 
     for elem in elements:
         kind = elem.get("kind")
         fields = elem.get("fields", {})
 
-        if kind == "passage":
-            text = str(fields.get("text", "")).strip()
-            passage = passage_service.get_by_text(text, language_id=language_id, session=session)
-            if not passage:
-                passage_dict = PassageDict(
-                    text=text,
-                    translation=fields.get("translation") or None,
-                    language_id=language_id,
-                )
-                passage = passage_service.create(passage_dict, session=session)
-                if passage:
-                    source_service.add_source_to_element(source.id, passage.id, session=session)
-                    created += 1
-                    created_passages[_normalize_text(text)] = passage
-            else:
-                created_passages[_normalize_text(text)] = passage
-
-        elif kind == "grammar":
+        if kind == "grammar":
             title = str(fields.get("title", "")).strip()
             # Check if grammar with this title already exists in the lesson
             from ...models.features import Grammar
@@ -654,31 +632,28 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 example_sentences = []
                 for sent_text in (fields.get("example_sentences") or []):
                     sent_text = str(sent_text).strip()
-                    if not sent_text:
-                        continue
-                    # Link to passage if it matches one in this request; otherwise ignore
-                    norm_sent = _normalize_text(sent_text)
-                    if norm_sent in created_passages:
-                        example_sentences.append(created_passages[norm_sent])
+                    if sent_text:
+                        example_sentences.append(PassageDict(text=sent_text, language_id=language_id))
 
                 grammar_dict = GrammarDict(
                     lesson_id=lesson_id,
                     title=title,
                     explanation=str(fields.get("explanation", "")).strip(),
-                    example_sentences=[PassageDict(
-                        text=p.text,
-                        translation=p.translation,
-                        language_id=language_id
-                    ) for p in example_sentences] if example_sentences else None
+                    example_sentences=example_sentences if example_sentences else None
                 )
                 grammar = grammar_service.create(grammar_dict, session=session)
                 if grammar:
                     source_service.add_source_to_element(source.id, grammar.id, session=session)
                     created += 1
 
-        elif kind == "character":
+        elif kind == "calligraphy":
             character = str(fields.get("character", "")).strip()
-            existing = character_service.get_by_character(character, language_id=language_id, session=session)
+            # Check if calligraphy for this character already exists in the lesson
+            from ...models.features import Calligraphy
+            existing = session.query(Calligraphy).filter(
+                Calligraphy.lesson_id == lesson_id,
+                Calligraphy.character.has(character=character)
+            ).first()
             if not existing:
                 character_dict = CharacterDict(
                     character=character,
@@ -688,9 +663,13 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     strokes=fields.get("strokes") or None,
                     language_id=language_id,
                 )
-                created_char = character_service.create(character_dict, session=session, on_conflict="keep")
-                if created_char:
-                    source_service.add_source_to_element(source.id, created_char.id, session=session)
+                calligraphy_dict = CalligraphyDict(
+                    lesson_id=lesson_id,
+                    character=character_dict,
+                )
+                calli = calligraphy_service.create(calligraphy_dict, session=session, on_conflict="keep")
+                if calli:
+                    source_service.add_source_to_element(source.id, calli.id, session=session)
                     created += 1
 
         elif kind == "exercise":

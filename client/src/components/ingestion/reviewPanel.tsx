@@ -97,38 +97,19 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                 <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
               </li>
             );
-          } else if (c.kind === "passage") {
+          } else if (c.kind === "calligraphy") {
             return (
               <li key={c.id} className="card flex flex-col gap-2">
                 <div className="flex flex-wrap items-start gap-3">
-                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label="Include passage"
-                    onChange={(e) => patch(c.id, { selected: e.target.checked })} />
-                  <label className="flex min-w-48 flex-[2] flex-col gap-1">
-                    <span className="text-xs opacity-60">Text</span>
-                    <textarea className="input" value={row.text || ""} onChange={(e) => patch(c.id, { text: e.target.value })} />
-                  </label>
-                  <label className="flex min-w-48 flex-1 flex-col gap-1">
-                    <span className="text-xs opacity-60">Translation</span>
-                    <input className="input" value={row.translation || ""} onChange={(e) => patch(c.id, { translation: e.target.value })} />
-                  </label>
-                  <span className="badge mt-5" title={generated ? "The document gave no translation; the model wrote this one" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
-                    {generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
-                  </span>
-                </div>
-                {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
-                {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
-                <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
-              </li>
-            );
-          } else if (c.kind === "character") {
-            return (
-              <li key={c.id} className="card flex flex-col gap-2">
-                <div className="flex flex-wrap items-start gap-3">
-                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include character ${row.character || ""}`}
+                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include calligraphy ${row.character || ""}`}
                     onChange={(e) => patch(c.id, { selected: e.target.checked })} />
                   <label className="flex min-w-16 flex-col gap-1">
                     <span className="text-xs opacity-60">Character</span>
                     <input className="input text-center text-2xl" value={row.character || ""} onChange={(e) => patch(c.id, { character: e.target.value })} maxLength={1} />
+                  </label>
+                  <label className="flex min-w-24 flex-col gap-1">
+                    <span className="text-xs opacity-60">Phonetic</span>
+                    <input className="input" value={row.phonetic || ""} onChange={(e) => patch(c.id, { phonetic: e.target.value })} />
                   </label>
                   <label className="flex min-w-32 flex-col gap-1">
                     <span className="text-xs opacity-60">Meaning</span>

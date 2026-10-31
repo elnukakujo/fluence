@@ -2,7 +2,7 @@
 
 import { pageImageUrl } from "@/api/ingestion";
 
-type Kind = "vocabulary" | "grammar" | "passage" | "character" | "exercise";
+type Kind = "vocabulary" | "grammar" | "calligraphy" | "exercise";
 
 type Props = {
   pages: number[];
@@ -11,7 +11,12 @@ type Props = {
   jobId?: string;
 };
 
-const KINDS: Kind[] = ["vocabulary", "grammar", "passage", "character", "exercise"];
+const KINDS: Kind[] = ["vocabulary", "grammar", "calligraphy", "exercise"];
+
+function getKindLabel(kind: Kind): string {
+  if (kind === "calligraphy") return "Calligraphy";
+  return kind.charAt(0).toUpperCase() + kind.slice(1);
+}
 
 export default function PageKinds({ pages, value, onChange, jobId }: Props) {
   const toggleKind = (page: number, kind: Kind) => {
@@ -54,7 +59,7 @@ export default function PageKinds({ pages, value, onChange, jobId }: Props) {
                           style={isActive ? { background: "var(--color-primary)", color: "var(--color-primary-foreground)" } : undefined}
                           onClick={() => toggleKind(page, kind)}
                         >
-                          {isActive ? "✓ " : ""}{kind.charAt(0).toUpperCase() + kind.slice(1)}
+                          {isActive ? "✓ " : ""}{getKindLabel(kind)}
                         </button>
                       );
                     })}

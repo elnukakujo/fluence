@@ -308,10 +308,10 @@ def test_post_pages_starts_extraction_and_stores_the_kinds(app, db, media_root, 
     job_id = _pages_job(client)
     started = []
     monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: started.append(jid))
-    res = client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {"1": [], "2": ["grammar", "passage"]}})
+    res = client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {"1": [], "2": ["grammar", "calligraphy"]}})
     assert res.status_code == 200 and started == [job_id]
     job = svc.get(job_id)
-    assert job["status"] == "extracting" and job["page_kinds"] == {"1": [], "2": ["grammar", "passage"]}
+    assert job["status"] == "extracting" and job["page_kinds"] == {"1": [], "2": ["grammar", "calligraphy"]}
 
 
 @pytest.mark.parametrize("kinds", [{"1": ["wizard"]}, {"9": ["grammar"]}, {"x": []}, None])
@@ -332,11 +332,10 @@ def test_second_post_pages_is_409(app, db, media_root, scheduled, monkeypatch):
     assert client.get(f"/api/ingestion/{job_id}/pages").status_code == 409
 
 
-# ---- elements (passages, grammar, characters) --------------------------------
+# ---- elements (grammar, calligraphy, exercise) --------------------------------
 
-def test_accept_creates_passage_grammar_character_with_source(app, db, media_root, scheduled):
-    from lapp.models.components import Passage, Character
-    from lapp.models.features import Grammar
+def test_accept_creates_grammar_calligraphy_exercise_with_source(app, db, media_root, scheduled):
+    from lapp.models.features import Grammar, Calligraphy, Exercise
     from lapp.models.system_data import Source
     client = _setup(app, db, media_root)
     job_id = _ready_job(client)
@@ -344,9 +343,9 @@ def test_accept_creates_passage_grammar_character_with_source(app, db, media_roo
         "lesson_id": "lesson_L1",
         "items": [{"word": "hello"}],
         "elements": [
-            {"kind": "passage", "fields": {"text": "Hello world", "translation": "Bonjour le monde"}},
-            {"kind": "grammar", "fields": {"title": "Present tense", "explanation": "Used for now"}},
-            {"kind": "character", "fields": {"character": "中", "phonetic": "zhong", "meaning": "middle"}}
+            {"kind": "grammar", "fields": {"title": "Present tense", "explanation": "Used for now", "example_sentences": []}},
+            {"kind": "calligraphy", "fields": {"character": "中", "phonetic": "zhong", "meaning": "middle", "radical": None, "strokes": None}},
+            {"kind": "exercise", "fields": {"exercise_type": "answering", "question": "What?", "answer": "Answer", "text_support": None, "content": None}}
         ]
     })
     assert res.status_code == 200
@@ -354,22 +353,21 @@ def test_accept_creates_passage_grammar_character_with_source(app, db, media_roo
     assert data["created"] == 1 and data["created_elements"] == 3
 
     with db.session_scope() as s:
-        passage = s.query(Passage).filter(Passage.language_id == "lang_L1", Passage.text == "Hello world").first()
-        assert passage and passage.translation == "Bonjour le monde"
         grammar = s.query(Grammar).filter(Grammar.lesson_id == "lesson_L1", Grammar.title == "Present tense").first()
         assert grammar and grammar.explanation == "Used for now"
-        character = s.query(Character).filter(Character.language_id == "lang_L1", Character.character == "中").first()
-        assert character and character.phonetic == "zhong" and character.meaning == "middle"
+        calligraphy = s.query(Calligraphy).filter(Calligraphy.lesson_id == "lesson_L1").first()
+        assert calligraphy and calligraphy.character.character == "中"
+        exercise = s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1", Exercise.question == "What?").first()
+        assert exercise and exercise.answer == "Answer"
         # Check all are tagged with import source
         source = s.query(Source).filter(Source.user_id == "user_U1", Source.title.like("Imported from%")).first()
         assert source
-        assert any(src.id == source.id for src in passage.sources)
         assert any(src.id == source.id for src in grammar.sources)
-        assert any(src.id == source.id for src in character.sources)
+        assert any(src.id == source.id for src in calligraphy.sources)
+        assert any(src.id == source.id for src in exercise.sources)
 
 
-def test_accept_links_grammar_example_to_accepted_passage(app, db, media_root, scheduled):
-    from lapp.models.components import Passage
+def test_accept_grammar_creates_nested_passages_for_examples(app, db, media_root, scheduled):
     from lapp.models.features import Grammar
     client = _setup(app, db, media_root)
     job_id = _ready_job(client)
@@ -378,7 +376,6 @@ def test_accept_links_grammar_example_to_accepted_passage(app, db, media_root, s
         "lesson_id": "lesson_L1",
         "items": [],
         "elements": [
-            {"kind": "passage", "fields": {"text": passage_text}},
             {"kind": "grammar", "fields": {
                 "title": "Greeting",
                 "explanation": "Say hello",
@@ -386,43 +383,42 @@ def test_accept_links_grammar_example_to_accepted_passage(app, db, media_root, s
             }}
         ]
     })
-    assert res.status_code == 200 and res.get_json()["created_elements"] == 2
+    assert res.status_code == 200 and res.get_json()["created_elements"] == 1
 
     with db.session_scope() as s:
         grammar = s.query(Grammar).filter(Grammar.title == "Greeting").first()
-        assert len(grammar.example_sentences) == 1
+        assert len(grammar.example_sentences) == 2
         assert grammar.example_sentences[0].text == passage_text
+        assert grammar.example_sentences[1].text == "Other example"
 
 
-def test_accept_twice_creates_no_duplicates(app, db, media_root, scheduled):
-    from lapp.models.components import Passage, Character
+def test_accept_twice_creates_no_duplicate_elements(app, db, media_root, scheduled):
+    from lapp.models.features import Calligraphy
     client = _setup(app, db, media_root)
     body = {
         "lesson_id": "lesson_L1",
         "items": [],
         "elements": [
-            {"kind": "passage", "fields": {"text": "Same passage"}},
-            {"kind": "character", "fields": {"character": "同"}}
+            {"kind": "calligraphy", "fields": {"character": "同", "phonetic": None, "meaning": None, "radical": None, "strokes": None}}
         ]
     }
 
     job_id = _ready_job(client)
     res1 = client.post(f"/api/ingestion/{job_id}/accept", json=body)
-    assert res1.status_code == 200 and res1.get_json()["created_elements"] == 2
+    assert res1.status_code == 200 and res1.get_json()["created_elements"] == 1
 
     job_id = _ready_job(client)
     res2 = client.post(f"/api/ingestion/{job_id}/accept", json=body)
     assert res2.status_code == 200 and res2.get_json()["created_elements"] == 0
 
     with db.session_scope() as s:
-        passages = s.query(Passage).filter(Passage.text == "Same passage").all()
-        assert len(passages) == 1
-        characters = s.query(Character).filter(Character.character == "同").all()
-        assert len(characters) == 1
+        calligraphies = s.query(Calligraphy).filter(Calligraphy.lesson_id == "lesson_L1").all()
+        assert len(calligraphies) == 1
+        assert calligraphies[0].character.character == "同"
 
 
 def test_accept_rejects_malformed_element(app, db, media_root, scheduled):
-    from lapp.models.components import Passage
+    from lapp.models.features import Grammar
     client = _setup(app, db, media_root)
     job_id = _ready_job(client)
 
@@ -430,12 +426,9 @@ def test_accept_rejects_malformed_element(app, db, media_root, scheduled):
     res = client.post(f"/api/ingestion/{job_id}/accept", json={
         "lesson_id": "lesson_L1",
         "items": [],
-        "elements": [{"kind": "passage", "fields": {"translation": "only translation"}}]
+        "elements": [{"kind": "calligraphy", "fields": {"phonetic": "only phonetic"}}]
     })
     assert res.status_code == 400
-
-    with db.session_scope() as s:
-        assert s.query(Passage).count() == 0
 
     # Unknown kind
     job_id = _ready_job(client)
@@ -451,7 +444,7 @@ def test_accept_rejects_malformed_element(app, db, media_root, scheduled):
     res = client.post(f"/api/ingestion/{job_id}/accept", json={
         "lesson_id": "lesson_L1",
         "items": [],
-        "elements": [{"kind": "passage"}]
+        "elements": [{"kind": "grammar"}]
     })
     assert res.status_code == 400
 
@@ -461,5 +454,5 @@ def test_accept_elements_without_items(app, db, media_root, scheduled):
     job_id = _ready_job(client)
     res = client.post(f"/api/ingestion/{job_id}/accept", json={
         "lesson_id": "lesson_L1",
-        "elements": [{"kind": "character", "fields": {"character": "中"}}]})
+        "elements": [{"kind": "calligraphy", "fields": {"character": "中", "phonetic": None, "meaning": None, "radical": None, "strokes": None}}]})
     assert res.status_code == 200 and res.get_json() == {"created": 0, "created_elements": 1}
