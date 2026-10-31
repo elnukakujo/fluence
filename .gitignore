@@ -31,4 +31,5 @@ __pycache__/
 .Python
 venv/
 .venv/
-env/
+env/media/ingestion/
+media/parse_cache/
