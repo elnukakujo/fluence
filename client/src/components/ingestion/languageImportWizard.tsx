@@ -204,7 +204,7 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
         <div className="btn-row">
           <button type="button" className="btn btn-secondary" onClick={() => setDrafts((ds) => addDraft(ds, structure.last_page))}>Add a lesson</button>
           <button type="button" className="btn btn-primary" disabled={!!problem || saving} onClick={confirm}>
-            {saving ? "Starting…" : `Extract vocabulary from ${included} lesson${included === 1 ? "" : "s"}`}
+            {saving ? "Starting…" : `Extract the content of ${included} lesson${included === 1 ? "" : "s"}`}
           </button>
         </div>
       </div>

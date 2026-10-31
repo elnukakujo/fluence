@@ -141,7 +141,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
 }
 
 export const STATUS_TEXT: Record<string, string> = {
-  queued: "Waiting for its turn…", parsing: "Reading the document…", pages: "Classifying pages…", extracting: "Finding the vocabulary…",
+  queued: "Waiting for its turn…", parsing: "Reading the document…", pages: "Classifying pages…", extracting: "Finding vocabulary, grammar, calligraphy and exercises…",
 };
 
 function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Props & { jobId: string }) {
