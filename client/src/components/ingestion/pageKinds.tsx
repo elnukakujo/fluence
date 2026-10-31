@@ -2,7 +2,7 @@
 
 import { pageImageUrl } from "@/api/ingestion";
 
-type Kind = "vocabulary" | "grammar" | "passage" | "character";
+type Kind = "vocabulary" | "grammar" | "passage" | "character" | "exercise";
 
 type Props = {
   pages: number[];
@@ -11,7 +11,7 @@ type Props = {
   jobId?: string;
 };
 
-const KINDS: Kind[] = ["vocabulary", "grammar", "passage", "character"];
+const KINDS: Kind[] = ["vocabulary", "grammar", "passage", "character", "exercise"];
 
 export default function PageKinds({ pages, value, onChange, jobId }: Props) {
   const toggleKind = (page: number, kind: Kind) => {

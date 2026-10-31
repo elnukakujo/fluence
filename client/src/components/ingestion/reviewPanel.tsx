@@ -151,6 +151,35 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                 <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
               </li>
             );
+          } else if (c.kind === "exercise") {
+            const answerGenerated = c.flags.some((f) => f.code === "answer_generated");
+            return (
+              <li key={c.id} className="card flex flex-col gap-2">
+                <div className="flex flex-wrap items-start gap-3">
+                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label="Include exercise"
+                    onChange={(e) => patch(c.id, { selected: e.target.checked })} />
+                  <label className="flex min-w-32 flex-col gap-1">
+                    <span className="text-xs opacity-60">Type</span>
+                    <input className="input opacity-60" value={row.exercise_type || ""} readOnly disabled />
+                  </label>
+                  <label className="flex min-w-48 flex-[2] flex-col gap-1">
+                    <span className="text-xs opacity-60">Question</span>
+                    <textarea className="input" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />
+                  </label>
+                  <label className="flex min-w-48 flex-[2] flex-col gap-1">
+                    <span className="text-xs opacity-60">Answer</span>
+                    <textarea className="input" value={row.answer || ""} onChange={(e) => patch(c.id, { answer: e.target.value })} />
+                  </label>
+                  <span className="badge mt-5" title={answerGenerated ? "The model wrote this answer, not found in the document" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
+                    {answerGenerated ? "✎ Generated answer" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+                  </span>
+                </div>
+                {row.content && <p className="text-sm opacity-70"><strong>Content:</strong> <code className="text-xs">{JSON.stringify(row.content)}</code></p>}
+                {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
+                {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
+                <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
+              </li>
+            );
           }
 
           return (

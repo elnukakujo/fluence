@@ -15,7 +15,7 @@ export type Candidate = {
   flags: Flag[];
   min_conf: number | null;
   // For non-vocabulary elements
-  kind?: "grammar" | "passage" | "character";
+  kind?: "grammar" | "passage" | "character" | "exercise";
   title?: string;
   explanation?: string;
   character?: string;
@@ -24,6 +24,12 @@ export type Candidate = {
   radical?: string | null;
   strokes?: string | null;
   example_sentences?: string[];
+  // For exercise
+  exercise_type?: string;
+  question?: string;
+  answer?: string;
+  text_support?: string | null;
+  content?: Record<string, unknown> | null;
 };
 
 export type ConflictMode = "keep" | "merge" | "overwrite";
@@ -45,6 +51,12 @@ export type Row = {
   meaning?: string;
   radical?: string | null;
   strokes?: string | null;
+  // For exercise
+  exercise_type?: string;
+  question?: string;
+  answer?: string;
+  text_support?: string | null;
+  content?: Record<string, unknown> | null;
 };
 
 export type Filter = "all" | "verified" | "flagged";
@@ -68,6 +80,12 @@ export function initialRows(candidates: Candidate[]): Row[] {
       row.meaning = candidate.meaning ?? "";
       row.radical = candidate.radical ?? null;
       row.strokes = candidate.strokes ?? null;
+    } else if (candidate.kind === "exercise") {
+      row.exercise_type = candidate.exercise_type ?? "";
+      row.question = candidate.question ?? "";
+      row.answer = candidate.answer ?? "";
+      row.text_support = candidate.text_support ?? null;
+      row.content = candidate.content ?? null;
     } else {
       // vocabulary
       row.word = candidate.word ?? "";
@@ -141,6 +159,21 @@ export function toAcceptItems(rows: Row[]): AcceptPayload {
             meaning: (r.meaning ?? "").trim() || null,
             radical: (r.radical ?? "").trim() || null,
             strokes: r.strokes ? Number(r.strokes) : null,
+          },
+        });
+      }
+    } else if (r.candidate.kind === "exercise") {
+      const question = (r.question ?? "").trim();
+      const answer = (r.answer ?? "").trim();
+      if (question && answer) {
+        elements.push({
+          kind: "exercise",
+          fields: {
+            exercise_type: r.exercise_type ?? "",
+            question,
+            answer,
+            text_support: (r.text_support ?? "").trim() || null,
+            content: r.content ?? null,
           },
         });
       }
