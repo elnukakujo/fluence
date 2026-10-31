@@ -61,7 +61,7 @@ describe("LanguageImportWizard", () => {
     expect(await screen.findByDisplayValue("Lesson A")).toBeInTheDocument();
     expect(screen.getByText(/Nothing here or contents page/)).toBeInTheDocument(); // page 2 is []
     await userEvent.click(screen.getAllByRole("button", { name: /Grammar/ })[0]); // page 1 += grammar
-    await userEvent.click(screen.getByRole("button", { name: /Extract vocabulary from 1 lesson/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Extract the content of 1 lesson/ }));
 
     expect(api.confirmStructure).toHaveBeenCalledWith(
       "j1", [{ title: "Lesson A", start_page: 1, end_page: 2 }], { "1": ["vocabulary", "grammar"], "2": [] },
