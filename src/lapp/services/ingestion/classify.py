@@ -1,0 +1,54 @@
+"""Say which kinds of content each page of a book holds. The model proposes; the user has the last word."""
+import logging
+
+from ...utils.model_api import ModelAPIError, chat_completion
+from ..parsing.types import Document
+from .extract import _parse_json
+from .structure import BATCH_PAGES, PAGE_PEEK_CHARS, _ABORT_KINDS, page_texts
+from .types import ALL_KINDS, Kind
+
+logger = logging.getLogger(__name__)
+
+_SYSTEM = (
+    "You are given the beginning of each page of a language-learning book. For each page list which kinds of "
+    f"content it holds, from this fixed set: {', '.join(ALL_KINDS)}. vocabulary = word lists or glossaries; "
+    "grammar = grammar explanations; passage = reading texts or dialogues; character = writing-system or "
+    "character tables. Use [] for covers, contents pages and blank pages. If unsure, include the kind. "
+    'Reply with ONLY a JSON array: [{"page": <page number as shown>, "kinds": ["vocabulary", ...]}].'
+)
+
+
+def classify_pages(doc: Document, api: dict, target_name: str) -> dict[int, list[Kind]]:
+    """1-based page number -> its kinds, for every page. Anything unanswered counts as every kind."""
+    texts = page_texts(doc)
+    numbers = sorted(texts)
+    result: dict[int, list[Kind]] = {}
+    for i in range(0, len(numbers), BATCH_PAGES):
+        batch = numbers[i:i + BATCH_PAGES]
+        result.update(_ask_batch(batch, texts, api, target_name) or {})
+    return {n: result.get(n, list(ALL_KINDS)) for n in numbers}
+
+
+def _ask_batch(batch: list[int], texts: dict[int, str], api: dict, target_name: str) -> dict[int, list[Kind]] | None:
+    body = "\n\n".join(f"[page {n}]\n{texts[n][:PAGE_PEEK_CHARS]}" for n in batch)
+    messages = [{"role": "system", "content": _SYSTEM + f" The book teaches {target_name}."},
+                {"role": "user", "content": body}]
+    for _ in range(2):
+        try:
+            reply = chat_completion(
+                base_url=api["base_url"], api_key=api.get("api_key", ""), model=api["model"],
+                api_format=api.get("api_format", "openai"), auth_type=api.get("auth_type", "bearer"),
+                messages=messages, max_tokens=1024, temperature=0, disable_thinking=True,
+            )
+        except ModelAPIError as e:
+            if e.kind in _ABORT_KINDS:
+                raise
+            logger.warning("Classify call failed: %s", e)
+            return None
+        data = _parse_json(reply)
+        if isinstance(data, list):
+            valid = set(batch)
+            return {i["page"]: [k for k in ALL_KINDS if k in i["kinds"]] for i in data
+                    if isinstance(i, dict) and isinstance(i.get("page"), int) and i["page"] in valid
+                    and isinstance(i.get("kinds"), list)}
+    return None
