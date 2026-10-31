@@ -10,104 +10,123 @@ PROVIDERS: dict[str, dict] = {
         "base_url": "https://api.openai.com/v1",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen', 'tts', 'ocr'],
     },
     "deepseek": {
         "label": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen'],
     },
     "ollama": {
         "label": "Ollama",
         "base_url": "http://localhost:11434/v1",
         "auth_type": "none",
         "api_format": "openai",
+        "purposes": ['text_gen', 'ocr'],
     },
     "kimi": {
         "label": "Kimi (Moonshot)",
         "base_url": "https://api.moonshot.cn/v1",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen'],
     },
     "groq": {
         "label": "Groq",
         "base_url": "https://api.groq.com/openai/v1",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen'],
     },
     "mistral": {
         "label": "Mistral",
         "base_url": "https://api.mistral.ai/v1",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen', 'ocr'],
     },
     "mistral_ocr": {
         "label": "Mistral OCR (dedicated)",
         "base_url": "https://api.mistral.ai/v1",
         "auth_type": "bearer",
         "api_format": "mistral_ocr",
+        "purposes": ['ocr'],
     },
     "openrouter": {
         "label": "OpenRouter",
         "base_url": "https://openrouter.ai/api/v1",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen', 'ocr'],
     },
     "anthropic": {
         "label": "Anthropic (Claude)",
         "base_url": "https://api.anthropic.com/v1",
         "auth_type": "x-api-key",
         "api_format": "anthropic",
+        "purposes": ['text_gen', 'ocr'],
     },
     "gemini": {
         "label": "Google Gemini",
         "base_url": "https://generativelanguage.googleapis.com/v1beta",
         "auth_type": "param",
         "api_format": "gemini",
+        "purposes": ['text_gen', 'ocr'],
     },
     "llamacpp": {
         "label": "llama.cpp Server",
         "base_url": "http://localhost:8080/v1",
         "auth_type": "none",
         "api_format": "openai",
+        "purposes": ['text_gen'],
     },
     "localai": {
         "label": "LocalAI",
         "base_url": "http://localhost:8080/v1",
         "auth_type": "none",
         "api_format": "openai",
+        "purposes": ['text_gen'],
     },
     "elevenlabs": {
         "label": "ElevenLabs",
         "base_url": "https://api.elevenlabs.io/v1",
         "auth_type": "x-api-key",
         "api_format": "elevenlabs",
+        "purposes": ['tts'],
     },
     "google_tts": {
         "label": "Google Cloud TTS",
         "base_url": "https://texttospeech.googleapis.com/v1",
         "auth_type": "param",
         "api_format": "google_tts",
+        "purposes": ['tts'],
     },
     "local_tts": {
         "label": "Local TTS (Kokoro / Piper)",
         "base_url": "http://localhost:8880/v1",
         "auth_type": "none",
         "api_format": "openai",
+        "purposes": ['tts'],
     },
     "custom": {
         "label": "Custom",
         "base_url": "",
         "auth_type": "bearer",
         "api_format": "openai",
+        "purposes": ['text_gen', 'tts', 'ocr'],
     },
 }
 
+# "purposes" = which endpoint purposes (text_gen / tts / ocr) a provider is offered for; "both"
+# endpoints are those listing text_gen and tts. Vision (ocr) is per-model, so the connection test is what proves it.
 # List form for the /api/pref/providers endpoint — keeps the frontend in sync
 # without duplicating the catalog in client code.
 PROVIDER_LIST = [
     {"value": key, "label": v["label"], "base_url": v["base_url"],
-     "auth_type": v["auth_type"], "api_format": v["api_format"]}
+     "auth_type": v["auth_type"], "api_format": v["api_format"],
+     "purposes": v["purposes"]}
     for key, v in PROVIDERS.items()
 ]
 

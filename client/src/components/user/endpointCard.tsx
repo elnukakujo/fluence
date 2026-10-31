@@ -13,32 +13,33 @@ export type ProviderOption = {
   base_url: string;
   auth_type: string;
   api_format: string;
+  purposes: string[];
 };
 
 export const PROVIDER_OPTIONS: ProviderOption[] = [
-  { value: "openai", label: "OpenAI", base_url: "https://api.openai.com/v1", auth_type: "bearer", api_format: "openai" },
-  { value: "deepseek", label: "DeepSeek", base_url: "https://api.deepseek.com/v1", auth_type: "bearer", api_format: "openai" },
-  { value: "ollama", label: "Ollama", base_url: "http://localhost:11434/v1", auth_type: "none", api_format: "openai" },
-  { value: "kimi", label: "Kimi (Moonshot)", base_url: "https://api.moonshot.cn/v1", auth_type: "bearer", api_format: "openai" },
-  { value: "groq", label: "Groq", base_url: "https://api.groq.com/openai/v1", auth_type: "bearer", api_format: "openai" },
-  { value: "mistral", label: "Mistral", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "openai" },
-  { value: "openrouter", label: "OpenRouter", base_url: "https://openrouter.ai/api/v1", auth_type: "bearer", api_format: "openai" },
-  { value: "anthropic", label: "Anthropic (Claude)", base_url: "https://api.anthropic.com/v1", auth_type: "x-api-key", api_format: "anthropic" },
-  { value: "mistral_ocr", label: "Mistral OCR (dedicated)", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "mistral_ocr" },
-  { value: "gemini", label: "Google Gemini", base_url: "https://generativelanguage.googleapis.com/v1beta", auth_type: "param", api_format: "gemini" },
-  { value: "llamacpp", label: "llama.cpp Server", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai" },
-  { value: "localai", label: "LocalAI", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai" },
-  { value: "elevenlabs", label: "ElevenLabs", base_url: "https://api.elevenlabs.io/v1", auth_type: "x-api-key", api_format: "elevenlabs" },
-  { value: "google_tts", label: "Google Cloud TTS", base_url: "https://texttospeech.googleapis.com/v1", auth_type: "param", api_format: "google_tts" },
-  { value: "local_tts", label: "Local TTS (Kokoro / Piper)", base_url: "http://localhost:8880/v1", auth_type: "none", api_format: "openai" },
-  { value: "custom", label: "Custom", base_url: "", auth_type: "bearer", api_format: "openai" },
+  { value: "openai", label: "OpenAI", base_url: "https://api.openai.com/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "tts", "ocr"] },
+  { value: "deepseek", label: "DeepSeek", base_url: "https://api.deepseek.com/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen"] },
+  { value: "ollama", label: "Ollama", base_url: "http://localhost:11434/v1", auth_type: "none", api_format: "openai", purposes: ["text_gen", "ocr"] },
+  { value: "kimi", label: "Kimi (Moonshot)", base_url: "https://api.moonshot.cn/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen"] },
+  { value: "groq", label: "Groq", base_url: "https://api.groq.com/openai/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen"] },
+  { value: "mistral", label: "Mistral", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "ocr"] },
+  { value: "openrouter", label: "OpenRouter", base_url: "https://openrouter.ai/api/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "ocr"] },
+  { value: "anthropic", label: "Anthropic (Claude)", base_url: "https://api.anthropic.com/v1", auth_type: "x-api-key", api_format: "anthropic", purposes: ["text_gen", "ocr"] },
+  { value: "mistral_ocr", label: "Mistral OCR (dedicated)", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "mistral_ocr", purposes: ["ocr"] },
+  { value: "gemini", label: "Google Gemini", base_url: "https://generativelanguage.googleapis.com/v1beta", auth_type: "param", api_format: "gemini", purposes: ["text_gen", "ocr"] },
+  { value: "llamacpp", label: "llama.cpp Server", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai", purposes: ["text_gen"] },
+  { value: "localai", label: "LocalAI", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai", purposes: ["text_gen"] },
+  { value: "elevenlabs", label: "ElevenLabs", base_url: "https://api.elevenlabs.io/v1", auth_type: "x-api-key", api_format: "elevenlabs", purposes: ["tts"] },
+  { value: "google_tts", label: "Google Cloud TTS", base_url: "https://texttospeech.googleapis.com/v1", auth_type: "param", api_format: "google_tts", purposes: ["tts"] },
+  { value: "local_tts", label: "Local TTS (Kokoro / Piper)", base_url: "http://localhost:8880/v1", auth_type: "none", api_format: "openai", purposes: ["tts"] },
+  { value: "custom", label: "Custom", base_url: "", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "tts", "ocr"] },
 ];
 
 const TYPE_OPTIONS = [
   { value: "text_gen", label: "Text Generation" },
   { value: "tts", label: "Text-to-Speech" },
   { value: "both", label: "Both" },
-  { value: "ocr", label: "Document OCR (vision model)" },
+  { value: "ocr", label: "Document Extraction (OCR)" },
 ] as const;
 
 const TYPE_LABELS: Record<string, string> = {
@@ -48,15 +49,10 @@ const TYPE_LABELS: Record<string, string> = {
   ocr: "OCR",
 };
 
-// Providers that only do TTS (never text-gen)
-// OCR/vision endpoints: only providers that host vision-capable models (OpenAI, Anthropic and Gemini image formats).
+// Providers offered for a purpose, from the catalog's `purposes`. "both" = text generation AND speech.
 // Vision is per-model, not per-provider - "Test connection" is what actually proves it.
-const OCR_PROVIDERS = new Set(["openai", "anthropic", "gemini", "mistral", "mistral_ocr", "openrouter", "ollama", "custom"]);
-
-// Dedicated OCR APIs are not chat models: never offered for text generation or speech.
-const OCR_ONLY = new Set(["mistral_ocr"]);
-
-const TTS_ONLY = new Set(["elevenlabs", "google_tts", "local_tts"]);
+const offeredFor = (p: ProviderOption, type?: string) =>
+  type === "both" ? p.purposes.includes("text_gen") && p.purposes.includes("tts") : !!type && p.purposes.includes(type);
 
 // Map backend error patterns to user-friendly hints
 function friendlyError(error: string): string {
@@ -114,17 +110,10 @@ export default function EndpointCard({
     }
   };
 
-  // Filter providers by api_type
-  const filteredProviders = useMemo(() => {
-    if (!endpoint.api_type || endpoint.api_type === "both") return providers.filter(p => !OCR_ONLY.has(p.value));
-    // OCR/vision: vision chat models (OpenAI/Anthropic/Gemini image formats) or a dedicated OCR API (Mistral OCR)
-    if (endpoint.api_type === "ocr") return providers.filter(p => OCR_PROVIDERS.has(p.value));
-    if (endpoint.api_type === "tts") {
-      return providers.filter(p => p.value === "custom" || p.value === "local_tts" || p.value === "elevenlabs" || p.value === "google_tts" || p.value === "openai");
-    }
-    // text_gen: exclude TTS-only providers
-    return providers.filter(p => !TTS_ONLY.has(p.value) && !OCR_ONLY.has(p.value));
-  }, [endpoint.api_type, providers]);
+  const filteredProviders = useMemo(
+    () => providers.filter(p => offeredFor(p, endpoint.api_type)),
+    [endpoint.api_type, providers],
+  );
 
   const providerMap = useMemo(() => {
     const map: Record<string, ProviderOption> = {};
@@ -215,14 +204,9 @@ export default function EndpointCard({
               onChange={(e) => {
                 const newType = (e.target.value || undefined) as ApiEndpointConfig["api_type"];
                 const updates: ApiEndpointConfig = { ...endpoint, api_type: newType };
-                // Clear provider if incompatible with new type
-                if (newType === "tts" && endpoint.provider && !TTS_ONLY.has(endpoint.provider) && endpoint.provider !== "openai" && endpoint.provider !== "custom") {
-                  updates.provider = undefined;
-                  updates.base_url = undefined;
-                } else if (newType === "ocr" && endpoint.provider && !OCR_PROVIDERS.has(endpoint.provider)) {
-                  updates.provider = undefined;
-                  updates.base_url = undefined;
-                } else if (newType === "text_gen" && endpoint.provider && (TTS_ONLY.has(endpoint.provider) || OCR_ONLY.has(endpoint.provider))) {
+                // Clear provider if the new purpose doesn't offer it
+                const current = endpoint.provider ? providers.find(p => p.value === endpoint.provider) : undefined;
+                if (current && !offeredFor(current, newType)) {
                   updates.provider = undefined;
                   updates.base_url = undefined;
                 }
