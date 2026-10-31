@@ -302,3 +302,9 @@ def test_generate_grammar_returns_empty_for_empty_reply(monkeypatch):
     _stub(monkeypatch, json.dumps([]))
     result = grammar_module.generate_grammar(_chunk("nothing here"), API, "Chinese", "English")
     assert result == []
+
+
+def test_grammar_whose_explanation_only_repeats_the_title_is_dropped():
+    raw = {"title": "祈使句的句调 / Intonation of an Imperative Sentence",
+           "explanation": "祈使句的句调\nIntonation of an Imperative Sentence", "example_sentences": [], "quote": "x"}
+    assert el.verify_element("grammar", raw, _chunk("祈使句的句调 Intonation of an Imperative Sentence"), "zh") is None

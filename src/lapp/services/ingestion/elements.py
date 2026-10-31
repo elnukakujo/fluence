@@ -119,6 +119,9 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         # Drop only if title or explanation is empty
         if not raw.get("title") or not raw.get("explanation"):
             return None
+        # a heading with nothing under it (its "explanation" is the title again) is not a grammar point
+        if normalise(raw["explanation"]).replace("/", "") == normalise(raw["title"]).replace("/", ""):
+            return None
         flag("grammar_generated", "Written by the model from the page text - check it")
         fields = {"title": raw["title"], "explanation": raw["explanation"],
                   "example_sentences": [e for e in raw.get("example_sentences", []) if normalise(e) in text],
