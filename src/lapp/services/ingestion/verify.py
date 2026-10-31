@@ -1,5 +1,6 @@
 """Deterministic checks of an extracted item against the text it claims to come from (no LLM)."""
 import logging
+import re
 import unicodedata
 import uuid
 from typing import Callable, Literal
@@ -17,6 +18,10 @@ _PHONETIC_LANGS = {"zh", "ja", "ko"}
 def normalise(s: str) -> str:
     """NFKC + casefold + all whitespace removed (CJK has none; for Latin this slightly loosens matching)."""
     return "".join(unicodedata.normalize("NFKC", s).casefold().split())
+
+
+def normalise_keep_spaces(s: str) -> str:
+    return unicodedata.normalize("NFKC", s).casefold()
 
 
 def _strip_marks(s: str) -> str:
@@ -38,6 +43,12 @@ def _min_confidence(word: str, chunk: Chunk) -> float | None:
     return min(covered) if covered else None
 
 
+def _words_present(translation: str, chunk_text: str) -> bool:
+    """Every word of the translation occurs in the chunk: a wrapped line in a multi-column layout splits a translation."""
+    words = lambda t: {w for w in re.split(r"[\s,;.]+", normalise_keep_spaces(t)) if w}
+    return words(translation) <= words(chunk_text)
+
+
 def verify(item: RawItem, chunk: Chunk, iso1: str | None,
            lookup: Callable[[str], Literal["lesson", "language"] | None]) -> Candidate:
     text = normalise(chunk.text)
@@ -50,7 +61,7 @@ def verify(item: RawItem, chunk: Chunk, iso1: str | None,
         flag("word_not_in_source", f'"{item.word}" does not appear in the source text')
     if normalise(item.quote) not in text:
         flag("quote_not_in_source", "The quoted passage does not appear in the source text")
-    if item.translation and normalise(item.translation) not in text:
+    if item.translation and normalise(item.translation) not in text and not _words_present(item.translation, chunk.text):
         flag("translation_not_in_source", "The translation is not in the source text (supplied by the model)")
 
     min_conf = _min_confidence(item.word, chunk)

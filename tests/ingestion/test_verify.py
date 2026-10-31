@@ -104,3 +104,9 @@ def test_chinese_phonetic_syllables_must_match():
 
 def test_phonetic_is_not_checked_for_latin_languages():
     assert _verify(_item(phonetic="whatever"), _chunk("apple - manzana"), "en").status == "verified"
+
+
+def test_translation_split_across_columns_is_not_flagged():
+    text = "1. apple n. a fruit, to eat\nB: Hello there a red thing\nraw"  # "to eat raw" is wrapped around another column
+    cand = _verify(_item(translation="a fruit, to eat raw", quote="apple n. a fruit, to eat"), _chunk(text))
+    assert "translation_not_in_source" not in _codes(cand)
