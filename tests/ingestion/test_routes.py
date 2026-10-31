@@ -330,3 +330,127 @@ def test_second_post_pages_is_409(app, db, media_root, scheduled, monkeypatch):
     assert client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {}}).status_code == 200
     assert client.post(f"/api/ingestion/{job_id}/pages", json={"page_kinds": {}}).status_code == 409
     assert client.get(f"/api/ingestion/{job_id}/pages").status_code == 409
+
+
+# ---- elements (passages, grammar, characters) --------------------------------
+
+def test_accept_creates_passage_grammar_character_with_source(app, db, media_root, scheduled):
+    from lapp.models.components import Passage, Character
+    from lapp.models.features import Grammar
+    from lapp.models.system_data import Source
+    client = _setup(app, db, media_root)
+    job_id = _ready_job(client)
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "items": [{"word": "hello"}],
+        "elements": [
+            {"kind": "passage", "fields": {"text": "Hello world", "translation": "Bonjour le monde"}},
+            {"kind": "grammar", "fields": {"title": "Present tense", "explanation": "Used for now"}},
+            {"kind": "character", "fields": {"character": "中", "phonetic": "zhong", "meaning": "middle"}}
+        ]
+    })
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["created"] == 1 and data["created_elements"] == 3
+
+    with db.session_scope() as s:
+        passage = s.query(Passage).filter(Passage.language_id == "lang_L1", Passage.text == "Hello world").first()
+        assert passage and passage.translation == "Bonjour le monde"
+        grammar = s.query(Grammar).filter(Grammar.lesson_id == "lesson_L1", Grammar.title == "Present tense").first()
+        assert grammar and grammar.explanation == "Used for now"
+        character = s.query(Character).filter(Character.language_id == "lang_L1", Character.character == "中").first()
+        assert character and character.phonetic == "zhong" and character.meaning == "middle"
+        # Check all are tagged with import source
+        source = s.query(Source).filter(Source.user_id == "user_U1", Source.title.like("Imported from%")).first()
+        assert source
+        assert any(src.id == source.id for src in passage.sources)
+        assert any(src.id == source.id for src in grammar.sources)
+        assert any(src.id == source.id for src in character.sources)
+
+
+def test_accept_links_grammar_example_to_accepted_passage(app, db, media_root, scheduled):
+    from lapp.models.components import Passage
+    from lapp.models.features import Grammar
+    client = _setup(app, db, media_root)
+    job_id = _ready_job(client)
+    passage_text = "Hello world"
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "items": [],
+        "elements": [
+            {"kind": "passage", "fields": {"text": passage_text}},
+            {"kind": "grammar", "fields": {
+                "title": "Greeting",
+                "explanation": "Say hello",
+                "example_sentences": [passage_text, "Other example"]
+            }}
+        ]
+    })
+    assert res.status_code == 200 and res.get_json()["created_elements"] == 2
+
+    with db.session_scope() as s:
+        grammar = s.query(Grammar).filter(Grammar.title == "Greeting").first()
+        assert len(grammar.example_sentences) == 1
+        assert grammar.example_sentences[0].text == passage_text
+
+
+def test_accept_twice_creates_no_duplicates(app, db, media_root, scheduled):
+    from lapp.models.components import Passage, Character
+    client = _setup(app, db, media_root)
+    body = {
+        "lesson_id": "lesson_L1",
+        "items": [],
+        "elements": [
+            {"kind": "passage", "fields": {"text": "Same passage"}},
+            {"kind": "character", "fields": {"character": "同"}}
+        ]
+    }
+
+    job_id = _ready_job(client)
+    res1 = client.post(f"/api/ingestion/{job_id}/accept", json=body)
+    assert res1.status_code == 200 and res1.get_json()["created_elements"] == 2
+
+    job_id = _ready_job(client)
+    res2 = client.post(f"/api/ingestion/{job_id}/accept", json=body)
+    assert res2.status_code == 200 and res2.get_json()["created_elements"] == 0
+
+    with db.session_scope() as s:
+        passages = s.query(Passage).filter(Passage.text == "Same passage").all()
+        assert len(passages) == 1
+        characters = s.query(Character).filter(Character.character == "同").all()
+        assert len(characters) == 1
+
+
+def test_accept_rejects_malformed_element(app, db, media_root, scheduled):
+    from lapp.models.components import Passage
+    client = _setup(app, db, media_root)
+    job_id = _ready_job(client)
+
+    # Missing required field
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "items": [],
+        "elements": [{"kind": "passage", "fields": {"translation": "only translation"}}]
+    })
+    assert res.status_code == 400
+
+    with db.session_scope() as s:
+        assert s.query(Passage).count() == 0
+
+    # Unknown kind
+    job_id = _ready_job(client)
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "items": [],
+        "elements": [{"kind": "unknown", "fields": {"text": "text"}}]
+    })
+    assert res.status_code == 400
+
+    # Missing fields dict
+    job_id = _ready_job(client)
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "items": [],
+        "elements": [{"kind": "passage"}]
+    })
+    assert res.status_code == 400

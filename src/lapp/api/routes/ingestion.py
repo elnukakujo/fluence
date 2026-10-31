@@ -10,6 +10,8 @@ from ...schemas.containers import LessonDict
 from ...schemas.features import VocabularyDict
 from ...schemas.system_data import SourceDict
 from ...services import LessonService, VocabularyService
+from ...services.components import PassageService, CharacterService
+from ...services.features import GrammarService
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
@@ -19,6 +21,8 @@ from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
 from ...services.system_data import SourceService, UserPreferencesService
 from ...utils.llm_providers import resolve_api
+from ...schemas.components import PassageDict, CharacterDict
+from ...schemas.features import GrammarDict
 
 bp = Blueprint("ingestion", __name__, url_prefix="/api/ingestion")
 job_service = IngestionJobService()
@@ -407,9 +411,10 @@ def accept_lesson(job_id: str, index: int):
               properties:
                   title: {type: string}
                   items: {type: array, items: {type: object}}
+                  elements: {type: array, items: {type: object}}
     responses:
-        200: {description: "lesson_id and created"}
-        400: {description: Invalid items}
+        200: {description: "lesson_id, created and created_elements"}
+        400: {description: Invalid items or elements}
         404: {description: Unknown job or lesson}
         409: {description: The lesson is not finished}
     """
@@ -428,10 +433,14 @@ def accept_lesson(job_id: str, index: int):
         return jsonify({"error": f"This lesson is {lesson['status']}"}), 409
     body = request.get_json(silent=True) or {}
     items = body.get("items")
+    elements = body.get("elements", [])
     if not isinstance(items, list) or not items:
         return jsonify({"error": "A non-empty items list is required"}), 400
     if error := _invalid_items(items):
         return jsonify({"error": error}), 400
+    if isinstance(elements, list):
+        if error := _invalid_elements(elements):
+            return jsonify({"error": error}), 400
     require_write(job["language_id"])
 
     created_file = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index)
@@ -443,9 +452,10 @@ def accept_lesson(job_id: str, index: int):
                 user_id=owner_user_id(job["language_id"])), session=session)
             lesson_id = created.id
         added = _add_vocabulary(session, job, lesson_id, items)
+        added_elements = _add_elements(session, job, lesson_id, job["language_id"], elements)
     created_file.parent.mkdir(parents=True, exist_ok=True)
     created_file.write_text(lesson_id)
-    return jsonify({"lesson_id": lesson_id, "created": added})
+    return jsonify({"lesson_id": lesson_id, "created": added, "created_elements": added_elements})
 
 
 @bp.route("/<job_id>/accept", methods=["POST"])
@@ -474,9 +484,16 @@ def accept(job_id: str):
                               phonetic: {type: string}
                               word_type: {type: string}
                               on_conflict: {type: string, enum: [keep, merge, overwrite]}
+                  elements:
+                      type: array
+                      items:
+                          type: object
+                          properties:
+                              kind: {type: string, enum: [passage, grammar, character]}
+                              fields: {type: object}
     responses:
         200: {description: Entries created}
-        400: {description: Invalid items or lesson}
+        400: {description: Invalid items, elements or lesson}
     """
     job, err = _owned_job_or_404(job_id)
     if err:
@@ -484,19 +501,33 @@ def accept(job_id: str):
     body = request.get_json(silent=True) or {}
     lesson_id = body.get("lesson_id") or job["lesson_id"]
     items = body.get("items")
-    if not lesson_id or not isinstance(items, list) or not items:
+    elements = body.get("elements", [])
+    # Need lesson_id and (items list OR elements list), but at least one must be non-empty
+    if not lesson_id:
+        return jsonify({"error": "lesson_id is required"}), 400
+    if not isinstance(items, list) and not isinstance(elements, list):
         return jsonify({"error": "lesson_id and a non-empty items list are required"}), 400
+    # At least one of items or elements must be non-empty
+    if (not items or not isinstance(items, list)) and not elements:
+        return jsonify({"error": "lesson_id and a non-empty items list are required"}), 400
+
     require_write(lesson_id)
     lesson = LessonService().get_by_id(lesson_id, as_dict=True)
     if not lesson or lesson.get("language_id") != job["language_id"]:
         return jsonify({"error": "The lesson does not belong to the document's language"}), 400
 
-    if error := _invalid_items(items):
-        return jsonify({"error": error}), 400
+    if isinstance(items, list):
+        if error := _invalid_items(items):
+            return jsonify({"error": error}), 400
+
+    if isinstance(elements, list):
+        if error := _invalid_elements(elements):
+            return jsonify({"error": error}), 400
 
     with db_manager.session_scope() as session:   # one transaction: all or nothing
         created = _add_vocabulary(session, job, lesson_id, items)
-    return jsonify({"created": created})
+        created_elements = _add_elements(session, job, lesson_id, job["language_id"], elements)
+    return jsonify({"created": created, "created_elements": created_elements})
 
 
 def _invalid_items(items) -> str | None:
@@ -534,6 +565,127 @@ def _import_source(session, user_id: str, filename: str):
     if existing:
         return existing
     return SourceService().create(SourceDict(user_id=user_id, title=title, source_type="other"), session=session)
+
+
+def _invalid_elements(elements) -> str | None:
+    """Validate element structure before creation. Returns error string or None."""
+    for elem in elements:
+        if not isinstance(elem, dict):
+            return "Every element must be an object"
+        kind = elem.get("kind")
+        if kind not in ("passage", "grammar", "character"):
+            return f"Element kind must be passage, grammar or character, got: {kind}"
+        fields = elem.get("fields")
+        if not isinstance(fields, dict):
+            return "Every element needs a fields dict"
+        # Check required fields per kind
+        if kind == "passage":
+            if not isinstance(fields.get("text"), str) or not str(fields.get("text", "")).strip():
+                return "Passage requires a non-empty text field"
+        elif kind == "grammar":
+            if not isinstance(fields.get("title"), str) or not str(fields.get("title", "")).strip():
+                return "Grammar requires a non-empty title field"
+            if not isinstance(fields.get("explanation"), str) or not str(fields.get("explanation", "")).strip():
+                return "Grammar requires a non-empty explanation field"
+        elif kind == "character":
+            if not isinstance(fields.get("character"), str) or not str(fields.get("character", "")).strip():
+                return "Character requires a non-empty character field"
+    return None
+
+
+def _normalize_text(text: str) -> str:
+    """Normalize text for matching (whitespace, case)."""
+    return " ".join(str(text).split()).lower()
+
+
+def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list) -> int:
+    """Create passages, grammar and characters for each element, tagged with import source."""
+    if not isinstance(elements, list):
+        return 0
+
+    passage_service = PassageService()
+    grammar_service = GrammarService()
+    character_service = CharacterService()
+    source_service = SourceService()
+    source = _import_source(session, current_user_id(), job["filename"])
+
+    created = 0
+    # First pass: collect created passages for grammar linking
+    created_passages = {}  # normalized_text -> passage object
+
+    for elem in elements:
+        kind = elem.get("kind")
+        fields = elem.get("fields", {})
+
+        if kind == "passage":
+            text = str(fields.get("text", "")).strip()
+            passage = passage_service.get_by_text(text, language_id=language_id, session=session)
+            if not passage:
+                passage_dict = PassageDict(
+                    text=text,
+                    translation=fields.get("translation") or None,
+                    language_id=language_id,
+                )
+                passage = passage_service.create(passage_dict, session=session)
+                if passage:
+                    source_service.add_source_to_element(source.id, passage.id, session=session)
+                    created += 1
+                    created_passages[_normalize_text(text)] = passage
+            else:
+                created_passages[_normalize_text(text)] = passage
+
+        elif kind == "grammar":
+            title = str(fields.get("title", "")).strip()
+            # Check if grammar with this title already exists in the lesson
+            from ...models.features import Grammar
+            existing = session.query(Grammar).filter(
+                Grammar.lesson_id == lesson_id,
+                Grammar.title == title
+            ).first()
+            if not existing:
+                example_sentences = []
+                for sent_text in (fields.get("example_sentences") or []):
+                    sent_text = str(sent_text).strip()
+                    if not sent_text:
+                        continue
+                    # Link to passage if it matches one in this request; otherwise ignore
+                    norm_sent = _normalize_text(sent_text)
+                    if norm_sent in created_passages:
+                        example_sentences.append(created_passages[norm_sent])
+
+                grammar_dict = GrammarDict(
+                    lesson_id=lesson_id,
+                    title=title,
+                    explanation=str(fields.get("explanation", "")).strip(),
+                    example_sentences=[PassageDict(
+                        text=p.text,
+                        translation=p.translation,
+                        language_id=language_id
+                    ) for p in example_sentences] if example_sentences else None
+                )
+                grammar = grammar_service.create(grammar_dict, session=session)
+                if grammar:
+                    source_service.add_source_to_element(source.id, grammar.id, session=session)
+                    created += 1
+
+        elif kind == "character":
+            character = str(fields.get("character", "")).strip()
+            existing = character_service.get_by_character(character, language_id=language_id, session=session)
+            if not existing:
+                character_dict = CharacterDict(
+                    character=character,
+                    phonetic=fields.get("phonetic") or None,
+                    meaning=fields.get("meaning") or None,
+                    radical=fields.get("radical") or None,
+                    strokes=fields.get("strokes") or None,
+                    language_id=language_id,
+                )
+                created_char = character_service.create(character_dict, session=session, on_conflict="keep")
+                if created_char:
+                    source_service.add_source_to_element(source.id, created_char.id, session=session)
+                    created += 1
+
+    return created
 
 
 @bp.route("/<job_id>", methods=["DELETE"])
