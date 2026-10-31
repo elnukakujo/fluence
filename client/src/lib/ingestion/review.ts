@@ -221,3 +221,14 @@ export function pageSpan(pageKinds: Record<string, unknown> | null | undefined):
   const pages = Object.keys(pageKinds ?? {}).map(Number).filter((n) => Number.isInteger(n));
   return pages.length ? [Math.min(...pages), Math.max(...pages)] : undefined;
 }
+
+/** A stored conversation's `question` JSON as readable "Speaker: text" lines (the raw string if it is not that JSON). */
+export function dialogueLines(question: string): string[] {
+  try {
+    const d = JSON.parse(question) as { speakers: { id: string; name: string; isUser: boolean }[]; lines: { speakerId: string; text: string }[] };
+    const name = (id: string) => d.speakers.find((s) => s.id === id);
+    return d.lines.map((l) => `${name(l.speakerId)?.name ?? "?"}${name(l.speakerId)?.isUser ? " (you)" : ""}: ${l.text}`);
+  } catch {
+    return [question];
+  }
+}

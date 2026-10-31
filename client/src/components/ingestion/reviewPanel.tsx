@@ -5,7 +5,7 @@ import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
   type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, infoNotes,
-  initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
+  dialogueLines, initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
 import ReviewCard from "./reviewCard";
@@ -124,7 +124,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     if (kind === "exercise") {
       const generated = has("answer_generated");
       return (
-        <ReviewCard {...common} summary={<><span className="badge mr-2">{row.exercise_type || "exercise"}</span>{clip(row.question ?? "")}</>}
+        <ReviewCard {...common} summary={row.exercise_type === "conversation"
+          ? <><span className="badge mr-2">conversation</span><span className="block whitespace-pre-line">{dialogueLines(row.question ?? "").join("\n")}</span></>
+          : <><span className="badge mr-2">{row.exercise_type || "exercise"}</span>{clip(row.question ?? "")}</>}
           badge={generated ? "✎ Generated answer" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
           badgeTitle={generated ? "The model wrote this answer, not found in the document" : confirmedTitle}>
           <label className="flex flex-col gap-1">

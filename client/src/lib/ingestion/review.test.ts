@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, initialRows, pageSpan, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, initialRows, dialogueLines, pageSpan, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -105,5 +105,14 @@ describe("pageSpan", () => {
     expect(pageSpan({ "22": ["vocabulary"], "30": [], "25": [] })).toEqual([22, 30]);
     expect(pageSpan({})).toBeUndefined();
     expect(pageSpan(null)).toBeUndefined();
+  });
+});
+
+describe("dialogueLines", () => {
+  it("reads a stored conversation as speaker lines and passes other text through", () => {
+    const q = JSON.stringify({ speakers: [{ id: "s1", name: "A", isUser: false }, { id: "s2", name: "You", isUser: true }],
+      lines: [{ speakerId: "s1", text: "hi" }, { speakerId: "s2", text: "hello" }] });
+    expect(dialogueLines(q)).toEqual(["A: hi", "You (you): hello"]);
+    expect(dialogueLines("plain")).toEqual(["plain"]);
   });
 });
