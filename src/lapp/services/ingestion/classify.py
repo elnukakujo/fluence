@@ -13,7 +13,9 @@ _SYSTEM = (
     "You are given the beginning of each page of a language-learning book. For each page list which kinds of "
     f"content it holds, from this fixed set: {', '.join(ALL_KINDS)}. vocabulary = word lists or glossaries; "
     "grammar = grammar explanations; passage = reading texts or dialogues; character = writing-system or "
-    "character tables. Use [] for covers, contents pages and blank pages. If unsure, include the kind. "
+    "character tables; exercise = numbered tasks/questions for the learner to answer (fill-in blanks, multiple choice, "
+    "matching, true/false, translate, reorder, essay/speaking prompts). Use [] for covers, contents pages and blank pages. "
+    "If unsure, include the kind. "
     'Reply with ONLY a JSON array: [{"page": <page number as shown>, "kinds": ["vocabulary", ...]}].'
 )
 

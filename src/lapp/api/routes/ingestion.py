@@ -7,11 +7,11 @@ from ...core.auth import current_user_id, login_required, owner_user_id, require
 from ...core.database import db_manager
 from ...schemas.components import WordDict
 from ...schemas.containers import LessonDict
-from ...schemas.features import VocabularyDict
+from ...schemas.features import VocabularyDict, ExerciseDict
 from ...schemas.system_data import SourceDict
 from ...services import LessonService, VocabularyService
 from ...services.components import PassageService, CharacterService
-from ...services.features import GrammarService
+from ...services.features import GrammarService, ExerciseService
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
@@ -23,6 +23,7 @@ from ...services.system_data import SourceService, UserPreferencesService
 from ...utils.llm_providers import resolve_api
 from ...schemas.components import PassageDict, CharacterDict
 from ...schemas.features import GrammarDict
+from ...services.ingestion.elements import exercise_content_ok
 
 bp = Blueprint("ingestion", __name__, url_prefix="/api/ingestion")
 job_service = IngestionJobService()
@@ -491,7 +492,7 @@ def accept(job_id: str):
                       items:
                           type: object
                           properties:
-                              kind: {type: string, enum: [passage, grammar, character]}
+                              kind: {type: string, enum: [passage, grammar, character, exercise]}
                               fields: {type: object}
     responses:
         200: {description: Entries created}
@@ -562,12 +563,14 @@ def _import_source(session, user_id: str, filename: str):
 
 def _invalid_elements(elements) -> str | None:
     """Validate element structure before creation. Returns error string or None."""
+    VALID_TYPES = {"essay", "answering", "translate", "speaking", "conversation",
+                   "organize", "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "quizz"}
     for elem in elements:
         if not isinstance(elem, dict):
             return "Every element must be an object"
         kind = elem.get("kind")
-        if kind not in ("passage", "grammar", "character"):
-            return f"Element kind must be passage, grammar or character, got: {kind}"
+        if kind not in ("passage", "grammar", "character", "exercise"):
+            return f"Element kind must be passage, grammar, character or exercise, got: {kind}"
         fields = elem.get("fields")
         if not isinstance(fields, dict):
             return "Every element needs a fields dict"
@@ -583,6 +586,17 @@ def _invalid_elements(elements) -> str | None:
         elif kind == "character":
             if not isinstance(fields.get("character"), str) or not str(fields.get("character", "")).strip():
                 return "Character requires a non-empty character field"
+        elif kind == "exercise":
+            if not isinstance(fields.get("question"), str) or not str(fields.get("question", "")).strip():
+                return "Exercise requires a non-empty question field"
+            if not isinstance(fields.get("answer"), str) or not str(fields.get("answer", "")).strip():
+                return "Exercise requires a non-empty answer field"
+            exercise_type = fields.get("exercise_type")
+            if exercise_type not in VALID_TYPES:
+                return f"Exercise requires a valid exercise_type, got: {exercise_type}"
+            content = fields.get("content")
+            if not exercise_content_ok(exercise_type, content):
+                return f"Exercise content does not match the required shape for type '{exercise_type}'"
     return None
 
 
@@ -592,13 +606,14 @@ def _normalize_text(text: str) -> str:
 
 
 def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list) -> int:
-    """Create passages, grammar and characters for each element, tagged with import source."""
+    """Create passages, grammar, characters and exercises for each element, tagged with import source."""
     if not isinstance(elements, list):
         return 0
 
     passage_service = PassageService()
     grammar_service = GrammarService()
     character_service = CharacterService()
+    exercise_service = ExerciseService()
     source_service = SourceService()
     source = _import_source(session, current_user_id(), job["filename"])
 
@@ -676,6 +691,28 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 created_char = character_service.create(character_dict, session=session, on_conflict="keep")
                 if created_char:
                     source_service.add_source_to_element(source.id, created_char.id, session=session)
+                    created += 1
+
+        elif kind == "exercise":
+            question = str(fields.get("question", "")).strip()
+            # Check if an exercise with the same question already exists in this lesson
+            from ...models.features import Exercise
+            existing = session.query(Exercise).filter(
+                Exercise.lesson_id == lesson_id,
+                Exercise.question == question
+            ).first()
+            if not existing:
+                exercise_dict = ExerciseDict(
+                    lesson_id=lesson_id,
+                    exercise_type=fields.get("exercise_type") or "",
+                    question=question,
+                    answer=fields.get("answer") or "",
+                    text_support=fields.get("text_support") or None,
+                    content=fields.get("content") or None,
+                )
+                created_exercise = exercise_service.create(exercise_dict, session=session)
+                if created_exercise:
+                    source_service.add_source_to_element(source.id, created_exercise.id, session=session)
                     created += 1
 
     return created

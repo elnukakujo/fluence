@@ -124,3 +124,98 @@ def test_prompts_state_translation_rule_and_injection_guard():
 def test_grammar_prompt_rejects_exercise_instructions_and_headers():
     prompt = el._system_prompt("grammar", "German", "English")
     assert "not an exercise instruction" in prompt and "table header" in prompt
+
+
+# Exercise tests
+
+def test_exercise_content_ok_quizz_valid():
+    assert el.exercise_content_ok("quizz", {"options": ["a", "b", "c"], "correct": 1})
+    assert not el.exercise_content_ok("quizz", {"options": ["a"], "correct": 0})
+    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": 2})
+    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": True})
+
+
+def test_exercise_content_ok_true_false():
+    assert el.exercise_content_ok("true_false", {"statement": "x", "answer": True})
+    assert el.exercise_content_ok("true_false", {"statement": "x", "answer": False})
+    assert not el.exercise_content_ok("true_false", {"statement": "x", "answer": "true"})
+    assert not el.exercise_content_ok("true_false", {"statement": "", "answer": True})
+
+
+def test_exercise_content_ok_organize():
+    assert el.exercise_content_ok("organize", {"items": ["a", "b", "c"], "answer_order": [2, 0, 1]})
+    assert not el.exercise_content_ok("organize", {"items": ["a", "b", "c"], "answer_order": [2, 0, 0]})
+    assert not el.exercise_content_ok("organize", {"items": ["a", "b"], "answer_order": [0, 1, 2]})
+
+
+def test_exercise_content_ok_fill_blank():
+    assert el.exercise_content_ok("type_in_the_blank", {"segments": ["a ", " b"], "blanks": ["x"]})
+    assert el.exercise_content_ok("select_in_the_blank", {"segments": ["The ", " is red"], "blanks": ["cat"]})
+    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a", "b", "c"], "blanks": ["x"]})
+    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a", "b"], "blanks": ["x", "y"]})
+
+
+def test_exercise_content_ok_matching():
+    assert el.exercise_content_ok("matching", {"pairs": [["a", "b"], ["c", "d"]]})
+    assert not el.exercise_content_ok("matching", {"pairs": [["a", "b", "c"]]})
+    assert not el.exercise_content_ok("matching", {"pairs": [["a"]]})
+
+
+def test_exercise_content_ok_non_structured():
+    assert el.exercise_content_ok("essay", None)
+    assert el.exercise_content_ok("essay", {})
+    assert el.exercise_content_ok("answering", None)
+    assert el.exercise_content_ok("translate", None)
+    assert el.exercise_content_ok("speaking", None)
+    assert el.exercise_content_ok("conversation", None)
+    assert not el.exercise_content_ok("essay", {"x": 1})
+
+
+def test_exercise_answer_in_chunk_is_verified():
+    raw = {"exercise_type": "answering", "question": "What?", "answer": "Yes", "text_support": None, "content": None, "quote": "What? Yes"}
+    c = el.verify_element("exercise", raw, _chunk("What? Yes"), "en")
+    assert c.status == "verified" and _codes(c) == set()
+
+
+def test_exercise_answer_not_in_chunk_is_flagged_answer_generated():
+    raw = {"exercise_type": "answering", "question": "What?", "answer": "No", "text_support": None, "content": None, "quote": "What?"}
+    c = el.verify_element("exercise", raw, _chunk("What?"), "en")
+    assert c.status == "flagged" and "answer_generated" in _codes(c)
+
+
+def test_exercise_essay_generated_answer_has_sample_message():
+    raw = {"exercise_type": "essay", "question": "Write", "answer": "Content", "text_support": None, "content": None, "quote": "Write"}
+    c = el.verify_element("exercise", raw, _chunk("Write"), "en")
+    msg = next((f.message for f in c.flags if f.code == "answer_generated"), None)
+    assert msg == "Sample answer written by the model - check it"
+
+
+def test_exercise_speaking_generated_answer_has_sample_message():
+    raw = {"exercise_type": "speaking", "question": "Say", "answer": "Words", "text_support": None, "content": None, "quote": "Say"}
+    c = el.verify_element("exercise", raw, _chunk("Say"), "en")
+    msg = next((f.message for f in c.flags if f.code == "answer_generated"), None)
+    assert msg == "Sample answer written by the model - check it"
+
+
+def test_exercise_invalid_type_is_dropped():
+    raw = {"exercise_type": "invalid", "question": "Q", "answer": "A", "text_support": None, "content": None, "quote": "Q"}
+    assert el.verify_element("exercise", raw, _chunk("Q A"), "en") is None
+
+
+def test_exercise_empty_question_is_dropped():
+    raw = {"exercise_type": "answering", "question": "", "answer": "A", "text_support": None, "content": None, "quote": "Q"}
+    assert el.verify_element("exercise", raw, _chunk("A"), "en") is None
+
+
+def test_exercise_empty_answer_is_dropped():
+    raw = {"exercise_type": "answering", "question": "Q", "answer": "", "text_support": None, "content": None, "quote": "Q"}
+    assert el.verify_element("exercise", raw, _chunk("Q"), "en") is None
+
+
+def test_exercise_bad_content_shape_is_dropped():
+    raw = {"exercise_type": "quizz", "question": "Q", "answer": "A", "text_support": None, "content": {"options": ["a"], "correct": 0}, "quote": "Q"}
+    assert el.verify_element("exercise", raw, _chunk("Q A"), "en") is None
+
+
+def test_exercise_dedupe_key():
+    assert el.dedupe_key("exercise", {"question": "What?"}) == el.dedupe_key("exercise", {"question": "what?"})

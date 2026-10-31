@@ -15,6 +15,10 @@ _SHAPES = {
                 "not an exercise instruction (e.g. 'Read the verbs'), a table header or a list of words; skip points with no such explanation"),
     "character": ("character", '{"character": str, "phonetic": str|null, "meaning": str|null, "radical": str|null, "strokes": int|null, "quote": str}',
                   "a character is a single-character entry; give `radical` and `strokes` only if the text states them"),
+    "exercise": ("question", '{"exercise_type": str, "question": str, "answer": str|null, "text_support": str|null, "content": object|null, "quote": str}',
+                 "an exercise is a numbered task/question for the learner to answer: fill-in blanks, multiple choice, matching, true/false, translate, reorder, essay/speaking prompts; "
+                 "copy `question` verbatim; use the answer the text gives (an answer key on the same page); if the text gives none, WRITE a short answer yourself; "
+                 "`content` only for the structured types with exactly the shapes from the domain docs; invent no exercises not on the page"),
 }
 
 
@@ -45,7 +49,8 @@ def _clean(kind: Kind, raw) -> dict | None:
     s = lambda v: v.strip() if isinstance(v, str) and v.strip() else None
     if not s(raw.get(key)):
         return None
-    out = {k: s(raw.get(k)) for k in ("text", "translation", "title", "explanation", "character", "phonetic", "meaning", "radical", "quote")
+    out = {k: s(raw.get(k)) for k in ("text", "translation", "title", "explanation", "character", "phonetic", "meaning", "radical", "quote",
+                                       "exercise_type", "question", "answer", "text_support")
            if k in raw or k == key}
     out["quote"] = out.get("quote") or out[key]
     if kind == "grammar":
@@ -54,6 +59,9 @@ def _clean(kind: Kind, raw) -> dict | None:
     if kind == "character":
         st = raw.get("strokes")
         out["strokes"] = st if isinstance(st, int) and not isinstance(st, bool) else None
+    if kind == "exercise":
+        content = raw.get("content")
+        out["content"] = content if isinstance(content, dict) else None
     return out
 
 
@@ -67,11 +75,50 @@ def dedupe_key(kind: Kind, fields: dict) -> str:
     return normalise(fields[_SHAPES[kind][0]])
 
 
+def exercise_content_ok(exercise_type: str, content) -> bool:
+    """Check if content shape matches the exercise_type requirements."""
+    VALID_TYPES = {"essay", "answering", "translate", "speaking", "conversation",
+                   "organize", "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "quizz"}
+    if exercise_type not in VALID_TYPES:
+        return False
+
+    # Structured types require specific content shape
+    if exercise_type == "quizz":
+        return (isinstance(content, dict) and not isinstance(content, bool) and "options" in content and "correct" in content and
+                isinstance(content.get("options"), list) and len(content["options"]) >= 2 and
+                all(isinstance(o, str) for o in content["options"]) and
+                isinstance(content.get("correct"), int) and not isinstance(content.get("correct"), bool) and
+                0 <= content["correct"] < len(content["options"]))
+    elif exercise_type == "true_false":
+        return (isinstance(content, dict) and not isinstance(content, bool) and "statement" in content and "answer" in content and
+                isinstance(content.get("statement"), str) and len(content.get("statement", "")) > 0 and
+                isinstance(content.get("answer"), bool))
+    elif exercise_type == "organize":
+        return (isinstance(content, dict) and not isinstance(content, bool) and "items" in content and "answer_order" in content and
+                isinstance(content.get("items"), list) and isinstance(content.get("answer_order"), list) and
+                len(content["answer_order"]) == len(content["items"]) and
+                set(content["answer_order"]) == set(range(len(content["items"]))))
+    elif exercise_type in ("type_in_the_blank", "select_in_the_blank"):
+        return (isinstance(content, dict) and not isinstance(content, bool) and "segments" in content and "blanks" in content and
+                isinstance(content.get("segments"), list) and isinstance(content.get("blanks"), list) and
+                len(content["segments"]) == len(content["blanks"]) + 1 and
+                all(isinstance(s, str) for s in content["segments"]) and
+                all(isinstance(b, str) for b in content["blanks"]))
+    elif exercise_type == "matching":
+        return (isinstance(content, dict) and not isinstance(content, bool) and "pairs" in content and
+                isinstance(content.get("pairs"), list) and
+                all(isinstance(p, list) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str)
+                    for p in content["pairs"]))
+    else:
+        # Non-structured types: content must be None or empty dict
+        return content is None or (isinstance(content, dict) and not isinstance(content, bool) and len(content) == 0)
+
+
 def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> ElementCandidate | None:
-    """None = drop. Passage/grammar/character only; vocabulary goes through verify.verify."""
+    """None = drop. Passage/grammar/character/exercise; vocabulary goes through verify.verify."""
     text = normalise(chunk.text)
     flags: list[Flag] = []
-    flag = lambda code, msg: flags.append(Flag(code=code, message=msg))
+    flag = lambda code, msg, severity="warning": flags.append(Flag(code=code, message=msg, severity=severity))
     fields: dict
     key = raw[_SHAPES[kind][0]]
 
@@ -89,7 +136,7 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
             flag("word_not_in_source", "The title does not appear in the source text")
         fields = {"title": raw["title"], "explanation": raw["explanation"],
                   "example_sentences": [e for e in raw.get("example_sentences", []) if normalise(e) in text]}
-    else:
+    elif kind == "character":
         if normalise(key) not in text:
             return None
         radical, strokes, meaning = raw.get("radical"), raw.get("strokes"), raw.get("meaning")
@@ -104,6 +151,43 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
             flag("translation_generated", "The meaning was written by the model, not found in the document - check it")
         if (pf := _phonetic_flag(key, fields["phonetic"], iso1)):
             flags.append(pf)
+    else:  # exercise
+        exercise_type = raw.get("exercise_type", "")
+        question = raw.get("question", "")
+        answer = raw.get("answer", "")
+        content = raw.get("content")
+
+        # Validate exercise_type
+        VALID_TYPES = {"essay", "answering", "translate", "speaking", "conversation",
+                       "organize", "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "quizz"}
+        if exercise_type not in VALID_TYPES:
+            return None
+
+        # Validate question and answer are not empty
+        if not question or not answer:
+            return None
+
+        # Validate content shape
+        if not exercise_content_ok(exercise_type, content):
+            return None
+
+        # Check if question is in the chunk
+        if normalise(question) not in text:
+            flag("quote_not_in_source", "The question does not appear in the source text")
+
+        # Check if answer is in the chunk; if not, flag as answer_generated
+        if normalise(answer) not in text:
+            is_essay = exercise_type in ("essay", "speaking", "conversation")
+            msg = "Sample answer written by the model - check it" if is_essay else "The answer was written by the model, not found in the document - check it"
+            flag("answer_generated", msg)
+
+        fields = {
+            "exercise_type": exercise_type,
+            "question": question,
+            "answer": answer,
+            "text_support": raw.get("text_support"),
+            "content": content,
+        }
 
     if normalise(raw["quote"]) not in text and not any(f.code == "quote_not_in_source" for f in flags):
         flag("quote_not_in_source", "The quoted passage does not appear in the source text")

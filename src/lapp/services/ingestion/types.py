@@ -9,10 +9,10 @@ FlagCode = Literal[
     "word_not_in_source", "quote_not_in_source", "translation_generated",
     "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
     "already_in_language", "already_in_lesson",
-    "explanation_not_in_source",
+    "explanation_not_in_source", "answer_generated",
 ]
-Kind = Literal["vocabulary", "grammar", "passage", "character"]
-ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "passage", "character"]
+Kind = Literal["vocabulary", "grammar", "passage", "character", "exercise"]
+ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "passage", "character", "exercise"]
 
 
 class Chunk(BaseModel):
