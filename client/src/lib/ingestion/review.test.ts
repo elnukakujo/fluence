@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, initialRows, parsePageRange, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, initialRows, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -32,8 +32,23 @@ describe("filterRows / countRows", () => {
     expect(filterRows(rows, "flagged").map((r) => r.candidate.id)).toEqual(["word_not_in_source"]);
   });
   it("counts totals and the current selection", () => {
-    expect(countRows(rows)).toEqual({ total: 3, verified: 2, flagged: 1, selected: 2 });
+    expect(countRows(rows)).toEqual({ total: 3, verified: 2, flagged: 1, selected: 2, deleted: 0 });
   });
+  it("leaves deleted rows out of the total and the selection", () => {
+    const r = initialRows([cand(), cand({ id: "c2" })]);
+    r[1].deleted = true;
+    expect(countRows(r)).toEqual({ total: 1, verified: 1, flagged: 0, selected: 1, deleted: 1 });
+  });
+});
+
+describe("rowsByKind", () => {
+  it("groups rows by element kind, vocabulary first, empty kinds absent", () => {
+    const r = initialRows([cand({ id: "g", kind: "grammar" }), cand({ id: "v" }), cand({ id: "e", kind: "exercise" })]);
+    const g = rowsByKind(r);
+    expect(g.map(([k]) => k)).toEqual(["vocabulary", "grammar", "exercise"]);
+    expect(g[0][1].map((x) => x.candidate.id)).toEqual(["v"]);
+  });
+
 });
 
 describe("warningReasons", () => {
@@ -56,6 +71,11 @@ describe("toAcceptItems", () => {
   it("drops a selected row whose word was emptied", () => {
     const rows = initialRows([cand()]);
     rows[0].word = "  ";
+    expect(toAcceptItems(rows)).toEqual({ items: [] });
+  });
+  it("never sends a deleted row", () => {
+    const rows = initialRows([cand()]);
+    rows[0].deleted = true;
     expect(toAcceptItems(rows)).toEqual({ items: [] });
   });
   it("carries the chosen conflict mode", () => {

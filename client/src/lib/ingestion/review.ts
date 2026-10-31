@@ -41,7 +41,8 @@ export type ConflictMode = "keep" | "merge" | "overwrite";
 
 export type Row = {
   candidate: Candidate;
-  selected: boolean;
+  selected: boolean; // confirmed: sent on Add
+  deleted?: boolean; // dropped by the user; never sent, can be undone
   // editable copies, so the user can fix a word without losing what the model said
   word?: string;
   translation?: string;
@@ -108,8 +109,21 @@ export function filterRows(rows: Row[], filter: Filter): Row[] {
 }
 
 export function countRows(rows: Row[]) {
-  const verified = rows.filter((r) => r.candidate.status === "verified").length;
-  return { total: rows.length, verified, flagged: rows.length - verified, selected: rows.filter((r) => r.selected).length };
+  const live = rows.filter((r) => !r.deleted);
+  const verified = live.filter((r) => r.candidate.status === "verified").length;
+  return {
+    total: live.length, verified, flagged: live.length - verified,
+    selected: live.filter((r) => r.selected).length, deleted: rows.length - live.length,
+  };
+}
+
+export type RowKind = "vocabulary" | "grammar" | "calligraphy" | "exercise";
+const KIND_ORDER: RowKind[] = ["vocabulary", "grammar", "calligraphy", "exercise"];
+
+/** Rows grouped per element kind in a fixed order; kinds with no rows are left out. */
+export function rowsByKind(rows: Row[]): [RowKind, Row[]][] {
+  return KIND_ORDER.map((k): [RowKind, Row[]] => [k, rows.filter((r) => (r.candidate.kind ?? "vocabulary") === k)])
+    .filter(([, rs]) => rs.length > 0);
 }
 
 /** Why a candidate is flagged (warning-severity messages only; info notes are shown separately). */
@@ -129,7 +143,7 @@ export function toAcceptItems(rows: Row[]): AcceptPayload {
   const elements: { kind: string; fields: Record<string, unknown> }[] = [];
 
   for (const r of rows) {
-    if (!r.selected) continue;
+    if (!r.selected || r.deleted) continue;
 
     if (r.candidate.kind === "grammar") {
       const title = (r.title ?? "").trim();
