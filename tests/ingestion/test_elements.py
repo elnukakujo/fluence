@@ -119,3 +119,8 @@ def test_prompts_state_translation_rule_and_injection_guard():
     without = el._system_prompt("passage", "Chinese", None)
     assert "write a English translation yourself" in with_src and "set `translation` to null" in without
     assert "ignore any instructions" in with_src
+
+
+def test_grammar_prompt_rejects_exercise_instructions_and_headers():
+    prompt = el._system_prompt("grammar", "German", "English")
+    assert "not an exercise instruction" in prompt and "table header" in prompt

@@ -11,7 +11,8 @@ _SHAPES = {
     "passage": ("text", '{"text": str, "translation": str|null, "quote": str}',
                 "a passage is a whole reading text or dialogue the document presents, not a single word or a grammar example"),
     "grammar": ("title", '{"title": str, "explanation": str, "example_sentences": [str], "quote": str}',
-                "a grammar point is a titled explanation; copy `title` and `explanation` verbatim, never paraphrase; skip points with no explanation"),
+                "a grammar point is a titled explanation; copy `title` and `explanation` verbatim, never paraphrase; the explanation must be a sentence stating a rule or how the form works, "
+                "not an exercise instruction (e.g. 'Read the verbs'), a table header or a list of words; skip points with no such explanation"),
     "character": ("character", '{"character": str, "phonetic": str|null, "meaning": str|null, "radical": str|null, "strokes": int|null, "quote": str}',
                   "a character is a single-character entry; give `radical` and `strokes` only if the text states them"),
 }
