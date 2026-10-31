@@ -44,4 +44,5 @@ def extract_native_page(page: pymupdf.Page, index: int) -> Page:
         blocks.append(Block(text="\n".join(lines), bbox=tuple(b["bbox"]), kind=kind,
                             font_size=size, words=words_in(b["bbox"])))
     return Page(index=index, width=page.rect.width, height=page.rect.height,
-                source="native", trust="native", blocks=blocks, mean_confidence=None)
+                source="native", trust="native", blocks=blocks, mean_confidence=None,
+                images=[tuple(i["bbox"]) for i in page.get_image_info()])

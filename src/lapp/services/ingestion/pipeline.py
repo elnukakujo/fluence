@@ -10,6 +10,7 @@ from .chunk import chunk_document
 from .elements import dedupe_key, extract_kind, verify_element
 from .extract import ExtractionError, extract_chunk
 from .grammar import generate_grammar
+from .media import image_crop
 from .types import ALL_KINDS, Candidate, ElementCandidate, Kind
 from .verify import normalise, verify
 
@@ -46,6 +47,7 @@ def build_candidates(
     source_name = None if source.iso1 == "unknown" else source.name
 
     chunks = chunk_document(doc)
+    pages = {p.index: p for p in doc.pages}
     result = BuildResult()
     if not chunks:
         result.warnings.append("No text was found in the document")
@@ -57,6 +59,7 @@ def build_candidates(
     def vocabulary(chunk):
         for item in extract_chunk(chunk, api, target_name, source_name):
             key, cand = normalise(item.word), verify(item, chunk, iso1, lookup)
+            cand.image_crop = image_crop(pages[chunk.page], chunk, cand.quote)
             if key not in seen["vocabulary"]:
                 seen["vocabulary"].add(key)
                 result.candidates.append(cand)
@@ -73,6 +76,8 @@ def build_candidates(
                 raw_items = extract_kind(kind, chunk, api, target_name, source_name)
             for raw in raw_items:
                 el = verify_element(kind, raw, chunk, iso1)
+                if el:
+                    el.image_crop = image_crop(pages[chunk.page], chunk, el.quote)
                 if el and (key := dedupe_key(kind, el.fields)) not in seen[kind]:
                     seen[kind].add(key)
                     result.elements.append(el)

@@ -9,7 +9,7 @@ FlagCode = Literal[
     "word_not_in_source", "quote_not_in_source", "translation_generated",
     "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
     "already_in_language", "already_in_lesson",
-    "explanation_not_in_source", "answer_generated", "grammar_generated",
+    "explanation_not_in_source", "answer_generated", "grammar_generated", "listening_inferred",
 ]
 Kind = Literal["vocabulary", "grammar", "calligraphy", "exercise"]
 ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "calligraphy", "exercise"]
@@ -43,6 +43,7 @@ class Candidate(BaseModel):
     flags: list[Flag] = []
     min_conf: float | None = None
     existing: dict | None = None  # what the app already holds for this item, shown beside it in review
+    image_crop: dict | None = None  # {page, bbox, page_size, has_picture}: the picture next to the item, cropped at accept
 
 
 class ElementCandidate(BaseModel):
@@ -57,3 +58,5 @@ class ElementCandidate(BaseModel):
     flags: list[Flag] = []
     min_conf: float | None = None
     existing: dict | None = None  # what the app already holds for this item, shown beside it in review
+    image_crop: dict | None = None
+    audio_lines: list[str] = []  # texts that would be spoken (one clip each): generated with TTS or replaced by uploads

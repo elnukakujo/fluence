@@ -41,6 +41,7 @@ class Page(BaseModel):
     source: Literal["native", "ocr_local", "ocr_remote"]
     trust: Literal["native", "ocr", "llm_transcribed"]
     blocks: list[Block] = []
+    images: list[BBox] = []   # pictures on a native page (not text), so an exercise can offer the picture beside it
     mean_confidence: float | None = None
     warnings: list[str] = []
 

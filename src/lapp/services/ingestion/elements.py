@@ -14,7 +14,7 @@ _SHAPES = {
                 "not an exercise instruction (e.g. 'Read the verbs'), a table header or a list of words; skip points with no such explanation"),
     "calligraphy": ("character", '{"character": str, "phonetic": str|null, "meaning": str|null, "radical": str|null, "strokes": int|null, "quote": str}',
                     "a calligraphy entry is for a single character with stroke order, practice grids, character breakdowns; give `radical` and `strokes` only if the text states them"),
-    "exercise": ("question", '{"exercise_type": str, "question": str, "answer": str, "text_support": str|null, "content": object|null, "quote": str}',
+    "exercise": ("question", '{"exercise_type": str, "question": str, "answer": str, "text_support": str|null, "content": object|null, "listening_text": str|null, "quote": str}',
                  "an exercise is a numbered task or question for the learner to answer; a vocabulary list, a dialogue or a grammar note is NOT an exercise. "
                  "`exercise_type` MUST be exactly one of: essay, answering, translate, speaking, conversation, organize, type_in_the_blank, select_in_the_blank, matching, true_false, quizz "
                  "(short free answers = answering; translating a sentence = translate; reading aloud / pair or group talk = speaking or conversation; writing a text = essay). "
@@ -28,6 +28,7 @@ _SHAPES = {
                  'conversation {"speakers": [{"name": str, "is_learner": true|false}, ...], "lines": [{"speaker": a speaker name, "text": str}, ...]} '
                  "(a dialogue the learner takes part in: one learner speaker, at least one other, lines in page order; `question` is the instruction line and `answer` may be empty). "
                  "Copy `question` verbatim. `answer` is never null (except conversation): use the answer the page gives (an answer key), otherwise WRITE a short answer yourself. "
+                 "`listening_text`: only for answering or translate tasks the page marks as listening (e.g. 听, 'Listen and answer'): the text that is read out; otherwise null. "
                  "Invent no exercises that are not on the page"),
 }
 
@@ -55,7 +56,7 @@ def _clean(kind: Kind, raw) -> dict | None:
     if not s(raw.get(key)):
         return None
     out = {k: s(raw.get(k)) for k in ("text", "translation", "title", "explanation", "character", "phonetic", "meaning", "radical", "quote",
-                                       "exercise_type", "question", "answer", "text_support")
+                                       "exercise_type", "question", "answer", "text_support", "listening_text")
            if k in raw or k == key}
     out["quote"] = out.get("quote") or out[key]
     if kind == "grammar":
@@ -194,6 +195,7 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
     flags: list[Flag] = []
     flag = lambda code, msg, severity="warning": flags.append(Flag(code=code, message=msg, severity=severity))
     fields: dict
+    audio_lines: list[str] = []
     key = raw[_SHAPES[kind][0]]
 
     if kind == "grammar":
@@ -261,6 +263,15 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
             msg = "Sample answer written by the model - check it" if is_essay else "The answer was written by the model, not found in the document - check it"
             flag("answer_generated", msg)
 
+        # what would be spoken: every line of a conversation, a speaking prompt, or the text of a listening task
+        if exercise_type == "conversation":
+            audio_lines = [l["text"].strip() for l in content["lines"]]
+        elif exercise_type == "speaking":
+            audio_lines = [question]
+        elif exercise_type in ("answering", "translate") and raw.get("listening_text"):
+            audio_lines = [raw["listening_text"]]
+            flag("listening_inferred", "The model judged this a listening task and wrote what is read out - check it", "info")
+
         fields = {
             "exercise_type": exercise_type,
             "question": question,
@@ -278,4 +289,5 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
     return ElementCandidate(
         id=uuid.uuid4().hex, kind=kind, fields=fields, quote=raw["quote"], page=chunk.page, chunk_id=chunk.id,
         status="flagged" if any(f.severity == "warning" for f in flags) else "verified", flags=flags, min_conf=min_conf,
+        audio_lines=audio_lines,
     )
