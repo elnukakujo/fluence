@@ -37,13 +37,12 @@ describe("ReviewPanel", () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
 
-    expect(screen.getByDisplayValue("Te-form")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Connects verbs")).toBeInTheDocument();
-    // flagged => opt-in: nothing selected, add disabled
+    expect(screen.getByText("Te-form")).toBeInTheDocument();
+    // flagged => unconfirmed: add disabled until the user confirms it
     const add = screen.getByRole("button", { name: "Add 0" });
     expect(add).toBeDisabled();
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Include Te-form" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
 
     expect(onAdd).toHaveBeenCalledWith({
@@ -55,6 +54,7 @@ describe("ReviewPanel", () => {
   it("sends edits the user made to the grammar fields", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="b" candidates={[{ ...grammar, status: "verified" }]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     const title = screen.getByDisplayValue("Te-form");
     await userEvent.clear(title);
     await userEvent.type(title, "Te form 2");
@@ -66,9 +66,8 @@ describe("ReviewPanel", () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[exercise]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
 
-    expect(screen.getByDisplayValue("What is this?")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("It is this")).toBeInTheDocument();
-    // verified => pre-selected, add enabled
+    expect(screen.getByText("What is this?")).toBeInTheDocument();
+    // verified => pre-confirmed, add enabled
     const add = screen.getByRole("button", { name: "Add 1" });
     expect(add).not.toBeDisabled();
 
@@ -84,8 +83,7 @@ describe("ReviewPanel", () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[exerciseGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
 
-    expect(screen.getByDisplayValue("Write about it")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Generated answer")).toBeInTheDocument();
+    expect(screen.getByText("Write about it")).toBeInTheDocument();
     expect(screen.getByText("Sample answer written by the model - check it")).toBeInTheDocument();
     expect(screen.getByText("✎ Generated answer")).toBeInTheDocument();
   });
@@ -94,9 +92,10 @@ describe("ReviewPanel", () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
 
-    expect(screen.getByDisplayValue("Present form")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Regular verbs")).toBeInTheDocument();
+    expect(screen.getByText("Present form")).toBeInTheDocument();
     expect(screen.getByText("✎ Generated")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByDisplayValue("Regular verbs")).toBeInTheDocument();
 
     const summary = screen.getByText("Original page text");
     expect(summary).toBeInTheDocument();
@@ -122,7 +121,7 @@ describe("ReviewPanel", () => {
 
     expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
 
-    const row = screen.getByDisplayValue("Present form").closest("li");
+    const row = screen.getByText("Present form").closest("li");
     await userEvent.click(row!);
 
     expect(screen.getByText("Page 2 / 5")).toBeInTheDocument();
@@ -141,7 +140,7 @@ describe("ReviewPanel", () => {
     expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
   });
 
-  it("edits the word type through the fixed list and shows the saved word beside a duplicate", async () => {
+  it("edits the word type through the fixed list and keeps the saved word beside a duplicate", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     const dup: Candidate = {
       id: "v1", word: "水", translation: "water", phonetic: "shuǐ", word_type: "noun", quote: "水 water", page: 0, chunk_id: "c",
@@ -149,27 +148,74 @@ describe("ReviewPanel", () => {
       flags: [{ code: "already_in_language", message: "exists", severity: "info" }],
     };
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[dup]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
-    expect(screen.getByText("Already saved in your language")).toBeInTheDocument();
+    expect(screen.getByText("Already saved")).toBeInTheDocument();
     expect(screen.getByText("liquid")).toBeInTheDocument();
-    const type = screen.getAllByRole("combobox")[0];
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const type = screen.getByRole("combobox");
     expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("classifier");
     await userEvent.selectOptions(type, "verb");
-    await userEvent.selectOptions(screen.getAllByRole("combobox")[1], "merge");
+    await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
-    expect(onAdd).toHaveBeenCalledWith({ items: [{ word: "水", translation: "water", phonetic: "shuǐ", word_type: "verb", on_conflict: "merge" }] });
+    expect(onAdd).toHaveBeenCalledWith({ items: [{ word: "水", translation: "water", phonetic: "shuǐ", word_type: "verb", on_conflict: "overwrite" }] });
   });
 
-  it("offers the keep/merge/overwrite choice for calligraphy that already exists", async () => {
+  it("Keep existing deletes the new item and Undo brings it back", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     const cal: Candidate = {
       id: "k1", kind: "calligraphy", character: "水", meaning: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [],
       min_conf: null, existing: { meaning: "liquid", strokes: 4 },
     };
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[cal]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
-    expect(screen.getByText("liquid")).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByRole("combobox"), "overwrite");
+    await userEvent.click(screen.getByRole("button", { name: "Keep existing" }));
+    expect(screen.getByText(/Kept your existing one/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
-    expect(onAdd.mock.calls[0][0].elements[0].fields.on_conflict).toBe("overwrite");
+    expect(onAdd.mock.calls[0][0].elements[0].fields.on_conflict).toBe("keep");
+  });
+
+  it("Merge opens an editor and sends the user's own version as an overwrite", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const cal: Candidate = {
+      id: "k1", kind: "calligraphy", character: "水", meaning: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [],
+      min_conf: null, existing: { meaning: "liquid", strokes: 4 },
+    };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[cal]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    await userEvent.click(screen.getByRole("button", { name: "Merge…" }));
+    const meaning = screen.getByRole("textbox", { name: "Result meaning" });
+    await userEvent.clear(meaning);
+    await userEvent.type(meaning, "water, liquid");
+    await userEvent.click(screen.getByRole("button", { name: "Use this version" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
+    expect(onAdd.mock.calls[0][0].elements[0].fields).toMatchObject({ meaning: "water, liquid", on_conflict: "overwrite" });
+  });
+
+  it("Delete removes an item from the count and from what is sent", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[exercise]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
+    expect(screen.getByText(/0 found/)).toBeInTheDocument();
+  });
+
+  it("splits items into tabs with counts and shows one kind at a time", async () => {
+    const vocab: Candidate = { id: "v", word: "水", translation: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [], min_conf: null };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[vocab, grammar, exercise]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getByRole("tab", { name: "Vocabulary 1" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Grammar 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Calligraphy/ })).toBeNull();
+    expect(screen.queryByText("Te-form")).toBeNull();
+    await userEvent.click(screen.getByRole("tab", { name: "Grammar 1" }));
+    expect(screen.getByText("Te-form")).toBeInTheDocument();
+  });
+
+  it("Confirm all verified confirms only the verified items of the open tab", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const a: Candidate = { id: "a", word: "a", translation: "x", quote: "a", page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null };
+    const b: Candidate = { ...a, id: "b", word: "b", status: "verified" };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[a, b]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    await userEvent.click(screen.getByRole("button", { name: "Confirm all verified" }));
+    expect(screen.getByRole("button", { name: "Add 1" })).toBeInTheDocument();
   });
 
   it("shows the page panel with the original page and a toggle on small screens", async () => {
