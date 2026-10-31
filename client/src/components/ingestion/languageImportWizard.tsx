@@ -13,6 +13,7 @@ import {
 } from "@/lib/ingestion/structure";
 import { STATUS_TEXT, UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
+import PageKinds from "./pageKinds";
 
 type Props = { languageId: string; languageName: string; settingsHref: string };
 
@@ -21,7 +22,7 @@ export default function LanguageImportWizard(props: Props) {
   const jobId = useSearchParams().get("job");
   const base = `/languages/${props.languageId}/import`;
   return jobId ? <JobView key={jobId} jobId={jobId} base={base} {...props} /> : (
-    <UploadStep languageId={props.languageId} heading={`Import lessons into “${props.languageName}”`}
+    <UploadStep languageId={props.languageId} heading={`Import lessons into "${props.languageName}"`}
       settingsHref={props.settingsHref} base={base} cancelHref={`/languages/${props.languageId}`} />
   );
 }
@@ -63,7 +64,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
         <p className="text-sm opacity-70">
-          Reading a long scan takes a few minutes. You can leave this page: the import is listed under “Imports” in the top bar.
+          Reading a long scan takes a few minutes. You can leave this page: the import is listed under "Imports" in the top bar.
         </p>
       </div>
     );
@@ -89,9 +90,20 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pageKinds, setPageKinds] = useState<Record<number, string[]>>({});
 
   useEffect(() => {
-    getStructure(job.id).then((s) => { setStructure(s); setDrafts(draftsFromProposal(s.lessons)); }).catch((e) => setError(e.message));
+    getStructure(job.id).then((s) => {
+      setStructure(s);
+      setDrafts(draftsFromProposal(s.lessons));
+      if (s.page_kinds) {
+        const kindsByNumber: Record<number, string[]> = {};
+        for (const [key, kinds] of Object.entries(s.page_kinds)) {
+          kindsByNumber[parseInt(key, 10)] = kinds;
+        }
+        setPageKinds(kindsByNumber);
+      }
+    }).catch((e) => setError(e.message));
   }, [job.id]);
 
   if (error && !structure) return <div role="alert" className="card max-w-2xl">✗ {error}</div>;
@@ -106,7 +118,11 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
     setSaving(true);
     setError(null);
     try {
-      await confirmStructure(job.id, toConfirmPayload(drafts));
+      const pageKindsStr: Record<string, string[]> = {};
+      for (const [key, kinds] of Object.entries(pageKinds)) {
+        pageKindsStr[key] = kinds;
+      }
+      await confirmStructure(job.id, toConfirmPayload(drafts), pageKindsStr);
       onConfirmed();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the extraction");
@@ -120,7 +136,7 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
         <h2>Which lessons are in {job.filename}?</h2>
         <p className="text-sm opacity-70">
           We looked at the top of every page to guess where each lesson starts. Check the titles and page numbers, rename,
-          untick or add lessons, then continue. Pages {structure.first_page}–{structure.last_page} were read; pages outside a lesson are skipped.
+          untick or add lessons, then continue. Pages {structure.first_page}-{structure.last_page} were read; pages outside a lesson are skipped.
         </p>
         {structure.warnings.length > 0 && (
           <ul className="list-disc pl-5 text-sm">{structure.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
@@ -128,32 +144,52 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
       </header>
 
       <ul className="flex flex-col gap-2">
-        {drafts.map((d, i) => (
-          <li key={i} className="card flex flex-col gap-2">
-            <div className="flex flex-wrap items-end gap-3">
-              <input type="checkbox" className="mb-3" checked={d.include} aria-label={`Include lesson ${i + 1}`} onChange={(e) => set(i, { include: e.target.checked })} />
-              <label className="flex min-w-48 flex-[3] flex-col gap-1">
-                <span className="text-xs opacity-60">Title</span>
-                <input className="input" value={d.title} onChange={(e) => set(i, { title: e.target.value })} />
-              </label>
-              <label className="flex w-24 flex-col gap-1">
-                <span className="text-xs opacity-60">First page</span>
-                <input className="input" inputMode="numeric" value={d.start} onChange={(e) => set(i, { start: e.target.value })} />
-              </label>
-              <label className="flex w-24 flex-col gap-1">
-                <span className="text-xs opacity-60">Last page</span>
-                <input className="input" inputMode="numeric" value={d.end} onChange={(e) => set(i, { end: e.target.value })} />
-              </label>
-              {d.verified !== null && (
-                <span className="badge mb-2" title={d.verified ? "This title appears on its first page" : "Not found on its first page"}>
-                  {d.verified ? "✓ Found on the page" : "⚠ Check this"}
-                </span>
+        {drafts.map((d, i) => {
+          const startPage = parseInt(d.start, 10);
+          const endPage = parseInt(d.end, 10);
+          const lessonPages = Array.from(
+            { length: endPage - startPage + 1 },
+            (_, idx) => startPage + idx
+          );
+          return (
+            <li key={i} className="card flex flex-col gap-2">
+              <div className="flex flex-wrap items-end gap-3">
+                <input type="checkbox" className="mb-3" checked={d.include} aria-label={`Include lesson ${i + 1}`} onChange={(e) => set(i, { include: e.target.checked })} />
+                <label className="flex min-w-48 flex-[3] flex-col gap-1">
+                  <span className="text-xs opacity-60">Title</span>
+                  <input className="input" value={d.title} onChange={(e) => set(i, { title: e.target.value })} />
+                </label>
+                <label className="flex w-24 flex-col gap-1">
+                  <span className="text-xs opacity-60">First page</span>
+                  <input className="input" inputMode="numeric" value={d.start} onChange={(e) => set(i, { start: e.target.value })} />
+                </label>
+                <label className="flex w-24 flex-col gap-1">
+                  <span className="text-xs opacity-60">Last page</span>
+                  <input className="input" inputMode="numeric" value={d.end} onChange={(e) => set(i, { end: e.target.value })} />
+                </label>
+                {d.verified !== null && (
+                  <span className="badge mb-2" title={d.verified ? "This title appears on its first page" : "Not found on its first page"}>
+                    {d.verified ? "✓ Found on the page" : "⚠ Check this"}
+                  </span>
+                )}
+                <button type="button" className="btn btn-secondary mb-1" aria-label={`Remove lesson ${i + 1}`} onClick={() => setDrafts((ds) => removeDraft(ds, i))}>×</button>
+              </div>
+              {d.note && <p className="text-sm">⚠ {d.note}</p>}
+              {d.include && (
+                <details className="text-sm">
+                  <summary className="cursor-pointer opacity-70">Confirm kinds on pages {startPage}-{endPage}</summary>
+                  <div className="mt-2 pl-4">
+                    <PageKinds
+                      pages={lessonPages}
+                      value={pageKinds as any}
+                      onChange={(newPageKinds) => setPageKinds(newPageKinds as any)}
+                    />
+                  </div>
+                </details>
               )}
-              <button type="button" className="btn btn-secondary mb-1" aria-label={`Remove lesson ${i + 1}`} onClick={() => setDrafts((ds) => removeDraft(ds, i))}>×</button>
-            </div>
-            {d.note && <p className="text-sm">⚠ {d.note}</p>}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       <div className="card flex flex-col gap-2">
@@ -214,11 +250,11 @@ function LessonsReview({ job, languageId, languageName }: { job: Job; languageId
       <header className="card flex flex-col gap-2">
         <h2>{job.filename}</h2>
         <p aria-live="polite">
-          {ready} of {lessons.length} lessons ready · {addedCount} added to “{languageName}”
+          {ready} of {lessons.length} lessons ready · {addedCount} added to "{languageName}"
           {status === "extracting" ? " · still reading the rest…" : ""}
         </p>
         {status === "extracting" && <ProgressBar current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
-        <p className="text-xs opacity-60">Review each lesson and add it when you are happy. Nothing is created until you press “Add”.</p>
+        <p className="text-xs opacity-60">Review each lesson and add it when you are happy. Nothing is created until you press "Add".</p>
         {notes.length > 0 && (
           <details>
             <summary className="cursor-pointer text-sm">{notes.length} note{notes.length > 1 ? "s" : ""} from the import</summary>
@@ -247,7 +283,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
   return (
     <details className="card" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="cursor-pointer">
-        <strong>{l.title}</strong> · pages {l.start_page}–{l.end_page} ·{" "}
+        <strong>{l.title}</strong> · pages {l.start_page}-{l.end_page} ·{" "}
         {createdId ? "✓ Added" : l.status === "pending" ? "Waiting…" : l.status === "failed" ? "⚠ Failed"
           : `${l.counts?.total ?? 0} found, ${l.counts?.flagged ?? 0} to check`}
       </summary>
@@ -262,7 +298,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         )}
         {l.status === "done" && !createdId && (
           <ReviewPanel jobId={job.id} filename={job.filename} candidates={l.candidates ?? []}
-            addLabel={(n) => `Add ${n} to a new lesson “${l.title}”`}
+            addLabel={(n) => `Add ${n} to a new lesson "${l.title}"`}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);
               onAdded({ lessonId: r.lesson_id, count: r.created });

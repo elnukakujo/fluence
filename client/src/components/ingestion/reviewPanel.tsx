@@ -51,7 +51,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           {counts.total} found · {counts.verified} confirmed in the text · {counts.flagged} need your check · {counts.selected} selected
         </p>
         <p className="text-xs opacity-60">
-          “Confirmed” means the word and its quote appear in the document text. Items that need your check are unselected: compare them with the page before adding.
+          "Confirmed" means the word and its quote appear in the document text. Items that need your check are unselected: compare them with the page before adding.
         </p>
         <div className="btn-row">
           {(["all", "verified", "flagged"] as Filter[]).map((f) => (
@@ -73,6 +73,86 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           const info = infoNotes(c);
           const exists = c.flags.some((f) => f.code.startsWith("already_in_"));
           const generated = c.flags.some((f) => f.code === "translation_generated");
+
+          if (c.kind === "grammar") {
+            return (
+              <li key={c.id} className="card flex flex-col gap-2">
+                <div className="flex flex-wrap items-start gap-3">
+                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include ${row.title || "grammar"}`}
+                    onChange={(e) => patch(c.id, { selected: e.target.checked })} />
+                  <label className="flex min-w-48 flex-1 flex-col gap-1">
+                    <span className="text-xs opacity-60">Title</span>
+                    <input className="input" value={row.title || ""} onChange={(e) => patch(c.id, { title: e.target.value })} />
+                  </label>
+                  <label className="flex min-w-48 flex-[2] flex-col gap-1">
+                    <span className="text-xs opacity-60">Explanation</span>
+                    <input className="input" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
+                  </label>
+                  <span className="badge mt-5" title={c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
+                    {c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+                  </span>
+                </div>
+                {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
+                {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
+                <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
+              </li>
+            );
+          } else if (c.kind === "passage") {
+            return (
+              <li key={c.id} className="card flex flex-col gap-2">
+                <div className="flex flex-wrap items-start gap-3">
+                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label="Include passage"
+                    onChange={(e) => patch(c.id, { selected: e.target.checked })} />
+                  <label className="flex min-w-48 flex-[2] flex-col gap-1">
+                    <span className="text-xs opacity-60">Text</span>
+                    <textarea className="input" value={row.text || ""} onChange={(e) => patch(c.id, { text: e.target.value })} />
+                  </label>
+                  <label className="flex min-w-48 flex-1 flex-col gap-1">
+                    <span className="text-xs opacity-60">Translation</span>
+                    <input className="input" value={row.translation || ""} onChange={(e) => patch(c.id, { translation: e.target.value })} />
+                  </label>
+                  <span className="badge mt-5" title={generated ? "The document gave no translation; the model wrote this one" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
+                    {generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+                  </span>
+                </div>
+                {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
+                {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
+                <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
+              </li>
+            );
+          } else if (c.kind === "character") {
+            return (
+              <li key={c.id} className="card flex flex-col gap-2">
+                <div className="flex flex-wrap items-start gap-3">
+                  <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include character ${row.character || ""}`}
+                    onChange={(e) => patch(c.id, { selected: e.target.checked })} />
+                  <label className="flex min-w-16 flex-col gap-1">
+                    <span className="text-xs opacity-60">Character</span>
+                    <input className="input text-center text-2xl" value={row.character || ""} onChange={(e) => patch(c.id, { character: e.target.value })} maxLength={1} />
+                  </label>
+                  <label className="flex min-w-32 flex-col gap-1">
+                    <span className="text-xs opacity-60">Meaning</span>
+                    <input className="input" value={row.meaning || ""} onChange={(e) => patch(c.id, { meaning: e.target.value })} />
+                  </label>
+                  <label className="flex min-w-24 flex-col gap-1">
+                    <span className="text-xs opacity-60">Radical</span>
+                    <input className="input" value={row.radical || ""} onChange={(e) => patch(c.id, { radical: e.target.value })} />
+                  </label>
+                  <label className="flex min-w-20 flex-col gap-1">
+                    <span className="text-xs opacity-60">Strokes</span>
+                    <input className="input" type="number" value={row.strokes ?? ""} onChange={(e) => patch(c.id, { strokes: e.target.value ? (parseInt(e.target.value, 10) as any) : null })} />
+                  </label>
+                  <span className="badge mt-5" title={c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
+                    {c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+                  </span>
+                </div>
+                {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
+                {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
+                <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
+              </li>
+            );
+          }
+
           return (
             <li key={c.id} className="card flex flex-col gap-2">
               <div className="flex flex-wrap items-start gap-3">
@@ -81,7 +161,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                 {(["word", "translation", "phonetic", "word_type"] as const).map((key) => (
                   <label key={key} className="flex min-w-32 flex-1 flex-col gap-1">
                     <span className="text-xs opacity-60">{key === "word_type" ? "type" : key}</span>
-                    <input className="input" value={row[key]} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
+                    <input className="input" value={row[key] || ""} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
                   </label>
                 ))}
                 <span className="badge mt-5" title={generated ? "The document gave no translation; the model wrote this one" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
@@ -99,7 +179,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                 </label>
               )}
               <p className="text-sm opacity-70">
-                Page {c.page + 1} · “{c.quote}”{" "}
+                Page {c.page + 1} · "{c.quote}"{" "}
                 <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button>
               </p>
             </li>
