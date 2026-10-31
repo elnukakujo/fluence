@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import StepProgress from "./stepProgress";
 import { ACTIVE_STATUSES, type Job, deleteJob, listJobs } from "@/api/ingestion";
 
 const LABEL: Record<Job["status"], string> = {
@@ -11,9 +12,15 @@ const LABEL: Record<Job["status"], string> = {
 export type IndicatorState = "running" | "attention" | "ready" | "failed" | "idle";
 
 /** What the Imports button shows: running beats needs-you beats ready beats failed. */
-export function indicatorState(jobs: Pick<Job, "status">[]): IndicatorState {
+export function indicatorState(all: Pick<Job, "status" | "finished">[]): IndicatorState {
+  const jobs = all.filter((j) => !j.finished);
   const has = (...s: Job["status"][]) => jobs.some((j) => s.includes(j.status));
   return has("queued", "parsing", "extracting") ? "running" : has("pages", "structure") ? "attention" : has("ready") ? "ready" : has("failed") ? "failed" : "idle";
+}
+
+/** Where an import is in the three steps: 1 upload/reading, 2 pages or lessons, 3 extraction and review. */
+export function stepOf(j: Pick<Job, "status">): 1 | 2 | 3 {
+  return j.status === "pages" || j.status === "structure" ? 2 : j.status === "extracting" || j.status === "ready" ? 3 : 1;
 }
 
 const STATE_TEXT: Record<IndicatorState, string> = {
@@ -33,6 +40,7 @@ function StateIcon({ state }: { state: IndicatorState }) {
 export default function ImportsIndicator() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try { setJobs(await listJobs()); } catch { /* the bar must never break the page */ }
@@ -49,14 +57,24 @@ export default function ImportsIndicator() {
     return () => { alive = false; clearTimeout(timer); };
   }, [load]);
 
+  // the menu closes when the user clicks elsewhere, tabs away or presses Escape
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+
   if (jobs.length === 0) return null;
-  const running = jobs.filter((j) => ACTIVE_STATUSES.includes(j.status)).length;
-  const ready = jobs.filter((j) => j.status === "ready").length;
+  const running = jobs.filter((j) => ACTIVE_STATUSES.includes(j.status) && !j.finished).length;
+  const ready = jobs.filter((j) => j.status === "ready" && !j.finished).length;
   const count = running || ready;
   const state = indicatorState(jobs);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={box} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}>
       <button type="button" className="btn btn-secondary" aria-expanded={open} aria-haspopup="true" aria-label={`Imports: ${STATE_TEXT[state]}`} onClick={() => setOpen((o) => !o)}>
         <span className="inline-flex items-center gap-2"><StateIcon state={state} />Imports</span>{count > 0 && <span className="badge ml-2" aria-label={running ? `${running} running` : `${ready} ready`}>{count}</span>}
       </button>
@@ -64,12 +82,13 @@ export default function ImportsIndicator() {
         <ul className="card absolute right-0 top-full z-40 mt-2 flex w-80 max-w-[90vw] flex-col gap-2 text-sm shadow-lg">
           {jobs.slice(0, 8).map((j) => (
             <li key={j.id} className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <Link className="link block truncate" onClick={() => setOpen(false)}
                   href={j.lesson_id ? `/languages/${j.language_id}/lesson/${j.lesson_id}/import?job=${j.id}` : `/languages/${j.language_id}/import?job=${j.id}`}>
                   {j.filename}
                 </Link>
-                <span className="opacity-70">{LABEL[j.status]}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}</span>
+                <StepProgress step={stepOf(j)} second={j.lesson_id ? "Choose the pages" : "Choose the lessons"} />
+                <span className="opacity-70">{j.finished ? "Added - nothing left to do" : LABEL[j.status]}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}</span>
               </div>
               {!ACTIVE_STATUSES.includes(j.status) && (
                 <button type="button" className="btn btn-secondary" aria-label={`Remove import ${j.filename}`}

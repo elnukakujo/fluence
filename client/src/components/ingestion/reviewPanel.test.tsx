@@ -233,4 +233,21 @@ describe("ReviewPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Undo confirm" }));
     expect(screen.getByText(/To confirm - not added yet/)).toBeInTheDocument();
   });
+
+  it("sends exactly what the user kept: deleted items of every kind never reach onAdd", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const v = (id: string, word: string): Candidate => ({ id, word, translation: "t", quote: word, page: 0, chunk_id: "c", status: "verified", flags: [], min_conf: null });
+    const cal: Candidate = { id: "k1", kind: "calligraphy", character: "水", meaning: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [], min_conf: null };
+    const all = [v("v1", "alpha"), v("v2", "beta"), { ...grammar, status: "verified" as const }, cal, exercise];
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={all} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]); // alpha
+    await userEvent.click(screen.getByRole("tab", { name: /Grammar/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await userEvent.click(screen.getByRole("tab", { name: /Exercises/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add 2" }));
+    const sent = onAdd.mock.calls[0][0];
+    expect(sent.items.map((i: { word: string }) => i.word)).toEqual(["beta"]);
+    expect(sent.elements.map((e: { kind: string }) => e.kind)).toEqual(["calligraphy"]);
+  });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ImportsIndicator, { indicatorState } from "./importsIndicator";
 
@@ -19,6 +20,8 @@ describe("indicatorState", () => {
     expect(indicatorState([j("failed"), j("ready")])).toBe("ready");
     expect(indicatorState([j("failed")])).toBe("failed");
     expect(indicatorState([])).toBe("idle");
+    expect(indicatorState([{ status: "ready", finished: true }])).toBe("idle");   // everything added: not pending work
+    expect(indicatorState([{ status: "ready", finished: true }, { status: "failed" }])).toBe("failed");
   });
 });
 
@@ -28,5 +31,23 @@ describe("ImportsIndicator", () => {
     render(<ImportsIndicator />);
     expect(await screen.findByTestId("spinner")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Imports: import running" })).toBeInTheDocument();
+  });
+
+  it("shows the step bar per import and closes the menu when the user clicks elsewhere or presses Escape", async () => {
+    jobs.list = [{ id: "1", status: "structure", filename: "a.pdf", pages_done: 0, pages_total: 0 }];
+    render(<div><ImportsIndicator /><p>elsewhere</p></div>);
+    await userEvent.click(await screen.findByRole("button", { name: /Imports/ }));
+    expect(screen.getByText("Step 2 of 3 · Choose the lessons")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("elsewhere"));
+    expect(screen.queryByText("a.pdf")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /Imports/ }));
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByText("a.pdf")).toBeNull();
+  });
+
+  it("does not call a finished import pending", async () => {
+    jobs.list = [{ id: "1", status: "ready", finished: true, filename: "a.pdf", pages_done: 0, pages_total: 0 } as never];
+    render(<ImportsIndicator />);
+    expect(await screen.findByRole("button", { name: "Imports: no active import" })).toBeInTheDocument();
   });
 });

@@ -22,6 +22,7 @@ export type Job = {
   page_from: number | null;
   page_to: number | null;
   status: JobStatus;
+  finished?: boolean; // everything wanted from a ready import has been added
   pages_done: number;
   pages_total: number;
   error: string | null;
