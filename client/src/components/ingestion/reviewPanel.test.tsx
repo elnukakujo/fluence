@@ -151,7 +151,7 @@ describe("ReviewPanel", () => {
     expect(screen.getByText("Already saved")).toBeInTheDocument();
     expect(screen.getByText("liquid")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
-    const type = screen.getByRole("combobox");
+    const type = screen.getByRole("combobox", { name: /type/i });
     expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("classifier");
     await userEvent.selectOptions(type, "verb");
     await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));

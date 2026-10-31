@@ -67,7 +67,7 @@ export default function ImageViewer({ src, alt = "", className = "" }: ImageView
                     ref={backdropRef}
                     className="imageviewer-backdrop"
                     onWheel={handleWheel}
-                    onClick ={(e) => { e.stopPropagation(); handleBackdropClick; }}
+                    onClick ={(e) => { e.stopPropagation(); handleBackdropClick(e); }}
                     onKeyDown={(e) => e.stopPropagation()}
                 >
                     <button className="imageviewer-close" onClick={close} aria-label="Close">

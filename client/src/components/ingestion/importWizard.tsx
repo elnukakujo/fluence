@@ -12,6 +12,7 @@ import {
 import { type Candidate, pageSpan, parsePageRange } from "@/lib/ingestion/review";
 import ReviewPanel from "./reviewPanel";
 import { PageKindsWithViewer } from "./pageKinds";
+import FilePreview from "./filePreview";
 import SourceStep, { type SourceStepData } from "./sourceStep";
 
 type Props = { languageId: string; lessonId: string; lessonTitle: string; settingsHref: string };
@@ -119,6 +120,13 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
           and cheaper, because each page is one call to your text model.
         </span>
       </fieldset>
+
+      {file && (
+        <details className="text-sm" open>
+          <summary className="cursor-pointer opacity-70">Look through the document to find your pages</summary>
+          <div className="mt-2"><FilePreview file={file} page={/^\d+$/.test(from.trim()) ? Number(from) : undefined} /></div>
+        </details>
+      )}
 
       <label className="flex items-start gap-2">
         <input type="checkbox" checked={handwritten} disabled={blocked || busy} onChange={(e) => setHandwritten(e.target.checked)} />

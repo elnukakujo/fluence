@@ -74,4 +74,15 @@ describe("PagePanel", () => {
     expect(screen.getByText("Page 29 (22-29)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
   });
+
+  it("zooms in and out within limits and jumps to a page from the list", async () => {
+    const onPage = vi.fn();
+    render(<PagePanel jobId="job1" page={2} range={[1, 5]} onPage={onPage} />);
+    await userEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("125%");
+    await userEvent.click(screen.getByRole("button", { name: "Reset zoom" }));
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("100%");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Go to page" }), "4");
+    expect(onPage).toHaveBeenCalledWith(4);
+  });
 });

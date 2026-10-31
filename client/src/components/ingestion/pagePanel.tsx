@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { pageImageUrl } from "@/api/ingestion";
+import ImageViewer from "@/components/media/imageViewer";
+
+const MIN_ZOOM = 0.5, MAX_ZOOM = 3, STEP = 0.25;
 
 // The original page next to the review. Prev/Next stay inside `range` (the lesson's pages). Sticky on wide
 // screens; on narrow ones a bottom sheet opened from a button at the top.
@@ -12,6 +15,7 @@ export default function PagePanel({ jobId, page, range, onPage }: {
   onPage: (page: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [first, last] = range;
   const shown = Math.min(Math.max(page, first), last);
 
@@ -30,8 +34,25 @@ export default function PagePanel({ jobId, page, range, onPage }: {
             Next →
           </button>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={pageImageUrl(jobId, shown)} alt={`Page ${shown} of the document`} className="mx-auto max-h-[60vh] w-auto object-contain lg:max-h-[75vh]" />
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="opacity-70">Go to</span>
+            <select className="input w-auto" aria-label="Go to page" value={shown} onChange={(e) => onPage(Number(e.target.value))}>
+              {Array.from({ length: last - first + 1 }, (_, i) => first + i).map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <div className="flex items-center gap-1" role="group" aria-label="Zoom">
+            <button type="button" className="btn btn-secondary" aria-label="Zoom out" disabled={zoom <= MIN_ZOOM} onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z - STEP))}>−</button>
+            <button type="button" className="btn btn-secondary" aria-label="Reset zoom" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+            <button type="button" className="btn btn-secondary" aria-label="Zoom in" disabled={zoom >= MAX_ZOOM} onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + STEP))}>+</button>
+          </div>
+        </div>
+        {/* scroll inside the frame when zoomed; click the page for the full-size viewer */}
+        <div className="max-h-[60vh] overflow-auto rounded border border-gray-200 bg-gray-50 lg:max-h-[70vh] dark:border-gray-800 dark:bg-gray-900" tabIndex={0} aria-label="Page image, scrollable">
+          <div style={{ width: `${zoom * 100}%` }}>
+            <ImageViewer src={pageImageUrl(jobId, shown)} alt={`Page ${shown} of the document`} className="block w-full" />
+          </div>
+        </div>
         <button type="button" className="btn btn-secondary lg:hidden" onClick={() => setOpen(false)}>Close</button>
       </div>
     </div>
