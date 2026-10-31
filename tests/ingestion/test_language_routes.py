@@ -227,3 +227,16 @@ def test_back_from_review_returns_a_language_import_to_the_lessons_step_unless_a
     created_lesson_path(media_root, job_id, 0).unlink()
     assert client.post(f"/api/ingestion/{job_id}/back").get_json() == {"status": "structure"}
     assert client.get(f"/api/ingestion/{job_id}/structure").get_json()["confirmed"] is False
+
+
+def test_a_lesson_can_be_added_with_only_elements_and_the_job_then_reports_finished(app, db, media_root, scheduled):
+    client = _setup(app, db)
+    job_id = _finished(client, media_root)
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is False
+    res = client.post(f"/api/ingestion/{job_id}/lessons/0/accept", json={"items": [], "elements": [
+        {"kind": "grammar", "fields": {"title": "Te-form", "explanation": "Connects verbs", "example_sentences": []}}]})
+    assert res.status_code == 200 and res.get_json()["created_elements"] == 1
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is False   # lesson 2 is still waiting
+    client.post(f"/api/ingestion/{job_id}/lessons/1/accept", json={"items": [{"word": "merci"}]})
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is True
+    assert client.post(f"/api/ingestion/{job_id}/back").status_code == 409

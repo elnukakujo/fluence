@@ -117,10 +117,13 @@ def test_calligraphy_prompt_describes_stroke_and_character_content():
 # Exercise tests
 
 def test_exercise_content_ok_quizz_valid():
-    assert el.exercise_content_ok("quizz", {"options": ["a", "b", "c"], "correct": 1})
-    assert not el.exercise_content_ok("quizz", {"options": ["a"], "correct": 0})
-    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": 2})
-    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": True})
+    assert el.exercise_content_ok("quizz", {"options": ["a", "b", "c"], "correct": [1]})
+    assert el.exercise_content_ok("quizz", {"options": ["a", "b", "c"], "correct": [0, 2]})
+    assert not el.exercise_content_ok("quizz", {"options": ["a", "b", "c"], "correct": 1})       # the app stores a list
+    assert not el.exercise_content_ok("quizz", {"options": ["a"], "correct": [0]})
+    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": [2]})
+    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": [True]})
+    assert not el.exercise_content_ok("quizz", {"options": ["a", "b"], "correct": []})
 
 
 def test_exercise_content_ok_true_false():
@@ -137,10 +140,13 @@ def test_exercise_content_ok_organize():
 
 
 def test_exercise_content_ok_fill_blank():
-    assert el.exercise_content_ok("type_in_the_blank", {"segments": ["a ", " b"], "blanks": ["x"]})
-    assert el.exercise_content_ok("select_in_the_blank", {"segments": ["The ", " is red"], "blanks": ["cat"]})
-    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a", "b", "c"], "blanks": ["x"]})
-    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a", "b"], "blanks": ["x", "y"]})
+    assert el.exercise_content_ok("type_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x"}]})
+    assert el.exercise_content_ok("select_in_the_blank", {"segments": ["The ", " is red"], "blanks": [{"answer": "cat", "options": ["cat", "dog"]}]})
+    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a ", " b"], "blanks": ["x"]})   # blanks are objects
+    assert not el.exercise_content_ok("select_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x"}]})  # needs options
+    assert not el.exercise_content_ok("select_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x", "options": ["y", "z"]}]})
+    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a", "b", "c"], "blanks": [{"answer": "x"}]})
+    assert not el.exercise_content_ok("type_in_the_blank", {"segments": ["a", "b"], "blanks": [{"answer": "x"}, {"answer": "y"}]})
 
 
 def test_exercise_content_ok_matching():
@@ -201,7 +207,7 @@ def test_exercise_empty_answer_is_dropped():
 
 
 def test_exercise_bad_content_shape_is_dropped():
-    raw = {"exercise_type": "quizz", "question": "Q", "answer": "A", "text_support": None, "content": {"options": ["a"], "correct": 0}, "quote": "Q"}
+    raw = {"exercise_type": "quizz", "question": "Q", "answer": "A", "text_support": None, "content": {"options": ["a"], "correct": [0]}, "quote": "Q"}
     assert el.verify_element("exercise", raw, _chunk("Q A"), "en") is None
 
 
@@ -315,4 +321,21 @@ def test_exercise_prompt_lists_the_valid_types_and_content_shapes():
     p = el._system_prompt("exercise", "English", "Chinese")
     for t in ("essay", "answering", "translate", "quizz", "true_false", "organize", "type_in_the_blank", "matching"):
         assert t in p
-    assert "answer_order" in p and "segments" in p and "never null" in p
+    assert "answer_order" in p and "segments" in p and "never null" in p and '"correct": [' in p and '{"answer": str' in p
+
+
+def test_structured_exercises_are_stored_the_way_the_apps_form_stores_them():
+    text = "The cat is red. cat dog"
+    raw = {"exercise_type": "select_in_the_blank", "question": "The cat is red.", "answer": "cat", "text_support": None, "quote": "The cat is red.",
+           "content": {"segments": ["The ", " is red."], "blanks": [{"answer": "cat", "options": ["cat", "dog"]}]}}
+    c = el.verify_element("exercise", raw, _chunk(text), "en")
+    assert (c.fields["question"], c.fields["answer"]) == ("The __ is red.", "cat") and c.status == "verified"
+    quiz = {"exercise_type": "quizz", "question": "Pick", "answer": "x", "text_support": None, "quote": "Pick",
+            "content": {"options": ["a", "b", "c"], "correct": [1]}}
+    q = el.verify_element("exercise", quiz, _chunk("Pick a b c"), "en")
+    assert (q.fields["question"], q.fields["answer"]) == ("Pick", "b")
+    tf = {"exercise_type": "true_false", "question": "Q", "answer": "x", "text_support": None, "quote": "Q",
+          "content": {"statement": "The sky is blue", "answer": True}}
+    t = el.verify_element("exercise", tf, _chunk("Q The sky is blue"), "en")
+    assert (t.fields["question"], t.fields["answer"]) == ("The sky is blue", "true")
+    assert any(f.code == "answer_generated" for f in t.flags)      # the model decided true/false

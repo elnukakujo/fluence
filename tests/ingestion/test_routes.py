@@ -553,3 +553,13 @@ def test_back_from_review_returns_a_lesson_import_to_the_pages_step(app, db, med
     svc.update(job_id, status="ready")
     assert client.post(f"/api/ingestion/{job_id}/back").get_json() == {"status": "pages"}
     assert client.get(f"/api/ingestion/{job_id}/pages").status_code == 200
+
+
+def test_a_lesson_level_import_is_finished_once_something_was_added(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    svc.update(job_id, status="ready")
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is False
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "zzfin"}]})
+    assert res.status_code == 200, res.get_json()
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is True

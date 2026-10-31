@@ -33,8 +33,19 @@ _ALLOWED_SUFFIXES = _IMAGE_SUFFIXES | {".pdf"}
 _CONFLICT_MODES = {"keep", "merge", "overwrite"}
 
 
+def _finished(job: dict) -> bool:
+    """True once everything the user wanted from a finished import has been added (so it is no longer pending work)."""
+    if job["status"] != "ready":
+        return False
+    root = current_app.config["MEDIA_ROOT"]
+    if job["lesson_id"] is not None:
+        return created_lesson_path(root, job["id"], 0).is_file()
+    done = [l for l in (job["structure"] or {}).get("lessons", []) if l["status"] == "done"]
+    return bool(done) and all(created_lesson_path(root, job["id"], l["index"]).is_file() for l in done)
+
+
 def _public(job: dict) -> dict:
-    return {k: v for k, v in job.items() if k not in ("file_path", "user_id")}
+    return {**{k: v for k, v in job.items() if k not in ("file_path", "user_id")}, "finished": _finished(job)}
 
 
 def _page_range(first, last):
@@ -440,6 +451,8 @@ def step_back(job_id: str):
         return err
     if job["status"] != "ready":
         return jsonify({"error": "Only a finished import can go back"}), 409
+    if _finished(job):
+        return jsonify({"error": "Everything was already added from this import, so it cannot go back"}), 409
     if job["lesson_id"] is not None:
         job_service.update(job_id, status="pages")
         return jsonify({"status": "pages"})
@@ -492,13 +505,10 @@ def accept_lesson(job_id: str, index: int):
     body = request.get_json(silent=True) or {}
     items = body.get("items")
     elements = body.get("elements", [])
-    if not isinstance(items, list) or not items:
-        return jsonify({"error": "A non-empty items list is required"}), 400
-    if error := _invalid_items(items):
+    if not isinstance(items, list) or not isinstance(elements, list) or not (items or elements):
+        return jsonify({"error": "A non-empty items or elements list is required"}), 400
+    if error := _invalid_items(items) or _invalid_elements(elements):
         return jsonify({"error": error}), 400
-    if isinstance(elements, list):
-        if error := _invalid_elements(elements):
-            return jsonify({"error": error}), 400
     require_write(job["language_id"])
 
     created_file = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index)
@@ -576,6 +586,9 @@ def accept(job_id: str):
     with db_manager.session_scope() as session:   # one transaction: all or nothing
         created = _add_vocabulary(session, job, lesson_id, items)
         created_elements = _add_elements(session, job, lesson_id, job["language_id"], elements)
+    marker = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, 0)   # lesson-level: marks the import as finished
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(lesson_id)
     return jsonify({"created": created, "created_elements": created_elements})
 
 

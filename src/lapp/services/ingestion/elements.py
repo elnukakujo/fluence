@@ -18,10 +18,11 @@ _SHAPES = {
                  "`exercise_type` MUST be exactly one of: essay, answering, translate, speaking, conversation, organize, type_in_the_blank, select_in_the_blank, matching, true_false, quizz "
                  "(short free answers = answering; translating a sentence = translate; reading aloud / pair or group talk = speaking or conversation; writing a text = essay). "
                  "`content` is null for essay, answering, translate, speaking and conversation, and otherwise exactly: "
-                 'quizz {"options": [str, ...], "correct": index of the right option}; '
+                 'quizz {"options": [str, ...], "correct": [indexes of every right option, e.g. [1]]}; '
                  'true_false {"statement": str, "answer": true|false}; '
                  'organize {"items": [str, ...], "answer_order": a permutation of 0..n-1}; '
-                 'type_in_the_blank and select_in_the_blank {"segments": [str, ...], "blanks": [str, ...]} with one more segment than blanks; '
+                 'type_in_the_blank {"segments": [str, ...], "blanks": [{"answer": str}, ...]} with one more segment than blanks (the text around each gap); '
+                 'select_in_the_blank the same, but every blank is {"answer": str, "options": [str, ...]} with at least 2 options that include the answer; '
                  'matching {"pairs": [[str, str], ...]}. '
                  "Copy `question` verbatim. `answer` is never null: use the answer the page gives (an answer key), otherwise WRITE a short answer yourself. "
                  "Invent no exercises that are not on the page"),
@@ -83,13 +84,13 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
     if exercise_type not in VALID_TYPES:
         return False
 
-    # Structured types require specific content shape
+    # Structured types require the shape the app's own exercise form/runners use (client ExerciseContent)
     if exercise_type == "quizz":
-        return (isinstance(content, dict) and not isinstance(content, bool) and "options" in content and "correct" in content and
-                isinstance(content.get("options"), list) and len(content["options"]) >= 2 and
-                all(isinstance(o, str) for o in content["options"]) and
-                isinstance(content.get("correct"), int) and not isinstance(content.get("correct"), bool) and
-                0 <= content["correct"] < len(content["options"]))
+        correct = content.get("correct") if isinstance(content, dict) else None
+        options = content.get("options") if isinstance(content, dict) else None
+        return (isinstance(options, list) and len(options) >= 2 and all(isinstance(o, str) for o in options)
+                and isinstance(correct, list) and len(correct) >= 1 and len(set(correct)) == len(correct)
+                and all(isinstance(i, int) and not isinstance(i, bool) and 0 <= i < len(options) for i in correct))
     elif exercise_type == "true_false":
         return (isinstance(content, dict) and not isinstance(content, bool) and "statement" in content and "answer" in content and
                 isinstance(content.get("statement"), str) and len(content.get("statement", "")) > 0 and
@@ -100,11 +101,20 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
                 len(content["answer_order"]) == len(content["items"]) and
                 set(content["answer_order"]) == set(range(len(content["items"]))))
     elif exercise_type in ("type_in_the_blank", "select_in_the_blank"):
-        return (isinstance(content, dict) and not isinstance(content, bool) and "segments" in content and "blanks" in content and
-                isinstance(content.get("segments"), list) and isinstance(content.get("blanks"), list) and
-                len(content["segments"]) == len(content["blanks"]) + 1 and
-                all(isinstance(s, str) for s in content["segments"]) and
-                all(isinstance(b, str) for b in content["blanks"]))
+        if not (isinstance(content, dict) and isinstance(content.get("segments"), list) and isinstance(content.get("blanks"), list)):
+            return False
+        segments, blanks = content["segments"], content["blanks"]
+        if len(segments) != len(blanks) + 1 or not all(isinstance(x, str) for x in segments):
+            return False
+        for blank in blanks:
+            if not (isinstance(blank, dict) and isinstance(blank.get("answer"), str) and blank["answer"].strip()):
+                return False
+            options = blank.get("options")
+            if options is not None and not (isinstance(options, list) and all(isinstance(o, str) for o in options)):
+                return False
+            if exercise_type == "select_in_the_blank" and not (options and len(options) >= 2 and blank["answer"] in options):
+                return False
+        return True
     elif exercise_type == "matching":
         return (isinstance(content, dict) and not isinstance(content, bool) and "pairs" in content and
                 isinstance(content.get("pairs"), list) and
@@ -113,6 +123,24 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
     else:
         # Non-structured types: content must be None or empty dict
         return content is None or (isinstance(content, dict) and not isinstance(content, bool) and len(content) == 0)
+
+
+def app_form(exercise_type: str, content) -> tuple[str | None, str, list[str]] | None:
+    """(question, answer, pieces of the answer that should occur in the page) the way the app's own exercise form builds
+    them for the structured types; None for the free-text types, whose question/answer stay as the page gives them."""
+    if exercise_type in ("type_in_the_blank", "select_in_the_blank"):
+        answers = [b["answer"] for b in content["blanks"]]
+        return "__".join(content["segments"]), ", ".join(answers), answers
+    if exercise_type == "matching":
+        return "Matching exercise", "; ".join(" - ".join(p) for p in content["pairs"]), [x for p in content["pairs"] for x in p]
+    if exercise_type == "organize":
+        ordered = " ".join(content["items"][i] for i in content["answer_order"])
+        return " ".join(content["items"]), ordered, [ordered]
+    if exercise_type == "true_false":
+        return content["statement"], "true" if content["answer"] else "false", []
+    if exercise_type == "quizz":
+        return None, ", ".join(content["options"][i] for i in content["correct"]), [content["options"][i] for i in content["correct"]]
+    return None
 
 
 def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> ElementCandidate | None:
@@ -161,20 +189,26 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         if exercise_type not in VALID_TYPES:
             return None
 
-        # Validate question and answer are not empty
-        if not question or not answer:
-            return None
-
         # Validate content shape
         if not exercise_content_ok(exercise_type, content):
             return None
 
+        # structured types are stored the way the app's own form stores them
+        form = app_form(exercise_type, content)
+        pieces = None
+        if form:
+            form_question, answer, pieces = form
+            question = form_question or question
+        if not question or not answer:
+            return None
+
         # Check if question is in the chunk
-        if normalise(question) not in text:
+        if normalise(raw.get("question") or question) not in text:
             flag("quote_not_in_source", "The question does not appear in the source text")
 
         # Check if answer is in the chunk; if not, flag as answer_generated
-        if normalise(answer) not in text:
+        answer_found = all(normalise(x) in text for x in pieces) and bool(pieces) if pieces is not None else normalise(answer) in text
+        if not answer_found:
             is_essay = exercise_type in ("essay", "speaking", "conversation")
             msg = "Sample answer written by the model - check it" if is_essay else "The answer was written by the model, not found in the document - check it"
             flag("answer_generated", msg)
