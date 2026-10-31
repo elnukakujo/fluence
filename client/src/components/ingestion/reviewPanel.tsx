@@ -18,13 +18,13 @@ const clip = (t: string, n = 140) => (t.length > n ? `${t.slice(0, n)}…` : t);
 
 // The candidate list shared by lesson-level and language-level imports: one tab per kind, each item a compact card
 // the user confirms, edits or deletes. Only confirmed items are added; verified ones start confirmed.
-export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, pageCount }: {
+export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range }: {
   jobId: string;
   filename: string;
   candidates: Candidate[];
   addLabel: (selected: number) => string;
   onAdd: (payload: AcceptPayload) => Promise<void>;
-  pageCount?: number;
+  range?: [number, number];
 }) {
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");
@@ -32,8 +32,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const [preview, setPreview] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [focusedPage, setFocusedPage] = useState<number>((candidates[0]?.page ?? 0) + 1);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [focusedPage, setFocusedPage] = useState<number>(candidates[0] ? candidates[0].page + 1 : range?.[0] ?? 1);
 
   const counts = useMemo(() => countRows(rows), [rows]);
   const groups = useMemo(() => rowsByKind(rows), [rows]);
@@ -55,7 +54,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     }
   };
 
-  const effectivePageCount = pageCount ?? (candidates.length > 0 ? Math.max(...candidates.map((c) => c.page + 1)) : 1);
+  const pageSpan: [number, number] = range ?? [1, Math.max(1, ...candidates.map((c) => c.page + 1))];
 
   const renderRow = (row: Row) => {
     const c = row.candidate;
@@ -211,14 +210,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         </div>
       </div>
 
-      <div className="lg:w-80 xl:w-96">
-        <button type="button" className="btn btn-secondary mb-2 lg:hidden" aria-expanded={panelOpen} onClick={() => setPanelOpen((o) => !o)}>
-          {panelOpen ? "Hide the page" : "Show the original page"}
-        </button>
-        <div className={`${panelOpen ? "block" : "hidden"} lg:block lg:sticky lg:top-4`}>
-          <PagePanel jobId={jobId} page={focusedPage} pageCount={effectivePageCount} onPage={setFocusedPage} />
-        </div>
-      </div>
+      <PagePanel jobId={jobId} page={focusedPage} range={pageSpan} onPage={setFocusedPage} />
 
       {preview !== null && (
         <Modal title={`Page ${preview} of ${filename}`} onClose={() => setPreview(null)}>

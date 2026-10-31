@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, initialRows, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, initialRows, pageSpan, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -94,5 +94,13 @@ describe("parsePageRange", () => {
   });
   it.each([["5", ""], ["", "5"], ["0", "3"], ["9", "3"], ["a", "3"], ["1.5", "3"]])("rejects %s-%s", (a, b) => {
     expect(parsePageRange(a, b).ok).toBe(false);
+  });
+});
+
+describe("pageSpan", () => {
+  it("returns the first and last page of the job's page kinds, or undefined", () => {
+    expect(pageSpan({ "22": ["vocabulary"], "30": [], "25": [] })).toEqual([22, 30]);
+    expect(pageSpan({})).toBeUndefined();
+    expect(pageSpan(null)).toBeUndefined();
   });
 });

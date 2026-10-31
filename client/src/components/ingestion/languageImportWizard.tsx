@@ -14,7 +14,7 @@ import {
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
 import { STATUS_TEXT, UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
-import PageKinds from "./pageKinds";
+import { PageKindsWithViewer } from "./pageKinds";
 
 type Props = { languageId: string; languageName: string; settingsHref: string };
 
@@ -182,7 +182,8 @@ function StructureStep({ job, onConfirmed }: { job: Job; onConfirmed: () => void
                 <details className="text-sm">
                   <summary className="cursor-pointer opacity-70">Confirm kinds on pages {startPage}-{endPage}</summary>
                   <div className="mt-2 pl-4">
-                    <PageKinds
+                    <PageKindsWithViewer
+                      jobId={job.id}
                       pages={lessonPages}
                       value={pageKinds as any}
                       onChange={(newPageKinds) => setPageKinds(newPageKinds as any)}
@@ -300,7 +301,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} pageCount={Object.keys(job.page_kinds ?? {}).length || undefined}
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]}
             addLabel={(n) => `Add ${n} to a new lesson "${l.title}"`}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);

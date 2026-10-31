@@ -215,3 +215,9 @@ export function parsePageRange(first: string, last: string): PageRangeResult {
   if (from < 1 || to < from) return { ok: false, error: "The range must start at page 1 or later and end on or after its first page" };
   return { ok: true, range: [from, to] };
 }
+
+/** First and last page (1-based) among the keys of a job's `page_kinds`; undefined when it has none. */
+export function pageSpan(pageKinds: Record<string, unknown> | null | undefined): [number, number] | undefined {
+  const pages = Object.keys(pageKinds ?? {}).map(Number).filter((n) => Number.isInteger(n));
+  return pages.length ? [Math.min(...pages), Math.max(...pages)] : undefined;
+}

@@ -9,9 +9,9 @@ import {
   ACTIVE_STATUSES, type Capabilities, type Job, type SourceMetadata, acceptCandidates, confirmPages, deleteJob, getCandidates, getCapabilities,
   getJob, getPages, uploadDocument,
 } from "@/api/ingestion";
-import { type Candidate, parsePageRange } from "@/lib/ingestion/review";
+import { type Candidate, pageSpan, parsePageRange } from "@/lib/ingestion/review";
 import ReviewPanel from "./reviewPanel";
-import PageKinds from "./pageKinds";
+import { PageKindsWithViewer } from "./pageKinds";
 import SourceStep, { type SourceStepData } from "./sourceStep";
 
 type Props = { languageId: string; lessonId: string; lessonTitle: string; settingsHref: string };
@@ -257,7 +257,7 @@ function PagesStep({ job, lessonId, lessonTitle, base }: {
         <p className="text-sm opacity-70">We detected which kinds of content are on each page. Review and edit as needed, then continue to extraction.</p>
         {pagesData.warnings.length > 0 && (<ul className="list-disc pl-5 text-sm">{pagesData.warnings.map((w) => <li key={w}>{w}</li>)}</ul>)}
       </header>
-      <PageKinds pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
+      <PageKindsWithViewer pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>Error: {error}</p>}
       <div className="btn-row">
         <button type="button" className="btn btn-primary" disabled={saving} onClick={confirm}>{saving ? "Starting..." : "Continue to extraction"}</button>
@@ -307,7 +307,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
           </details>
         )}
       </header>
-      <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} pageCount={Object.keys(job.page_kinds ?? {}).length || undefined}
+      <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} range={pageSpan(job.page_kinds)}
         addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
         onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">

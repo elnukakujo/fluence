@@ -90,7 +90,7 @@ describe("ReviewPanel", () => {
 
   it("renders grammar row with Generated badge and original text details", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
-    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} range={[1, 5]} />);
 
     expect(screen.getByText("Present form")).toBeInTheDocument();
     expect(screen.getByText("✎ Generated")).toBeInTheDocument();
@@ -107,37 +107,37 @@ describe("ReviewPanel", () => {
     expect(screen.getByText("Present form text")).toBeInTheDocument();
   });
 
-  it("page panel is shown when pageCount is provided", () => {
+  it("page panel is shown with a range", () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
-    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, exerciseGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, exerciseGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} range={[1, 5]} />);
 
     expect(screen.getByAltText(/Page.*of the document/)).toBeInTheDocument();
-    expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 3 (1-5)")).toBeInTheDocument();
   });
 
   it("focuses grammar row and updates page panel", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
-    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} range={[1, 5]} />);
 
-    expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 3 (1-5)")).toBeInTheDocument();
 
     const row = screen.getByText("Present form").closest("li");
     await userEvent.click(row!);
 
-    expect(screen.getByText("Page 2 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 2 (1-5)")).toBeInTheDocument();
   });
 
   it("page panel prev/next buttons change displayed page", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
-    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} range={[1, 5]} />);
 
     const nextBtn = screen.getAllByRole("button", { name: /next/i })[0];
     await userEvent.click(nextBtn);
-    expect(screen.getByText("Page 4 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 4 (1-5)")).toBeInTheDocument();
 
     const prevBtn = screen.getAllByRole("button", { name: /prev/i })[0];
     await userEvent.click(prevBtn);
-    expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Page 3 (1-5)")).toBeInTheDocument();
   });
 
   it("edits the word type through the fixed list and keeps the saved word beside a duplicate", async () => {
@@ -219,8 +219,8 @@ describe("ReviewPanel", () => {
   });
 
   it("shows the page panel with the original page and a toggle on small screens", async () => {
-    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} pageCount={9} />);
-    expect(screen.getByText("Page 3 / 9")).toBeInTheDocument();
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} range={[1, 9]} />);
+    expect(screen.getByText("Page 3 (1-9)")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Show the original page" }));
     expect(screen.getByRole("button", { name: "Hide the page" })).toBeInTheDocument();
   });

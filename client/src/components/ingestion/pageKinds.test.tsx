@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import PageKinds from "./pageKinds";
+import PageKinds, { PageKindsWithViewer } from "./pageKinds";
 
 vi.mock("@/api/ingestion", () => ({ pageImageUrl: (j: string, p: number) => `/img/${j}/${p}.png` }));
 
@@ -33,5 +33,15 @@ describe("PageKinds", () => {
   it("does not show skipped text for a page with kinds", () => {
     render(<PageKinds pages={[1]} value={{ 1: ["grammar"] }} onChange={() => {}} />);
     expect(screen.queryByText(/skipped/)).not.toBeInTheDocument();
+  });
+});
+
+describe("PageKindsWithViewer", () => {
+  it("shows the original page inside the lesson's pages and follows the page the user touches", async () => {
+    render(<PageKindsWithViewer jobId="j" pages={[22, 23, 24]} value={{}} onChange={vi.fn()} />);
+    expect(screen.getByText("Page 22 (22-24)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    await userEvent.click(screen.getAllByRole("group", { name: "Kinds on page 24" })[0]);
+    expect(screen.getByText("Page 24 (22-24)")).toBeInTheDocument();
   });
 });
