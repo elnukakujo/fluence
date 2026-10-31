@@ -17,6 +17,7 @@ export type Job = {
   language_id: string;
   lesson_id: string | null;
   filename: string;
+  source_title?: string | null;
   handwritten: boolean;
   page_from: number | null;
   page_to: number | null;

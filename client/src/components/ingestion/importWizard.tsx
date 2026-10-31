@@ -284,7 +284,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
     return (
       <div className="card flex max-w-2xl flex-col gap-3" role="status">
         <h2>Added {added} {added === 1 ? "entry" : "entries"} to “{lessonTitle}”</h2>
-        <p className="text-sm opacity-70">They are tagged with the source “Imported from {job.filename}”.</p>
+        <p className="text-sm opacity-70">They are tagged with the source “{job.source_title || `Imported from ${job.filename}`}”.</p>
         <div className="btn-row">
           <Link href={`/languages/${languageId}/lesson/${lessonId}`} className="btn btn-primary">Back to the lesson</Link>
           <button className="btn btn-secondary" onClick={() => router.push(base)}>Import another document</button>
