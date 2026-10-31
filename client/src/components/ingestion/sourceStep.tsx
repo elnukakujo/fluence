@@ -1,8 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import AutoWidthInput from "@/components/ui/input/autoWidthInput";
-import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
-import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { getLevelLabel, languageProficiencySystems } from "@/utils/language_iso639";
 
 export type SourceStepData = {
@@ -18,6 +15,8 @@ type Props = {
   languageCode: string;
   showLevel: boolean;
 };
+
+const SOURCE_TYPES = ["original", "textbook", "class", "online", "media", "social", "other", "ai"];
 
 export default function SourceStep({ filename, onSourceChange, languageCode, showLevel }: Props) {
   const [title, setTitle] = useState("");
@@ -52,33 +51,27 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
 
   return (
     <fieldset className="flex flex-col gap-4">
-      <legend className="text-base font-medium">Where does this document come from?</legend>
-      <AutoWidthInput
-        label="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Source title"
-        required
-      />
+      <legend className="mb-1 text-base font-semibold">Where does this document come from?</legend>
+      <label className="flex flex-col gap-1">
+        <span className="field-label">Title *</span>
+        <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Source title" required />
+      </label>
 
-      <ClassicSelectMenu
-        label="Source Type"
-        options={["original", "textbook", "class", "online", "media", "social", "other", "ai"]}
-        selectedOption={sourceType}
-        onChange={(e) => setSourceType(e as string)}
-        required
-      />
+      <label className="flex flex-col gap-1">
+        <span className="field-label">Type *</span>
+        <select className="input" value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
+          {SOURCE_TYPES.map((t) => <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>)}
+        </select>
+      </label>
 
-      <AutoSizeTextArea
-        label="Description (optional)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Add optional details"
-      />
+      <label className="flex flex-col gap-1">
+        <span className="field-label">Description (optional)</span>
+        <textarea className="input input-grow" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add optional details" />
+      </label>
 
       {showLevel && levelOptions.length > 0 && (
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Level</span>
+          <span className="field-label">Level</span>
           <select
             className="input"
             value={level}

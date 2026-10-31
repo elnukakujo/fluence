@@ -254,7 +254,7 @@
 
   /* Import review: a textarea that grows with its content so a whole grammar sheet is readable */
   .input-grow {
-    min-height: 7rem;
+    min-height: 3.5rem;
     resize: vertical;
     line-height: 1.5;
     field-sizing: content;
