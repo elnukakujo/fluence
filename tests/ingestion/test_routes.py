@@ -454,3 +454,12 @@ def test_accept_rejects_malformed_element(app, db, media_root, scheduled):
         "elements": [{"kind": "passage"}]
     })
     assert res.status_code == 400
+
+
+def test_accept_elements_without_items(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _ready_job(client)
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "elements": [{"kind": "character", "fields": {"character": "中"}}]})
+    assert res.status_code == 200 and res.get_json() == {"created": 0, "created_elements": 1}

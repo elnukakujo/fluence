@@ -500,29 +500,20 @@ def accept(job_id: str):
         return err
     body = request.get_json(silent=True) or {}
     lesson_id = body.get("lesson_id") or job["lesson_id"]
-    items = body.get("items")
+    items = body.get("items", [])
     elements = body.get("elements", [])
-    # Need lesson_id and (items list OR elements list), but at least one must be non-empty
     if not lesson_id:
         return jsonify({"error": "lesson_id is required"}), 400
-    if not isinstance(items, list) and not isinstance(elements, list):
-        return jsonify({"error": "lesson_id and a non-empty items list are required"}), 400
-    # At least one of items or elements must be non-empty
-    if (not items or not isinstance(items, list)) and not elements:
-        return jsonify({"error": "lesson_id and a non-empty items list are required"}), 400
+    if not isinstance(items, list) or not isinstance(elements, list) or not (items or elements):
+        return jsonify({"error": "lesson_id and a non-empty items or elements list are required"}), 400
 
     require_write(lesson_id)
     lesson = LessonService().get_by_id(lesson_id, as_dict=True)
     if not lesson or lesson.get("language_id") != job["language_id"]:
         return jsonify({"error": "The lesson does not belong to the document's language"}), 400
 
-    if isinstance(items, list):
-        if error := _invalid_items(items):
-            return jsonify({"error": error}), 400
-
-    if isinstance(elements, list):
-        if error := _invalid_elements(elements):
-            return jsonify({"error": error}), 400
+    if error := _invalid_items(items) or _invalid_elements(elements):
+        return jsonify({"error": error}), 400
 
     with db_manager.session_scope() as session:   # one transaction: all or nothing
         created = _add_vocabulary(session, job, lesson_id, items)
