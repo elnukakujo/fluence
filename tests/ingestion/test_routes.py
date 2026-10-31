@@ -544,3 +544,12 @@ def test_accept_saves_a_word_whose_type_is_not_in_the_app_list_instead_of_failin
         {"word": "zzword", "translation": "to feel", "word_type": "v."}]})
     assert res.status_code == 200 and res.get_json()["created"] == 1
     assert WordService().get_by_word("zzword", language_id="lang_L1").word_type != "v."
+
+
+def test_back_from_review_returns_a_lesson_import_to_the_pages_step(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _pages_job(client)
+    assert client.post(f"/api/ingestion/{job_id}/back").status_code == 409  # not at the review yet
+    svc.update(job_id, status="ready")
+    assert client.post(f"/api/ingestion/{job_id}/back").get_json() == {"status": "pages"}
+    assert client.get(f"/api/ingestion/{job_id}/pages").status_code == 200

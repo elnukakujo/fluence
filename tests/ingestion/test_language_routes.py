@@ -216,3 +216,14 @@ def test_accepted_lesson_has_level_from_job(app, db, media_root, scheduled):
     lesson_id = res.get_json()["lesson_id"]
     lesson = LessonService().get_by_id(lesson_id, as_dict=True)
     assert lesson["level"] == 5
+
+
+def test_back_from_review_returns_a_language_import_to_the_lessons_step_unless_a_lesson_was_added(app, db, media_root, scheduled):
+    client = _setup(app, db)
+    job_id = _awaiting_structure(client)
+    svc.update(job_id, status="ready", structure=_structure(confirmed=True))
+    created_lesson_path(media_root, job_id, 0).write_text("lesson_X")
+    assert client.post(f"/api/ingestion/{job_id}/back").status_code == 409
+    created_lesson_path(media_root, job_id, 0).unlink()
+    assert client.post(f"/api/ingestion/{job_id}/back").get_json() == {"status": "structure"}
+    assert client.get(f"/api/ingestion/{job_id}/structure").get_json()["confirmed"] is False

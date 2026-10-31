@@ -422,6 +422,35 @@ def confirm_pages(job_id: str):
     return jsonify({"status": "extracting"})
 
 
+@bp.route("/<job_id>/back", methods=["POST"])
+@login_required
+def step_back(job_id: str):
+    """From the review back to the page / lesson confirmation step (the results are discarded on the next run).
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "status: pages (single lesson) or structure (whole language)"}
+        409: {description: Not at the review, or a lesson was already added from it}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["status"] != "ready":
+        return jsonify({"error": "Only a finished import can go back"}), 409
+    if job["lesson_id"] is not None:
+        job_service.update(job_id, status="pages")
+        return jsonify({"status": "pages"})
+    structure = job["structure"] or {}
+    media_root = current_app.config["MEDIA_ROOT"]
+    if any(created_lesson_path(media_root, job_id, l["index"]).is_file() for l in structure.get("lessons", [])):
+        return jsonify({"error": "A lesson was already added from this import, so it cannot go back"}), 409
+    job_service.update(job_id, status="structure", structure={**structure, "confirmed": False})
+    return jsonify({"status": "structure"})
+
+
 @bp.route("/<job_id>/lessons/<int:index>/accept", methods=["POST"])
 @login_required
 def accept_lesson(job_id: str, index: int):
