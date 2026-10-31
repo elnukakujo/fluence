@@ -78,9 +78,9 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
   };
 
   return (
-    <form onSubmit={submit} className="card flex max-w-2xl flex-col gap-4">
+    <form onSubmit={submit} className="card step-header flex max-w-2xl flex-col gap-4">
+      <div className="flex flex-col gap-3">
       <StepProgress step={1} second={lessonId ? "Choose the pages" : "Choose the lessons"} />
-      <div>
         <h2>{heading}</h2>
         <p className="text-sm opacity-70">
           We read the document, find the vocabulary, grammar, calligraphy and exercises, and show you everything to check next to the original page. Nothing is added until you confirm.
@@ -190,7 +190,7 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   }
   if (ACTIVE_STATUSES.includes(job.status)) {
     return (
-      <div className="card flex max-w-2xl flex-col gap-3">
+      <div className="card step-header flex max-w-2xl flex-col">
         <StepProgress step={job.status === "extracting" ? 3 : 1} second="Choose the pages" />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
@@ -264,7 +264,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
 
   return (
     <section className="flex max-w-4xl flex-col gap-4">
-      <header className="card flex flex-col gap-2">
+      <header className="card step-header flex flex-col">
         <StepProgress step={2} second="Choose the pages" />
         <h2>Confirm page kinds in {job.filename}</h2>
         <p className="text-sm opacity-70">We detected which kinds of content are on each page. Review and edit as needed, then continue to extraction.</p>
@@ -312,7 +312,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
   const warnings = [...job.warnings, ...notes.filter((n) => !job.warnings.includes(n))];
   return (
     <section className="flex flex-col gap-4">
-      <header className="card flex flex-col gap-2">
+      <header className="card step-header flex flex-col">
         <StepProgress step={3} second="Choose the pages" />
         <h2>Review what we found in {job.filename}</h2>
         {warnings.length > 0 && (

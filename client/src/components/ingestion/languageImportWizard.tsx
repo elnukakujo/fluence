@@ -64,7 +64,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
 
   if (job.status === "queued" || job.status === "parsing") {
     return (
-      <div className="card flex max-w-2xl flex-col gap-3">
+      <div className="card step-header flex max-w-2xl flex-col">
         <StepProgress step={1} second="Choose the lessons" />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
@@ -138,7 +138,7 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
 
   return (
     <section className="flex max-w-4xl flex-col gap-4">
-      <header className="card flex flex-col gap-2">
+      <header className="card step-header flex flex-col">
         <StepProgress step={2} second="Choose the lessons" />
         <h2>Which lessons are in {job.filename}?</h2>
         <p className="text-sm opacity-70">
@@ -256,7 +256,7 @@ function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; la
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="card flex flex-col gap-2">
+      <header className="card step-header flex flex-col">
         <StepProgress step={3} second="Choose the lessons" />
         <h2>{job.filename}</h2>
         <p aria-live="polite">

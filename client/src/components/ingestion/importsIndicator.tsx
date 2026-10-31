@@ -79,7 +79,7 @@ export default function ImportsIndicator() {
         <span className="inline-flex items-center gap-2"><StateIcon state={state} />Imports</span>{count > 0 && <span className="badge ml-2" aria-label={running ? `${running} running` : `${ready} ready`}>{count}</span>}
       </button>
       {open && (
-        <ul className="card absolute right-0 top-full z-40 mt-2 flex w-80 max-w-[90vw] flex-col gap-2 text-sm shadow-lg">
+        <ul className="card absolute left-0 top-full z-40 mt-2 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 text-sm shadow-lg sm:left-auto sm:right-0">
           {jobs.slice(0, 8).map((j) => (
             <li key={j.id} className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 flex-1 flex-col gap-1">
