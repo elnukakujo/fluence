@@ -289,6 +289,10 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
   const [notes, setNotes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<number | null>(null);
+  const [addNotes, setAddNotes] = useState<string[]>([]);
+  const [canAudio, setCanAudio] = useState(false);
+
+  useEffect(() => { Promise.resolve(getCapabilities(languageId, lessonId)).then((c) => setCanAudio(!!c?.can_generate_audio)).catch(() => undefined); }, [languageId, lessonId]); 
 
   useEffect(() => {
     getCandidates(job.id).then((r) => { setCandidates(r.candidates); setNotes(r.warnings); }).catch((e) => setError(e.message));
@@ -299,6 +303,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
       <div className="card flex max-w-2xl flex-col gap-3" role="status">
         <h2>Added {added} {added === 1 ? "entry" : "entries"} to “{lessonTitle}”</h2>
         <p className="text-sm opacity-70">They are tagged with the source “{job.source_title || `Imported from ${job.filename}`}”.</p>
+        {addNotes.length > 0 && <ul className="list-disc pl-5 text-sm" role="note">{addNotes.map((n) => <li key={n}>{n}</li>)}</ul>}
         <div className="btn-row">
           <Link href={`/languages/${languageId}/lesson/${lessonId}`} className="btn btn-primary">Back to the lesson</Link>
           <button className="btn btn-secondary" onClick={() => router.push(base)}>Import another document</button>
@@ -324,7 +329,8 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
       </header>
       <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} range={pageSpan(job.page_kinds)}
         addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
-        onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAdded(r.created + (r.created_elements ?? 0)); }} />
+        canGenerateAudio={canAudio}
+        onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAddNotes(r.notes ?? []); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">
         <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : "Could not go back"))}>← Back to the pages</button>
         <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>Leave without adding</button>

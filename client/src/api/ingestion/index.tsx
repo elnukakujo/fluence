@@ -1,5 +1,5 @@
 import { BASE_URL, getAuthHeaders } from "..";
-import type { AcceptItem, Candidate } from "@/lib/ingestion/review";
+import type { AcceptElement, AcceptItem, Candidate } from "@/lib/ingestion/review";
 
 export type SourceMetadata = {
   source_title?: string;
@@ -9,7 +9,7 @@ export type SourceMetadata = {
 };
 
 export type Notice = { code: string; message: string };
-export type Capabilities = { can_import: boolean; reasons: Notice[]; warnings: Notice[] };
+export type Capabilities = { can_import: boolean; reasons: Notice[]; warnings: Notice[]; can_generate_audio?: boolean };
 
 export type JobStatus = "queued" | "parsing" | "pages" | "structure" | "extracting" | "ready" | "failed";
 export type Job = {
@@ -92,8 +92,8 @@ export async function getCandidates(jobId: string): Promise<{ candidates: Candid
   return { ...body, candidates: [...body.candidates, ...flattenElements(body.elements)] };
 }
 
-export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[], elements?: { kind: string; fields: Record<string, unknown> }[]): Promise<{ created: number; created_elements: number }> {
-  const body: { lesson_id: string; items: AcceptItem[]; elements?: { kind: string; fields: Record<string, unknown> }[] } = { lesson_id: lessonId, items };
+export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[], elements?: AcceptElement[]): Promise<{ created: number; created_elements: number; notes?: string[] }> {
+  const body: { lesson_id: string; items: AcceptItem[]; elements?: AcceptElement[] } = { lesson_id: lessonId, items };
   if (elements && elements.length > 0) body.elements = elements;
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/accept`, {
     method: "POST",
@@ -107,6 +107,15 @@ export async function acceptCandidates(jobId: string, lessonId: string, items: A
 export async function deleteJob(jobId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}`, { method: "DELETE", headers: await getAuthHeaders() });
   if (!res.ok) return fail(res, "Could not delete this import");
+}
+
+/** Keep a picture or audio file the user chose in place of a suggested one; it is attached when the item is added. */
+export async function uploadMedia(jobId: string, file: File): Promise<{ id: string; kind: "image" | "audio" }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/media`, { method: "POST", body: form });
+  if (!res.ok) return fail(res, "Could not upload this file");
+  return res.json();
 }
 
 /** Back from the review to the pages / lessons step (the results are discarded). */
@@ -154,8 +163,8 @@ export async function getLanguageCandidates(jobId: string): Promise<{ status: Jo
   return res.json();
 }
 
-export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string, elements?: { kind: string; fields: Record<string, unknown> }[]): Promise<{ lesson_id: string; created: number; created_elements: number }> {
-  const body: { items: AcceptItem[]; title?: string; elements?: { kind: string; fields: Record<string, unknown> }[] } = { items };
+export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string, elements?: AcceptElement[]): Promise<{ lesson_id: string; created: number; created_elements: number; notes?: string[] }> {
+  const body: { items: AcceptItem[]; title?: string; elements?: AcceptElement[] } = { items };
   if (title) body.title = title;
   if (elements && elements.length > 0) body.elements = elements;
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/lessons/${index}/accept`, {

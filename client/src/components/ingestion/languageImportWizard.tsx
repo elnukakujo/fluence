@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Job, type LessonProgress, type Structure, acceptLesson, confirmStructure, deleteJob, getJob,
-  flattenElements, getLanguageCandidates, getStructure, stepBack,
+  flattenElements, getCapabilities, getLanguageCandidates, getStructure, stepBack,
 } from "@/api/ingestion";
 import {
   type Draft, addDraft, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
@@ -222,7 +222,9 @@ function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; la
   const [status, setStatus] = useState(job.status);
   const [notes, setNotes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [added, setAdded] = useState<Record<number, { lessonId: string; count: number }>>({});
+  const [added, setAdded] = useState<Record<number, { lessonId: string; count: number; notes?: string[] }>>({});
+  const [canAudio, setCanAudio] = useState(false);
+  useEffect(() => { Promise.resolve(getCapabilities(languageId)).then((c) => setCanAudio(!!c?.can_generate_audio)).catch(() => undefined); }, [languageId]);
 
   const load = useCallback(async () => {
     const r = await getLanguageCandidates(job.id);
@@ -278,7 +280,7 @@ function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; la
       </header>
 
       {lessons.map((l, i) => (
-        <LessonSection key={l.index} job={job} lesson={l} languageId={languageId} defaultOpen={i === firstOpen}
+        <LessonSection key={l.index} job={job} lesson={l} languageId={languageId} canAudio={canAudio} defaultOpen={i === firstOpen}
           added={added[l.index]} onAdded={(r) => setAdded((a) => ({ ...a, [l.index]: r }))} />
       ))}
     </section>
@@ -287,9 +289,9 @@ function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; la
 
 // Each lesson owns its open/closed state: adding one must not collapse it (its confirmation is inside) or
 // shift which section is open.
-function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded }: {
-  job: Job; lesson: LessonProgress; languageId: string; defaultOpen: boolean;
-  added?: { lessonId: string; count: number }; onAdded: (r: { lessonId: string; count: number }) => void;
+function LessonSection({ job, lesson: l, languageId, canAudio, defaultOpen, added, onAdded }: {
+  job: Job; lesson: LessonProgress; languageId: string; canAudio: boolean; defaultOpen: boolean;
+  added?: { lessonId: string; count: number; notes?: string[] }; onAdded: (r: { lessonId: string; count: number; notes?: string[] }) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const createdId = added?.lessonId ?? l.created_lesson_id;
@@ -307,14 +309,15 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
           <p role="status">
             Added {added ? `${added.count} ${added.count === 1 ? "entry" : "entries"}` : "its entries"}.{" "}
             <Link className="link underline" href={`/languages/${languageId}/lesson/${createdId}`}>Open the lesson</Link>
+            {added?.notes && added.notes.length > 0 && <span className="mt-1 block text-sm">{added.notes.join(" ")}</span>}
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]}
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} canGenerateAudio={canAudio}
             addLabel={(n) => `Add ${n} to a new lesson "${l.title}"`}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);
-              onAdded({ lessonId: r.lesson_id, count: r.created + (r.created_elements ?? 0) });
+              onAdded({ lessonId: r.lesson_id, count: r.created + (r.created_elements ?? 0), notes: r.notes });
             }} />
         )}
       </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, initialRows, dialogueLines, pageSpan, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, initialRows, dialogueLines, mediaFor, pageSpan, ttsClipCount, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -114,5 +114,25 @@ describe("dialogueLines", () => {
       lines: [{ speakerId: "s1", text: "hi" }, { speakerId: "s2", text: "hello" }] });
     expect(dialogueLines(q)).toEqual(["A: hi", "You (you): hello"]);
     expect(dialogueLines("plain")).toEqual(["plain"]);
+  });
+});
+
+describe("support media", () => {
+  const crop = { page: 0, bbox: [0, 0, 10, 10] as [number, number, number, number], page_size: [100, 100] as [number, number], has_picture: true };
+  it("uses a detected picture unless switched off, and an upload replaces it", () => {
+    const [row] = initialRows([cand({ image_crop: crop })]);
+    expect(toAcceptItems([row]).items[0].media).toEqual({ image: { crop } });
+    row.useCrop = false;
+    expect(toAcceptItems([row]).items[0].media).toBeUndefined();
+    row.imageUpload = { id: "u.png", name: "mine.png" };
+    expect(toAcceptItems([row]).items[0].media).toEqual({ image: { upload: "u.png" } });
+  });
+  it("sends the spoken lines with the user's replacements and the TTS choice, and counts the clips TTS would make", () => {
+    const [row] = initialRows([cand({ kind: "exercise", exercise_type: "conversation", question: "q", answer: "a", audio_lines: ["a", "b", "c"] })]);
+    row.audioUploads = { 1: { id: "x.wav", name: "x.wav" } };
+    expect(mediaFor(row, true)).toEqual({ audio: { lines: ["a", "b", "c"], uploads: { 1: "x.wav" }, tts: true } });
+    expect(ttsClipCount([row])).toBe(2);
+    expect(ttsClipCount([{ ...row, deleted: true }])).toBe(0);
+    expect(toAcceptItems([row], true).elements?.[0].media?.audio?.tts).toBe(true);
   });
 });

@@ -7,7 +7,7 @@ import MergeEditor from "./mergeEditor";
 type Existing = Record<string, string | number | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
-export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, children }: {
+export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, children }: {
   row: Row;
   summary: ReactNode;
   badge: string;
@@ -17,6 +17,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   onPatch: (change: Partial<Row>) => void;
   onFocus: () => void;
   footer?: ReactNode;
+  media?: ReactNode;
   children: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
@@ -58,6 +59,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
           )}
         </div>
       )}
+      {media}
       {footer}
       <div className="btn-row flex-wrap">
         <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`}
