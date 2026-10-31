@@ -181,3 +181,13 @@ def test_auth_error_from_an_element_call_propagates(monkeypatch):
     _patch_kinds(monkeypatch, lambda k, c: (_ for _ in ()).throw(ModelAPIError(ModelAPIError.KIND_AUTH, 401, "bad key")))
     with pytest.raises(ModelAPIError):
         _build(_doc("a b"), None, page_kinds={1: ["grammar"]})
+
+
+def test_a_translation_from_the_document_beats_an_earlier_generated_one(monkeypatch):
+    def fn(chunk):
+        if chunk.page == 0:  # a bare picture label: the model had to write the translation
+            return [RawItem(word="bonjour", quote="bonjour", translation="good day", word_type="noun")]
+        return [RawItem(word="bonjour", quote="bonjour hello", translation="hello")]
+    _patch(monkeypatch, fn)
+    result = _build(_doc("bonjour", "bonjour hello"), None)
+    assert [(c.translation, c.page, c.status) for c in result.candidates] == [("hello", 1, "verified")]

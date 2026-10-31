@@ -25,6 +25,10 @@ class BuildResult:
     warnings: list[str] = field(default_factory=list)
 
 
+def _generated(cand) -> bool:
+    return any(f.code == "translation_generated" for f in cand.flags)
+
+
 def build_candidates(
     doc: Document,
     api: dict,
@@ -51,9 +55,14 @@ def build_candidates(
 
     def vocabulary(chunk):
         for item in extract_chunk(chunk, api, target_name, source_name):
-            if normalise(item.word) not in seen["vocabulary"]:
-                seen["vocabulary"].add(normalise(item.word))
-                result.candidates.append(verify(item, chunk, iso1, lookup))
+            key, cand = normalise(item.word), verify(item, chunk, iso1, lookup)
+            if key not in seen["vocabulary"]:
+                seen["vocabulary"].add(key)
+                result.candidates.append(cand)
+            elif _generated(cand) is False:  # a translation the document gives beats an earlier model-written one
+                i = next(i for i, c in enumerate(result.candidates) if normalise(c.word) == key)
+                if _generated(result.candidates[i]):
+                    result.candidates[i] = cand
 
     def element(kind):
         def run(chunk):
