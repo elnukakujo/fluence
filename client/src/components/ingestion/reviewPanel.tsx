@@ -29,7 +29,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const [preview, setPreview] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [focusedPage, setFocusedPage] = useState<number>(1);
+  const [focusedPage, setFocusedPage] = useState<number>((candidates[0]?.page ?? 0) + 1);
 
   const counts = useMemo(() => countRows(rows), [rows]);
   const visible = useMemo(() => filterRows(rows, filter), [rows, filter]);
