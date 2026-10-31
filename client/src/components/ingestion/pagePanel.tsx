@@ -14,22 +14,24 @@ export default function PagePanel({
   const handleNext = () => page < pageCount && onPage(page + 1);
 
   return (
-    <div className="sticky top-0 flex flex-col gap-2 rounded-lg border border-gray-300 bg-white p-4 dark:border-gray-700 dark:bg-gray-950">
+    <div className="sticky top-4 flex flex-col gap-2 rounded-lg border border-gray-300 bg-white p-4 dark:border-gray-700 dark:bg-gray-950">
       <div className="flex items-center justify-between">
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-secondary min-h-11"
+          aria-label="Previous page"
           onClick={handlePrev}
           disabled={page <= 1}
         >
           ← Prev
         </button>
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium" aria-live="polite">
           Page {page} / {pageCount}
         </span>
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-secondary min-h-11"
+          aria-label="Next page"
           onClick={handleNext}
           disabled={page >= pageCount}
         >
@@ -40,7 +42,7 @@ export default function PagePanel({
       <img
         src={pageImageUrl(jobId, page)}
         alt={`Page ${page} of the document`}
-        className="mx-auto max-h-96 w-auto object-contain"
+        className="mx-auto max-h-[75vh] w-auto object-contain"
       />
     </div>
   );

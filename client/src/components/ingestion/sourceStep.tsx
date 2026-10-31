@@ -52,6 +52,7 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
 
   return (
     <fieldset className="flex flex-col gap-4">
+      <legend className="text-base font-medium">Where does this document come from?</legend>
       <AutoWidthInput
         label="Title"
         value={title}
@@ -89,6 +90,7 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
               </option>
             ))}
           </select>
+          <span className="text-xs opacity-70">Applied to every lesson created from this document.</span>
         </label>
       )}
     </fieldset>

@@ -42,12 +42,13 @@ export default function PageKinds({ pages, value, onChange, jobId }: Props) {
                     <img
                       src={pageImageUrl(jobId, page)}
                       alt={`Preview of page ${page}`}
+                      loading="lazy"
                       className="mt-2 h-24 w-auto object-contain"
                     />
                   )}
                 </div>
                 <div className="flex-1">
-                  <div className="flex flex-wrap gap-2">
+                  <div role="group" aria-label={`Kinds on page ${page}`} className="flex flex-wrap gap-2">
                     {KINDS.map((kind) => {
                       const isActive = kindsForPage.includes(kind);
                       return (
@@ -55,7 +56,7 @@ export default function PageKinds({ pages, value, onChange, jobId }: Props) {
                           key={kind}
                           type="button"
                           aria-pressed={isActive}
-                          className="chip"
+                          className="chip min-h-11 px-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                           style={isActive ? { background: "var(--color-primary)", color: "var(--color-primary-foreground)" } : undefined}
                           onClick={() => toggleKind(page, kind)}
                         >

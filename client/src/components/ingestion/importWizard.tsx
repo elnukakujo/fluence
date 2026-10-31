@@ -80,7 +80,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
       <div>
         <h2>{heading}</h2>
         <p className="text-sm opacity-70">
-          We read the document, find the vocabulary and show you everything to check. Nothing is added until you confirm.
+          We read the document, find the vocabulary, grammar, calligraphy and exercises, and show you everything to check next to the original page. Nothing is added until you confirm.
         </p>
       </div>
 
