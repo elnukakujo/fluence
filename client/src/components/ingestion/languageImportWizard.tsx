@@ -300,7 +300,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]}
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} pageCount={l.end_page - l.start_page + 1}
             addLabel={(n) => `Add ${n} to a new lesson "${l.title}"`}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);

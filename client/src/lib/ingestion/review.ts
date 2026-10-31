@@ -23,6 +23,7 @@ export type Candidate = {
   radical?: string | null;
   strokes?: string | null;
   example_sentences?: string[];
+  original_text?: string; // OCR text for grammar candidates
   // For exercise
   exercise_type?: string;
   question?: string;
@@ -50,6 +51,7 @@ export type Row = {
   radical?: string | null;
   strokes?: string | null;
   example_sentences?: string[];
+  original_text?: string;
   // For exercise
   exercise_type?: string;
   question?: string;
@@ -72,6 +74,7 @@ export function initialRows(candidates: Candidate[]): Row[] {
       row.title = candidate.title ?? "";
       row.explanation = candidate.explanation ?? "";
       row.example_sentences = candidate.example_sentences ?? [];
+      row.original_text = candidate.original_text;
     } else if (candidate.kind === "calligraphy") {
       row.character = candidate.character ?? "";
       row.meaning = candidate.meaning ?? "";

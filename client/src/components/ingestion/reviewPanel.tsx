@@ -7,6 +7,7 @@ import {
   type AcceptPayload, type Candidate, type ConflictMode, type Filter, type Row, countRows, filterRows, infoNotes,
   initialRows, toAcceptItems, warningReasons,
 } from "@/lib/ingestion/review";
+import PagePanel from "./pagePanel";
 
 const CONFLICTS: { value: ConflictMode; label: string }[] = [
   { value: "keep", label: "Keep the existing word" }, { value: "merge", label: "Merge into it" },
@@ -15,18 +16,20 @@ const CONFLICTS: { value: ConflictMode; label: string }[] = [
 
 // The candidate list shared by lesson-level and language-level imports: confirmed items start checked,
 // anything the verifier could not confirm is opt-in, every field is editable, every row links to the real page.
-export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd }: {
+export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, pageCount }: {
   jobId: string;
   filename: string;
   candidates: Candidate[];
   addLabel: (selected: number) => string;
   onAdd: (payload: AcceptPayload) => Promise<void>;
+  pageCount?: number;
 }) {
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");
   const [preview, setPreview] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [focusedPage, setFocusedPage] = useState<number>(1);
 
   const counts = useMemo(() => countRows(rows), [rows]);
   const visible = useMemo(() => filterRows(rows, filter), [rows, filter]);
@@ -44,29 +47,32 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     }
   };
 
+  const effectivePageCount = pageCount ?? (candidates.length > 0 ? Math.max(...candidates.map((c) => c.page + 1)) : 1);
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2">
-        <p aria-live="polite">
-          {counts.total} found · {counts.verified} confirmed in the text · {counts.flagged} need your check · {counts.selected} selected
-        </p>
-        <p className="text-xs opacity-60">
-          "Confirmed" means the word and its quote appear in the document text. Items that need your check are unselected: compare them with the page before adding.
-        </p>
-        <div className="btn-row">
-          {(["all", "verified", "flagged"] as Filter[]).map((f) => (
-            <button key={f} type="button" className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-              {f === "all" ? "All" : f === "verified" ? "Confirmed" : "Need checking"}
-            </button>
-          ))}
-          <button type="button" className="btn btn-secondary" onClick={() => toggleVerified(true)}>Select all confirmed</button>
-          <button type="button" className="btn btn-secondary" onClick={() => toggleVerified(false)}>Clear confirmed</button>
+    <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
+      <div className="flex flex-1 flex-col gap-3">
+        <div className="flex flex-col gap-2">
+          <p aria-live="polite">
+            {counts.total} found · {counts.verified} confirmed in the text · {counts.flagged} need your check · {counts.selected} selected
+          </p>
+          <p className="text-xs opacity-60">
+            "Confirmed" means the word and its quote appear in the document text. Items that need your check are unselected: compare them with the page before adding.
+          </p>
+          <div className="btn-row">
+            {(["all", "verified", "flagged"] as Filter[]).map((f) => (
+              <button key={f} type="button" className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                {f === "all" ? "All" : f === "verified" ? "Confirmed" : "Need checking"}
+              </button>
+            ))}
+            <button type="button" className="btn btn-secondary" onClick={() => toggleVerified(true)}>Select all confirmed</button>
+            <button type="button" className="btn btn-secondary" onClick={() => toggleVerified(false)}>Clear confirmed</button>
+          </div>
         </div>
-      </div>
 
-      {counts.total === 0 && <p className="card">No vocabulary was found here.</p>}
+        {counts.total === 0 && <p className="card">No vocabulary was found here.</p>}
 
-      <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2">
         {visible.map((row) => {
           const c = row.candidate;
           const reasons = warningReasons(c);
@@ -75,8 +81,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           const generated = c.flags.some((f) => f.code === "translation_generated");
 
           if (c.kind === "grammar") {
+            const grammarGenerated = c.flags.some((f) => f.code === "grammar_generated");
             return (
-              <li key={c.id} className="card flex flex-col gap-2">
+              <li key={c.id} className="card flex flex-col gap-2" onFocus={() => setFocusedPage(c.page + 1)} onClick={() => setFocusedPage(c.page + 1)}>
                 <div className="flex flex-wrap items-start gap-3">
                   <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include ${row.title || "grammar"}`}
                     onChange={(e) => patch(c.id, { selected: e.target.checked })} />
@@ -88,10 +95,16 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                     <span className="text-xs opacity-60">Explanation</span>
                     <input className="input" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
                   </label>
-                  <span className="badge mt-5" title={c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
-                    {c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+                  <span className="badge mt-5" title={grammarGenerated ? "Written by the model from the page text - check it" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
+                    {grammarGenerated ? "✎ Generated" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
                   </span>
                 </div>
+                {row.original_text && (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer">Original page text</summary>
+                    <p className="mt-2 whitespace-pre-wrap rounded bg-gray-100 p-2 text-xs opacity-70 dark:bg-gray-900">{row.original_text}</p>
+                  </details>
+                )}
                 {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
                 {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
                 <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
@@ -99,7 +112,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             );
           } else if (c.kind === "calligraphy") {
             return (
-              <li key={c.id} className="card flex flex-col gap-2">
+              <li key={c.id} className="card flex flex-col gap-2" onFocus={() => setFocusedPage(c.page + 1)} onClick={() => setFocusedPage(c.page + 1)}>
                 <div className="flex flex-wrap items-start gap-3">
                   <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include calligraphy ${row.character || ""}`}
                     onChange={(e) => patch(c.id, { selected: e.target.checked })} />
@@ -135,7 +148,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           } else if (c.kind === "exercise") {
             const answerGenerated = c.flags.some((f) => f.code === "answer_generated");
             return (
-              <li key={c.id} className="card flex flex-col gap-2">
+              <li key={c.id} className="card flex flex-col gap-2" onFocus={() => setFocusedPage(c.page + 1)} onClick={() => setFocusedPage(c.page + 1)}>
                 <div className="flex flex-wrap items-start gap-3">
                   <input type="checkbox" className="mt-3" checked={row.selected} aria-label="Include exercise"
                     onChange={(e) => patch(c.id, { selected: e.target.checked })} />
@@ -164,7 +177,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           }
 
           return (
-            <li key={c.id} className="card flex flex-col gap-2">
+            <li key={c.id} className="card flex flex-col gap-2" onFocus={() => setFocusedPage(c.page + 1)} onClick={() => setFocusedPage(c.page + 1)}>
               <div className="flex flex-wrap items-start gap-3">
                 <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include ${row.word || "this word"}`}
                   onChange={(e) => patch(c.id, { selected: e.target.checked })} />
@@ -195,14 +208,21 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             </li>
           );
         })}
-      </ul>
+        </ul>
 
-      {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
-      <div className="btn-row">
-        <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>
-          {saving ? "Adding…" : addLabel(counts.selected)}
-        </button>
+        {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+        <div className="btn-row">
+          <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>
+            {saving ? "Adding…" : addLabel(counts.selected)}
+          </button>
+        </div>
       </div>
+
+      {pageCount && (
+        <div className="hidden lg:block lg:w-80 xl:w-96">
+          <PagePanel jobId={jobId} page={focusedPage} pageCount={effectivePageCount} onPage={setFocusedPage} />
+        </div>
+      )}
 
       {preview !== null && (
         <Modal title={`Page ${preview} of ${filename}`} onClose={() => setPreview(null)}>

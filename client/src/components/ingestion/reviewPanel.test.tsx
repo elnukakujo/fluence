@@ -9,8 +9,15 @@ import type { Candidate } from "@/lib/ingestion/review";
 vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png" }));
 
 const grammar: Candidate = {
-  id: "g1", kind: "grammar", title: "Te-form", explanation: "Connects verbs", example_sentences: ["Tabete iru."],
+  id: "g1", kind: "grammar", title: "Te-form", explanation: "Connects verbs", example_sentences: ["Tabete iru."], original_text: "This is the original OCR text from the page.",
   quote: "te-form", page: 2, chunk_id: "c", status: "flagged", flags: [], min_conf: null,
+};
+
+const grammarGenerated: Candidate = {
+  id: "g2", kind: "grammar", title: "Present form", explanation: "Regular verbs", example_sentences: ["Taberu."], original_text: "Present form text",
+  quote: "present", page: 1, chunk_id: "c", status: "flagged",
+  flags: [{ code: "grammar_generated", message: "Written by the model from the page text - check it", severity: "warning" }],
+  min_conf: null,
 };
 
 const exercise: Candidate = {
@@ -81,5 +88,56 @@ describe("ReviewPanel", () => {
     expect(screen.getByDisplayValue("Generated answer")).toBeInTheDocument();
     expect(screen.getByText("Sample answer written by the model - check it")).toBeInTheDocument();
     expect(screen.getByText("✎ Generated answer")).toBeInTheDocument();
+  });
+
+  it("renders grammar row with Generated badge and original text details", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+
+    expect(screen.getByDisplayValue("Present form")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Regular verbs")).toBeInTheDocument();
+    expect(screen.getByText("✎ Generated")).toBeInTheDocument();
+
+    const summary = screen.getByText("Original page text");
+    expect(summary).toBeInTheDocument();
+
+    const details = summary.closest("details");
+    expect(details).toBeInTheDocument();
+    await userEvent.click(summary);
+
+    expect(screen.getByText("Present form text")).toBeInTheDocument();
+  });
+
+  it("page panel is shown when pageCount is provided", () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, exerciseGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+
+    expect(screen.getByAltText(/Page.*of the document/)).toBeInTheDocument();
+    expect(screen.getByText("Page 1 / 5")).toBeInTheDocument();
+  });
+
+  it("focuses grammar row and updates page panel", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+
+    expect(screen.getByText("Page 1 / 5")).toBeInTheDocument();
+
+    const row = screen.getByDisplayValue("Present form").closest("li");
+    await userEvent.click(row!);
+
+    expect(screen.getByText("Page 2 / 5")).toBeInTheDocument();
+  });
+
+  it("page panel prev/next buttons change displayed page", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammar, grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} pageCount={5} />);
+
+    const nextBtn = screen.getAllByRole("button", { name: /next/i })[0];
+    await userEvent.click(nextBtn);
+    expect(screen.getByText("Page 2 / 5")).toBeInTheDocument();
+
+    const prevBtn = screen.getAllByRole("button", { name: /prev/i })[0];
+    await userEvent.click(prevBtn);
+    expect(screen.getByText("Page 1 / 5")).toBeInTheDocument();
   });
 });
