@@ -45,7 +45,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
             {shown.map(([k, v]) => (<Fragment key={k}><dt className="field-label">{k.replace("_", " ")}</dt><dd>{String(v)}</dd></Fragment>))}
           </dl>
-          <div className="btn-row">
+          <div className="btn-row flex-wrap">
             <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true })}>Keep existing</button>
             <button type="button" className="btn btn-secondary" onClick={() => onPatch({ selected: true, on_conflict: "overwrite" })}>Overwrite</button>
             <button type="button" className="btn btn-secondary" onClick={() => setMerging(true)}>Merge…</button>
@@ -58,7 +58,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
         </div>
       )}
       {footer}
-      <div className="btn-row">
+      <div className="btn-row flex-wrap">
         <button type="button" className={`btn ${row.selected ? "btn-primary" : "btn-secondary"}`} aria-pressed={row.selected}
           onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? "✓ Confirmed" : "Confirm"}</button>
         <button type="button" className="btn btn-secondary" aria-expanded={editing} onClick={() => setEditing((e) => !e)}>{editing ? "Done editing" : "Edit"}</button>

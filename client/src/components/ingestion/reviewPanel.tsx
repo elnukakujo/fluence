@@ -177,9 +177,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         </div>
 
         {groups.length > 0 && (
-          <div role="tablist" aria-label="Kinds of element" className="btn-row">
+          <div role="tablist" aria-label="Kinds of element" className="flex flex-wrap gap-x-5 border-b border-gray-300 dark:border-gray-700">
             {groups.map(([k, rs]) => (
-              <button key={k} type="button" role="tab" aria-selected={k === active} className={`btn ${k === active ? "btn-primary" : "btn-secondary"}`}
+              <button key={k} type="button" role="tab" aria-selected={k === active} className="review-tab min-h-11" data-active={k === active}
                 onClick={() => setTab(k)}>
                 {TAB_LABEL[k]} {rs.filter((r) => !r.deleted).length}
               </button>
@@ -190,7 +190,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         {counts.total === 0 && groups.length === 0 && <p className="card">Nothing was found here: no vocabulary, grammar, calligraphy or exercises.</p>}
 
         {groups.length > 0 && (
-          <div className="btn-row">
+          <div className="btn-row flex-wrap">
             {(["all", "verified", "flagged"] as Filter[]).map((f) => (
               <button key={f} type="button" className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
                 {f === "all" ? "All" : f === "verified" ? "Confirmed in the text" : "Need checking"}
@@ -200,10 +200,10 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           </div>
         )}
 
-        <ul className="flex flex-col gap-2" role="tabpanel">{visible.map((r) => <Fragment key={r.candidate.id}>{renderRow(r)}</Fragment>)}</ul>
+        <ul className="m-0 flex list-none flex-col gap-2 p-0" role="tabpanel">{visible.map((r) => <Fragment key={r.candidate.id}>{renderRow(r)}</Fragment>)}</ul>
 
         {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
-        <div className="btn-row">
+        <div className="btn-row flex-wrap">
           <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>
             {saving ? "Adding…" : addLabel(counts.selected)}
           </button>

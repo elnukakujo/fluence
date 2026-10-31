@@ -33,7 +33,7 @@ export default function MergeEditor({ existing, incoming, fields, onDone, onCanc
           <input className="input" aria-label={`Result ${f}`} value={result[f]} onChange={(e) => setResult({ ...result, [f]: e.target.value })} />
         </div>
       ))}
-      <div className="btn-row">
+      <div className="btn-row flex-wrap">
         <button type="button" className="btn btn-primary" onClick={() => onDone(result)}>Use this version</button>
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
       </div>

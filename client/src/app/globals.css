@@ -813,6 +813,19 @@
 
   /* ── Button bar: scrolls horizontally instead of overflowing when it
      can't fit all buttons on one row ── */
+  /* Import review: kind tabs, underlined like a tab strip so they read differently from the filter chips */
+  .review-tab {
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.5rem 0.25rem;
+    font-weight: 500;
+    opacity: 0.65;
+  }
+  .review-tab[data-active="true"] {
+    border-bottom-color: var(--color-primary);
+    opacity: 1;
+  }
+
   .btn-row {
     display: flex;
     gap: 0.5rem;
