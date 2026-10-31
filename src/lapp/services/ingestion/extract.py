@@ -5,6 +5,7 @@ import re
 
 from pydantic import BaseModel, ValidationError, field_validator
 
+from ...schemas.components.word import WORD_TYPES
 from ...utils.model_api import chat_completion
 from .types import Chunk
 
@@ -35,6 +36,12 @@ class RawItem(BaseModel):
     @classmethod
     def _blank_is_none(cls, v: str | None) -> str | None:
         return (v or "").strip() or None
+
+    @field_validator("word_type")
+    @classmethod
+    def _known_type_or_none(cls, v: str | None) -> str | None:
+        # the page may print "v." or "n."; the app only stores its own list, so an unknown type is left for the user to pick
+        return v if v is None or v.lower() in WORD_TYPES else None
 
 
 def _system_prompt(target: str, source: str | None) -> str:

@@ -18,6 +18,9 @@ describe("initialRows", () => {
   it("keeps an info-only note (word exists in the language) selected", () => {
     expect(initialRows([flagged("already_in_language", "info")])[0].selected).toBe(true);
   });
+  it("leaves the type empty when the model gave one outside the app's list (e.g. \"v.\")", () => {
+    expect(initialRows([cand({ word_type: "v." })])[0].word_type).toBe("");
+  });
   it("copies the editable fields and defaults conflicts to keep", () => {
     const [row] = initialRows([cand({ phonetic: null, word_type: "noun" })]);
     expect(row).toMatchObject({ word: "bonjour", translation: "hello", phonetic: "", word_type: "noun", on_conflict: "keep" });

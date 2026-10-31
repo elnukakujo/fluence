@@ -98,7 +98,7 @@ export function initialRows(candidates: Candidate[]): Row[] {
       row.word = candidate.word ?? "";
       row.translation = candidate.translation ?? "";
       row.phonetic = candidate.phonetic ?? "";
-      row.word_type = candidate.word_type ?? "";
+      row.word_type = (WORD_TYPES as readonly string[]).includes(candidate.word_type ?? "") ? candidate.word_type ?? "" : "";
     }
     return row;
   });

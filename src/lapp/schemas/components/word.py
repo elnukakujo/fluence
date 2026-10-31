@@ -3,6 +3,9 @@ from pydantic import model_validator
 
 from ..base import BaseComponentDict
 
+WORD_TYPES = ("noun", "verb", "adjective", "adverb", "pronoun", "article", "preposition", "conjunction", "particle", "interjection", "numeral", "classifier", "auxiliary", "modal", "")  # "" = not given
+
+
 class WordDict(BaseComponentDict):
     word: str
     translation: Optional[str] = None
@@ -15,23 +18,7 @@ class WordDict(BaseComponentDict):
 
     @model_validator(mode="after")
     def _validate(self):
-        valid_types = [
-            "noun",
-            "verb",
-            "adjective",
-            "adverb",
-            "pronoun",
-            "article",
-            "preposition",
-            "conjunction",
-            "particle",
-            "interjection",
-            "numeral",
-            "classifier",
-            "auxiliary",
-            "modal",
-            ""
-        ]
+        valid_types = list(WORD_TYPES)
         if self.word_type is not None and self.word_type.lower() not in valid_types:
             raise ValueError(f"Invalid type: {self.word_type}. Must be one of {valid_types}.")
         valid_gender = ["m", "f", "n", "c", ""]

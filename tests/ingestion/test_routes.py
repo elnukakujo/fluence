@@ -535,3 +535,12 @@ def test_source_reused_for_same_title(app, db, media_root, scheduled):
     with db.session_scope() as s:
         sources = s.query(Source).filter(Source.user_id == "user_U1").all()
         assert len(sources) == 1
+
+
+def test_accept_saves_a_word_whose_type_is_not_in_the_app_list_instead_of_failing(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _ready_job(client)
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "items": [
+        {"word": "zzword", "translation": "to feel", "word_type": "v."}]})
+    assert res.status_code == 200 and res.get_json()["created"] == 1
+    assert WordService().get_by_word("zzword", language_id="lang_L1").word_type != "v."

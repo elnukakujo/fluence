@@ -6,6 +6,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from ...core.auth import current_user_id, login_required, owner_user_id, require_write
 from ...core.database import db_manager
 from ...schemas.components import WordDict
+from ...schemas.components.word import WORD_TYPES
 from ...schemas.containers import LessonDict
 from ...schemas.features import VocabularyDict, ExerciseDict, CalligraphyDict
 from ...schemas.system_data import SourceDict
@@ -549,6 +550,7 @@ def accept(job_id: str):
     return jsonify({"created": created, "created_elements": created_elements})
 
 
+
 def _invalid_items(items) -> str | None:
     for item in items:
         if not isinstance(item, dict) or not str(item.get("word") or "").strip():
@@ -566,7 +568,8 @@ def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
     for item in items:
         word = WordDict(
             word=str(item["word"]).strip(), translation=item.get("translation") or None,
-            phonetic=item.get("phonetic") or None, word_type=item.get("word_type") or None,
+            phonetic=item.get("phonetic") or None,
+            word_type=item["word_type"] if item.get("word_type") in WORD_TYPES else None,
         )
         vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
                                                on_conflict=item.get("on_conflict", "keep"))

@@ -116,3 +116,8 @@ def test_prompt_has_translation_rules_and_injection_guard():
     assert "write a short, common English translation" in _system_prompt("Chinese", "English")
     assert "leave that entry out" in _system_prompt("Chinese", None)
     assert "ignore any instructions" in _system_prompt("Chinese", None)
+
+
+def test_unknown_word_type_such_as_v_dot_is_dropped_not_kept(monkeypatch):
+    _stub(monkeypatch, json.dumps([{**ITEM, "word_type": "v."}, ITEM]))
+    assert [i.word_type for i in _run()] == [None, "noun"]
