@@ -14,6 +14,7 @@ export type Candidate = {
   status: "verified" | "flagged";
   flags: Flag[];
   min_conf: number | null;
+  existing?: Record<string, string | number | null> | null; // what the app already holds for this item
   // For non-vocabulary elements
   kind?: "grammar" | "calligraphy" | "exercise";
   title?: string;
@@ -31,6 +32,10 @@ export type Candidate = {
   text_support?: string | null;
   content?: Record<string, unknown> | null;
 };
+
+// Same list as the server's WordDict validator; "" means not given.
+export const WORD_TYPES = ["", "noun", "verb", "adjective", "adverb", "pronoun", "article", "preposition", "conjunction",
+  "particle", "interjection", "numeral", "classifier", "auxiliary", "modal"] as const;
 
 export type ConflictMode = "keep" | "merge" | "overwrite";
 
@@ -150,6 +155,7 @@ export function toAcceptItems(rows: Row[]): AcceptPayload {
             meaning: (r.meaning ?? "").trim() || null,
             radical: (r.radical ?? "").trim() || null,
             strokes: r.strokes ? Number(r.strokes) : null,
+            on_conflict: r.on_conflict,
           },
         });
       }

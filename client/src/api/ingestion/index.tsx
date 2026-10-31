@@ -99,7 +99,7 @@ export async function acceptCandidates(jobId: string, lessonId: string, items: A
     headers: await getAuthHeaders(),
     body: JSON.stringify(body),
   });
-  if (!res.ok) return fail(res, "Could not add the words");
+  if (!res.ok) return fail(res, "Could not add the selected items");
   return res.json();
 }
 

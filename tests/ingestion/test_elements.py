@@ -308,3 +308,11 @@ def test_grammar_whose_explanation_only_repeats_the_title_is_dropped():
     raw = {"title": "祈使句的句调 / Intonation of an Imperative Sentence",
            "explanation": "祈使句的句调\nIntonation of an Imperative Sentence", "example_sentences": [], "quote": "x"}
     assert el.verify_element("grammar", raw, _chunk("祈使句的句调 Intonation of an Imperative Sentence"), "zh") is None
+
+
+def test_exercise_prompt_lists_the_valid_types_and_content_shapes():
+    from lapp.services.ingestion import elements as el
+    p = el._system_prompt("exercise", "English", "Chinese")
+    for t in ("essay", "answering", "translate", "quizz", "true_false", "organize", "type_in_the_blank", "matching"):
+        assert t in p
+    assert "answer_order" in p and "segments" in p and "never null" in p

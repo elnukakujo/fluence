@@ -618,6 +618,8 @@ def _invalid_elements(elements) -> str | None:
             char = str(fields.get("character", "")).strip()
             if not char or len(char) != 1:
                 return "Calligraphy requires a non-empty 1-character character field"
+            if fields.get("on_conflict", "keep") not in _CONFLICT_MODES:
+                return "on_conflict must be keep, merge or overwrite"
         elif kind == "exercise":
             if not isinstance(fields.get("question"), str) or not str(fields.get("question", "")).strip():
                 return "Exercise requires a non-empty question field"
@@ -701,7 +703,7 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     lesson_id=lesson_id,
                     character=character_dict,
                 )
-                calli = calligraphy_service.create(calligraphy_dict, session=session, on_conflict="keep")
+                calli = calligraphy_service.create(calligraphy_dict, session=session, on_conflict=fields.get("on_conflict") or "keep")
                 if calli:
                     source_service.add_source_to_element(source.id, calli.id, session=session)
                     created += 1

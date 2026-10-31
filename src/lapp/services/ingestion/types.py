@@ -42,6 +42,7 @@ class Candidate(BaseModel):
     status: Literal["verified", "flagged"]
     flags: list[Flag] = []
     min_conf: float | None = None
+    existing: dict | None = None  # what the app already holds for this item, shown beside it in review
 
 
 class ElementCandidate(BaseModel):
@@ -55,3 +56,4 @@ class ElementCandidate(BaseModel):
     status: Literal["verified", "flagged"]
     flags: list[Flag] = []
     min_conf: float | None = None
+    existing: dict | None = None  # what the app already holds for this item, shown beside it in review

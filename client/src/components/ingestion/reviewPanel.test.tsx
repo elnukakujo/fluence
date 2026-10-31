@@ -140,4 +140,42 @@ describe("ReviewPanel", () => {
     await userEvent.click(prevBtn);
     expect(screen.getByText("Page 3 / 5")).toBeInTheDocument();
   });
+
+  it("edits the word type through the fixed list and shows the saved word beside a duplicate", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const dup: Candidate = {
+      id: "v1", word: "水", translation: "water", phonetic: "shuǐ", word_type: "noun", quote: "水 water", page: 0, chunk_id: "c",
+      status: "verified", min_conf: null, existing: { translation: "liquid", word_type: "noun" },
+      flags: [{ code: "already_in_language", message: "exists", severity: "info" }],
+    };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[dup]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    expect(screen.getByText("Already saved in your language")).toBeInTheDocument();
+    expect(screen.getByText("liquid")).toBeInTheDocument();
+    const type = screen.getAllByRole("combobox")[0];
+    expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("classifier");
+    await userEvent.selectOptions(type, "verb");
+    await userEvent.selectOptions(screen.getAllByRole("combobox")[1], "merge");
+    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
+    expect(onAdd).toHaveBeenCalledWith({ items: [{ word: "水", translation: "water", phonetic: "shuǐ", word_type: "verb", on_conflict: "merge" }] });
+  });
+
+  it("offers the keep/merge/overwrite choice for calligraphy that already exists", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const cal: Candidate = {
+      id: "k1", kind: "calligraphy", character: "水", meaning: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [],
+      min_conf: null, existing: { meaning: "liquid", strokes: 4 },
+    };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[cal]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    expect(screen.getByText("liquid")).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByRole("combobox"), "overwrite");
+    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
+    expect(onAdd.mock.calls[0][0].elements[0].fields.on_conflict).toBe("overwrite");
+  });
+
+  it("shows the page panel with the original page and a toggle on small screens", async () => {
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} pageCount={9} />);
+    expect(screen.getByText("Page 3 / 9")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Show the original page" }));
+    expect(screen.getByRole("button", { name: "Hide the page" })).toBeInTheDocument();
+  });
 });

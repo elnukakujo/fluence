@@ -307,7 +307,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
           </details>
         )}
       </header>
-      <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} pageCount={job.pages_total}
+      <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} pageCount={Object.keys(job.page_kinds ?? {}).length || undefined}
         addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
         onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">

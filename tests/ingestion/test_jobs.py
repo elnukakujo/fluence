@@ -244,3 +244,15 @@ def test_legacy_job_without_page_kinds_runs_vocabulary_only(app, job, media_root
     monkeypatch.setattr(pipeline_module, "extract_kind", lambda *a: pytest.fail("element call"))
     run_language_extraction(app, job["id"])
     assert json.loads(candidates_path(media_root, job["id"]).read_text())["elements"] == []
+
+
+def test_attach_existing_shows_the_saved_word(monkeypatch):
+    from types import SimpleNamespace as NS
+    from lapp.services.ingestion import jobs
+    from lapp.services.ingestion.types import Candidate, Flag
+    cand = Candidate(id="1", word="水", quote="水", page=0, chunk_id="c", status="verified",
+                     flags=[Flag(code="already_in_language", message="m", severity="info")])
+    saved = NS(word="水", translation="water", phonetic="shuǐ", word_type="noun")
+    monkeypatch.setattr("lapp.services.components.WordService.get_by_word", lambda self, w, language_id=None: saved)
+    jobs._attach_existing({"language_id": "L1"}, NS(candidates=[cand], elements=[]))
+    assert cand.existing == {"word": "水", "translation": "water", "phonetic": "shuǐ", "word_type": "noun"}

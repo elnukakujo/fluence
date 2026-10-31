@@ -13,10 +13,18 @@ _SHAPES = {
                 "not an exercise instruction (e.g. 'Read the verbs'), a table header or a list of words; skip points with no such explanation"),
     "calligraphy": ("character", '{"character": str, "phonetic": str|null, "meaning": str|null, "radical": str|null, "strokes": int|null, "quote": str}',
                     "a calligraphy entry is for a single character with stroke order, practice grids, character breakdowns; give `radical` and `strokes` only if the text states them"),
-    "exercise": ("question", '{"exercise_type": str, "question": str, "answer": str|null, "text_support": str|null, "content": object|null, "quote": str}',
-                 "an exercise is a numbered task/question for the learner to answer: fill-in blanks, multiple choice, matching, true/false, translate, reorder, essay/speaking prompts; "
-                 "copy `question` verbatim; use the answer the text gives (an answer key on the same page); if the text gives none, WRITE a short answer yourself; "
-                 "`content` only for the structured types with exactly the shapes from the domain docs; invent no exercises not on the page"),
+    "exercise": ("question", '{"exercise_type": str, "question": str, "answer": str, "text_support": str|null, "content": object|null, "quote": str}',
+                 "an exercise is a numbered task or question for the learner to answer; a vocabulary list, a dialogue or a grammar note is NOT an exercise. "
+                 "`exercise_type` MUST be exactly one of: essay, answering, translate, speaking, conversation, organize, type_in_the_blank, select_in_the_blank, matching, true_false, quizz "
+                 "(short free answers = answering; translating a sentence = translate; reading aloud / pair or group talk = speaking or conversation; writing a text = essay). "
+                 "`content` is null for essay, answering, translate, speaking and conversation, and otherwise exactly: "
+                 'quizz {"options": [str, ...], "correct": index of the right option}; '
+                 'true_false {"statement": str, "answer": true|false}; '
+                 'organize {"items": [str, ...], "answer_order": a permutation of 0..n-1}; '
+                 'type_in_the_blank and select_in_the_blank {"segments": [str, ...], "blanks": [str, ...]} with one more segment than blanks; '
+                 'matching {"pairs": [[str, str], ...]}. '
+                 "Copy `question` verbatim. `answer` is never null: use the answer the page gives (an answer key), otherwise WRITE a short answer yourself. "
+                 "Invent no exercises that are not on the page"),
 }
 
 

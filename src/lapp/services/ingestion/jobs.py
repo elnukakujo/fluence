@@ -206,6 +206,23 @@ def _lookup_for(job: dict):
     return lookup
 
 
+def _attach_existing(job: dict, result) -> None:
+    """Show the user what is already saved next to a candidate that would collide with it."""
+    from ..components import CharacterService, WordService
+    words, chars = WordService(), CharacterService()
+    for c in result.candidates:
+        if any(f.code.startswith("already_in_") for f in c.flags):
+            w = words.get_by_word(c.word, language_id=job["language_id"])
+            if w:
+                c.existing = {"word": w.word, "translation": w.translation, "phonetic": w.phonetic, "word_type": w.word_type}
+    for e in result.elements:
+        if e.kind == "calligraphy":
+            ch = chars.get_by_character(e.fields["character"], language_id=job["language_id"])
+            if ch:
+                e.existing = {"character": ch.character, "meaning": ch.meaning, "phonetic": ch.phonetic,
+                              "radical": ch.radical, "strokes": ch.strokes}
+
+
 def _classify(ctx: _Ctx, doc: Document, target_name: str) -> dict[str, list]:
     """{"page": kinds} for every page. A failed step (not a bad key/URL) means every kind, never a failed job."""
     try:
@@ -264,6 +281,7 @@ def _run_lesson_extraction(app: Flask, svc: IngestionJobService, job_id: str) ->
         progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total),
         page_kinds=_kinds_by_page(ctx.job),
     )
+    _attach_existing(ctx.job, result)
     warnings = ctx.warnings + result.warnings + [w for p in doc.pages for w in p.warnings]
     out = candidates_path(ctx.media_root, job_id)
     out.write_text(json.dumps({"candidates": [c.model_dump() for c in result.candidates],
@@ -303,6 +321,7 @@ def _run_language_extraction(app: Flask, svc: IngestionJobService, job_id: str) 
             p for p in doc.pages if lesson["start_page"] <= p.index + 1 <= lesson["end_page"]])
         try:
             result = build_candidates(part, ctx.text_api, ctx.target, ctx.source, lookup, page_kinds=page_kinds)
+            _attach_existing(job, result)
             candidates = [c.model_dump() for c in result.candidates]
             verified = sum(c["status"] == "verified" for c in candidates)
             out = candidates_path(ctx.media_root, job_id, lesson["index"])

@@ -1,18 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
   type AcceptPayload, type Candidate, type ConflictMode, type Filter, type Row, countRows, filterRows, infoNotes,
-  initialRows, toAcceptItems, warningReasons,
+  initialRows, toAcceptItems, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
 
 const CONFLICTS: { value: ConflictMode; label: string }[] = [
-  { value: "keep", label: "Keep the existing word" }, { value: "merge", label: "Merge into it" },
+  { value: "keep", label: "Keep the existing one" }, { value: "merge", label: "Merge into it" },
   { value: "overwrite", label: "Overwrite it" },
 ];
+
+// "Already saved" box + the keep/merge/overwrite choice, shown beside the candidate so the user can compare.
+function ExistingBox({ existing, mode, onMode }: { existing: Record<string, string | number | null>; mode: ConflictMode; onMode: (m: ConflictMode) => void }) {
+  const shown = Object.entries(existing).filter(([, v]) => v !== null && v !== "");
+  return (
+    <div className="existing-box flex flex-col gap-2">
+      <p className="font-medium">Already saved in your language</p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+        {shown.map(([k, v]) => (<Fragment key={k}><dt className="field-label">{k.replace("_", " ")}</dt><dd>{String(v)}</dd></Fragment>))}
+      </dl>
+      <label className="flex flex-wrap items-center gap-2">
+        If it already exists:
+        <select className="input w-auto" value={mode} onChange={(e) => onMode(e.target.value as ConflictMode)}>
+          {CONFLICTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+}
 
 // The candidate list shared by lesson-level and language-level imports: confirmed items start checked,
 // anything the verifier could not confirm is opt-in, every field is editable, every row links to the real page.
@@ -30,6 +49,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [focusedPage, setFocusedPage] = useState<number>((candidates[0]?.page ?? 0) + 1);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const counts = useMemo(() => countRows(rows), [rows]);
   const visible = useMemo(() => filterRows(rows, filter), [rows, filter]);
@@ -42,7 +62,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     try {
       await onAdd(toAcceptItems(rows));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add the words");
+      setError(e instanceof Error ? e.message : "Could not add the selected items");
       setSaving(false);
     }
   };
@@ -57,7 +77,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             {counts.total} found · {counts.verified} confirmed in the text · {counts.flagged} need your check · {counts.selected} selected
           </p>
           <p className="text-xs opacity-60">
-            "Confirmed" means the word and its quote appear in the document text. Items that need your check are unselected: compare them with the page before adding.
+            "Confirmed" means the item and its quote appear in the document text. Anything written by the model, or not confirmed, is unselected: compare it with the page on the right before adding.
           </p>
           <div className="btn-row">
             {(["all", "verified", "flagged"] as Filter[]).map((f) => (
@@ -70,7 +90,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           </div>
         </div>
 
-        {counts.total === 0 && <p className="card">No vocabulary was found here.</p>}
+        {counts.total === 0 && <p className="card">Nothing was found here: no vocabulary, grammar, calligraphy or exercises.</p>}
 
         <ul className="flex flex-col gap-2">
         {visible.map((row) => {
@@ -91,14 +111,14 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                     <span className="text-xs opacity-60">Title</span>
                     <input className="input" value={row.title || ""} onChange={(e) => patch(c.id, { title: e.target.value })} />
                   </label>
-                  <label className="flex min-w-48 flex-[2] flex-col gap-1">
-                    <span className="text-xs opacity-60">Explanation</span>
-                    <input className="input" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
-                  </label>
                   <span className="badge mt-5" title={grammarGenerated ? "Written by the model from the page text - check it" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
                     {grammarGenerated ? "✎ Generated" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
                   </span>
                 </div>
+                <label className="flex flex-col gap-1">
+                  <span className="field-label">Explanation</span>
+                  <textarea className="input input-grow" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
+                </label>
                 {row.original_text && (
                   <details className="text-sm">
                     <summary className="cursor-pointer">Original page text</summary>
@@ -140,6 +160,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                     {c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
                   </span>
                 </div>
+                {c.existing && <ExistingBox existing={c.existing} mode={row.on_conflict} onMode={(m) => patch(c.id, { on_conflict: m })} />}
                 {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
                 {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
                 <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
@@ -158,11 +179,11 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                   </label>
                   <label className="flex min-w-48 flex-[2] flex-col gap-1">
                     <span className="text-xs opacity-60">Question</span>
-                    <textarea className="input" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />
+                    <textarea className="input input-grow" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />
                   </label>
                   <label className="flex min-w-48 flex-[2] flex-col gap-1">
                     <span className="text-xs opacity-60">Answer</span>
-                    <textarea className="input" value={row.answer || ""} onChange={(e) => patch(c.id, { answer: e.target.value })} />
+                    <textarea className="input input-grow" value={row.answer || ""} onChange={(e) => patch(c.id, { answer: e.target.value })} />
                   </label>
                   <span className="badge mt-5" title={answerGenerated ? "The model wrote this answer, not found in the document" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
                     {answerGenerated ? "✎ Generated answer" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
@@ -181,26 +202,25 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
               <div className="flex flex-wrap items-start gap-3">
                 <input type="checkbox" className="mt-3" checked={row.selected} aria-label={`Include ${row.word || "this word"}`}
                   onChange={(e) => patch(c.id, { selected: e.target.checked })} />
-                {(["word", "translation", "phonetic", "word_type"] as const).map((key) => (
+                {(["word", "translation", "phonetic"] as const).map((key) => (
                   <label key={key} className="flex min-w-32 flex-1 flex-col gap-1">
-                    <span className="text-xs opacity-60">{key === "word_type" ? "type" : key}</span>
+                    <span className="field-label">{key}</span>
                     <input className="input" value={row[key] || ""} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
                   </label>
                 ))}
+                <label className="flex min-w-32 flex-col gap-1">
+                  <span className="field-label">type</span>
+                  <select className="input" value={row.word_type || ""} onChange={(e) => patch(c.id, { word_type: e.target.value })}>
+                    {WORD_TYPES.map((t) => <option key={t} value={t}>{t || "—"}</option>)}
+                  </select>
+                </label>
                 <span className="badge mt-5" title={generated ? "The document gave no translation; the model wrote this one" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
                   {generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
                 </span>
               </div>
               {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
               {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
-              {exists && (
-                <label className="flex items-center gap-2 text-sm">
-                  If it already exists:
-                  <select className="input w-auto" value={row.on_conflict} onChange={(e) => patch(c.id, { on_conflict: e.target.value as ConflictMode })}>
-                    {CONFLICTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </label>
-              )}
+              {exists && c.existing && <ExistingBox existing={c.existing} mode={row.on_conflict} onMode={(m) => patch(c.id, { on_conflict: m })} />}
               <p className="text-sm opacity-70">
                 Page {c.page + 1} · "{c.quote}"{" "}
                 <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button>
@@ -218,11 +238,14 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         </div>
       </div>
 
-      {pageCount && (
-        <div className="hidden lg:block lg:w-80 xl:w-96">
+      <div className="lg:w-80 xl:w-96">
+        <button type="button" className="btn btn-secondary mb-2 lg:hidden" aria-expanded={panelOpen} onClick={() => setPanelOpen((o) => !o)}>
+          {panelOpen ? "Hide the page" : "Show the original page"}
+        </button>
+        <div className={`${panelOpen ? "block" : "hidden"} lg:block lg:sticky lg:top-4`}>
           <PagePanel jobId={jobId} page={focusedPage} pageCount={effectivePageCount} onPage={setFocusedPage} />
         </div>
-      )}
+      </div>
 
       {preview !== null && (
         <Modal title={`Page ${preview} of ${filename}`} onClose={() => setPreview(null)}>

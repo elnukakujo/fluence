@@ -252,6 +252,25 @@
     outline-offset: 1px;
   }
 
+  /* Import review: a textarea that grows with its content so a whole grammar sheet is readable */
+  .input-grow {
+    min-height: 7rem;
+    resize: vertical;
+    line-height: 1.5;
+    field-sizing: content;
+  }
+
+  /* Import review: field label, kind section header, and the side-by-side "already saved" box */
+  .field-label { font-size: 0.75rem; opacity: 0.6; }
+  .review-section { font-size: 1rem; font-weight: 600; margin-top: 0.5rem; }
+  .existing-box {
+    border: 1px dashed var(--color-border);
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    background: var(--color-accent-soft);
+  }
+
   .badge {
     display: inline-flex;
     align-items: center;
