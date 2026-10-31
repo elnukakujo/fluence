@@ -38,17 +38,24 @@ class RawItem(BaseModel):
 
 
 def _system_prompt(target: str, source: str | None) -> str:
-    gloss = f" Translations, when the text gives them, are in {source}." if source else ""
+    tr = "str (never null)" if source else "str|null"
+    if source:
+        translate = (
+            f"- Use the translation the text gives. If the entry has none (a manual written only in {target}), "
+            f"write a short, common {source} translation yourself; it is reviewed by a person, never trusted. Never leave `translation` null.\n"
+        )
+    else:
+        translate = "- If the text gives no translation for an entry, leave that entry out.\n"
     return (
-        f"You extract {target} vocabulary from text that comes from a language-learning document.{gloss}\n"
+        f"You extract {target} vocabulary from text that comes from a language-learning document.\n"
         "Rules:\n"
-        "- Extract only vocabulary the text presents as an entry with its translation (a word list, glossary or "
-        "table row). Skip words that only occur inside example sentences, dialogues, grammar notes or exercises, and skip contents pages, headings, section titles and page headers.\n"
-        "- Invent nothing: no extra words, no translations the text does not give, no corrections. "
-        "If the text gives no translation for a word, leave that word out.\n"
+        "- Extract only vocabulary the text presents as an entry (a word list, glossary, table row or "
+        "word-and-phrase summary). Skip words that only occur inside example sentences, dialogues, grammar notes or exercises, and skip contents pages, headings, section titles and page headers.\n"
+        f"{translate}"
+        "- Invent nothing else: no extra entries, no corrections.\n"
         "- For every item give a `quote`: a short span copied verbatim from the text that contains the word.\n"
         "- Reply with ONLY a JSON array, no prose. Each item: "
-        '{"word": str, "translation": str|null, "phonetic": str|null, "word_type": str|null, "quote": str}.\n'
+        f'{{"word": str, "translation": {tr}, "phonetic": str|null, "word_type": str|null, "quote": str}}.\n'
         "- If the text has no vocabulary, reply []."
     )
 
@@ -93,6 +100,6 @@ def _validated(data) -> list[RawItem]:
         except ValidationError:
             logger.info("Dropping malformed extraction item: %r", raw)
             continue
-        if item.translation:  # a bare word is not an import candidate, whatever the model says
+        if item.translation:  # an entry without any translation is not an import candidate, whatever the model says
             items.append(item)
     return items

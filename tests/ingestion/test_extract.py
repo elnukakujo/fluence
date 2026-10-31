@@ -103,3 +103,9 @@ def test_empty_reply_says_so(monkeypatch):
     _stub(monkeypatch, "", "")
     with pytest.raises(ExtractionError, match="returned no text"):
         _run()
+
+
+def test_prompt_asks_for_a_translation_only_when_a_source_language_is_known():
+    from lapp.services.ingestion.extract import _system_prompt
+    assert "never null" in _system_prompt("German", "English")
+    assert "leave that entry out" in _system_prompt("German", None)
