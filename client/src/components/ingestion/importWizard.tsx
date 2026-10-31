@@ -6,12 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type AcceptPayload } from "@/lib/ingestion/review";
 import ProgressBar from "@/components/ui/progressBar";
 import {
-  ACTIVE_STATUSES, type Capabilities, type Job, acceptCandidates, confirmPages, deleteJob, getCandidates, getCapabilities,
+  ACTIVE_STATUSES, type Capabilities, type Job, type SourceMetadata, acceptCandidates, confirmPages, deleteJob, getCandidates, getCapabilities,
   getJob, getPages, uploadDocument,
 } from "@/api/ingestion";
 import { type Candidate, parsePageRange } from "@/lib/ingestion/review";
 import ReviewPanel from "./reviewPanel";
 import PageKinds from "./pageKinds";
+import SourceStep, { type SourceStepData } from "./sourceStep";
 
 type Props = { languageId: string; lessonId: string; lessonTitle: string; settingsHref: string };
 
@@ -26,8 +27,8 @@ export default function ImportWizard(props: Props) {
 }
 
 // Shared by lesson-level (lessonId set) and language-level (no lesson) imports.
-export function UploadStep({ languageId, lessonId, heading, settingsHref, base, cancelHref }: {
-  languageId: string; lessonId?: string; heading: string; settingsHref: string; base: string; cancelHref: string;
+export function UploadStep({ languageId, lessonId, heading, settingsHref, base, cancelHref, languageCode = "zho", showLevel = false }: {
+  languageId: string; lessonId?: string; heading: string; settingsHref: string; base: string; cancelHref: string; languageCode?: string; showLevel?: boolean;
 }) {
   const router = useRouter();
   const [caps, setCaps] = useState<Capabilities | null>(null);
@@ -37,6 +38,11 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
   const [handwritten, setHandwritten] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [source, setSource] = useState<SourceStepData>({
+    source_title: "",
+    source_type: "textbook",
+    source_description: "",
+  });
 
   useEffect(() => { getCapabilities(languageId, lessonId).then(setCaps).catch((e) => setError(e.message)); }, [languageId, lessonId]);
 
@@ -54,6 +60,10 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
     if (lessonId) form.append("lesson_id", lessonId);
     if (handwritten) form.append("handwritten", "true");
     if (range.range) { form.append("page_from", String(range.range[0])); form.append("page_to", String(range.range[1])); }
+    if (source.source_title) form.append("source_title", source.source_title);
+    if (source.source_type) form.append("source_type", source.source_type);
+    if (source.source_description) form.append("source_description", source.source_description);
+    if (source.level) form.append("level", String(source.level));
     setBusy(true);
     setError(null);
     try {
@@ -87,6 +97,15 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
         <input className="input" type="file" accept=".pdf,image/*" disabled={blocked || busy}
           onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </label>
+
+      {file && (
+        <SourceStep
+          filename={file.name}
+          onSourceChange={setSource}
+          languageCode={languageCode}
+          showLevel={showLevel}
+        />
+      )}
 
       <fieldset className="flex flex-col gap-1" disabled={blocked || busy}>
         <legend className="text-sm opacity-70">Pages (optional)</legend>

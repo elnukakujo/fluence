@@ -11,6 +11,7 @@ import {
 import {
   type Draft, addDraft, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
 } from "@/lib/ingestion/structure";
+import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
 import { STATUS_TEXT, UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
 import PageKinds from "./pageKinds";
@@ -21,9 +22,11 @@ type Props = { languageId: string; languageName: string; settingsHref: string };
 export default function LanguageImportWizard(props: Props) {
   const jobId = useSearchParams().get("job");
   const base = `/languages/${props.languageId}/import`;
+  const languageCode = LANGUAGE_to_ISO639_2T[props.languageName] || "zho";
   return jobId ? <JobView key={jobId} jobId={jobId} base={base} {...props} /> : (
     <UploadStep languageId={props.languageId} heading={`Import lessons into "${props.languageName}"`}
-      settingsHref={props.settingsHref} base={base} cancelHref={`/languages/${props.languageId}`} />
+      settingsHref={props.settingsHref} base={base} cancelHref={`/languages/${props.languageId}`}
+      languageCode={languageCode} showLevel={true} />
   );
 }
 

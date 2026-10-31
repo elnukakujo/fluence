@@ -1,6 +1,13 @@
 import { BASE_URL, getAuthHeaders } from "..";
 import type { AcceptItem, Candidate } from "@/lib/ingestion/review";
 
+export type SourceMetadata = {
+  source_title?: string;
+  source_type?: string;
+  source_description?: string;
+  level?: number;
+};
+
 export type Notice = { code: string; message: string };
 export type Capabilities = { can_import: boolean; reasons: Notice[]; warnings: Notice[] };
 
