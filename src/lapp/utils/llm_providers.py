@@ -17,7 +17,7 @@ PROVIDERS: dict[str, dict] = {
         "base_url": "https://api.deepseek.com/v1",
         "auth_type": "bearer",
         "api_format": "openai",
-        "purposes": ['text_gen'],
+        "purposes": ["text_gen"],
     },
     "ollama": {
         "label": "Ollama",
@@ -31,24 +31,24 @@ PROVIDERS: dict[str, dict] = {
         "base_url": "https://api.moonshot.cn/v1",
         "auth_type": "bearer",
         "api_format": "openai",
-        "purposes": ['text_gen'],
+        "purposes": ["text_gen"],
     },
     "groq": {
         "label": "Groq",
         "base_url": "https://api.groq.com/openai/v1",
         "auth_type": "bearer",
         "api_format": "openai",
-        "purposes": ['text_gen'],
+        "purposes": ["text_gen"],
     },
     "mistral": {
         "label": "Mistral",
         "base_url": "https://api.mistral.ai/v1",
         "auth_type": "bearer",
         "api_format": "openai",
-        "purposes": ['text_gen', 'ocr'],
+        "purposes": ["text_gen"],
     },
     "mistral_ocr": {
-        "label": "Mistral OCR (dedicated)",
+        "label": "Mistral OCR",
         "base_url": "https://api.mistral.ai/v1",
         "auth_type": "bearer",
         "api_format": "mistral_ocr",
@@ -80,14 +80,14 @@ PROVIDERS: dict[str, dict] = {
         "base_url": "http://localhost:8080/v1",
         "auth_type": "none",
         "api_format": "openai",
-        "purposes": ['text_gen'],
+        "purposes": ["text_gen"],
     },
     "localai": {
         "label": "LocalAI",
         "base_url": "http://localhost:8080/v1",
         "auth_type": "none",
         "api_format": "openai",
-        "purposes": ['text_gen'],
+        "purposes": ["text_gen"],
     },
     "elevenlabs": {
         "label": "ElevenLabs",
@@ -119,8 +119,7 @@ PROVIDERS: dict[str, dict] = {
     },
 }
 
-# "purposes" = which endpoint purposes (text_gen / tts / ocr) a provider is offered for; "both"
-# endpoints are those listing text_gen and tts. Vision (ocr) is per-model, so the connection test is what proves it.
+# "purposes" = which endpoint purposes (text_gen / tts / ocr) a provider is offered for. Vision (ocr) is per-model, so the connection test is what proves it.
 # List form for the /api/pref/providers endpoint — keeps the frontend in sync
 # without duplicating the catalog in client code.
 PROVIDER_LIST = [

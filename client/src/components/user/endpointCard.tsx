@@ -22,10 +22,10 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { value: "ollama", label: "Ollama", base_url: "http://localhost:11434/v1", auth_type: "none", api_format: "openai", purposes: ["text_gen", "ocr"] },
   { value: "kimi", label: "Kimi (Moonshot)", base_url: "https://api.moonshot.cn/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen"] },
   { value: "groq", label: "Groq", base_url: "https://api.groq.com/openai/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen"] },
-  { value: "mistral", label: "Mistral", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "ocr"] },
+  { value: "mistral", label: "Mistral", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen"] },
   { value: "openrouter", label: "OpenRouter", base_url: "https://openrouter.ai/api/v1", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "ocr"] },
   { value: "anthropic", label: "Anthropic (Claude)", base_url: "https://api.anthropic.com/v1", auth_type: "x-api-key", api_format: "anthropic", purposes: ["text_gen", "ocr"] },
-  { value: "mistral_ocr", label: "Mistral OCR (dedicated)", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "mistral_ocr", purposes: ["ocr"] },
+  { value: "mistral_ocr", label: "Mistral OCR", base_url: "https://api.mistral.ai/v1", auth_type: "bearer", api_format: "mistral_ocr", purposes: ["ocr"] },
   { value: "gemini", label: "Google Gemini", base_url: "https://generativelanguage.googleapis.com/v1beta", auth_type: "param", api_format: "gemini", purposes: ["text_gen", "ocr"] },
   { value: "llamacpp", label: "llama.cpp Server", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai", purposes: ["text_gen"] },
   { value: "localai", label: "LocalAI", base_url: "http://localhost:8080/v1", auth_type: "none", api_format: "openai", purposes: ["text_gen"] },
@@ -38,7 +38,6 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
 const TYPE_OPTIONS = [
   { value: "text_gen", label: "Text Generation" },
   { value: "tts", label: "Text-to-Speech" },
-  { value: "both", label: "Both" },
   { value: "ocr", label: "Document Extraction (OCR)" },
 ] as const;
 
@@ -49,10 +48,10 @@ const TYPE_LABELS: Record<string, string> = {
   ocr: "OCR",
 };
 
-// Providers offered for a purpose, from the catalog's `purposes`. "both" = text generation AND speech.
+// Providers offered for a purpose, from the catalog's `purposes`.
 // Vision is per-model, not per-provider - "Test connection" is what actually proves it.
 const offeredFor = (p: ProviderOption, type?: string) =>
-  type === "both" ? p.purposes.includes("text_gen") && p.purposes.includes("tts") : !!type && p.purposes.includes(type);
+  !!type && p.purposes.includes(type);
 
 // Map backend error patterns to user-friendly hints
 function friendlyError(error: string): string {
@@ -218,6 +217,8 @@ export default function EndpointCard({
               {TYPE_OPTIONS.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
+              {/* Legacy: "Both" can no longer be chosen, but saved endpoints keep it until changed */}
+              {endpoint.api_type === "both" && <option value="both">Both (legacy)</option>}
             </select>
           </label>
 

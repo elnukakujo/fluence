@@ -17,5 +17,5 @@ def test_text_gen_has_no_speech_or_ocr_only_providers():
 
 def test_tts_and_ocr_lists_are_tailored():
     assert _for("tts") == {"openai", "elevenlabs", "google_tts", "local_tts", "custom"}
-    assert "deepseek" not in _for("ocr") and "mistral_ocr" in _for("ocr")
+    assert "deepseek" not in _for("ocr") and "mistral" not in _for("ocr") and "mistral_ocr" in _for("ocr")
     assert "elevenlabs" not in _for("ocr")
