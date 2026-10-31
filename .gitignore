@@ -4,9 +4,7 @@
 *.dump
 
 # Media files
-media/images/*
-media/audio/*
-media/temp/*
+media/
 media_dev/
 media_test/
 
