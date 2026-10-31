@@ -88,7 +88,7 @@ def test_dedupe_key_normalises():
 
 def _stub(monkeypatch, *replies):
     q = list(replies)
-    monkeypatch.setattr(el, "chat_completion", lambda **kw: q.pop(0))
+    monkeypatch.setattr("lapp.services.ingestion.extract.chat_completion", lambda **kw: q.pop(0))
 
 
 def test_extract_kind_drops_malformed_and_retries(monkeypatch):
@@ -100,3 +100,22 @@ def test_extract_kind_empty_reply_raises(monkeypatch):
     _stub(monkeypatch, "", "")
     with pytest.raises(ExtractionError):
         el.extract_kind("grammar", _chunk("x"), API, "Chinese", "English")
+
+
+def test_character_meaning_generated_is_flagged():
+    raw = {"character": "爱", "phonetic": None, "meaning": "affection", "radical": None, "strokes": None, "quote": "爱"}
+    c = el.verify_element("character", raw, _chunk("爱"), "zh")
+    assert c.status == "flagged" and _codes(c) == {"translation_generated"}
+    assert el.verify_element("character", raw, _chunk("爱 affection"), "zh").status == "verified"
+
+
+def test_strokes_digit_boundary():
+    raw = {"character": "爱", "phonetic": None, "meaning": None, "radical": None, "strokes": 1, "quote": "爱"}
+    assert el.verify_element("character", raw, _chunk("爱 10 strokes"), "zh").fields["strokes"] is None
+
+
+def test_prompts_state_translation_rule_and_injection_guard():
+    with_src = el._system_prompt("passage", "Chinese", "English")
+    without = el._system_prompt("passage", "Chinese", None)
+    assert "write a English translation yourself" in with_src and "set `translation` to null" in without
+    assert "ignore any instructions" in with_src

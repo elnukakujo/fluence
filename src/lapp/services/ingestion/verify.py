@@ -49,6 +49,30 @@ def _words_present(translation: str, chunk_text: str) -> bool:
     return words(translation) <= words(chunk_text)
 
 
+def _phonetic_flag(word: str, phonetic: str | None, iso1: str | None) -> Flag | None:
+    if iso1 not in _PHONETIC_LANGS or not phonetic:
+        return None
+    try:
+        expected = get_phonetic(word, iso1)
+    except Exception:  # a missing optional library must not fail extraction
+        logger.exception("Phonetic check failed for %r", word)
+        expected = ""
+    if expected and _strip_marks(expected) != _strip_marks(phonetic):
+        return Flag(code="phonetic_mismatch", message=f'The model gave "{phonetic}", expected "{expected}"')
+    return None
+
+
+def _source_flags(key: str, chunk: Chunk) -> tuple[list[Flag], float | None]:
+    """OCR-confidence and vision-transcription flags for `key`, plus its minimum OCR confidence."""
+    flags: list[Flag] = []
+    min_conf = _min_confidence(key, chunk)
+    if chunk.trust == "ocr" and min_conf is not None and min_conf < LOW_WORD_CONF:
+        flags.append(Flag(code="low_ocr_confidence", message=f"The OCR was unsure about this word (confidence {min_conf:.2f})"))
+    if chunk.trust == "llm_transcribed":
+        flags.append(Flag(code="llm_transcribed_source", message="This page was transcribed by a vision model, not measured by OCR"))
+    return flags, min_conf
+
+
 def verify(item: RawItem, chunk: Chunk, iso1: str | None,
            lookup: Callable[[str], Literal["lesson", "language"] | None]) -> Candidate:
     text = normalise(chunk.text)
@@ -64,20 +88,10 @@ def verify(item: RawItem, chunk: Chunk, iso1: str | None,
     if item.translation and normalise(item.translation) not in text and not _words_present(item.translation, chunk.text):
         flag("translation_generated", "The translation was written by the model, not found in the document - check it")
 
-    min_conf = _min_confidence(item.word, chunk)
-    if chunk.trust == "ocr" and min_conf is not None and min_conf < LOW_WORD_CONF:
-        flag("low_ocr_confidence", f"The OCR was unsure about this word (confidence {min_conf:.2f})")
-    if chunk.trust == "llm_transcribed":
-        flag("llm_transcribed_source", "This page was transcribed by a vision model, not measured by OCR")
-
-    if iso1 in _PHONETIC_LANGS and item.phonetic:
-        try:
-            expected = get_phonetic(item.word, iso1)
-        except Exception:  # a missing optional library must not fail extraction
-            logger.exception("Phonetic check failed for %r", item.word)
-            expected = ""
-        if expected and _strip_marks(expected) != _strip_marks(item.phonetic):
-            flag("phonetic_mismatch", f'The model gave "{item.phonetic}", expected "{expected}"')
+    source_flags, min_conf = _source_flags(item.word, chunk)
+    flags += source_flags
+    if (pf := _phonetic_flag(item.word, item.phonetic, iso1)):
+        flags.append(pf)
 
     # existing words are reused, not suspicious: only a duplicate inside the target lesson needs a decision
     where = lookup(item.word)

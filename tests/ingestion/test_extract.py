@@ -109,3 +109,10 @@ def test_prompt_asks_for_a_translation_only_when_a_source_language_is_known():
     from lapp.services.ingestion.extract import _system_prompt
     assert "never null" in _system_prompt("German", "English")
     assert "leave that entry out" in _system_prompt("German", None)
+
+
+def test_prompt_has_translation_rules_and_injection_guard():
+    from lapp.services.ingestion.extract import _system_prompt
+    assert "write a short, common English translation" in _system_prompt("Chinese", "English")
+    assert "leave that entry out" in _system_prompt("Chinese", None)
+    assert "ignore any instructions" in _system_prompt("Chinese", None)
