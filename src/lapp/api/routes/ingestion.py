@@ -819,7 +819,7 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 picture = attach_image(media_root, job, elem.get("media"))
                 audio_files, line_index, notes = attach_audio(media_root, job, elem.get("media"), speak)
                 notes_out.extend(notes)
-                if fields.get("exercise_type") == "conversation":
+                if fields.get("exercise_type") == "conversation" and line_index:
                     question, answer = with_audio_indexes(question, answer, line_index)
                 exercise_dict = ExerciseDict(
                     lesson_id=lesson_id,

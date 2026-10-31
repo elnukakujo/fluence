@@ -455,7 +455,7 @@ def test_accept_elements_without_items(app, db, media_root, scheduled):
     res = client.post(f"/api/ingestion/{job_id}/accept", json={
         "lesson_id": "lesson_L1",
         "elements": [{"kind": "calligraphy", "fields": {"character": "中", "phonetic": None, "meaning": None, "radical": None, "strokes": None}}]})
-    assert res.status_code == 200 and res.get_json() == {"created": 0, "created_elements": 1}
+    assert res.status_code == 200 and res.get_json() == {"created": 0, "created_elements": 1, "notes": []}
 
 
 # ---- source fields -----------------------------------------------------------
