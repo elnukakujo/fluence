@@ -62,7 +62,7 @@ def verify(item: RawItem, chunk: Chunk, iso1: str | None,
     if normalise(item.quote) not in text:
         flag("quote_not_in_source", "The quoted passage does not appear in the source text")
     if item.translation and normalise(item.translation) not in text and not _words_present(item.translation, chunk.text):
-        flag("translation_not_in_source", "The translation is not in the source text (written by the model, check it)")
+        flag("translation_generated", "The translation was written by the model, not found in the document - check it")
 
     min_conf = _min_confidence(item.word, chunk)
     if chunk.trust == "ocr" and min_conf is not None and min_conf < LOW_WORD_CONF:

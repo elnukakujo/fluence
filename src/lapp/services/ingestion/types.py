@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from ..parsing.types import Word
 
 FlagCode = Literal[
-    "word_not_in_source", "quote_not_in_source", "translation_not_in_source",
+    "word_not_in_source", "quote_not_in_source", "translation_generated",
     "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
     "already_in_language", "already_in_lesson",
 ]

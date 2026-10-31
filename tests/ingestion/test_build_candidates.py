@@ -103,3 +103,9 @@ def test_lookup_callback_annotates_known_words(monkeypatch):
     _patch(monkeypatch, lambda c: [RawItem(word="bonjour", quote="bonjour hello")])
     cand = _build(_doc("bonjour hello"), None, lookup=lambda w: "language" if w == "bonjour" else None).candidates[0]
     assert {f.code for f in cand.flags} == {"already_in_language"} and cand.status == "verified"
+
+
+def test_the_same_word_on_two_pages_is_one_candidate(monkeypatch):
+    _patch(monkeypatch, lambda c: [RawItem(word="bonjour", quote="bonjour", translation="hello")])
+    result = _build(_doc("bonjour hello", "bonjour again"), None)
+    assert [c.page for c in result.candidates] == [0]

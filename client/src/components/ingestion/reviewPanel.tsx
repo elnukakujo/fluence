@@ -72,6 +72,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           const reasons = warningReasons(c);
           const info = infoNotes(c);
           const exists = c.flags.some((f) => f.code.startsWith("already_in_"));
+          const generated = c.flags.some((f) => f.code === "translation_generated");
           return (
             <li key={c.id} className="card flex flex-col gap-2">
               <div className="flex flex-wrap items-start gap-3">
@@ -83,8 +84,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
                     <input className="input" value={row[key]} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
                   </label>
                 ))}
-                <span className="badge mt-5" title={c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
-                  {c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
+                <span className="badge mt-5" title={generated ? "The document gave no translation; the model wrote this one" : c.status === "verified" ? "Found in the document text" : "Could not be confirmed"}>
+                  {generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Confirmed" : "⚠ Check this"}
                 </span>
               </div>
               {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}

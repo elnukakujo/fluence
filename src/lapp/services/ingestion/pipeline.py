@@ -9,7 +9,7 @@ from ..parsing.types import Document
 from .chunk import chunk_document
 from .extract import ExtractionError, extract_chunk
 from .types import Candidate
-from .verify import verify
+from .verify import normalise, verify
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +44,13 @@ def build_candidates(
         return result
 
     failed = 0
+    seen: set[str] = set()  # the same word in a table and a list is one candidate; the first occurrence wins
     for i, chunk in enumerate(chunks, start=1):
         try:
             for item in extract_chunk(chunk, api, target_name, source_name):
-                result.candidates.append(verify(item, chunk, iso1, lookup))
+                if normalise(item.word) not in seen:
+                    seen.add(normalise(item.word))
+                    result.candidates.append(verify(item, chunk, iso1, lookup))
         except ExtractionError as e:
             failed += 1
             result.warnings.append(f"page {chunk.page + 1}: could not read the model's answer ({e})")

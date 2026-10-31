@@ -39,9 +39,9 @@ def test_quote_missing_but_word_present():
     assert _codes(cand) == {"quote_not_in_source"}
 
 
-def test_translation_not_in_source_is_flagged():
+def test_translation_generated_is_flagged():
     cand = _verify(_item(translation="pomme"), _chunk("apple - manzana"))
-    assert _codes(cand) == {"translation_not_in_source"}
+    assert _codes(cand) == {"translation_generated"}
 
 
 def test_no_translation_is_not_a_flag():
@@ -109,4 +109,4 @@ def test_phonetic_is_not_checked_for_latin_languages():
 def test_translation_split_across_columns_is_not_flagged():
     text = "1. apple n. a fruit, to eat\nB: Hello there a red thing\nraw"  # "to eat raw" is wrapped around another column
     cand = _verify(_item(translation="a fruit, to eat raw", quote="apple n. a fruit, to eat"), _chunk(text))
-    assert "translation_not_in_source" not in _codes(cand)
+    assert "translation_generated" not in _codes(cand)
