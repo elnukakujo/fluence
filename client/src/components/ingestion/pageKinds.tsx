@@ -50,10 +50,11 @@ export default function PageKinds({ pages, value, onChange, jobId }: Props) {
                           key={kind}
                           type="button"
                           aria-pressed={isActive}
-                          className={`chip ${isActive ? "btn-primary" : "btn-secondary"}`}
+                          className="chip"
+                          style={isActive ? { background: "var(--color-primary)", color: "var(--color-primary-foreground)" } : undefined}
                           onClick={() => toggleKind(page, kind)}
                         >
-                          {kind.charAt(0).toUpperCase() + kind.slice(1)}
+                          {isActive ? "✓ " : ""}{kind.charAt(0).toUpperCase() + kind.slice(1)}
                         </button>
                       );
                     })}

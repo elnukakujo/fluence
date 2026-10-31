@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Job, type LessonProgress, type Structure, acceptLesson, confirmStructure, deleteJob, getJob,
-  getLanguageCandidates, getStructure,
+  flattenElements, getLanguageCandidates, getStructure,
 } from "@/api/ingestion";
 import {
   type Draft, addDraft, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
@@ -297,11 +297,11 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={l.candidates ?? []}
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]}
             addLabel={(n) => `Add ${n} to a new lesson "${l.title}"`}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);
-              onAdded({ lessonId: r.lesson_id, count: r.created });
+              onAdded({ lessonId: r.lesson_id, count: r.created + (r.created_elements ?? 0) });
             }} />
         )}
       </div>

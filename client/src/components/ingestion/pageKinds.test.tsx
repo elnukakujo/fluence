@@ -11,8 +11,8 @@ describe("PageKinds", () => {
   it("reflects active kinds via aria-pressed and toggles one on click", async () => {
     const onChange = vi.fn();
     render(<PageKinds pages={[1, 2]} value={{ 1: ["vocabulary"], 2: ["grammar"] }} onChange={onChange} />);
-    const [vocab1] = screen.getAllByRole("button", { name: "Vocabulary" });
-    const [passage1] = screen.getAllByRole("button", { name: "Passage" });
+    const [vocab1] = screen.getAllByRole("button", { name: /Vocabulary/ });
+    const [passage1] = screen.getAllByRole("button", { name: /Passage/ });
     expect(vocab1).toHaveAttribute("aria-pressed", "true");
     expect(passage1).toHaveAttribute("aria-pressed", "false");
 
@@ -26,7 +26,7 @@ describe("PageKinds", () => {
     const onChange = vi.fn();
     render(<PageKinds pages={[3]} value={{ 3: [] }} onChange={onChange} />);
     expect(screen.getByText(/skipped/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Character" }));
+    await userEvent.click(screen.getByRole("button", { name: /Character/ }));
     expect(onChange).toHaveBeenCalledWith({ 3: ["character"] });
   });
 

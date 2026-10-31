@@ -39,11 +39,11 @@ describe("lesson ImportWizard", () => {
 
     expect(await screen.findByText(/Confirm page kinds in book.pdf/)).toBeInTheDocument();
     // add "Passage" to page 1 (first Passage chip)
-    await userEvent.click(screen.getAllByRole("button", { name: "Passage" })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /Passage/ })[0]);
     await userEvent.click(screen.getByRole("button", { name: "Continue to extraction" }));
 
     expect(api.confirmPages).toHaveBeenCalledWith("j1", { "1": ["vocabulary", "passage"], "2": ["grammar"] });
-    expect(push).toHaveBeenCalledWith("/languages/l/lesson/les/import");
+    expect(push).toHaveBeenCalledWith("/languages/l/lesson/les/import?job=j1");
   });
 });
 
@@ -60,7 +60,7 @@ describe("LanguageImportWizard", () => {
 
     expect(await screen.findByDisplayValue("Lesson A")).toBeInTheDocument();
     expect(screen.getByText(/Nothing here or contents page/)).toBeInTheDocument(); // page 2 is []
-    await userEvent.click(screen.getAllByRole("button", { name: "Grammar" })[0]); // page 1 += grammar
+    await userEvent.click(screen.getAllByRole("button", { name: /Grammar/ })[0]); // page 1 += grammar
     await userEvent.click(screen.getByRole("button", { name: /Extract vocabulary from 1 lesson/ }));
 
     expect(api.confirmStructure).toHaveBeenCalledWith(

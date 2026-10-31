@@ -28,6 +28,7 @@ export type LessonProgress = {
   counts: { total: number; verified: number; flagged: number } | null;
   created_lesson_id: string | null;
   candidates?: Candidate[];
+  elements?: Parameters<typeof flattenElements>[0];
 };
 
 export type Structure = {
@@ -68,10 +69,18 @@ export async function listJobs(): Promise<Job[]> {
   return res.json();
 }
 
+type StoredElement = { kind: Candidate["kind"]; fields: Record<string, unknown> } & Omit<Candidate, "kind">;
+
+/** The server keeps element data under `fields`; the review rows read it flat, like a vocabulary candidate. */
+export function flattenElements(elements: StoredElement[] = []): Candidate[] {
+  return elements.map((e) => ({ ...e.fields, ...e }) as unknown as Candidate);
+}
+
 export async function getCandidates(jobId: string): Promise<{ candidates: Candidate[]; warnings: string[] }> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/candidates`, { headers: await getAuthHeaders() });
   if (!res.ok) return fail(res, "Could not load the results");
-  return res.json();
+  const body = await res.json();
+  return { ...body, candidates: [...body.candidates, ...flattenElements(body.elements)] };
 }
 
 export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[], elements?: { kind: string; fields: Record<string, unknown> }[]): Promise<{ created: number; created_elements: number }> {

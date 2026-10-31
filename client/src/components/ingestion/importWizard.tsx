@@ -224,7 +224,7 @@ function PagesStep({ job, lessonId, lessonTitle, base }: {
         pageKindsStr[key] = kinds;
       }
       await confirmPages(job.id, pageKindsStr);
-      router.push(base);
+      router.push(`${base}?job=${job.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not confirm the pages");
       setSaving(false);
@@ -290,7 +290,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base }: {
       </header>
       <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates}
         addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
-        onAdd={async (payload) => { setAdded((await acceptCandidates(job.id, lessonId, payload.items, payload.elements)).created); }} />
+        onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">
         <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>Leave without adding</button>
       </div>

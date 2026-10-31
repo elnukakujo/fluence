@@ -230,7 +230,9 @@ def _lessons_view(job: dict, with_candidates: bool = False) -> list[dict]:
         item["created_lesson_id"] = created.read_text().strip() if created.is_file() else None
         if with_candidates and lesson["status"] == "done":
             path = candidates_path(media_root, job["id"], lesson["index"])
-            item["candidates"] = json.loads(path.read_text())["candidates"] if path.is_file() else []
+            stored = json.loads(path.read_text()) if path.is_file() else {}
+            item["candidates"] = stored.get("candidates", [])
+            item["elements"] = stored.get("elements", [])
         out.append(item)
     return out
 

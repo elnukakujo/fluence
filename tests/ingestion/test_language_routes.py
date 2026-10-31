@@ -107,8 +107,10 @@ def test_language_candidates_are_grouped_by_lesson_and_only_finished_ones_carry_
     svc.update(job_id, status="extracting", structure=_structure(True, ("done", "pending")))
     path = candidates_path(media_root, job_id, 0)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"candidates": [{"id": "c0", "word": "bonjour"}], "warnings": []}))
+    path.write_text(json.dumps({"candidates": [{"id": "c0", "word": "bonjour"}],
+                                  "elements": [{"id": "e0", "kind": "grammar", "fields": {}}], "warnings": []}))
     body = client.get(f"/api/ingestion/{job_id}/candidates").get_json()
+    assert body["lessons"][0]["elements"] == [{"id": "e0", "kind": "grammar", "fields": {}}]
     assert [l["title"] for l in body["lessons"]] == ["Salutations", "Merci"]
     assert body["lessons"][0]["candidates"] == [{"id": "c0", "word": "bonjour"}]
     assert "candidates" not in body["lessons"][1] or body["lessons"][1]["candidates"] == []
