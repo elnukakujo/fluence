@@ -43,7 +43,7 @@ def _system_prompt(target: str, source: str | None) -> str:
         f"You extract {target} vocabulary from text that comes from a language-learning document.{gloss}\n"
         "Rules:\n"
         "- Extract only vocabulary the text presents as an entry with its translation (a word list, glossary or "
-        "table row). Skip words that only occur inside example sentences, dialogues, grammar notes or exercises.\n"
+        "table row). Skip words that only occur inside example sentences, dialogues, grammar notes or exercises, and skip contents pages, headings, section titles and page headers.\n"
         "- Invent nothing: no extra words, no translations the text does not give, no corrections. "
         "If the text gives no translation for a word, leave that word out.\n"
         "- For every item give a `quote`: a short span copied verbatim from the text that contains the word.\n"
