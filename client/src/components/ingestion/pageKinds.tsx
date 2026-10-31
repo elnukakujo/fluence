@@ -42,26 +42,23 @@ export default function PageKinds({ pages, value, onChange, jobId }: Props) {
                   )}
                 </div>
                 <div className="flex-1">
-                  {isEmpty ? (
-                    <p className="text-sm opacity-70 italic">Nothing here or contents page - skipped</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {KINDS.map((kind) => {
-                        const isActive = kindsForPage.includes(kind);
-                        return (
-                          <button
-                            key={kind}
-                            type="button"
-                            aria-pressed={isActive}
-                            className={`chip ${isActive ? "btn-primary" : "btn-secondary"}`}
-                            onClick={() => toggleKind(page, kind)}
-                          >
-                            {kind.charAt(0).toUpperCase() + kind.slice(1)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {KINDS.map((kind) => {
+                      const isActive = kindsForPage.includes(kind);
+                      return (
+                        <button
+                          key={kind}
+                          type="button"
+                          aria-pressed={isActive}
+                          className={`chip ${isActive ? "btn-primary" : "btn-secondary"}`}
+                          onClick={() => toggleKind(page, kind)}
+                        >
+                          {kind.charAt(0).toUpperCase() + kind.slice(1)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {isEmpty && <p className="mt-2 text-sm opacity-70 italic">Nothing here or contents page - skipped</p>}
                 </div>
               </div>
             </li>
