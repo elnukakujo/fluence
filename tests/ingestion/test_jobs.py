@@ -58,6 +58,21 @@ def test_job_stores_page_kinds(job):
     assert svc.get(job["id"])["page_kinds"] == {"3": ["grammar"]}
 
 
+def test_create_accepts_source_fields_with_defaults_to_none(app, db, media_root):
+    make_user(db, "user_U1")
+    make_language(db, "user_U1")
+    job1 = svc.create("user_U1", "lang_L1", "lesson_L1", "notes.pdf")
+    assert job1["source_title"] is None and job1["source_type"] is None
+    assert job1["source_description"] is None and job1["level"] is None
+    job2 = svc.create("user_U1", "lang_L1", "lesson_L1", "notes.pdf",
+                      source_title="HSK 2", source_type="textbook",
+                      source_description="Manual", level=2)
+    assert job2["source_title"] == "HSK 2" and job2["source_type"] == "textbook"
+    assert job2["source_description"] == "Manual" and job2["level"] == 2
+    fetched = svc.get(job2["id"])
+    assert fetched["source_title"] == "HSK 2" and fetched["level"] == 2
+
+
 def test_only_the_owner_can_get_or_delete_a_job(job, db):
     make_user(db, "user_U2")
     assert svc.get(job["id"], user_id="user_U2") is None

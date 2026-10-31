@@ -59,12 +59,15 @@ class IngestionJobService:
     @transactional
     def create(self, user_id: str, language_id: str, lesson_id: Optional[str], filename: str,
                handwritten: bool = False, page_from: Optional[int] = None, page_to: Optional[int] = None,
+               source_title: Optional[str] = None, source_type: Optional[str] = None,
+               source_description: Optional[str] = None, level: Optional[int] = None,
                session: Optional[Session] = None) -> dict:
         job_id = db_manager.generate_new_id(IngestionJob, session=session)
         job = IngestionJob(
             id=job_id, user_id=user_id, language_id=language_id, lesson_id=lesson_id,
             filename=filename, file_path=f"ingestion/{job_id}/{safe_filename(filename)}",
             handwritten=handwritten, page_from=page_from, page_to=page_to, status="queued", warnings=[],
+            source_title=source_title, source_type=source_type, source_description=source_description, level=level,
         )
         session.add(job)
         session.flush()

@@ -116,6 +116,9 @@ def page_preview(job_id: str, page: int):
     return Response(png, mimetype="image/png", headers={"Cache-Control": "private, max-age=3600"})
 
 
+_ALLOWED_SOURCE_TYPES = {"original", "textbook", "class", "online", "media", "social", "other", "ai"}
+
+
 @bp.route("", methods=["POST"])
 @login_required
 def upload():
@@ -132,6 +135,10 @@ def upload():
         - {name: handwritten, in: formData, type: boolean, required: false}
         - {name: page_from, in: formData, type: integer, required: false}
         - {name: page_to, in: formData, type: integer, required: false}
+        - {name: source_title, in: formData, type: string, required: false}
+        - {name: source_type, in: formData, type: string, required: false}
+        - {name: source_description, in: formData, type: string, required: false}
+        - {name: level, in: formData, type: integer, required: false}
     responses:
         202: {description: Job queued}
         400: {description: Invalid upload or no text-generation endpoint configured}
@@ -150,6 +157,22 @@ def upload():
     if error:
         return jsonify({"error": error}), 400
 
+    # Parse and validate source fields
+    source_title = (request.form.get("source_title") or "").strip() or None
+    source_type = (request.form.get("source_type") or "").strip() or None
+    source_description = (request.form.get("source_description") or "").strip() or None
+    level_str = (request.form.get("level") or "").strip()
+    level = None
+    if level_str:
+        try:
+            level = int(level_str)
+            if level < 1 or level > 9:
+                return jsonify({"error": "level must be between 1 and 9"}), 400
+        except ValueError:
+            return jsonify({"error": "level must be an integer"}), 400
+    if source_type and source_type not in _ALLOWED_SOURCE_TYPES:
+        return jsonify({"error": f"source_type must be one of: {', '.join(sorted(_ALLOWED_SOURCE_TYPES))}"}), 400
+
     require_write(language_id)
     if lesson_id:
         require_write(lesson_id)
@@ -164,7 +187,9 @@ def upload():
     handwritten = (request.form.get("handwritten") or "").lower() in ("1", "true", "on", "yes")
     job = job_service.create(current_user_id(), language_id, lesson_id, file.filename, handwritten,
                              page_from=page_range[0] if page_range else None,
-                             page_to=page_range[1] if page_range else None)
+                             page_to=page_range[1] if page_range else None,
+                             source_title=source_title, source_type=source_type,
+                             source_description=source_description, level=level)
     media_root = Path(current_app.config["MEDIA_ROOT"])
     try:
         job_dir(media_root, job["id"]).mkdir(parents=True, exist_ok=True)
@@ -452,7 +477,7 @@ def accept_lesson(job_id: str, index: int):
         if not lesson_id or not LessonService().get_by_id(lesson_id, session=session):
             created = LessonService().create(LessonDict(
                 title=(body.get("title") or lesson["title"]).strip(), language_id=job["language_id"],
-                user_id=owner_user_id(job["language_id"])), session=session)
+                user_id=owner_user_id(job["language_id"]), level=job.get("level")), session=session)
             lesson_id = created.id
         added = _add_vocabulary(session, job, lesson_id, items)
         added_elements = _add_elements(session, job, lesson_id, job["language_id"], elements)
@@ -536,7 +561,7 @@ def _invalid_items(items) -> str | None:
 def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
     """Create Word + Vocabulary for each item in `lesson_id`, tagged with the import's Source."""
     vocabulary_service, source_service = VocabularyService(), SourceService()
-    source = _import_source(session, current_user_id(), job["filename"])
+    source = _import_source(session, current_user_id(), job)
     created = 0
     for item in items:
         word = WordDict(
@@ -551,14 +576,23 @@ def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
     return created
 
 
-def _import_source(session, user_id: str, filename: str):
-    """The user's "Imported from <file>" source, created on first use and reused after."""
+def _import_source(session, user_id: str, job: dict):
+    """The source for the job, using job's source_title/source_type/source_description if set,
+    else the old "Imported from <filename>" fallback. Reuses an existing source with the same title."""
     from ...models.system_data import Source
-    title = f"Imported from {filename}"
+    if job.get("source_title"):
+        title = job["source_title"]
+        source_type = job.get("source_type") or "textbook"
+        description = job.get("source_description")
+    else:
+        title = f"Imported from {job['filename']}"
+        source_type = "other"
+        description = None
     existing = session.query(Source).filter(Source.user_id == user_id, Source.title == title).first()
     if existing:
         return existing
-    return SourceService().create(SourceDict(user_id=user_id, title=title, source_type="other"), session=session)
+    return SourceService().create(SourceDict(user_id=user_id, title=title, source_type=source_type,
+                                            description=description), session=session)
 
 
 def _invalid_elements(elements) -> str | None:
@@ -611,7 +645,7 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
     grammar_service = GrammarService()
     exercise_service = ExerciseService()
     source_service = SourceService()
-    source = _import_source(session, current_user_id(), job["filename"])
+    source = _import_source(session, current_user_id(), job)
     calligraphy_service = CalligraphyService()
 
     created = 0

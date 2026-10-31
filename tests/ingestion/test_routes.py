@@ -456,3 +456,82 @@ def test_accept_elements_without_items(app, db, media_root, scheduled):
         "lesson_id": "lesson_L1",
         "elements": [{"kind": "calligraphy", "fields": {"character": "中", "phonetic": None, "meaning": None, "radical": None, "strokes": None}}]})
     assert res.status_code == 200 and res.get_json() == {"created": 0, "created_elements": 1}
+
+
+# ---- source fields -----------------------------------------------------------
+
+def test_upload_accepts_source_fields_with_validation(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    res = _upload(client, source_title="HSK 2", source_type="textbook", source_description="Manual", level="2")
+    assert res.status_code == 202
+    job_id = res.get_json()["job_id"]
+    job = svc.get(job_id)
+    assert (job["source_title"], job["source_type"], job["source_description"], job["level"]) == ("HSK 2", "textbook", "Manual", 2)
+
+
+def test_upload_rejects_invalid_source_type(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    res = _upload(client, source_type="invalid_type")
+    assert res.status_code == 400 and "source_type" in res.get_json()["error"]
+    assert scheduled == []
+
+
+def test_upload_rejects_invalid_level(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    for level in ["0", "10", "x", "-1"]:
+        res = _upload(client, level=level)
+        assert res.status_code == 400 and ("level" in res.get_json()["error"] or "integer" in res.get_json()["error"]), f"level={level}"
+    assert scheduled == []
+
+
+def test_upload_strips_blank_strings_to_none(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    res = _upload(client, source_title="  ", source_type="", source_description="", level="")
+    assert res.status_code == 202
+    job = svc.get(res.get_json()["job_id"])
+    assert job["source_title"] is None and job["source_type"] is None
+    assert job["source_description"] is None and job["level"] is None
+
+
+def test_source_created_with_title_and_type_from_job_fields(app, db, media_root, scheduled):
+    from lapp.models.system_data import Source
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, source_title="HSK 2", source_type="textbook", source_description="Pages 20-26").get_json()["job_id"]
+    svc.update(job_id, status="ready")
+    candidates_path(media_root, job_id).write_text(json.dumps({"candidates": [{"word": "你好"}], "warnings": []}))
+    client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "你好"}]})
+    with db.session_scope() as s:
+        sources = s.query(Source).filter(Source.user_id == "user_U1").all()
+        assert len(sources) == 1
+        assert (sources[0].title, sources[0].source_type, sources[0].description) == ("HSK 2", "textbook", "Pages 20-26")
+
+
+def test_source_fallback_without_job_fields(app, db, media_root, scheduled):
+    from lapp.models.system_data import Source
+    client = _setup(app, db, media_root)
+    job_id = _upload(client).get_json()["job_id"]  # no source fields
+    svc.update(job_id, status="ready")
+    candidates_path(media_root, job_id).write_text(json.dumps({"candidates": [{"word": "你好"}], "warnings": []}))
+    client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "你好"}]})
+    with db.session_scope() as s:
+        sources = s.query(Source).filter(Source.user_id == "user_U1").all()
+        assert len(sources) == 1
+        assert "Imported from" in sources[0].title and sources[0].source_type == "other"
+
+
+def test_source_reused_for_same_title(app, db, media_root, scheduled):
+    from lapp.models.system_data import Source
+    client = _setup(app, db, media_root)
+    # First import
+    job_id1 = _upload(client, source_title="HSK 2").get_json()["job_id"]
+    svc.update(job_id1, status="ready")
+    candidates_path(media_root, job_id1).write_text(json.dumps({"candidates": [{"word": "a"}], "warnings": []}))
+    client.post(f"/api/ingestion/{job_id1}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "a"}]})
+    # Second import with same title
+    job_id2 = _upload(client, source_title="HSK 2").get_json()["job_id"]
+    svc.update(job_id2, status="ready")
+    candidates_path(media_root, job_id2).write_text(json.dumps({"candidates": [{"word": "b"}], "warnings": []}))
+    client.post(f"/api/ingestion/{job_id2}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "b"}]})
+    with db.session_scope() as s:
+        sources = s.query(Source).filter(Source.user_id == "user_U1").all()
+        assert len(sources) == 1

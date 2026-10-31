@@ -28,6 +28,10 @@ class IngestionJob(Base):
     # {"1-based page": [kind, ...]} from the per-page kind classifier; null until classified
     page_kinds = Column(JSON, nullable=True)
     warnings = Column(JSON, nullable=False, default=list)
+    source_title = Column(String, nullable=True)
+    source_type = Column(String, nullable=True)
+    source_description = Column(Text, nullable=True)
+    level = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
@@ -38,6 +42,7 @@ class IngestionJob(Base):
             "handwritten": self.handwritten, "page_from": self.page_from, "page_to": self.page_to, "status": self.status,
             "pages_done": self.pages_done, "pages_total": self.pages_total,
             "error": self.error, "structure": self.structure, "page_kinds": self.page_kinds, "warnings": self.warnings or [],
+            "source_title": self.source_title, "source_type": self.source_type, "source_description": self.source_description, "level": self.level,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

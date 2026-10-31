@@ -199,3 +199,20 @@ def test_structure_post_rejects_bad_page_kinds(app, db, media_root, scheduled, m
     monkeypatch.setattr(app.scheduler, "schedule_extraction", lambda a, jid: pytest.fail("scheduled"))
     res = client.post(f"/api/ingestion/{job_id}/structure", json={"lessons": LESSONS, "page_kinds": {"1": ["wizard"]}})
     assert res.status_code == 400 and svc.get(job_id)["status"] == "structure"
+
+
+def test_accepted_lesson_has_level_from_job(app, db, media_root, scheduled):
+    from lapp.services import LessonService
+    client = _setup(app, db)
+    job_id = _upload(client, level="5").get_json()["job_id"]
+    svc.update(job_id, status="ready", structure=_structure(True, ("done", "done")))
+    for i, word in enumerate(["bonjour", "merci"]):
+        path = candidates_path(media_root, job_id, i)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"candidates": [{"id": f"c{i}", "word": word, "status": "verified", "flags": []}], "warnings": []}))
+    res = client.post(f"/api/ingestion/{job_id}/lessons/0/accept", json={
+        "items": [{"word": "bonjour", "translation": "hello"}]})
+    assert res.status_code == 200
+    lesson_id = res.get_json()["lesson_id"]
+    lesson = LessonService().get_by_id(lesson_id, as_dict=True)
+    assert lesson["level"] == 5
