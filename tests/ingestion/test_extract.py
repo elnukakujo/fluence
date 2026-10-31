@@ -91,3 +91,9 @@ def test_request_is_deterministic_and_forbids_invention(monkeypatch):
     system = kw["messages"][0]["content"].lower()
     assert "verbatim" in system and "invent nothing" in system and "chinese" in system
     assert CHUNK.text in kw["messages"][1]["content"]
+
+
+def test_empty_reply_says_so(monkeypatch):
+    _stub(monkeypatch, "", "")
+    with pytest.raises(ExtractionError, match="returned no text"):
+        _run()

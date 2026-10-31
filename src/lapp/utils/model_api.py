@@ -119,6 +119,9 @@ def _chat_completion_openai(
     # model is used for feedback etc. where thinking is wanted.
     if disable_thinking:
         body["chat_template_kwargs"] = {"enable_thinking": False}
+        # DeepSeek's own switch. Host-gated: OpenAI-style servers reject unknown fields.
+        if "api.deepseek.com" in base_url:
+            body["thinking"] = {"type": "disabled"}
     with httpx.Client(base_url=url, headers=headers, timeout=timeout, trust_env=False) as client:
         resp = client.post("/chat/completions", json=body)
         resp.raise_for_status()

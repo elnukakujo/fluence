@@ -60,12 +60,14 @@ def extract_chunk(chunk: Chunk, api: dict, target_name: str, source_name: str | 
         reply = chat_completion(
             base_url=api["base_url"], api_key=api.get("api_key", ""), model=api["model"],
             api_format=api.get("api_format", "openai"), auth_type=api.get("auth_type", "bearer"),
-            messages=messages, max_tokens=MAX_TOKENS, temperature=0,
+            messages=messages, max_tokens=MAX_TOKENS, temperature=0, disable_thinking=True,
         )
         data = _parse_json(reply)
         if data is not None:
             return _validated(data)
         logger.warning("Chunk %s: unparseable extraction reply (attempt %s)", chunk.id, attempt)
+    if not (reply or "").strip():
+        raise ExtractionError(f"The model returned no text for chunk {chunk.id} (a reasoning model may have run out of tokens)")
     raise ExtractionError(f"No valid JSON for chunk {chunk.id}")
 
 
