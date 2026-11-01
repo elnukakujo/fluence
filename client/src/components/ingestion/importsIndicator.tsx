@@ -36,43 +36,43 @@ export function focusJob<T extends Pick<Job, "status" | "finished">>(all: T[]): 
   return undefined;
 }
 
-export type StepStatus = "done" | "running" | "attention" | "failed" | "todo";
+export type RingStatus = "running" | "attention" | "failed" | "done";
 
-/** Each of the 3 import steps has its own status: earlier steps are done, the current one follows the job state, later ones are todo. */
-export function stepStatuses(step: 1 | 2 | 3, state: IndicatorState): StepStatus[] {
-  return [1, 2, 3].map((i): StepStatus => {
-    if (i < step) return "done";
-    if (i > step) return "todo";
-    return state === "ready" ? "done" : state === "running" ? "running" : state === "attention" ? "attention" : state === "failed" ? "failed" : "todo";
-  });
+/** Where the two arcs of the ring end, in 0..300 path units (100 per import step).
+ *  `done` = steps already finished (green); `current` = the step in progress, drawn in the job's status colour. */
+export function ringGeometry(step: 1 | 2 | 3, state: IndicatorState, read: number): { done: number; current: number; status: RingStatus } {
+  if (state === "ready") return { done: 300, current: 0, status: "done" };
+  const done = (step - 1) * 100;
+  if (state === "running") return { done, current: Math.max(read, 0.04) * 100, status: "running" };   // fills with pages read
+  if (state === "attention") return { done, current: 100, status: "attention" };                       // the step is waiting for the user
+  return { done, current: 100, status: "failed" };
 }
 
-const STEP_COLOR: Record<StepStatus, string> = {
-  done: "var(--color-success)", running: "var(--color-accent)", attention: "var(--color-warning)", failed: "var(--color-danger)", todo: "var(--color-border)",
+const RING_COLOR: Record<RingStatus, string> = {
+  done: "var(--color-success)", running: "var(--color-accent)", attention: "var(--color-warning)", failed: "var(--color-danger)",
 };
 
-const SEG = 86; // visible length of one segment, out of 100 (the rest is the gap between segments)
-
-/** Circular 3-segment ring around the 44px button: one arc per import step, coloured by that step's status.
- *  The running step fills with pages read; a step that waits for the user pulses. Colour is never the only signal:
- *  the icon, tooltip and accessible name carry the state too. */
+/** A thin continuous ring hugging the 44px button, 3 steps = 3 thirds (notches mark them).
+ *  Green = steps finished; the next arc continues in the status colour (rust running, amber waiting for you, red failed).
+ *  The arc length animates smoothly; "waiting" breathes gently. Colour is never the only cue: icon, tooltip and
+ *  accessible name carry the state and step too. */
 export function StepRing({ job, state }: { job: Pick<Job, "status" | "pages_done" | "pages_total">; state: IndicatorState }) {
-  const step = stepOf(job);
-  const statuses = stepStatuses(step, state);
   const read = job.pages_total > 0 ? Math.min(1, job.pages_done / job.pages_total) : 0;
-  const circle = { cx: 26, cy: 26, r: 24.5, fill: "none", pathLength: 300, strokeWidth: 3, strokeLinecap: "round" as const, transform: "rotate(-90 26 26)" };
+  const g = ringGeometry(stepOf(job), state, read);
+  const arc = { cx: 26, cy: 26, r: 24.5, fill: "none", pathLength: 300, strokeWidth: 2.5, transform: "rotate(-90 26 26)" };
+  const grow = { transition: "stroke-dasharray 600ms cubic-bezier(.4,0,.2,1)" };
   return (
-    <svg aria-hidden data-testid="step-ring" viewBox="0 0 52 52" width={52} height={52} className="pointer-events-none absolute -left-1 -top-1">
-      <circle {...circle} stroke="var(--color-border)" strokeDasharray={`${SEG} ${100 - SEG}`} />
-      {statuses.map((st, i) => {
-        if (st === "todo") return null;
-        const f = st === "running" ? Math.max(read, 0.04) : 1;
-        return (
-          <circle key={i} {...circle} stroke={STEP_COLOR[st]} strokeDasharray={`${SEG * f} 300`} strokeDashoffset={-i * 100}
-            className={st === "attention" || (st === "running" && read === 0) ? "animate-pulse motion-reduce:animate-none" : undefined}
-            data-step={i + 1} data-status={st} />
-        );
-      })}
+    <svg aria-hidden data-testid="step-ring" viewBox="0 0 52 52" width={52} height={52}
+      className={`pointer-events-none absolute -left-1 -top-1 ${g.status === "done" ? "drop-shadow-[0_0_3px_color-mix(in_srgb,var(--color-success)_55%,transparent)]" : ""}`}>
+      <circle {...arc} stroke="var(--color-border)" opacity={0.7} />
+      {g.done > 0 && <circle {...arc} stroke={RING_COLOR.done} strokeDasharray={`${g.done} 300`} style={grow} data-arc="done" />}
+      {g.current > 0 && (
+        <circle {...arc} stroke={RING_COLOR[g.status]} strokeDasharray={`${g.current} 300`} strokeDashoffset={-g.done} style={grow}
+          className={g.status === "attention" ? "animate-pulse motion-reduce:animate-none" : undefined} data-arc="current" data-status={g.status} />
+      )}
+      {[0, 120, 240].map((deg) => (
+        <line key={deg} x1={26} y1={0.4} x2={26} y2={3.8} stroke="var(--color-surface)" strokeWidth={1.6} transform={`rotate(${deg} 26 26)`} />
+      ))}
     </svg>
   );
 }

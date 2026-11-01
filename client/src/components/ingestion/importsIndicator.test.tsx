@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import ImportsIndicator, { indicatorState, stepStatuses } from "./importsIndicator";
+import ImportsIndicator, { indicatorState, ringGeometry } from "./importsIndicator";
 
 const jobs = vi.hoisted(() => ({ list: [] as { id: string; status: string; filename: string; pages_done: number; pages_total: number }[] }));
 vi.mock("next/link", () => ({ default: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }));
@@ -53,19 +53,20 @@ describe("ImportsIndicator", () => {
 });
 
 describe("StepRing", () => {
-  const segs = (ring: HTMLElement) => [...ring.querySelectorAll("circle[data-step]")].map((c) => [c.getAttribute("data-step"), c.getAttribute("data-status"), c.getAttribute("stroke-dasharray")]);
+  const arcs = (ring: HTMLElement) => [...ring.querySelectorAll("circle[data-arc]")].map((c) => [c.getAttribute("data-arc"), c.getAttribute("data-status"), c.getAttribute("stroke-dasharray")]);
 
-  it("colours each step by its own status and fills the running one by pages read", async () => {
+  it("draws finished steps in one arc and the running step as a second arc filled by pages read", async () => {
     jobs.list = [{ id: "1", status: "extracting", filename: "a.pdf", pages_done: 5, pages_total: 10 }];
     render(<ImportsIndicator />);
-    expect(segs(await screen.findByTestId("step-ring"))).toEqual([["1", "done", "86 300"], ["2", "done", "86 300"], ["3", "running", "43 300"]]);
+    expect(arcs(await screen.findByTestId("step-ring"))).toEqual([["done", null, "200 300"], ["current", "running", "50 300"]]);
   });
 
-  it("stepStatuses: done before, state at the current step, todo after", () => {
-    expect(stepStatuses(2, "attention")).toEqual(["done", "attention", "todo"]);
-    expect(stepStatuses(1, "failed")).toEqual(["failed", "todo", "todo"]);
-    expect(stepStatuses(3, "ready")).toEqual(["done", "done", "done"]);
-    expect(stepStatuses(1, "running")).toEqual(["running", "todo", "todo"]);
+  it("ringGeometry: where the arcs end for each state", () => {
+    expect(ringGeometry(2, "attention", 0)).toEqual({ done: 100, current: 100, status: "attention" });
+    expect(ringGeometry(1, "failed", 0)).toEqual({ done: 0, current: 100, status: "failed" });
+    expect(ringGeometry(3, "ready", 0)).toEqual({ done: 300, current: 0, status: "done" });
+    expect(ringGeometry(1, "running", 0).current).toBeGreaterThan(0);   // always a visible sliver while starting
+    expect(ringGeometry(3, "running", 0.6)).toEqual({ done: 200, current: 60, status: "running" });
   });
 
   it("is an icon-only button whose name carries state, step and count; no ring when nothing is pending", async () => {
