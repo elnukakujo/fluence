@@ -7,6 +7,8 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 // below proxy /api/* and /media/* to the backend), so the frontend no longer needs
 // a public backend host/port baked in — URLs are relative and inherit the site origin.
 const nextConfig = {
+  // Lets a throwaway preview/test server build elsewhere instead of clobbering the real dev server's .next
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   eslint: {
     // ponytail: pre-existing lint errors block `next build`; not a Docker concern. Fix the
     // lint errors and remove this to re-enable lint-on-build.

@@ -2,8 +2,8 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, describe, expect, it, vi } from "vitest";
-import ImportsIndicator, { indicatorState } from "./importsIndicator";
+import { describe, expect, it, vi } from "vitest";
+import ImportsIndicator, { indicatorState, stepStatuses } from "./importsIndicator";
 
 const jobs = vi.hoisted(() => ({ list: [] as { id: string; status: string; filename: string; pages_done: number; pages_total: number }[] }));
 vi.mock("next/link", () => ({ default: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }));
@@ -30,7 +30,7 @@ describe("ImportsIndicator", () => {
     jobs.list = [{ id: "1", status: "parsing", filename: "a.pdf", pages_done: 0, pages_total: 0 }];
     render(<ImportsIndicator />);
     expect(await screen.findByTestId("spinner")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Imports: import running, Step 1 of 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Imports: import running, Step 1 of 3, 1 running" })).toBeInTheDocument();
   });
 
   it("shows the step bar per import and closes the menu when the user clicks elsewhere or presses Escape", async () => {
@@ -53,27 +53,38 @@ describe("ImportsIndicator", () => {
 });
 
 describe("StepRing", () => {
-  beforeAll(() => {   // jsdom has no layout: give elements a size so the ring can measure the button
-    Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, value: 100 });
-    Object.defineProperty(HTMLElement.prototype, "offsetHeight", { configurable: true, value: 44 });
-  });
-  it("fills finished steps and the current one by pages read", async () => {
+  const segs = (ring: HTMLElement) => [...ring.querySelectorAll("circle[data-step]")].map((c) => [c.getAttribute("data-step"), c.getAttribute("data-status"), c.getAttribute("stroke-dasharray")]);
+
+  it("colours each step by its own status and fills the running one by pages read", async () => {
     jobs.list = [{ id: "1", status: "extracting", filename: "a.pdf", pages_done: 5, pages_total: 10 }];
     render(<ImportsIndicator />);
-    const ring = await screen.findByTestId("step-ring");
-    const filled = [...ring.querySelectorAll("rect[data-step]")].map((r) => [r.getAttribute("data-step"), r.getAttribute("stroke-dasharray")]);
-    expect(filled).toEqual([["1", "94 300"], ["2", "94 300"], ["3", "47 300"]]);   // steps 1+2 done, step 3 half-read
+    expect(segs(await screen.findByTestId("step-ring"))).toEqual([["1", "done", "86 300"], ["2", "done", "86 300"], ["3", "running", "43 300"]]);
   });
 
-  it("shows the step in the tooltip / accessible name, and no ring when nothing is pending", async () => {
+  it("stepStatuses: done before, state at the current step, todo after", () => {
+    expect(stepStatuses(2, "attention")).toEqual(["done", "attention", "todo"]);
+    expect(stepStatuses(1, "failed")).toEqual(["failed", "todo", "todo"]);
+    expect(stepStatuses(3, "ready")).toEqual(["done", "done", "done"]);
+    expect(stepStatuses(1, "running")).toEqual(["running", "todo", "todo"]);
+  });
+
+  it("is an icon-only button whose name carries state, step and count; no ring when nothing is pending", async () => {
     jobs.list = [{ id: "1", status: "structure", filename: "a.pdf", pages_done: 0, pages_total: 0 }];
     const { unmount } = render(<ImportsIndicator />);
-    expect(await screen.findByRole("button", { name: "Imports: import waiting for you, Step 2 of 3" })).toHaveAttribute("title", "Step 2 of 3");
+    const btn = await screen.findByRole("button", { name: "Imports: import waiting for you, Step 2 of 3" });
+    expect(btn).toHaveAttribute("title", "Imports: import waiting for you, Step 2 of 3");
+    expect(btn).not.toHaveTextContent(/Imports/);
     unmount();
     jobs.list = [{ id: "2", status: "ready", finished: true, filename: "b.pdf", pages_done: 0, pages_total: 0 } as never];
     render(<ImportsIndicator />);
     await screen.findByRole("button", { name: /Imports/ });
     expect(screen.queryByTestId("step-ring")).toBeNull();
+  });
+
+  it("puts the count in the accessible name, not in a competing badge announcement", async () => {
+    jobs.list = [{ id: "1", status: "parsing", filename: "a.pdf", pages_done: 0, pages_total: 0 }, { id: "2", status: "extracting", filename: "b.pdf", pages_done: 1, pages_total: 4 }];
+    render(<ImportsIndicator />);
+    expect(await screen.findByRole("button", { name: "Imports: import running, Step 1 of 3, 2 running" })).toBeInTheDocument();
   });
 });
 

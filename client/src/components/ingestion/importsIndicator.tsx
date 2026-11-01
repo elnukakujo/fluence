@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import StepProgress from "./stepProgress";
 import { ACTIVE_STATUSES, INGESTION_CHANGED, type Job, deleteJob, listJobs } from "@/api/ingestion";
@@ -36,34 +36,50 @@ export function focusJob<T extends Pick<Job, "status" | "finished">>(all: T[]): 
   return undefined;
 }
 
-const RING_COLOR: Record<IndicatorState, string> = {
-  running: "var(--color-accent)", attention: "var(--color-warning)", ready: "var(--color-success)", failed: "var(--color-danger)", idle: "var(--color-border)",
+export type StepStatus = "done" | "running" | "attention" | "failed" | "todo";
+
+/** Each of the 3 import steps has its own status: earlier steps are done, the current one follows the job state, later ones are todo. */
+export function stepStatuses(step: 1 | 2 | 3, state: IndicatorState): StepStatus[] {
+  return [1, 2, 3].map((i): StepStatus => {
+    if (i < step) return "done";
+    if (i > step) return "todo";
+    return state === "ready" ? "done" : state === "running" ? "running" : state === "attention" ? "attention" : state === "failed" ? "failed" : "todo";
+  });
+}
+
+const STEP_COLOR: Record<StepStatus, string> = {
+  done: "var(--color-success)", running: "var(--color-accent)", attention: "var(--color-warning)", failed: "var(--color-danger)", todo: "var(--color-border)",
 };
 
-/** 3-segment ring hugging the button: finished steps filled, the current one filled by pages read (or pulsing while it waits). */
-export function StepRing({ job, state, box }: { job: Pick<Job, "status" | "pages_done" | "pages_total">; state: IndicatorState; box: { w: number; h: number } }) {
+const SEG = 86; // visible length of one segment, out of 100 (the rest is the gap between segments)
+
+/** Circular 3-segment ring around the 44px button: one arc per import step, coloured by that step's status.
+ *  The running step fills with pages read; a step that waits for the user pulses. Colour is never the only signal:
+ *  the icon, tooltip and accessible name carry the state too. */
+export function StepRing({ job, state }: { job: Pick<Job, "status" | "pages_done" | "pages_total">; state: IndicatorState }) {
   const step = stepOf(job);
-  const frac = state === "ready" ? 1 : state === "running" && job.pages_total > 0 ? Math.min(1, job.pages_done / job.pages_total) : state === "running" ? 0 : 1;
-  const pad = 4, sw = 3, w = box.w + pad * 2, h = box.h + pad * 2, r = h / 2;
-  const seg = (i: number) => (i + 1 < step ? 1 : i + 1 === step ? frac : 0);
-  const rect = { x: sw / 2, y: sw / 2, width: w - sw, height: h - sw, rx: r - sw / 2, fill: "none", pathLength: 300, strokeWidth: sw, strokeLinecap: "round" as const };
+  const statuses = stepStatuses(step, state);
+  const read = job.pages_total > 0 ? Math.min(1, job.pages_done / job.pages_total) : 0;
+  const circle = { cx: 26, cy: 26, r: 24.5, fill: "none", pathLength: 300, strokeWidth: 3, strokeLinecap: "round" as const, transform: "rotate(-90 26 26)" };
   return (
-    <svg aria-hidden data-testid="step-ring" width={w} height={h} className="pointer-events-none absolute" style={{ left: -pad, top: -pad }}>
-      <rect {...rect} stroke="var(--color-border)" strokeDasharray="94 6" />
-      {[0, 1, 2].map((i) => {
-        const f = seg(i);
-        return f > 0 ? (
-          <rect key={i} {...rect} stroke={RING_COLOR[state]} strokeDasharray={`${94 * f} 300`} strokeDashoffset={-i * 100}
-            className={i + 1 === step && state !== "ready" && (state !== "running" || frac === 0) ? "animate-pulse" : undefined} data-step={i + 1} />
-        ) : null;
+    <svg aria-hidden data-testid="step-ring" viewBox="0 0 52 52" width={52} height={52} className="pointer-events-none absolute -left-1 -top-1">
+      <circle {...circle} stroke="var(--color-border)" strokeDasharray={`${SEG} ${100 - SEG}`} />
+      {statuses.map((st, i) => {
+        if (st === "todo") return null;
+        const f = st === "running" ? Math.max(read, 0.04) : 1;
+        return (
+          <circle key={i} {...circle} stroke={STEP_COLOR[st]} strokeDasharray={`${SEG * f} 300`} strokeDashoffset={-i * 100}
+            className={st === "attention" || (st === "running" && read === 0) ? "animate-pulse motion-reduce:animate-none" : undefined}
+            data-step={i + 1} data-status={st} />
+        );
       })}
     </svg>
   );
 }
 
 function StateIcon({ state }: { state: IndicatorState }) {
-  const common = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.5, strokeLinecap: "round" as const, "aria-hidden": true };
-  if (state === "running") return <svg {...common} className="animate-spin" data-testid="spinner"><path d="M12 3a9 9 0 1 0 9 9" /></svg>;
+  const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.25, strokeLinecap: "round" as const, "aria-hidden": true };
+  if (state === "running") return <svg {...common} className="animate-spin motion-reduce:animate-none" data-testid="spinner"><path d="M12 3a9 9 0 1 0 9 9" /></svg>;
   if (state === "ready") return <svg {...common}><path d="M5 13l4 4L19 7" /></svg>;
   if (state === "failed") return <svg {...common}><path d="M12 7v6M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>;
   if (state === "attention") return <svg {...common}><path d="M12 8v5M12 17h.01" /><path d="M4 20h16L12 4z" /></svg>;
@@ -76,8 +92,6 @@ export default function ImportsIndicator() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
-  const btn = useRef<HTMLButtonElement>(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
 
   const busy = useRef(false); // true while a job is progressing by itself
 
@@ -122,17 +136,6 @@ export default function ImportsIndicator() {
     return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
   }, [open]);
 
-  useLayoutEffect(() => {
-    const el = btn.current;
-    if (!el) return;
-    const measure = () => setSize({ w: el.offsetWidth, h: el.offsetHeight });
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [jobs.length]);
-
   if (jobs.length === 0) return null;
   const running = jobs.filter((j) => ACTIVE_STATUSES.includes(j.status) && !j.finished).length;
   const ready = jobs.filter((j) => j.status === "ready" && !j.finished).length;
@@ -140,12 +143,27 @@ export default function ImportsIndicator() {
   const state = indicatorState(jobs);
   const focus = focusJob(jobs);
   const stepText = focus ? t("importStepOf", { step: stepOf(focus) }) : "";
+  const countText = running ? t("runningCount", { count: running }) : ready ? t("readyCount", { count: ready }) : "";
+  const label = [t("importsAriaLabel", { state: t(`indicatorState_${state}`) }), stepText, countText].filter(Boolean).join(", ");
 
   return (
     <div className="relative" ref={box} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}>
-      <button ref={btn} type="button" className="btn btn-secondary relative min-h-11 shrink-0" aria-expanded={open} aria-haspopup="true" aria-label={`${t("importsAriaLabel", { state: t(`indicatorState_${state}`) })}${focus ? `, ${stepText}` : ""}`} title={focus ? stepText : undefined} onClick={() => { if (!open) load(); setOpen((o) => !o); }}>
-        {focus && size.w > 0 && <StepRing job={focus} state={state} box={size} />}
-        <span className="inline-flex items-center gap-2"><StateIcon state={state} /><span className="max-md:hidden">{t("importsLabel")}</span></span>{count > 0 && <span className="badge ml-1 md:ml-2" aria-label={running ? t("runningCount", { count: running }) : t("readyCount", { count: ready })}>{count}</span>}
+      <button
+        type="button"
+        className="btn btn-secondary relative size-11 shrink-0 !p-0"
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-label={label}
+        title={label}
+        onClick={() => { if (!open) load(); setOpen((o) => !o); }}
+      >
+        {focus && <StepRing job={focus} state={state} />}
+        <StateIcon state={state} />
+        {count > 0 && (
+          <span aria-hidden className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-white ring-2 ring-surface">
+            {count}
+          </span>
+        )}
       </button>
       {open && (
         <ul className="card absolute left-0 top-full z-40 mt-2 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 text-sm shadow-lg sm:left-auto sm:right-0">
