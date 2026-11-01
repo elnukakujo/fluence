@@ -1,11 +1,11 @@
 {
   "lessonTitle": "Titre",
-  "enterLessonTitle": "Entrez le titre du cours",
+  "enterLessonTitle": "Titre de la leçon",
   "description": "Description",
-  "enterLessonDescription": "Entrez la description du cours",
+  "enterLessonDescription": "Description de la leçon",
   "level": "Niveau",
-  "addLesson": "Ajouter un Cours",
-  "updateLesson": "Mettre à Jour le Cours",
+  "addLesson": "Ajouter",
+  "updateLesson": "Modifier",
   "createFailed": "Impossible de créer le cours. Consultez la console pour plus de détails.",
   "updateFailed": "Impossible de mettre à jour le cours. Consultez la console pour plus de détails."
 }

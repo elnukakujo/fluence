@@ -1,4 +1,7 @@
 {
   "label": "Language",
-  "suggested": "suggested"
+  "suggested": "suggested",
+  "recommendedHeading": "Your languages · recommended",
+  "othersHeading": "Other languages",
+  "allHeading": "Languages"
 }

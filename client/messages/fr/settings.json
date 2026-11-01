@@ -3,38 +3,38 @@
     "profile": "Profil",
     "security": "Sécurité",
     "learning": "Apprentissage",
-    "aiFeatures": "Fonctionnalités IA",
-    "endpoints": "Points d'accès"
+    "aiFeatures": "IA",
+    "endpoints": "Endpoints"
   },
   "profile": {
     "title": "Profil",
-    "username": "Nom d'utilisateur",
-    "usernamePlaceholder": "votre_nom_utilisateur",
+    "username": "Identifiant",
+    "usernamePlaceholder": "identifiant",
     "displayName": "Nom affiché",
-    "displayNamePlaceholder": "Comment votre nom s'affiche",
+    "displayNamePlaceholder": "Nom affiché",
     "email": "E-mail",
     "emailPlaceholder": "vous@exemple.com",
-    "confirmNewEmail": "Confirmer le nouvel e-mail",
-    "confirmNewEmailPlaceholder": "Tapez à nouveau votre nouvel e-mail",
+    "confirmNewEmail": "Confirmer l'email",
+    "confirmNewEmailPlaceholder": "Retapez l'email",
     "emailMismatch": "Les adresses e-mail ne correspondent pas",
-    "failedSave": "Échec de l'enregistrement du profil"
+    "failedSave": "Enregistrement impossible"
   },
   "password": {
     "title": "Mot de passe",
     "helpText": "Laissez tous les champs vides pour conserver votre mot de passe actuel.",
     "current": "Mot de passe actuel",
-    "currentPlaceholder": "Entrez le mot de passe actuel",
+    "currentPlaceholder": "Mot de passe actuel",
     "new": "Nouveau mot de passe",
-    "newPlaceholder": "Entrez le nouveau mot de passe",
-    "confirm": "Confirmer le nouveau mot de passe",
-    "confirmPlaceholder": "Saisissez à nouveau le nouveau mot de passe",
+    "newPlaceholder": "Nouveau mot de passe",
+    "confirm": "Confirmer",
+    "confirmPlaceholder": "Retapez le mot de passe",
     "required": "Le mot de passe actuel est requis pour définir un nouveau mot de passe",
-    "mismatch": "Les nouveaux mots de passe ne correspondent pas",
+    "mismatch": "Les mots de passe diffèrent",
     "minLength": "Le nouveau mot de passe doit comporter au moins 8 caractères",
-    "failedUpdate": "Échec de la mise à jour du mot de passe",
-    "showPassword": "Afficher le mot de passe",
-    "hidePassword": "Masquer le mot de passe",
-    "updateSuccessLabel": "Mot de passe mis à jour",
+    "failedUpdate": "Mise à jour impossible",
+    "showPassword": "Afficher",
+    "hidePassword": "Masquer",
+    "updateSuccessLabel": "Mot de passe modifié",
     "strengthLabels": {
       "tooShort": "Trop court",
       "weak": "Faible",
@@ -44,20 +44,20 @@
     }
   },
   "preferences": {
-    "title": "Préférences d'apprentissage",
+    "title": "Apprentissage",
     "nativeLanguages": "Langues maternelles",
     "dailyGoal": "Objectif quotidien",
     "dailyGoalUnit": "min / jour",
-    "learningGoals": "Objectifs d'apprentissage",
+    "learningGoals": "Objectifs",
     "learningGoalsPlaceholder": "Qu'aimeriez-vous réaliser ? par ex. Lire un roman, avoir une conversation...",
     "exerciseTypes": "Types d'exercices préférés",
     "dailyGoalAria": "Objectif quotidien en minutes",
     "dailyGoalValueAria": "Valeur de l'objectif quotidien en minutes"
   },
   "aiFeatures": {
-    "title": "Fonctionnalités IA",
+    "title": "Fonctions IA",
     "description": "Chaque fonctionnalité utilise une API que vous connectez vous-même — rien n'est inclus dans l'application.",
-    "enabledNoEndpoint": "Les fonctionnalités IA sont activées mais aucun point d'accès API n'est configuré. Ajoutez-en un dans la section Points d'accès ci-dessous.",
+    "enabledNoEndpoint": "Les fonctionnalités IA sont activées mais aucun endpoint API n'est configuré. Ajoutez-en un dans la section Endpoints ci-dessous.",
     "feedback": "Retours IA",
     "feedbackDesc": "Retours sur les exercices et corrections",
     "learnable": "Phrases pratiques",
@@ -68,20 +68,20 @@
     "wordDesc": "Suggestions de mots pour les caractères de calligraphie",
     "tts": "Synthèse vocale",
     "ttsDesc": "Audio pour les mots, les phrases et les caractères",
-    "resetDefaults": "Réinitialiser les paramètres par défaut",
-    "saveSuccessLabel": "Fonctionnalités enregistrées"
+    "resetDefaults": "Par défaut",
+    "saveSuccessLabel": "Enregistré"
   },
   "buttons": {
-    "save": "Enregistrer les modifications",
+    "save": "Enregistrer",
     "saveSuccess": "Enregistré",
     "cancel": "Annuler",
     "edit": "Modifier",
     "notSet": "Non défini"
   },
   "errors": {
-    "generic": "Une erreur s'est produite"
+    "generic": "Une erreur est survenue"
   },
-  "sectionsAriaLabel": "Sections des paramètres",
+  "sectionsAriaLabel": "Sections",
   "createAccountTagline": "Créez votre compte pour commencer à apprendre.",
   "alreadyRegistered": "Déjà inscrit ?",
   "signInLink": "Se connecter"

@@ -1,22 +1,22 @@
 {
   "tags": "Tags",
-  "noTagsYet": "Aucun tag pour le moment.",
+  "noTagsYet": "Aucun tag.",
   "newTag": "+ Nouveau",
-  "createNewTag": "Créer un nouveau tag",
+  "createNewTag": "Nouveau tag",
   "updateTag": "Modifier le tag",
   "tagDetail": "Détails du tag",
-  "editTagInformations": "Modifier les informations du tag",
+  "editTagInformations": "Modifier le tag",
   "name": "Nom",
   "tagNamePlaceholder": "Nom du tag",
   "color": "Couleur",
   "description": "Description",
-  "addTag": "Ajouter un tag",
+  "addTag": "Ajouter",
   "vocab": "Vocab",
   "calli": "Calli",
   "grammar": "Grammaire",
   "exercise": "Exercice",
   "lesson": "Leçon",
   "lang": "Langue",
-  "updateTagFailed": "Impossible de modifier le tag.",
-  "createTagFailed": "Impossible de créer le tag."
+  "updateTagFailed": "Modification impossible.",
+  "createTagFailed": "Création impossible."
 }
