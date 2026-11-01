@@ -251,5 +251,6 @@
   "sourceType_other": "Other",
   "sourceType_ai": "Ai",
   "languageImportTakesTime": "Reading a long scan takes a few minutes. You can leave this page: the import is listed under \"Imports\" in the top bar.",
-  "goTo": "Go to"
+  "goTo": "Go to",
+  "importStepOf": "Step {step} of 3"
 }
