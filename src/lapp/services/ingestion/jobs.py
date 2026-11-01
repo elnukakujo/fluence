@@ -181,11 +181,13 @@ def _prepare(app: Flask, svc: IngestionJobService, job_id: str) -> Optional[_Ctx
 
 
 def _parse_job(svc: IngestionJobService, ctx: _Ctx) -> Document:
-    svc.update(ctx.job["id"], status="parsing")
+    job_id = ctx.job["id"]
+    svc.update(job_id, status="parsing", pages_done=0, pages_total=0)
     job = ctx.job
     return parse(ctx.media_root / job["file_path"], target_iso639_2t=ctx.target, source_iso639_2t=ctx.source,
                  remote=ctx.remote, handwritten=job["handwritten"], cache_dir=ctx.media_root / "parse_cache",
-                 pages=(job["page_from"], job["page_to"]) if job["page_from"] else None)
+                 pages=(job["page_from"], job["page_to"]) if job["page_from"] else None,
+                 progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total))
 
 
 def _lookup_for(job: dict):

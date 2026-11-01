@@ -175,7 +175,7 @@ export default function ImportsIndicator() {
                   {j.filename}
                 </Link>
                 <StepProgress step={stepOf(j)} second={j.lesson_id ? t("chooseThePages") : t("chooseTheLessons")} />
-                <span className="opacity-70">{j.finished ? t("addedNothingLeft") : t(`jobStatus_${j.status}`)}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}</span>
+                <span className="opacity-70">{j.finished ? t("addedNothingLeft") : t(`jobStatus_${j.status}`)}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}{j.status === "parsing" && j.pages_total > 0 ? ` · ${t("pagesRead", { done: j.pages_done, total: j.pages_total })}` : ""}</span>
               </div>
               {!ACTIVE_STATUSES.includes(j.status) && (
                 <button type="button" className="btn btn-secondary" aria-label={t("removeImport", { filename: j.filename })}

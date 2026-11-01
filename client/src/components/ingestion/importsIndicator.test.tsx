@@ -98,3 +98,19 @@ describe("focusJob", () => {
     expect(focusJob([mk("a", "ready", true)])).toBeUndefined();
   });
 });
+
+describe("reading progress in the menu", () => {
+  it("says how many pages the parser has read so far", async () => {
+    jobs.list = [{ id: "1", status: "parsing", filename: "a.pdf", pages_done: 4, pages_total: 12 }];
+    render(<ImportsIndicator />);
+    await userEvent.click(await screen.findByRole("button", { name: /Imports/ }));
+    expect(screen.getByText(/Reading… · 4 of 12 pages read/)).toBeInTheDocument();
+  });
+
+  it("shows nothing extra before the parser reports a page count", async () => {
+    jobs.list = [{ id: "1", status: "parsing", filename: "a.pdf", pages_done: 0, pages_total: 0 }];
+    render(<ImportsIndicator />);
+    await userEvent.click(await screen.findByRole("button", { name: /Imports/ }));
+    expect(screen.queryByText(/pages read/)).toBeNull();
+  });
+});

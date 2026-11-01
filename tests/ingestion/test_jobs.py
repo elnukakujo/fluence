@@ -256,3 +256,20 @@ def test_attach_existing_shows_the_saved_word(monkeypatch):
     monkeypatch.setattr("lapp.services.components.WordService.get_by_word", lambda self, w, language_id=None: saved)
     jobs._attach_existing({"language_id": "L1"}, NS(candidates=[cand], elements=[]))
     assert cand.existing == {"word": "水", "translation": "water", "phonetic": "shuǐ", "word_type": "noun"}
+
+
+def test_parser_progress_is_saved_on_the_job_so_the_ui_can_show_it(app, db, media_root, monkeypatch):
+    make_user(db, "user_U6")
+    make_language(db, "user_U6", "lang_L6", "lesson_L6")
+    j = svc.create("user_U6", "lang_L6", None, "n.pdf")
+    reported = []
+
+    def fake_parse(path, progress=None, **kw):
+        for done in (0, 3, 7):
+            progress(done, 7)
+            reported.append((svc.get(j["id"])["pages_done"], svc.get(j["id"])["pages_total"]))
+        return _doc()
+    monkeypatch.setattr(jobs_module, "parse", fake_parse)
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
+    run_ingestion_job(app, j["id"])
+    assert reported == [(0, 7), (3, 7), (7, 7)]

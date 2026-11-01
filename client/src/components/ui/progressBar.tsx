@@ -3,6 +3,8 @@ type ProgressBarProps = {
     total: number;
     showLabel?: boolean;
     showPercent?: boolean;
+    /** Replaces the default "current / total" text (e.g. "4 of 12 pages read"). */
+    label?: string;
     className?: string;
 };
 
@@ -11,6 +13,7 @@ export default function ProgressBar({
     total,
     showLabel = true,
     showPercent = true,
+    label,
     className = "",
 }: ProgressBarProps) {
     const percent = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -19,7 +22,7 @@ export default function ProgressBar({
         <div className={`flex flex-col gap-1.5 ${className}`}>
             {(showLabel || showPercent) && (
                 <div className="flex justify-between text-sm" style={{ color: "var(--color-muted)" }}>
-                    {showLabel && <span>{current} / {total}</span>}
+                    {showLabel && <span>{label ?? `${current} / ${total}`}</span>}
                     {showPercent && <span>{percent}%</span>}
                 </div>
             )}

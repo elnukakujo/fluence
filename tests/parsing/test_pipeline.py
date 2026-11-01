@@ -326,3 +326,27 @@ def test_image_accepts_page_one_only(rotated_png, tmp_path):
     with pytest.raises(ParseError) as e:
         _parse(rotated_png, tmp_path, pages=(2, 3))
     assert e.value.code == "invalid_range"
+
+
+def test_progress_reports_each_page_as_it_is_read(mixed_pdf, tmp_path):
+    seen = []
+    _parse(mixed_pdf, tmp_path, progress=lambda done, total: seen.append((done, total)))
+    assert seen == [(0, 2), (1, 2), (2, 2)]          # starts at 0 so the UI can show "0 of 2" immediately
+
+
+def test_progress_counts_only_the_selected_pages(native_pdf, tmp_path):
+    seen = []
+    _parse(native_pdf, tmp_path, pages=(2, 2), progress=lambda done, total: seen.append((done, total)))
+    assert seen == [(0, 1), (1, 1)]
+
+
+def test_progress_for_a_single_image(rotated_png, tmp_path):
+    seen = []
+    _parse(rotated_png, tmp_path, progress=lambda done, total: seen.append((done, total)))
+    assert seen == [(0, 1), (1, 1)]
+
+
+def test_a_failing_progress_callback_never_breaks_the_parse(native_pdf, tmp_path):
+    def boom(done, total):
+        raise RuntimeError("db is down")
+    assert len(_parse(native_pdf, tmp_path, progress=boom).pages) == 2

@@ -5,6 +5,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
+from typing import Callable
 
 import cv2
 import numpy as np
@@ -43,11 +44,14 @@ def parse(
     handwritten: bool = False,
     cache_dir: Path | None = None,
     pages: tuple[int, int] | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> Document:
     """Parse a PDF or image into a Document. `cache_dir=None` disables caching (the library is Flask-free).
 
     `pages=(first, last)` (1-based, inclusive; `last` is clamped to the document) processes only those pages;
     page indexes in the result stay the document's own. An image has one page.
+    `progress(done, total)` is called with (0, total) before the first page and after each page; it is best effort
+    (an exception in it is logged and ignored) and is not called on a cache hit, which finishes at once.
     """
     path = Path(path)
     suffix = path.suffix.lower()
@@ -69,11 +73,12 @@ def parse(
             logger.warning("Ignoring unreadable parse cache %s", cache_file)
 
     ctx = _Ctx(target_iso639_2t, local, remote, handwritten)
+    report = _safe_progress(progress)
     doc = Document(sha256=sha, pipeline_version=PIPELINE_VERSION, pages=[], warnings=[])
     if handwritten and remote is None:
         doc.warnings.append("handwritten requested but no remote OCR is configured; used local OCR")
     if suffix == ".pdf":
-        _parse_pdf(data, ctx, doc, pages)
+        _parse_pdf(data, ctx, doc, pages, report)
     else:
         frames = _check_image_size(data)
         if frames > 1:
@@ -82,11 +87,26 @@ def parse(
         if img is None:
             raise ParseError("corrupt", "Could not read the image")
         _select_pages(pages, 1)
+        report(0, 1)
         doc.pages.append(_ocr_page(img, 0, (float(img.shape[1]), float(img.shape[0])), ctx))
+        report(1, 1)
 
     if cache_file and not _has_transient_failure(doc):
         _write_cache(cache_file, doc)
     return doc
+
+
+def _safe_progress(progress: Callable[[int, int], None] | None) -> Callable[[int, int], None]:
+    """Progress is a nicety: a failing callback (e.g. a DB hiccup) must never lose a long parse."""
+    def report(done: int, total: int) -> None:
+        logger.info("parsed %s of %s pages", done, total)
+        if progress is None:
+            return
+        try:
+            progress(done, total)
+        except Exception:
+            logger.warning("progress callback failed", exc_info=True)
+    return report
 
 
 def _write_cache(cache_file: Path, doc: Document) -> None:
@@ -147,7 +167,8 @@ def _select_pages(pages: tuple[int, int] | None, count: int) -> range:
     return range(first - 1, min(last, count))
 
 
-def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages: tuple[int, int] | None = None) -> None:
+def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages: tuple[int, int] | None = None,
+               report: Callable[[int, int], None] = lambda done, total: None) -> None:
     try:
         pdf = pymupdf.open(stream=data, filetype="pdf")
     except Exception as e:
@@ -160,7 +181,8 @@ def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages: tuple[int, int] | N
         selected = _select_pages(pages, pdf.page_count)
         if len(selected) > MAX_PAGES:
             raise ParseError("too_many_pages", f"More than {MAX_PAGES} pages selected - choose a page range")
-        for i in selected:
+        report(0, len(selected))
+        for n, i in enumerate(selected, start=1):
             page = pdf[i]
             native, _ = is_native_page(page)
             if native:
@@ -170,6 +192,7 @@ def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages: tuple[int, int] | N
                 if page.rect.width * scale * page.rect.height * scale > MAX_PAGE_PIXELS:
                     raise ParseError("too_large", f"Page {i + 1} is too large to scan")
                 doc.pages.append(_ocr_page(_render(page), i, (page.rect.width, page.rect.height), ctx))
+            report(n, len(selected))
 
 
 def _render(page: pymupdf.Page) -> np.ndarray:
