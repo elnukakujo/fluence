@@ -2,14 +2,12 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import en from "../../../messages/en.json";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/api/user", () => ({ createUser: vi.fn(), updateUser: vi.fn() }));
-vi.mock("next-intl", () => ({
+vi.mock("next-intl", async () => ({
   useLocale: () => "zh",
-  useTranslations: () => (k: string, v?: Record<string, string | number>) =>
-    ((en.userForm as Record<string, string>)[k] ?? k).replace("{step}", String(v?.step ?? "")),
+  useTranslations: (await import("@/test/intlMock")).translator,
 }));
 
 import UserForm from "./userForm";

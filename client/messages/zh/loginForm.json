@@ -1,0 +1,18 @@
+{
+  "tagline": "流利掌握语言。请登录以继续。",
+  "email": "邮箱",
+  "emailPlaceholder": "you@example.com",
+  "password": "密码",
+  "setPassword": "设置密码",
+  "passwordPlaceholder": "输入密码",
+  "choosePasswordPlaceholder": "选择一个密码",
+  "noPasswordYet": "此账号尚未设置密码——请设置后登录。",
+  "showPassword": "显示密码",
+  "rememberMe": "记住我",
+  "setAndSignIn": "设置密码并登录",
+  "signIn": "登录",
+  "newHere": "第一次使用？",
+  "createAccount": "创建账号",
+  "loginFailed": "登录失败，请重试。",
+  "setPasswordFailed": "无法设置密码，请重试。"
+}

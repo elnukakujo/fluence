@@ -1,0 +1,18 @@
+{
+  "tagline": "Devenez fluide. Connectez-vous pour continuer.",
+  "email": "E-mail",
+  "emailPlaceholder": "vous@exemple.com",
+  "password": "Mot de passe",
+  "setPassword": "Définir un mot de passe",
+  "passwordPlaceholder": "Saisissez le mot de passe",
+  "choosePasswordPlaceholder": "Choisissez un mot de passe",
+  "noPasswordYet": "Ce compte n'a pas encore de mot de passe — définissez-en un pour vous connecter.",
+  "showPassword": "Afficher le mot de passe",
+  "rememberMe": "Se souvenir de moi",
+  "setAndSignIn": "Définir le mot de passe et se connecter",
+  "signIn": "Se connecter",
+  "newHere": "Nouveau ici ?",
+  "createAccount": "Créer un compte",
+  "loginFailed": "Échec de la connexion. Veuillez réessayer.",
+  "setPasswordFailed": "Impossible de définir le mot de passe. Veuillez réessayer."
+}

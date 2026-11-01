@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
-import en from "../../messages/en.json";
-import fr from "../../messages/fr.json";
-import zh from "../../messages/zh.json";
+import { loadMessages } from "./loadMessages";
 
 const flat = (o: Record<string, unknown>, p = ""): string[] =>
   Object.entries(o).flatMap(([k, v]) =>
@@ -9,11 +7,15 @@ const flat = (o: Record<string, unknown>, p = ""): string[] =>
   );
 
 describe("message parity", () => {
-  const base = flat(en);
-  for (const [name, msgs] of [["fr", fr], ["zh", zh]] as const) {
+  const base = flat(loadMessages("en"));
+  for (const name of ["fr", "zh"]) {
     it(`${name} has every en key`, () => {
-      const have = new Set(flat(msgs));
+      const have = new Set(flat(loadMessages(name)));
       expect(base.filter((k) => !have.has(k))).toEqual([]);
+    });
+    it(`${name} has no extra keys`, () => {
+      const en = new Set(base);
+      expect(flat(loadMessages(name)).filter((k) => !en.has(k))).toEqual([]);
     });
   }
 });
