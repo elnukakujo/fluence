@@ -3,5 +3,10 @@
   "sources": "资料来源",
   "tags": "标签",
   "logout": "退出登录",
-  "settings": "设置"
+  "settings": "设置",
+  "account": "账户",
+  "openSearch": "搜索",
+  "closeSearch": "关闭搜索",
+  "mainNav": "主导航",
+  "back": "返回"
 }

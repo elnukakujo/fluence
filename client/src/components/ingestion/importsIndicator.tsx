@@ -69,8 +69,8 @@ export default function ImportsIndicator() {
 
   return (
     <div className="relative" ref={box} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}>
-      <button type="button" className="btn btn-secondary" aria-expanded={open} aria-haspopup="true" aria-label={t("importsAriaLabel", { state: t(`indicatorState_${state}`) })} onClick={() => setOpen((o) => !o)}>
-        <span className="inline-flex items-center gap-2"><StateIcon state={state} />{t("importsLabel")}</span>{count > 0 && <span className="badge ml-2" aria-label={running ? t("runningCount", { count: running }) : t("readyCount", { count: ready })}>{count}</span>}
+      <button type="button" className="btn btn-secondary min-h-11 shrink-0" aria-expanded={open} aria-haspopup="true" aria-label={t("importsAriaLabel", { state: t(`indicatorState_${state}`) })} onClick={() => setOpen((o) => !o)}>
+        <span className="inline-flex items-center gap-2"><StateIcon state={state} /><span className="max-md:hidden">{t("importsLabel")}</span></span>{count > 0 && <span className="badge ml-1 md:ml-2" aria-label={running ? t("runningCount", { count: running }) : t("readyCount", { count: ready })}>{count}</span>}
       </button>
       {open && (
         <ul className="card absolute left-0 top-full z-40 mt-2 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 text-sm shadow-lg sm:left-auto sm:right-0">

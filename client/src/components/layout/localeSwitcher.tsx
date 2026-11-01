@@ -91,9 +91,9 @@ export default function LocaleSwitcher({ currentUserId }: { currentUserId: strin
 				aria-expanded={open}
 				aria-controls={open ? listId : undefined}
 				onClick={() => setOpen((o) => !o)}
-				className="btn btn-secondary min-h-11 gap-1.5 px-3 text-sm font-medium uppercase tracking-wide"
+				className="btn btn-secondary min-h-11 gap-1.5 px-2.5 text-sm sm:px-3 font-medium uppercase tracking-wide"
 			>
-				<Globe aria-hidden size={16} />
+				<Globe aria-hidden size={16} className="max-sm:hidden" />
 				{locale}
 				<ChevronDown aria-hidden size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
 			</button>

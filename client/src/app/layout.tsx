@@ -39,7 +39,7 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased ${currentUserId ? "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]" : ""}`}
       >
         <NextIntlClientProvider>
           <NavBar currentUserId={currentUserId} />

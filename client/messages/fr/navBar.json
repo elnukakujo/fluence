@@ -3,5 +3,10 @@
   "sources": "Sources",
   "tags": "Tags",
   "logout": "Déconnexion",
-  "settings": "Réglages"
+  "settings": "Réglages",
+  "account": "Compte",
+  "openSearch": "Rechercher",
+  "closeSearch": "Fermer la recherche",
+  "mainNav": "Navigation principale",
+  "back": "Retour"
 }

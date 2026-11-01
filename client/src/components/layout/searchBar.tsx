@@ -11,7 +11,7 @@ const BADGE_COLORS: Record<SearchCategory, string> = {
   component: "bg-blue-100 text-blue-800",
 };
 
-export default function SearchBar({ currentUserId }: { currentUserId: string | null }) {
+export default function SearchBar({ currentUserId, autoFocus = false }: { currentUserId: string | null; autoFocus?: boolean }) {
   const t = useTranslations("search");
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,6 +127,7 @@ export default function SearchBar({ currentUserId }: { currentUserId: string | n
       <div className="relative">
         <input
           value={query}
+          autoFocus={autoFocus}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => {
             if (query.trim().length >= 1) {

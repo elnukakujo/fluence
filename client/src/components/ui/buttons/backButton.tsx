@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
-export default function BackButton({ children }: { children?: React.ReactNode }) {
+export default function BackButton({ children, ariaLabel }: { children?: React.ReactNode; ariaLabel?: string }) {
     const router = useRouter();
     const handleClick = () => {
         const pathname = window.location.pathname;
@@ -17,7 +17,8 @@ export default function BackButton({ children }: { children?: React.ReactNode })
 
     return (
         <button
-        className="btn btn-secondary"
+        className="btn btn-secondary min-h-11 min-w-11"
+        aria-label={ariaLabel}
         onClick={handleClick}
         >
             <FontAwesomeIcon icon={faArrowLeft} />
