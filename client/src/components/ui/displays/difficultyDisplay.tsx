@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 interface DifficultyScoreProps {
   difficulty: number; // 0 (easy) → 1 (hard)
@@ -20,10 +20,10 @@ const LEVELS_CONFIG: LevelConfig[] = [
 
 const PIPS = 5;
 
-export default async function DifficultyDisplay({ difficulty }: DifficultyScoreProps) {
+export default function DifficultyDisplay({ difficulty }: DifficultyScoreProps) {
   const clamped = Math.max(0, Math.min(1, difficulty));
   const levelConfig = LEVELS_CONFIG.find((l) => clamped <= l.max) ?? LEVELS_CONFIG[LEVELS_CONFIG.length - 1];
-  const t = await getTranslations("ui");
+  const t = useTranslations("ui");
   const label = t(levelConfig.labelKey);
   const filledPips = Math.round(clamped * PIPS);
 

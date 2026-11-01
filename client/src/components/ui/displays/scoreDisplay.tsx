@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 interface ScoreDisplayProps {
   score: number; // 0–100
@@ -20,10 +20,10 @@ const LEVELS_CONFIG: LevelConfig[] = [
 
 const PIPS = 5;
 
-export default async function ScoreDisplay({ score }: ScoreDisplayProps) {
+export default function ScoreDisplay({ score }: ScoreDisplayProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const levelConfig = LEVELS_CONFIG.find((l) => l.test(clamped))!;
-  const t = await getTranslations("ui");
+  const t = useTranslations("ui");
   const label = t(levelConfig.labelKey);
   const filledPips = clamped === 0 ? 0 : Math.max(1, Math.round((clamped / 100) * PIPS));
 
