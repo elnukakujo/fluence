@@ -73,12 +73,13 @@ A full-stack, multi-user language learning platform with AI-assisted content gen
 │   ├── core/                # Database, scheduler, config
 │   ├── models/              # SQLAlchemy models (containers, components, features, system_data, data_collection)
 │   ├── schemas/             # Pydantic schemas
-│   ├── services/            # Media, backup, TTS, text gen, search, evaluation, feedback
+│   ├── services/            # Auth, media, backup, TTS, text gen, search, evaluation, feedback, document parsing/ingestion
 │   ├── tasks/               # Scheduled background jobs
 │   └── utils/               # CJK enrichment, model API client, phonetics, tokenization
 ├── alembic/                 # Database migrations
 ├── docker/                  # Docker entrypoint, migration, backup scripts
-├── docker/                  # Docker entrypoint, migration, backup scripts
+├── scripts/                 # run.sh, seed_demo.py
+├── wheels/                  # Vendored spaCy model wheels (used by the Dockerfile)
 ├── assets/screenshots/      # README screenshots
 ├── media/                   # Production media storage
 ├── backups/                 # Backup storage

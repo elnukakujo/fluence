@@ -6,9 +6,14 @@ exercises under a Language → Lesson → Elements hierarchy.
 
 ## Where things live
 
+`docs/` is a symlink to an Obsidian vault (untracked) — use `[[wiki links]]`, frontmatter and the
+folder-README rule from `docs/rules/docs-hygiene.md` when editing it. Entry point: `docs/README.md`.
+
 - Architecture, key files, env vars, migrations: `docs/ARCHITECTURE.md`
-- Domain knowledge (data model, exercises, review/scoring, AI, study tracking): `docs/domain/`
+- Domain knowledge (data model, exercises, review/scoring, AI, auth, i18n, collaboration, document
+  parsing/ingestion, study tracking): `docs/domain/`
 - Operational rules (docs hygiene, git workflow): `docs/rules/`
+- Specs and plans (spec first, then plan, then code): `docs/superpowers/specs/`, `docs/superpowers/plans/`
 - Skills (graphify, ponytail, superpowers, ui-ux-pro-max): `docs/skills/`
 - Session history: `docs/logs/CHANGELOG.md`, then `docs/logs/sessions/`
 
@@ -36,3 +41,4 @@ Run `/graphify --update <changed paths>` before ending the turn — every turn, 
   `models/__init__.py` is load-bearing.
 - Never invent domain logic or scoring thresholds — leave a `TODO` and ask.
 - Never spawn a sub-agent for structural exploration — use `/graphify`.
+- Changing docs: update the folder `README.md`, bump `last_updated`, add `CHANGELOG` + session log in the same edit.

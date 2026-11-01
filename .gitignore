@@ -29,5 +29,10 @@ __pycache__/
 .Python
 venv/
 .venv/
-env/media/ingestion/
+env/
+media/ingestion/
 media/parse_cache/
+backups/
+backups_dev/
+backups_test/
+.pytest_cache/
