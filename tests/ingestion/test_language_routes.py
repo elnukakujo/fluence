@@ -222,7 +222,7 @@ def test_back_from_review_returns_a_language_import_to_the_lessons_step_unless_a
     client = _setup(app, db)
     job_id = _awaiting_structure(client)
     svc.update(job_id, status="ready", structure=_structure(confirmed=True))
-    created_lesson_path(media_root, job_id, 0).write_text("lesson_X")
+    created_lesson_path(media_root, job_id, 0).write_text("lesson_L1")   # a lesson that exists
     assert client.post(f"/api/ingestion/{job_id}/back").status_code == 409
     created_lesson_path(media_root, job_id, 0).unlink()
     assert client.post(f"/api/ingestion/{job_id}/back").get_json() == {"status": "structure"}

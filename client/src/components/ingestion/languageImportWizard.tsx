@@ -1,5 +1,6 @@
 "use client";
 
+import StopButton from "./stopButton";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -80,6 +81,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
         <p className="text-sm opacity-70">
           {t("languageImportTakesTime")}
         </p>
+        <div className="btn-row"><StopButton jobId={job.id} onStopped={async () => setJob(await getJob(jobId))} /></div>
       </div>
     );
   }
@@ -96,7 +98,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
   if (job.status === "structure") {
     return <StructureStep job={job} onRestart={startOver} onConfirmed={() => { setJob({ ...job, status: "extracting" }); setNonce((n) => n + 1); }} />;
   }
-  return <LessonsReview job={job} languageId={languageId} languageName={languageName}
+  return <LessonsReview job={job} languageId={languageId} languageName={languageName} onStopped={async () => setJob(await getJob(jobId))}
     onBack={async () => { await stepBack(jobId); setJob({ ...job, status: "structure" }); setNonce((n) => n + 1); }} />;
 }
 
@@ -226,7 +228,7 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
   );
 }
 
-function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; languageId: string; languageName: string; onBack: () => Promise<void> }) {
+function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { job: Job; languageId: string; languageName: string; onBack: () => Promise<void>; onStopped: () => void }) {
   const t = useTranslations("ingestion");
   const [lessons, setLessons] = useState<LessonProgress[] | null>(null);
   const [status, setStatus] = useState(job.status);
@@ -275,6 +277,7 @@ function LessonsReview({ job, languageId, languageName, onBack }: { job: Job; la
           {t("lessonsProgress", { ready, total: lessons.length, added: addedCount, languageName, reading: status === "extracting" ? "yes" : "no" })}
         </p>
         {status === "extracting" && <ProgressBar current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
+        {status === "extracting" && <div className="btn-row"><StopButton jobId={job.id} onStopped={onStopped} /></div>}
         <p className="text-xs opacity-60">{t("reviewEachLesson")}</p>
         {status !== "extracting" && addedCount === 0 && (
           <div className="btn-row"><button type="button" className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotGoBack")))}>{t("backToTheLessons")}</button></div>

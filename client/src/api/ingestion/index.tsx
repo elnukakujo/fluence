@@ -110,6 +110,13 @@ export async function acceptCandidates(jobId: string, lessonId: string, items: A
   return res.json();
 }
 
+/** Stop a running import before the next page is read (no more model calls are paid for); it ends as "failed: Stopped by you." */
+export async function stopJob(jobId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/stop`, { method: "POST", headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not stop this import");
+  notifyChanged();
+}
+
 export async function deleteJob(jobId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}`, { method: "DELETE", headers: await getAuthHeaders() });
   if (!res.ok) return fail(res, "Could not delete this import");

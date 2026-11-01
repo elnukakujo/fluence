@@ -131,11 +131,32 @@ def run_language_extraction(app: Flask, job_id: str) -> None:
     _guarded(app, job_id, _run_extraction)
 
 
+class Stopped(Exception):
+    """The user pressed Stop: the job was marked failed ("Stopped by you.") while this worker was still on it."""
+
+
+def check_alive(svc: IngestionJobService, job_id: str) -> None:
+    """Called between pages / chunks / lessons, so a stop takes effect before the next model call is paid for."""
+    job = svc.get(job_id)
+    if job is None or job["status"] == "failed":
+        raise Stopped
+
+
+def _progress(svc: IngestionJobService, job_id: str):
+    def tick(done: int, total: int) -> None:
+        check_alive(svc, job_id)
+        svc.update(job_id, pages_done=done, pages_total=total)
+    return tick
+
+
 def _guarded(app: Flask, job_id: str, step) -> None:
     with app.app_context():
         svc = IngestionJobService()
         try:
+            check_alive(svc, job_id)
             step(app, svc, job_id)
+        except Stopped:
+            logger.info("Ingestion job %s stopped by the user", job_id)
         except ParseError as e:
             svc.update(job_id, status="failed", error=f"{e.code}: {e}")
         except (ExtractionError, ModelAPIError) as e:
@@ -187,7 +208,7 @@ def _parse_job(svc: IngestionJobService, ctx: _Ctx) -> Document:
     return parse(ctx.media_root / job["file_path"], target_iso639_2t=ctx.target, source_iso639_2t=ctx.source,
                  remote=ctx.remote, handwritten=job["handwritten"], cache_dir=ctx.media_root / "parse_cache",
                  pages=(job["page_from"], job["page_to"]) if job["page_from"] else None,
-                 progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total))
+                 progress=_progress(svc, job_id))
 
 
 def _lookup_for(job: dict):
@@ -261,6 +282,7 @@ def _run(app: Flask, svc: IngestionJobService, job_id: str) -> None:
     if ctx.job["lesson_id"] is None:
         return _propose_lessons(svc, ctx, doc)
     _save_document(ctx, doc)
+    check_alive(svc, job_id)
     svc.update(job_id, status="pages", page_kinds=_classify(ctx, doc, _target_name(ctx)),
                warnings=ctx.warnings + [w for p in doc.pages for w in p.warnings])
 
@@ -280,11 +302,12 @@ def _run_lesson_extraction(app: Flask, svc: IngestionJobService, job_id: str) ->
     svc.update(job_id, status="extracting", pages_done=0, pages_total=len(doc.pages))
     result = build_candidates(
         doc, ctx.text_api, ctx.target, ctx.source, _lookup_for(ctx.job),
-        progress=lambda done, total: svc.update(job_id, pages_done=done, pages_total=total),
+        progress=_progress(svc, job_id),
         page_kinds=_kinds_by_page(ctx.job),
     )
     _attach_existing(ctx.job, result)
     warnings = ctx.warnings + result.warnings + [w for p in doc.pages for w in p.warnings]
+    check_alive(svc, job_id)
     out = candidates_path(ctx.media_root, job_id)
     out.write_text(json.dumps({"candidates": [c.model_dump() for c in result.candidates],
                                "elements": [e.model_dump() for e in result.elements], "warnings": warnings}))
@@ -302,6 +325,7 @@ def _propose_lessons(svc: IngestionJobService, ctx: _Ctx, doc: Document) -> None
         "lessons": [{**p.model_dump(), "index": i, "status": "pending", "error": None, "counts": None}
                     for i, p in enumerate(proposals)],
     }
+    check_alive(svc, job_id)
     svc.update(job_id, status="structure", structure=structure, page_kinds=_classify(ctx, doc, name),
                warnings=ctx.warnings + warnings + [w for p in doc.pages for w in p.warnings])
 
@@ -322,7 +346,8 @@ def _run_language_extraction(app: Flask, svc: IngestionJobService, job_id: str) 
         part = Document(sha256=doc.sha256, pipeline_version=doc.pipeline_version, pages=[
             p for p in doc.pages if lesson["start_page"] <= p.index + 1 <= lesson["end_page"]])
         try:
-            result = build_candidates(part, ctx.text_api, ctx.target, ctx.source, lookup, page_kinds=page_kinds)
+            result = build_candidates(part, ctx.text_api, ctx.target, ctx.source, lookup, page_kinds=page_kinds,
+                                      progress=lambda *_: check_alive(svc, job_id))
             _attach_existing(job, result)
             candidates = [c.model_dump() for c in result.candidates]
             verified = sum(c["status"] == "verified" for c in candidates)
@@ -338,6 +363,7 @@ def _run_language_extraction(app: Flask, svc: IngestionJobService, job_id: str) 
         done = sum(l["status"] != "pending" for l in lessons)
         svc.update(job_id, structure=structure, pages_done=done)
 
+    check_alive(svc, job_id)
     if all(l["status"] == "failed" for l in lessons):
         svc.update(job_id, status="failed", error="Extraction failed for every lesson")
     else:

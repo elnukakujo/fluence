@@ -35,15 +35,21 @@ _ALLOWED_SUFFIXES = _IMAGE_SUFFIXES | {".pdf"}
 _CONFLICT_MODES = {"keep", "merge", "overwrite"}
 
 
+def _created_id(job_id: str, index: int) -> str | None:
+    """The Lesson an add created for this import, only if it really exists (a marker can outlive a rolled-back or deleted lesson)."""
+    marker = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index)
+    lesson_id = marker.read_text().strip() if marker.is_file() else None
+    return lesson_id if lesson_id and LessonService().get_by_id(lesson_id, as_dict=True, include_relations=False) else None
+
+
 def _finished(job: dict) -> bool:
     """True once everything the user wanted from a finished import has been added (so it is no longer pending work)."""
     if job["status"] != "ready":
         return False
-    root = current_app.config["MEDIA_ROOT"]
     if job["lesson_id"] is not None:
-        return created_lesson_path(root, job["id"], 0).is_file()
+        return _created_id(job["id"], 0) is not None
     done = [l for l in (job["structure"] or {}).get("lessons", []) if l["status"] == "done"]
-    return bool(done) and all(created_lesson_path(root, job["id"], l["index"]).is_file() for l in done)
+    return bool(done) and all(_created_id(job["id"], l["index"]) for l in done)
 
 
 def _public(job: dict) -> dict:
@@ -266,8 +272,7 @@ def _lessons_view(job: dict, with_candidates: bool = False) -> list[dict]:
     out = []
     for lesson in (job["structure"] or {}).get("lessons", []):
         item = dict(lesson)
-        created = created_lesson_path(media_root, job["id"], lesson["index"])
-        item["created_lesson_id"] = created.read_text().strip() if created.is_file() else None
+        item["created_lesson_id"] = _created_id(job["id"], lesson["index"])
         if with_candidates and lesson["status"] == "done":
             path = candidates_path(media_root, job["id"], lesson["index"])
             stored = json.loads(path.read_text()) if path.is_file() else {}
@@ -461,6 +466,28 @@ def upload_media(job_id: str):
     return (jsonify(saved), 400) if "error" in saved else jsonify(saved)
 
 
+@bp.route("/<job_id>/stop", methods=["POST"])
+@login_required
+def stop_job(job_id: str):
+    """Stop a job that is being read or extracted; the worker quits before its next page, so no more model calls are paid for.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "status: failed (Stopped by you.)"}
+        409: {description: The job is not being worked on}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["status"] not in ("queued", "parsing", "extracting"):
+        return jsonify({"error": "This import is not running"}), 409
+    job_service.update(job_id, status="failed", error="Stopped by you.")
+    return jsonify({"status": "failed"})
+
+
 @bp.route("/<job_id>/back", methods=["POST"])
 @login_required
 def step_back(job_id: str):
@@ -486,7 +513,7 @@ def step_back(job_id: str):
         return jsonify({"status": "pages"})
     structure = job["structure"] or {}
     media_root = current_app.config["MEDIA_ROOT"]
-    if any(created_lesson_path(media_root, job_id, l["index"]).is_file() for l in structure.get("lessons", [])):
+    if any(_created_id(job_id, l["index"]) for l in structure.get("lessons", [])):
         return jsonify({"error": "A lesson was already added from this import, so it cannot go back"}), 409
     job_service.update(job_id, status="structure", structure={**structure, "confirmed": False})
     return jsonify({"status": "structure"})

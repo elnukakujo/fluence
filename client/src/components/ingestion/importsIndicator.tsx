@@ -7,6 +7,7 @@ import { Check, CircleX, Download, LoaderCircle } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExclamation } from "@fortawesome/free-solid-svg-icons";
 import StepProgress from "./stepProgress";
+import StopButton from "./stopButton";
 import { ACTIVE_STATUSES, INGESTION_CHANGED, type Job, deleteJob, listJobs } from "@/api/ingestion";
 
 // Poll fast only while a job is progressing by itself; otherwise nothing changes until the user acts
@@ -182,6 +183,7 @@ export default function ImportsIndicator() {
                 <StepProgress step={stepOf(j)} second={j.lesson_id ? t("chooseThePages") : t("chooseTheLessons")} />
                 <span className="opacity-70">{j.finished ? t("addedNothingLeft") : t(`jobStatus_${j.status}`)}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}{j.status === "parsing" && j.pages_total > 0 ? ` · ${t("pagesRead", { done: j.pages_done, total: j.pages_total })}` : ""}</span>
               </div>
+              {SELF_PROGRESSING.includes(j.status) && <StopButton jobId={j.id} onStopped={load} />}
               {!ACTIVE_STATUSES.includes(j.status) && (
                 <button type="button" className="btn btn-secondary" aria-label={t("removeImport", { filename: j.filename })}
                   onClick={async () => { await deleteJob(j.id).catch(() => undefined); load(); }}>×</button>

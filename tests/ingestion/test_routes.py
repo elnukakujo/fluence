@@ -6,7 +6,7 @@ import json
 from ingestion_seeds import client_for, make_language, make_user
 from lapp.models.features import Vocabulary
 from lapp.services import WordService
-from lapp.services.ingestion.jobs import IngestionJobService, candidates_path
+from lapp.services.ingestion.jobs import IngestionJobService, candidates_path, created_lesson_path
 
 svc = IngestionJobService()
 
@@ -662,3 +662,27 @@ def test_accept_attaches_an_uploaded_picture_to_vocabulary_and_grammar(app, db, 
     with db.session_scope() as s:
         assert all(len(m.image_files) == 1 for m in s.query(Vocabulary).filter(Vocabulary.lesson_id == "lesson_L1").all())
         assert len(s.query(Grammar).filter(Grammar.title == "Pic grammar").one().image_files) == 1
+
+
+def test_stop_ends_a_running_import_and_the_worker_quits_before_its_next_step(app, db, media_root, scheduled):
+    from lapp.services.ingestion.jobs import Stopped, check_alive
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    check_alive(svc, job_id)   # queued: still wanted
+    svc.update(job_id, status="parsing")
+    assert client.post(f"/api/ingestion/{job_id}/stop").get_json() == {"status": "failed"}
+    got = client.get(f"/api/ingestion/{job_id}").get_json()
+    assert got["status"] == "failed" and got["error"] == "Stopped by you."
+    with pytest.raises(Stopped):
+        check_alive(svc, job_id)
+    assert client.post(f"/api/ingestion/{job_id}/stop").status_code == 409   # nothing left to stop
+
+
+def test_a_lesson_marker_whose_lesson_does_not_exist_is_not_shown_as_added(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    svc.update(job_id, status="ready")
+    marker = created_lesson_path(media_root, job_id, 0)
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("lesson_L999")
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is False

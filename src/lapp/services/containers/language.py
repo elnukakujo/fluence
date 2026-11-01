@@ -111,7 +111,7 @@ class LanguageService:
             attr_values={'id': language_id},
             session=session
         )
-        logger.info(f"Retrieved language with ID {language_id}")
+        logger.debug(f"Retrieved language with ID {language_id}")
         return self._serialize(language, as_dict, include_relations)
 
     @transactional
