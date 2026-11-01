@@ -63,7 +63,7 @@ export function StepRing({ job, state }: { job: Pick<Job, "status" | "pages_done
   const grow = { transition: "stroke-dasharray 600ms cubic-bezier(.4,0,.2,1)" };
   return (
     <svg aria-hidden data-testid="step-ring" viewBox="0 0 52 52" width={52} height={52}
-      className={`pointer-events-none absolute -left-1 -top-1 ${g.status === "done" ? "drop-shadow-[0_0_3px_color-mix(in_srgb,var(--color-success)_55%,transparent)]" : ""}`}>
+      className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${g.status === "done" ? "drop-shadow-[0_0_3px_color-mix(in_srgb,var(--color-success)_55%,transparent)]" : ""}`}>
       <circle {...arc} stroke="var(--color-border)" opacity={0.7} />
       {g.done > 0 && <circle {...arc} stroke={RING_COLOR.done} strokeDasharray={`${g.done} 300`} style={grow} data-arc="done" />}
       {g.current > 0 && (
