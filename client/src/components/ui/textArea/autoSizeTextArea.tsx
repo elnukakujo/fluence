@@ -114,7 +114,7 @@ export default function AutoSizeTextArea({
     };
 
     return (
-        <span className="flex flex-col space-y-2">
+        <span className="flex min-w-0 max-w-full flex-col space-y-2">
             {label && (
                 <label
                     htmlFor={label.toLowerCase().replace(/\s+/g, '-')}
@@ -131,7 +131,7 @@ export default function AutoSizeTextArea({
                 value={value}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className={`input resize-none overflow-hidden ${className}`}
+                className={`input max-w-full resize-none overflow-hidden ${className}`}
                 style={{
                     width: `${dimensions.width}rem`,
                     height: `${dimensions.height}rem`,

@@ -855,16 +855,47 @@
   .heatmap-level-4 { background: var(--color-accent); }
 
   /* ── Settings sidebar ─────────────────────────────────────────────── */
+  /* Phones: sticky full-bleed chip strip right under the 56px navbar.
+     md+: plain vertical list inside the sticky <aside>. */
   .settings-sidebar {
-    position: sticky;
-    top: 6rem;
+    background: color-mix(in srgb, var(--color-background) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .settings-chips {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .settings-chips::-webkit-scrollbar { display: none; }
+  .settings-chips > li { scroll-snap-align: center; }
+  @media (min-width: 768px) {
+    .settings-sidebar {
+      background: none;
+      backdrop-filter: none;
+      border-bottom: 0;
+    }
+    .settings-chips {
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0;
+      overflow: visible;
+    }
   }
 
   .settings-sidebar-link {
     display: block;
     width: 100%;
+    min-height: 2.75rem;
+    white-space: nowrap;
     text-align: left;
-    padding: 0.375rem 0.75rem;
+    padding: 0.375rem 0.875rem;
     border-radius: var(--radius-full);
     font-size: 0.875rem;
     font-weight: 500;
@@ -874,6 +905,17 @@
   }
   .settings-sidebar-link:hover {
     background: var(--color-accent-soft);
+  }
+  @media (max-width: 767px) {
+    .settings-sidebar-link { border: 1px solid var(--color-border); background: var(--color-surface); }
+    .settings-sidebar-link.active { border-color: var(--color-accent); }
+    /* 44px touch targets for the settings forms on phones */
+    .settings-page button:not(.chip-remove),
+    .settings-page input:not([type="checkbox"]),
+    .settings-page select { min-height: 2.75rem; }
+    /* Tiny "×" on chips: keep the chip small but extend its hit area to ~44px */
+    .settings-page .chip-remove { position: relative; }
+    .settings-page .chip-remove::after { content: ""; position: absolute; inset: -0.75rem; }
   }
   .settings-sidebar-link.active {
     background: var(--color-accent-soft);

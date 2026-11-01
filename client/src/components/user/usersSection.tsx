@@ -42,19 +42,19 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
             <p className="text-sm opacity-60">{t("description")}</p>
             <div className="flex flex-col gap-2">
                 {users.map((u) => (
-                    <div key={u.id} className="card flex items-center justify-between gap-3 p-3">
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
+                    <div key={u.id} className="card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-medium">{u.display_name || u.username}</span>
                                 <RoleBadge isAdmin={u.is_admin} approved={u.approved} blocked={u.blocked} />
                             </div>
-                            <span className="text-xs text-muted">{u.email}</span>
+                            <span className="break-all text-xs text-muted">{u.email}</span>
                             <span className="text-xs text-muted">
                                 {t("lastLogin", { date: u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : t("neverLoggedIn") })}
                             </span>
                         </div>
                         {u.id !== currentUserId && (
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                                 {!u.approved && (
                                     <button
                                         type="button"

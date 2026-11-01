@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const t = useTranslations("settings");
   const tAdmin = useTranslations("settingsAdmin");
   const [active, setActive] = useState<string>("profile");
+  const listRef = useRef<HTMLUListElement>(null);
 
   const COMMON_SECTIONS = [
     { id: "profile", label: t("sidebar.profile") },
@@ -44,15 +45,23 @@ export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean
     return () => handle.disconnect();
   }, [isAdmin]);
 
+  // Keep the active chip visible in the horizontal strip (phones).
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLElement>('[aria-current="true"]');
+    const list = listRef.current;
+    if (!el || !list || list.scrollWidth <= list.clientWidth) return;
+    list.scrollTo({ left: el.offsetLeft - (list.clientWidth - el.offsetWidth) / 2, behavior: "smooth" });
+  }, [active]);
+
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
-    <nav className="settings-sidebar" role="navigation" aria-label={t("sectionsAriaLabel")}>
-      <ul className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+    <nav className="settings-sidebar" aria-label={t("sectionsAriaLabel")}>
+      <ul ref={listRef} className="settings-chips">
         {sections.map((s) => (
-          <li key={s.id}>
+          <li key={s.id} className="shrink-0 md:shrink">
             <button
               type="button"
               onClick={() => scrollTo(s.id)}
