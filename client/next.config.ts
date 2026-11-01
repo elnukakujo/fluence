@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 // Media and API are both served same-origin through the Next.js server (rewrites
 // below proxy /api/* and /media/* to the backend), so the frontend no longer needs
@@ -20,4 +23,4 @@ const nextConfig = {
   },
 } as NextConfig;
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

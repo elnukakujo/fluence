@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import NavBar from "@/components/layout/navBar";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,14 +34,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const currentUserId = await getCurrentUserId();
+  const locale = await getLocale();
 
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
       >
-        <NavBar currentUserId={currentUserId} />
-        {children}
+        <NextIntlClientProvider>
+          <NavBar currentUserId={currentUserId} />
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );
