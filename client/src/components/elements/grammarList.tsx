@@ -1,12 +1,14 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import NavButton from "@/components/layout/navButton";
 import Grammar from "@/interface/features/Grammar";
 import DifficultyDisplay from "@/components/ui/displays/difficultyDisplay";
 import ScoreDisplay from "@/components/ui/displays/scoreDisplay";
 
 export default function GrammarList({ gramProps}: { gramProps: Grammar[]}) {
+    const t = useTranslations("grammar");
     const { language_id, lesson_id } = useParams<{ language_id: string, lesson_id: string }>();
 
     const router = useRouter();
@@ -22,16 +24,16 @@ export default function GrammarList({ gramProps}: { gramProps: Grammar[]}) {
     return (
         <section className="card flex flex-col gap-4 w-[14rem] h-fit">
             <header>
-                <h2>Grammar</h2>
+                <h2>{t("heading")}</h2>
                 {gramProps.length > 0 && (
                     <div className="flex flex-col gap-1">
-                        <span className="text-sm text-muted">Total: {gramProps.length}</span>
+                        <span className="text-sm text-muted">{t("total")}: {gramProps.length}</span>
                         <ScoreDisplay score={averageScore} />
                         <DifficultyDisplay difficulty={averageDifficulty} />
                     </div>
                 )}
             </header>
-            {gramProps.length === 0 ? <p>Empty</p> :
+            {gramProps.length === 0 ? <p>{t("emptyState")}</p> :
                 <ul className="index-divider list-item pl-5 space-y-1 list-none">
                     {gramProps.map((item, index) => (
                         <li key={index}>
@@ -47,14 +49,14 @@ export default function GrammarList({ gramProps}: { gramProps: Grammar[]}) {
             <NavButton
                 path = {`/languages/${language_id}/lesson/${lesson_id}/gram/new`}
             >
-                <span>Add New Grammar</span>
+                <span>{t("addNewButton")}</span>
             </NavButton>
 
             {gramProps.length > 0 && (
                 <NavButton
                     path={`/languages/${language_id}/lesson/${lesson_id}/gram/flashcard`}
                 >
-                    <p>Flashcard Practice</p>
+                    <p>{t("practiceButton")}</p>
                 </NavButton>)
             }
         </section>

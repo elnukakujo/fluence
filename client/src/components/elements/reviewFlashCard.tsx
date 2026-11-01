@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
@@ -28,6 +29,7 @@ const typeLabel = (c: ReviewCard) =>
     isVocabulary(c) ? "Vocabulary" : isGrammar(c) ? "Grammar" : isCalligraphy(c) ? "Calligraphy" : "Exercise";
 
 export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
+    const t = useTranslations("elements");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const startTimeRef = useRef<number>(performance.now());
     const [hintUsed, setHintUsed] = useState<boolean>(false);
@@ -46,7 +48,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     if (!card) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
-                <p className="text-muted">Nothing to review today 🎉</p>
+                <p className="text-muted">{t("nothingToReview")}</p>
                 <BackButton>Back to Language</BackButton>
             </article>
         );
@@ -78,9 +80,9 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
             {/* ── Card metadata ───────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                 <span className="badge">{typeLabel(card)}</span>
-                {card.lesson_title && <span>Lesson: {card.lesson_title}</span>}
-                <span>Created: {new Date(card.created_at).toLocaleDateString()}</span>
-                {card.last_seen_at && <span>Last seen: {new Date(card.last_seen_at).toLocaleDateString()}</span>}
+                {card.lesson_title && <span>{t("lesson")}: {card.lesson_title}</span>}
+                <span>{t("created")}: {new Date(card.created_at).toLocaleDateString()}</span>
+                {card.last_seen_at && <span>{t("lastSeen")}: {new Date(card.last_seen_at).toLocaleDateString()}</span>}
             </div>
 
             {isExercise(card) ? (
@@ -89,7 +91,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                     <ExerciseRunner key={card.id} exercise={card} />
                     {currentIndex < cards.length - 1 ? (
                         <button className="btn btn-primary self-end" onClick={handleGoNext}>
-                            Next
+                            {t("nextButton")}
                         </button>
                     ) : (
                         <BackButton>Back to Language</BackButton>
@@ -150,7 +152,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                         <>
                             {isVocabulary(card) && card.example_sentences && card.example_sentences.length > 0 && (
                                 <section className="flex flex-col space-y-4">
-                                    <h3 className="font-serif">Example sentences</h3>
+                                    <h3 className="font-serif">{t("exampleSentences", { ns: "vocabulary" })}</h3>
                                     {card.example_sentences.map((sentence, index) => (
                                         <SentenceCard key={index} sentence={sentence} hiddenTranslation={false} />
                                     ))}
@@ -158,7 +160,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                             )}
                             {!isVocabulary(card) && card.example_words && card.example_words.length > 0 && (
                                 <section className="flex flex-col space-y-4 items-baseline">
-                                    <h3 className="font-serif">Example Words</h3>
+                                    <h3 className="font-serif">{t("exampleWords", { ns: "grammar" })}</h3>
                                     {card.example_words.map((word, index) => (
                                         <WordCard key={index} word={word} hiddenTranslation={false} hiddenAdditionalInformations={false} />
                                     ))}
@@ -166,7 +168,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                             )}
                             {!isVocabulary(card) && card.example_sentences && card.example_sentences.length > 0 && (
                                 <section className="flex flex-col space-y-4 items-baseline">
-                                    <h3 className="font-serif">Example Sentences</h3>
+                                    <h3 className="font-serif">{t("exampleSentences", { ns: "grammar" })}</h3>
                                     {card.example_sentences.map((sentence, index) => (
                                         <SentenceCard key={index} sentence={sentence} hiddenTranslation={false} />
                                     ))}
@@ -177,7 +179,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                             <ElementPerformanceCard element={card} />
                             {currentIndex < cards.length - 1 ? (
                                 <button className="btn btn-primary" onClick={handleGoNext}>
-                                    Next
+                                    {t("nextButton")}
                                 </button>
                             ) : (
                                 <BackButton>Back to Language</BackButton>

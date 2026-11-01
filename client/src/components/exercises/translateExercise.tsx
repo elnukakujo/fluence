@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRef } from "react";
 import { Ring } from 'ldrs/react';
+import { useTranslations } from "next-intl";
 //@ts-ignore
 import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
@@ -15,6 +16,7 @@ import { getLevelForScore } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 
 export default function TranslateExercise({ exercise }: {exercise: Exercise}){
+    const t = useTranslations("exercises");
     const question = exercise.question || "";
     const answer = exercise.answer || "";
     const text_support = exercise.text_support || "";
@@ -67,12 +69,12 @@ export default function TranslateExercise({ exercise }: {exercise: Exercise}){
     return (
         <form className="card flex flex-col space-y-4" onSubmit={handleSubmit}>
             <section>
-                <h3>Text to translate: </h3>
+                <h3>{t("textToTranslate")} </h3>
                 <Markdown remarkPlugins={[remarkGfm]}>{question}</Markdown>
             </section>
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support: </h3>
+                    <h3>{t("textSupport")} </h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -82,7 +84,7 @@ export default function TranslateExercise({ exercise }: {exercise: Exercise}){
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
                 className={`input ${hasFeedback ? (isCorrect ? 'border-success' : 'border-danger') : ''}`}
-                placeholder="Type your answer here..."
+                placeholder={t("referencePlaceholder")}
                 disabled={isCorrect || attempts >= 3}
             />
             { !isCorrect && attempts < 3 ? (
@@ -97,11 +99,11 @@ export default function TranslateExercise({ exercise }: {exercise: Exercise}){
                             stroke="2"
                             bgOpacity="0"
                             speed="3"
-                            color="white" 
+                            color="white"
                         />
                     )
                     : (
-                        <p>Check Answers</p>
+                        <p>{t("checkAnswers")}</p>
                     )}
                 </button>
             ) : null}
@@ -112,27 +114,27 @@ export default function TranslateExercise({ exercise }: {exercise: Exercise}){
                     {isCorrect ? (
                         <>
                             <p>
-                                ✓ Correct!
+                                {t("correct")}
                             </p>
                             <p>
-                                {`The correct answer is:${answer}`}
+                                {t("correctAnswer")}{answer}
                             </p>
                         </>
-                    ) : <p>✗ Some answers are incorrect (Attempt {attempts}/3)</p>}
+                    ) : <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>}
                     <p>
                         {feedbackMessage && (
-                            <span className="font-medium">Feedback: </span>
+                            <span className="font-medium">{t("feedback")} </span>
                         )}
                         {feedbackMessage}
                     </p>
                     <p>
-                        {`Level:${currentLevel!.label} (${currentLevel!.stars})`}
+                        {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">Correct answer was:</p>
+                            <p className="font-medium">{t("correctAnswer")}</p>
                             <p>{answer}</p>
-                        </div>  
+                        </div>
                     )}
                 </div>
             )}

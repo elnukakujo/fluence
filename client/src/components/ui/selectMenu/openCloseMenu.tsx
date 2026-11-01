@@ -1,25 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Element = {
     id: string;
     value: string;
 };
 
-export default function OpenCloseMenu({ 
-    elements, 
+export default function OpenCloseMenu({
+    elements,
     selectedElements,
     setSelectedElements,
     label
-} : { 
-    elements: Element[], 
+} : {
+    elements: Element[],
     selectedElements: string[],
     setSelectedElements: (elements: string[]) => void,
     label?: string
 }) {
 
     const [isOpen, setIsOpen] = useState(false);
+    const t = useTranslations("ui");
 
     return (
         <menu>
@@ -31,7 +33,7 @@ export default function OpenCloseMenu({
                 onClick={() => setIsOpen(!isOpen)}
                 className="btn btn-secondary"
             >
-                {isOpen ? "Hide" : "Show"}
+                {isOpen ? t("hide") : t("show")}
             </button>
             {isOpen && (
                 <ul className="max-w-[40rem] flex flex-row flex-wrap gap-2 mt-2">

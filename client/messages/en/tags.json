@@ -1,0 +1,22 @@
+{
+  "tags": "Tags",
+  "noTagsYet": "No tags yet.",
+  "newTag": "+ New",
+  "createNewTag": "Create New Tag",
+  "updateTag": "Update Tag",
+  "tagDetail": "Tag Detail",
+  "editTagInformations": "Edit Tag Informations",
+  "name": "Name",
+  "tagNamePlaceholder": "Tag name",
+  "color": "Color",
+  "description": "Description",
+  "addTag": "Add Tag",
+  "vocab": "Vocab",
+  "calli": "Calli",
+  "grammar": "Grammar",
+  "exercise": "Exercise",
+  "lesson": "Lesson",
+  "lang": "Lang",
+  "updateTagFailed": "Failed to update tag.",
+  "createTagFailed": "Failed to create tag."
+}

@@ -21,7 +21,7 @@ export default function SourceSelector({
 }: SourceSelectorProps) {
   return (
     <EntitySelector<Source>
-      label="Sources"
+      label="sources"
       selectedIds={selectedSourceIds}
       onSelectionChange={onSourcesChange}
       elementId={elementId}

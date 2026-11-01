@@ -1,16 +1,28 @@
 import Source from '@/interface/systemData/Source';
+import { getTranslations } from "next-intl/server";
 
-const ROWS = [
-    { key: "voc",    label: "Vocab" },
-    { key: "call",   label: "Calli" },
-    { key: "gram",   label: "Grammar" },
-    { key: "ex",     label: "Exercise" },
-    { key: "lesson", label: "Lesson" },
-    { key: "lang",   label: "Lang" },
+type RowConfig = {
+    key: "voc" | "call" | "gram" | "ex" | "lesson" | "lang";
+    labelKey: string;
+}
+
+const ROWS_CONFIG: RowConfig[] = [
+    { key: "voc",    labelKey: "vocab" },
+    { key: "call",   labelKey: "calli" },
+    { key: "gram",   labelKey: "grammar" },
+    { key: "ex",     labelKey: "exercise" },
+    { key: "lesson", labelKey: "lesson" },
+    { key: "lang",   labelKey: "lang" },
 ] as const;
 
-export default function SourceCard({ source }: { source: Source }) {
+export default async function SourceCard({ source }: { source: Source }) {
     const elements = source.elements;
+    const t = await getTranslations("sources");
+
+    const ROWS = ROWS_CONFIG.map(({ key, labelKey }) => ({
+        key,
+        label: t(labelKey),
+    }));
 
     return (
         <div className="pl-4 py-3 border-l-2 border-border">

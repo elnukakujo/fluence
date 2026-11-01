@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { useRouter } from "next/navigation";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
@@ -17,6 +18,7 @@ import ConflictError from "@/api/conflictError";
 import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
 
 export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?: Partial<Calligraphy>; lesson_id: string}) {
+    const t = useTranslations("calligraphy");
     const router = useRouter();
     const isUpdate = Boolean(calligraphy?.id);
     let calligraphyData: Partial<Calligraphy>;
@@ -97,7 +99,7 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                 return;
             }
             console.error(`Failed to ${isUpdate ? "update" : "create"} calligraphy:`, error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} calligraphy. Check console for details.`);
+            alert(isUpdate ? t("updateFailure") : t("createFailure"));
         } finally {
             setIsSubmitting(false);
         }
@@ -168,32 +170,32 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
         )}
         <form className="flex flex-col space-y-12" onSubmit={handleSubmit}>
             <article className="flex flex-col space-y-2 items-center">
-                <h3>Character Informations</h3>
+                <h3>{t("formHeading")}</h3>
                 <AutoWidthInput
                     value={character}
                     onChange={(e) => setCharacter(e.target.value)}
-                    label="Character"
+                    label={t("characterLabel")}
                     required
                 />
                 <AutoWidthInput
                     value={phonetic}
                     onChange={(e) => setPhonetic(e.target.value)}
-                    label="Phonetic"
+                    label={t("phoneticLabel")}
                 />
                 <AutoWidthInput
                     value={meaning || ""}
                     onChange={(e) => setMeaning(e.target.value)}
-                    label="Meaning"
+                    label={t("meaningLabel")}
                 />
                 <AutoWidthInput
                     value={radical || ""}
                     onChange={(e) => setRadical(e.target.value)}
-                    label="Radical"
+                    label={t("radicalLabel")}
                 />
                 <AutoWidthInput
                     value={strokes !== undefined ? strokes.toString() : ""}
                     onChange={(e) => setStrokes(parseInt(e.target.value) || undefined)}
-                    label="Strokes"
+                    label={t("strokesLabel")}
                 />
                 <MediaLoader imageUrl={imageUrl} setImageUrl={setImageUrl} audioUrl={audioUrl} setAudioUrl={setAudioUrl} />
             </article>
@@ -208,7 +210,7 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                 elementId={calligraphyData.id!}
             />
             <article className="flex flex-col space-y-2 items-center">
-                <h3>Example Words</h3>
+                <h3>{t("exampleWordsHeading")}</h3>
                 {exampleWords.map((exampleWord, key) => (
                     <section key={key} className="card flex flex-col space-y-2 items-center w-full">
                         <button
@@ -223,26 +225,26 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                         <AutoWidthInput
                             value={exampleWord.word || ""}
                             onChange={(e) => handleExampleWordChange(key, "word", e.target.value)}
-                            label="Example Word"
+                            label={t("exampleWordLabel")}
                             required
                         />
                         <AutoWidthInput
                             value={exampleWord.translation || ""}
                             onChange={(e) => handleExampleWordChange(key, "translation", e.target.value)}
-                            label="Example Word Translation"
+                            label={t("exampleWordTranslationLabel")}
                         />
                         <ClassicSelectMenu
-                            label="Type of Word"
+                            label={t("exampleWordTypeLabel")}
                             options={[
-                                'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article', 
-                                'preposition', 'conjunction', 'particle', 'interjection', 'numeral', 
+                                'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article',
+                                'preposition', 'conjunction', 'particle', 'interjection', 'numeral',
                                 'classifier', 'auxiliary', 'modal'
                             ]}
                             selectedOption={exampleWord.word_type || ""}
                             onChange={(value) => handleExampleWordChange(key, "word_type", value)}
                         />
                         <ClassicSelectMenu
-                            label="Gender of Word"
+                            label={t("exampleWordGenderLabel")}
                             options={[
                                 'm', 'f', 'n', 'c', ''
                             ]}
@@ -264,11 +266,11 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                     }}
                     className="btn btn-primary"
                 >
-                    <FontAwesomeIcon icon={faAdd}/> Add Example Word
+                    <FontAwesomeIcon icon={faAdd}/> {t("addExampleWordButton")}
                 </button>
             </article>
             <article className="flex flex-col space-y-2 items-center">
-                <h3>Example Sentences</h3>
+                <h3>{t("exampleSentencesHeading")}</h3>
                 {exampleSentences.map((exampleSentence, key) => (
                     <section key={key} className="card flex flex-col space-y-2 items-center w-full">
                         <button
@@ -283,13 +285,13 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                         <AutoWidthInput
                             value={exampleSentence.text || ""}
                             onChange={(e) => handleExampleSentenceChange(key, "text", e.target.value)}
-                            label="Example Sentence"
+                            label={t("exampleSentenceLabel")}
                             required
                         />
                         <AutoWidthInput
                             value={exampleSentence.translation || ""}
                             onChange={(e) => handleExampleSentenceChange(key, "translation", e.target.value)}
-                            label="Example Sentence Translation"
+                            label={t("exampleSentenceTranslationLabel")}
                         />
                         <MediaLoader 
                             imageUrl={exampleSentence.image_files || []} 
@@ -306,10 +308,10 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                     }}
                     className="btn btn-primary"
                 >
-                    <FontAwesomeIcon icon={faAdd}/> Add Example Sentence
+                    <FontAwesomeIcon icon={faAdd}/> {t("addExampleSentenceButton")}
                 </button>
             </article>
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Calligraphy</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Calligraphy</SubmitButton>}
+            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addButton")}</SubmitButton>}
         </form>
         </>
     );

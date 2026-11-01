@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import Word from "@/interface/components/Word";
 import ElementMediaCard from "./elementMediaCard";
 
@@ -10,6 +11,7 @@ export default function WordCard({
   hiddenTranslation?: boolean;
   hiddenAdditionalInformations?: boolean;
 }) {
+  const t = useTranslations("elements");
   const showExtras =
     (hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation;
   const hasMedia =
@@ -18,7 +20,7 @@ export default function WordCard({
 
   return (
     <section className="card">
-      <h2 className="mb-1 text-lg font-semibold">Word</h2>
+      <h2 className="mb-1 text-lg font-semibold">{t("wordHeading")}</h2>
 
       <div className="index-divider pt-3 flex flex-col gap-4">
 

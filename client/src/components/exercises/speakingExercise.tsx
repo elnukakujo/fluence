@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Ring } from 'ldrs/react';
+import { useTranslations } from "next-intl";
 //@ts-ignore
 import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
@@ -14,6 +15,7 @@ import ElementMediaCard from "@/components/elements/elementMediaCard";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
 export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const question = exercise.question || "";
     const text_support = exercise.text_support || "";
 
@@ -85,7 +87,7 @@ export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
 
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support: </h3>
+                    <h3>{t("textSupport")} </h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -100,7 +102,7 @@ export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
                             onClick={() => setShowExample((prev) => !prev)}
                             className="btn btn-secondary"
                         >
-                            {showExample ? "Hide Example" : "Show Example"}
+                            {showExample ? t("hideExample") : t("showExample")}
                         </button>
                         <AudioRecorder
                             key={resetKey}
@@ -116,7 +118,7 @@ export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
                     >
                         {isLoading
                             ? <Ring size="24" stroke="2" bgOpacity="0" speed="3" color="white" />
-                            : <p>Check Answer</p>
+                            : <p>{t("checkAnswer")}</p>
                         }
                     </button>
                 </section>
@@ -131,7 +133,7 @@ export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
                     <p className="italic">`&quot;`{currentLevel.description}`&quot;`</p>
                     <p>
                         {feedbackMessage && (
-                            <span className="font-medium">Feedback: </span>
+                            <span className="font-medium">{t("feedback")} </span>
                         )}
                         {feedbackMessage}
                     </p>

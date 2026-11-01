@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import NavButton from "@/components/layout/navButton";
 
 import Vocabulary from "@/interface/features/Vocabulary";
@@ -8,6 +9,7 @@ import DifficultyDisplay from "@/components/ui/displays/difficultyDisplay";
 import ScoreDisplay from "@/components/ui/displays/scoreDisplay";
 
 export default function VocabularyList({ vocProps}: { vocProps: Vocabulary[]}) {
+    const t = useTranslations("vocabulary");
     const { language_id, lesson_id } = useParams<{ language_id: string, lesson_id: string }>();
 
     const router = useRouter();
@@ -23,16 +25,16 @@ export default function VocabularyList({ vocProps}: { vocProps: Vocabulary[]}) {
     return (
         <section className="card flex flex-col gap-4 w-[14rem] h-fit">
             <header>
-                <h2>Vocabulary</h2>
+                <h2>{t("heading")}</h2>
                 {vocProps.length > 0 && (
                     <div className="flex flex-col gap-1">
-                        <span className="text-sm text-muted">Total: {vocProps.length}</span>
+                        <span className="text-sm text-muted">{t("total")}: {vocProps.length}</span>
                         <ScoreDisplay score={averageScore} />
                         <DifficultyDisplay difficulty={averageDifficulty} />
                     </div>
                 )}
             </header>
-            {vocProps.length === 0 ? <p>Empty</p> :
+            {vocProps.length === 0 ? <p>{t("emptyState")}</p> :
                 <ul className="index-divider list-item pl-5 space-y-1 list-none">
                     {vocProps.map((item, index) => (
                         <li key={index}>
@@ -48,13 +50,13 @@ export default function VocabularyList({ vocProps}: { vocProps: Vocabulary[]}) {
             <NavButton
                 path = {`/languages/${language_id}/lesson/${lesson_id}/voc/new`}
             >
-                <p>Add New Vocabulary</p>
+                <p>{t("addNewButton")}</p>
             </NavButton>
             {vocProps.length > 0 && (
                 <NavButton
                     path={`/languages/${language_id}/lesson/${lesson_id}/voc/flashcard`}
                 >
-                    <p>Flashcard Practice</p>
+                    <p>{t("practiceButton")}</p>
                 </NavButton>
             )}
         </section>

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { useRouter } from "next/navigation";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
@@ -16,6 +17,7 @@ import ConflictError from "@/api/conflictError";
 import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
 
 export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vocabulary | Partial<Vocabulary>; lesson_id: string}) {
+    const t = useTranslations("vocabulary");
     const router = useRouter();
     const isUpdate = Boolean(vocabulary?.id);
 
@@ -96,7 +98,7 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
                 return;
             }
             console.error(`Failed to ${isUpdate ? "update" : "create"} vocabulary:`, error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} vocabulary. Check console for details.`);
+            alert(isUpdate ? t("updateFailure") : t("createFailure"));
         } finally {
             setIsSubmitting(false);
         }
@@ -155,32 +157,32 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
             onSubmit={handleSubmit}
         >
             <article className="flex flex-col space-y-2 items-center">
-                <h3> Word Informations </h3>
+                <h3>{t("formHeading")}</h3>
                 <AutoWidthInput
                     value={word}
-                    label="Word"
+                    label={t("wordLabel")}
                     onChange={(e) => setWord(e.target.value)}
-                    placeholder="Enter word"
+                    placeholder={t("wordPlaceholder")}
                     required={true}
                 />
                 <AutoWidthInput
                     value={translation}
-                    label="Translation"
+                    label={t("translationLabel")}
                     onChange={(e) => setTranslation(e.target.value)}
-                    placeholder="Enter translation"
+                    placeholder={t("translationPlaceholder")}
                 />
                 <ClassicSelectMenu
-                    label="Type of Word"
+                    label={t("wordTypeLabel")}
                     options={[
-                        'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article', 
-                        'preposition', 'conjunction', 'particle', 'interjection', 'numeral', 
+                        'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article',
+                        'preposition', 'conjunction', 'particle', 'interjection', 'numeral',
                         'classifier', 'auxiliary', 'modal'
                     ]}
                     selectedOption={type}
                     onChange={(value) => setType(value as typeof type)}
                 />
                 <ClassicSelectMenu
-                    label="Gender of Word"
+                    label={t("genderLabel")}
                     options={[
                         'm', 'f', 'n', 'c', ''
                     ]}
@@ -189,9 +191,9 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
                 />
                 <AutoWidthInput
                     value={phonetic || ""}
-                    label="Phonetic"
+                    label={t("phoneticLabel")}
                     onChange={(e) => setPhonetic(e.target.value)}
-                    placeholder="Enter phonetic"
+                    placeholder={t("phoneticPlaceholder")}
                 />
                 <MediaLoader imageUrl={wordImageUrl} setImageUrl={setWordImageUrl} audioUrl={wordAudioUrl} setAudioUrl={setWordAudioUrl} />
             </article>
@@ -206,7 +208,7 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
                 elementId={vocabularyData.id!}
             />
             <article className="flex flex-col space-y-2 items-center">
-                <h3>Example Sentences</h3>
+                <h3>{t("exampleSentencesHeading")}</h3>
                 {exampleSentences.map((sentence, key) => (
                     <section className="flex flex-col space-y-2 items-center" key={key}>
                         <button
@@ -218,13 +220,13 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
                             <FontAwesomeIcon icon={faTrash}/>
                         </button>
                         <AutoWidthInput
-                            label="Example Sentence"
+                            label={t("exampleSentenceLabel")}
                             value={sentence.text || ""}
                             required
                             onChange={(e) => handleExampleSentenceChange(key, "text", e.target.value)}
                         />
                         <AutoWidthInput
-                            label="Example Sentence Translation"
+                            label={t("exampleSentenceTranslationLabel")}
                             value={sentence.translation || ""}
                             onChange={(e) => handleExampleSentenceChange(key, "translation", e.target.value)}
                         />
@@ -241,7 +243,7 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
                     <FontAwesomeIcon icon={faAdd}/>
                 </button>
             </article>
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Vocabulary</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Vocabulary</SubmitButton>}
+            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addButton")}</SubmitButton>}
         </form>
         </>
     );

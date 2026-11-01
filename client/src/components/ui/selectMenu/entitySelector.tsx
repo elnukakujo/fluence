@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { useTranslations } from "next-intl";
 
 interface EntityLike {
   id: string;
@@ -56,6 +57,7 @@ export default function EntitySelector<T extends EntityLike>({
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("ui");
 
   const fetchEntities = async () => {
     setIsLoading(true);
@@ -199,7 +201,7 @@ export default function EntitySelector<T extends EntityLike>({
                     onClick={(e) => { e.stopPropagation(); handleRemove(entity); }}
                     disabled={disabled || isPending}
                     className="chip-remove"
-                    aria-label={`Remove ${getLabel(entity)}`}
+                    aria-label={`${t("remove")} ${getLabel(entity)}`}
                   >
                     <FontAwesomeIcon icon={faTimes} className="text-[10px]" />
                   </button>
@@ -208,7 +210,7 @@ export default function EntitySelector<T extends EntityLike>({
             })}
 
             {isLoading ? (
-              <span className="px-1 text-sm text-muted">Loading…</span>
+              <span className="px-1 text-sm text-muted">{t("loading")}</span>
             ) : (
               <input
                 ref={inputRef}

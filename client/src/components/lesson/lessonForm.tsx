@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { languageProficiencySystems } from "@/utils/language_iso639";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { getLanguageById } from "@/api/language";
@@ -15,6 +16,7 @@ import SourceSelector from "@/components/sources/sourceSelector";
 import Language from "@/interface/containers/Language";
 
 export default function LessonForm({ lesson, language_id }: { lesson?: Partial<Lesson>; language_id: string }) {
+    const t = useTranslations("lesson");
     const router = useRouter();
     const isUpdate = Boolean(lesson?.id);
     let lessonData: Partial<Lesson>;
@@ -85,21 +87,21 @@ export default function LessonForm({ lesson, language_id }: { lesson?: Partial<L
         <form className="flex flex-col space-y-4 items-center" onSubmit={handleSubmit}>
             <AutoWidthInput
                 value={title}
-                label="Title"
+                label={t("lessonTitle")}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter lesson title"
+                placeholder={t("enterLessonTitle")}
                 required={true}
             />
 
             <AutoSizeTextArea
                 value={description || ""}
-                label="Description"
+                label={t("description")}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter lesson description"
+                placeholder={t("enterLessonDescription")}
             />
 
             <ClassicSelectMenu
-                label="Level"
+                label={t("level")}
                 options={levelOptions}
                 selectedOption={levelOptions[level]}
                 onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
@@ -117,7 +119,7 @@ export default function LessonForm({ lesson, language_id }: { lesson?: Partial<L
                 elementId={lessonData.id!}
             />
 
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Lesson</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Lesson</SubmitButton>}
+            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateLesson")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addLesson")}</SubmitButton>}
         </form>
     );
 }

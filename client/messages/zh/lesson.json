@@ -1,0 +1,9 @@
+{
+  "lessonTitle": "标题",
+  "enterLessonTitle": "输入课程标题",
+  "description": "描述",
+  "enterLessonDescription": "输入课程描述",
+  "level": "级别",
+  "addLesson": "添加课程",
+  "updateLesson": "更新课程"
+}

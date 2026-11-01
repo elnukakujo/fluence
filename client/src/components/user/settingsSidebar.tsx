@@ -1,23 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const COMMON_SECTIONS = [
-  { id: "profile", label: "Profile" },
-  { id: "security", label: "Security" },
-  { id: "preferences", label: "Learning" },
-  { id: "ai-features", label: "AI Features" },
-  { id: "api-endpoints", label: "Endpoints" },
-];
-
-const ADMIN_SECTIONS = [
-  { id: "users", label: "Users" },
-  { id: "backups", label: "Backups" },
-  { id: "logs", label: "Logs" },
-];
+import { useTranslations } from "next-intl";
 
 export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+  const t = useTranslations("settings");
+  const tAdmin = useTranslations("settingsAdmin");
   const [active, setActive] = useState<string>("profile");
+
+  const COMMON_SECTIONS = [
+    { id: "profile", label: t("sidebar.profile") },
+    { id: "security", label: t("sidebar.security") },
+    { id: "preferences", label: t("sidebar.learning") },
+    { id: "ai-features", label: t("sidebar.aiFeatures") },
+    { id: "api-endpoints", label: t("sidebar.endpoints") },
+  ];
+
+  const ADMIN_SECTIONS = [
+    { id: "users", label: tAdmin("sidebar.users") },
+    { id: "backups", label: tAdmin("sidebar.backups") },
+    { id: "logs", label: tAdmin("sidebar.logs") },
+  ];
+
   const sections = isAdmin ? [...COMMON_SECTIONS, ...ADMIN_SECTIONS] : COMMON_SECTIONS;
 
   useEffect(() => {

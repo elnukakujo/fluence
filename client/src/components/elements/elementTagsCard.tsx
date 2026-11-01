@@ -1,10 +1,12 @@
+import { useTranslations } from "next-intl";
 import { BaseElement } from "@/interface/base";
 import NavButton from "@/components/layout/navButton";
 
 export default function ElementTagsCard({element} : {element: BaseElement}) {
+    const t = useTranslations("elements");
     return (
         <section className="card">
-            <h2 className="text-lg font-semibold mb-1">Tags</h2>
+            <h2 className="text-lg font-semibold mb-1">{t("tagsHeading")}</h2>
             {element.tags && element.tags.length > 0 ? (
                 <div className="index-divider pt-3 flex flex-wrap gap-2">
                     {element.tags.map((tag) => (
@@ -24,7 +26,7 @@ export default function ElementTagsCard({element} : {element: BaseElement}) {
                     ))}
                 </div>
             ) : (
-                <p className="index-divider pt-3 text-muted">No tags assigned.</p>
+                <p className="index-divider pt-3 text-muted">{t("noTagsAssigned")}</p>
             )}
         </section>
     );

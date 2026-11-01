@@ -3,21 +3,23 @@ import { getAllUserTags } from "@/api/tag";
 import Tag from "@/interface/systemData/Tag";
 import NavButton from "@/components/layout/navButton";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { getTranslations } from "next-intl/server";
 
 export default async function TagsPage() {
     const userId: string | null = await getCurrentUserId();
     if (!userId) redirect('/');
     const tags: Tag[] = await getAllUserTags(userId);
+    const t = await getTranslations("tags");
 
     return (
         <div className="flex flex-col gap-4">
             <div className="flex justify-between items-baseline">
-                <h1>Tags</h1>
-                <NavButton path="/tags/new">+ New</NavButton>
+                <h1>{t("tags")}</h1>
+                <NavButton path="/tags/new">{t("newTag")}</NavButton>
             </div>
 
             {tags.length === 0 ? (
-                <p className="text-muted">No tags yet.</p>
+                <p className="text-muted">{t("noTagsYet")}</p>
             ) : (
                 <ul className="card list-none flex flex-col gap-1">
                     {tags.map((tag) => (

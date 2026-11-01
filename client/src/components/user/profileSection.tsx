@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import SaveButton from "./saveButton";
 import { updateUser } from "@/api/user";
@@ -17,6 +18,7 @@ function getInitials(user: User): string {
 }
 
 export default function ProfileSection({ user }: { user: User }) {
+  const t = useTranslations("settings.profile");
   const [username, setUsername] = useState(user.username ?? "");
   const [displayName, setDisplayName] = useState(user.display_name ?? "");
   const [email, setEmail] = useState(user.email ?? "");
@@ -36,7 +38,7 @@ export default function ProfileSection({ user }: { user: User }) {
     setError("");
 
     if (emailChanged && email !== emailConfirm) {
-      setError("Email addresses do not match");
+      setError(t("emailMismatch"));
       return;
     }
 
@@ -50,14 +52,14 @@ export default function ProfileSection({ user }: { user: User }) {
       setEmailChanged(false);
       setEmailConfirm("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile");
+      setError(err instanceof Error ? err.message : t("failedSave"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <SectionCard title="Profile">
+    <SectionCard title={t("title")}>
       {/* Avatar */}
       <div className="flex items-center gap-4 pb-3">
         <div
@@ -90,13 +92,13 @@ export default function ProfileSection({ user }: { user: User }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {/* Username */}
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Username</span>
+          <span className="text-sm opacity-70">{t("username")}</span>
           <input
             className="input"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="your_username"
+            placeholder={t("usernamePlaceholder")}
             autoComplete="username"
             disabled={saving}
           />
@@ -104,13 +106,13 @@ export default function ProfileSection({ user }: { user: User }) {
 
         {/* Display Name */}
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Display Name</span>
+          <span className="text-sm opacity-70">{t("displayName")}</span>
           <input
             className="input"
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="How your name appears"
+            placeholder={t("displayNamePlaceholder")}
             autoComplete="name"
             disabled={saving}
           />
@@ -118,13 +120,13 @@ export default function ProfileSection({ user }: { user: User }) {
 
         {/* Email */}
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Email</span>
+          <span className="text-sm opacity-70">{t("email")}</span>
           <input
             className="input"
             type="email"
             value={email}
             onChange={(e) => handleEmailChange(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t("emailPlaceholder")}
             autoComplete="email"
             disabled={saving}
           />
@@ -133,13 +135,13 @@ export default function ProfileSection({ user }: { user: User }) {
         {/* Email confirmation — only shown when email changed */}
         {emailChanged && (
           <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">Confirm new email</span>
+            <span className="text-sm opacity-70">{t("confirmNewEmail")}</span>
             <input
               className="input"
               type="email"
               value={emailConfirm}
               onChange={(e) => setEmailConfirm(e.target.value)}
-              placeholder="Re-type your new email"
+              placeholder={t("confirmNewEmailPlaceholder")}
               autoComplete="email"
               disabled={saving}
             />

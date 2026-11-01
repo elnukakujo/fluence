@@ -12,8 +12,10 @@ import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import ImportButton from "@/components/ingestion/importButton";
+import { getTranslations } from "next-intl/server";
 
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
+    const t = await getTranslations("languages");
     const { language_id } = await params;
     const { language, lessons } = await getLanguageData(language_id);
     const sharedLessons = (await getSharedLessons()).filter(
@@ -35,15 +37,15 @@ export default async function Language({ params }: { params: Promise<{ language_
                 <ElementSourcesCard element={language} />
                 <nav className="flex flex-row flex-wrap gap-2">
                     <NavButton path={`/languages/${language_id}/review`}>
-                        <p>Daily Review</p>
+                        <p>{t("dailyReview")}</p>
                     </NavButton>
                     {language.current_lesson_id && <NavButton path={`/languages/${language_id}/lesson/${language.current_lesson_id}`}>
-                        <p>Go to Current Lesson</p>
+                        <p>{t("goToCurrentLesson")}</p>
                     </NavButton>}
                     <NavButton path={`/languages/${language_id}/update`}>
-                        <p>Update Language</p>
+                        <p>{t("updateLanguage")}</p>
                     </NavButton>
-                    <ImportButton languageId={language_id} label="Import lessons from a document"
+                    <ImportButton languageId={language_id} label={t("importLessonsFromDocument")}
                         href={`/languages/${language_id}/import`} settingsHref={`/user/${userId}/update`} />
                     {isOwner && <CollaborateButton targetType="language" targetId={language_id} />}
                     <DeleteButton element_id={language_id}/>
@@ -59,7 +61,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                 )}
 
                 <NavButton path={`/languages/${language_id}/lesson/new`}>
-                    <p>Create New Lesson</p>
+                    <p>{t("createNewLesson")}</p>
                 </NavButton>
             </article>
         </main>

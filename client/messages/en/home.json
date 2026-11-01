@@ -1,0 +1,5 @@
+{
+  "greeting": "Hey {name}!",
+  "whatToStudy": "What do you want to study today?",
+  "createNewLanguage": "Create New Language"
+}

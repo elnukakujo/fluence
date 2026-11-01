@@ -24,9 +24,11 @@ import { getExercisesByLesson } from "@/api/exercise";
 import LessonHeaderCard from "@/components/lesson/lessonHeaderCard";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import ImportButton from "@/components/ingestion/importButton";
+import { getTranslations } from "next-intl/server";
 
 
 export default async function Lesson({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }) {
+    const t = await getTranslations("languages");
     const { language_id, lesson_id } = await params;
     const lesson: Lesson = await getLessonById(lesson_id);
     const userId = await getCurrentUserId();
@@ -46,13 +48,13 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                 <ElementSourcesCard element={lesson} />
                 <nav className="flex flex-row flex-wrap gap-2">
                     <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/update`}>
-                        <p>Update this Lesson Informations</p>
+                        <p>{t("updateLessonInformations")}</p>
                     </NavButton>
                     <ImportButton languageId={language_id} lessonId={lesson_id} settingsHref={`/user/${userId}/update`} />
                     {isOwner && <CollaborateButton targetType="lesson" targetId={lesson_id} />}
                     {isOwner ? (
                         <DeleteButton element_id={lesson_id}>
-                            <p>Delete this Lesson</p>
+                            <p>{t("deleteLessonButton")}</p>
                         </DeleteButton>
                     ) : (
                         <StopSharingButton lesson_id={lesson_id} />

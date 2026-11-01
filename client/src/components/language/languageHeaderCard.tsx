@@ -1,12 +1,14 @@
 'use client';
 
+import { useTranslations } from "next-intl";
 import Language from "@/interface/containers/Language";
 import { ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
 import SharedBadge from "../collaboration/sharedBadge";
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 
-export default function LanguageHeaderCard({ language }: { language: Language }) { 
+export default function LanguageHeaderCard({ language }: { language: Language }) {
+    const t = useTranslations("language");
     return (
         <section className="card flex flex-col space-y-2">
             <header className="flex items-baseline gap-2">
@@ -23,13 +25,13 @@ export default function LanguageHeaderCard({ language }: { language: Language })
                 <div className="grid gap-2 sm:grid-cols-2">
                     {language.source_iso639_2t && (
                         <div className="card flex flex-col gap-1 p-3">
-                            <p className="badge w-fit">From</p>
+                            <p className="badge w-fit">{t("from")}</p>
                             <p className="font-medium">{ISO639_2T_to_LANGUAGE[language.source_iso639_2t]}</p>
                         </div>
                     )}
                     {language.target_iso639_2t && (
                         <div className="card flex flex-col gap-1 p-3">
-                            <p className="badge w-fit">To</p>
+                            <p className="badge w-fit">{t("to")}</p>
                             <p className="font-medium">{ISO639_2T_to_LANGUAGE[language.target_iso639_2t]}</p>
                         </div>
                     )}

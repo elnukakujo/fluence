@@ -2,6 +2,7 @@
 
 import type Grammar from "@/interface/features/Grammar";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
 import BackButton from "@/components/ui/buttons/backButton";
 import GrammarCard from "./grammarCard";
@@ -14,6 +15,7 @@ import ProgressBar from "@/components/ui/progressBar";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 
 export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) {
+    const t = useTranslations("grammar");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const grammar: Grammar = grammars[currentIndex];
     const startTimeRef = useRef<number>(performance.now());
@@ -52,7 +54,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                 total={grammars.length}
             />
             <section className="flex flex-col space-y-4">
-                <h1>Grammar Sheet</h1>
+                <h1>{t("sheet")}</h1>
                 <div className="flashcard">
                     <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
                         <div
@@ -63,7 +65,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); reveal(); } }}
                         >
                             <h3 className="font-serif">{grammar.title}</h3>
-                            <p className="text-sm opacity-60">Click to reveal</p>
+                            <p className="text-sm opacity-60">{t("flashcardTitle")}</p>
                         </div>
                         <div className="flashcard-face flashcard-face-back flex flex-col space-y-4">
                             <GrammarCard grammar={grammar} />
@@ -78,7 +80,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                 <>
                     {grammar.example_words && grammar.example_words.length > 0 && (
                         <section className="flex flex-col space-y-4 items-baseline">
-                            <h3 className="font-serif">Example Words</h3>
+                            <h3 className="font-serif">{t("exampleWords")}</h3>
                             {grammar.example_words.map((word, index) => (
                                 <WordCard key={index} word={word} hiddenTranslation={false} hiddenAdditionalInformations={false} />
                             ))}
@@ -86,7 +88,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                     )}
                     {grammar.example_sentences && grammar.example_sentences.length > 0 && (
                         <section className="flex flex-col space-y-4 items-baseline">
-                            <h3 className="font-serif">Example Sentences</h3>
+                            <h3 className="font-serif">{t("exampleSentences")}</h3>
                             {grammar.example_sentences.map((sentence, index) => (
                                 <SentenceCard key={index} sentence={sentence} hiddenTranslation={false} />
                             ))}
@@ -97,7 +99,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                     <ElementPerformanceCard element={grammar} />
                     {currentIndex < grammars.length - 1 ? (
                         <button className="btn btn-primary" onClick={() => handleGoNext()}>
-                            <p>Next Grammar</p>
+                            <p>{t("nextButton")}</p>
                         </button>
                     ) : (
                         <BackButton>

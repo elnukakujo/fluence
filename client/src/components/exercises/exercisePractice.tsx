@@ -2,26 +2,28 @@
 
 import Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import ExerciseRunner from "./exerciseRunner";
 import BackButton from "@/components/ui/buttons/backButton";
 import ProgressBar from "../ui/progressBar";
 
 const EXERCISE_TYPE_LABELS: Record<string, string> = {
-    essay: "Essay",
-    answering: "Answering",
-    translate: "Translate",
-    organize: "Organize",
-    type_in_the_blank: "Type in the Blank",
-    select_in_the_blank: "Select in the Blank",
-    matching: "Matching",
-    true_false: "True / False",
-    speaking: "Speaking",
-    conversation: "Conversation",
-    quizz: "Quizz",
+    essay: "exercises.essay",
+    answering: "exercises.answering",
+    translate: "exercises.translate",
+    organize: "exercises.organize",
+    type_in_the_blank: "exercises.typeInTheBlank",
+    select_in_the_blank: "exercises.selectInTheBlank",
+    matching: "exercises.matching",
+    true_false: "exercises.trueFalse",
+    speaking: "exercises.speaking",
+    conversation: "exercises.conversation",
+    quizz: "exercises.quizz",
 };
 
 export default function ExercisePractice( { exercise_lists } : { exercise_lists: Exercise[] }) {
+    const t = useTranslations("exercises");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [currentExercise, setCurrentExercise] = useState<Exercise>(exercise_lists[currentIndex]);
     const isLastExercise = currentIndex === exercise_lists.length - 1;
@@ -46,13 +48,13 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
                 <button
                     className="btn btn-primary self-end"
                     onClick={() => setCurrentIndex(currentIndex+1)}>
-                    Next Exercise
+                    {t("nextExercise")}
                 </button>
             ) : (
                 <section className="card index-divider flex flex-col items-center gap-3 text-center">
-                    <p className="font-medium">You have completed all exercises!</p>
+                    <p className="font-medium">{t("completedAll")}</p>
                     <BackButton>
-                        <p>Back to Lesson</p>
+                        <p>{t("backToLesson")}</p>
                     </BackButton>
                 </section>
             )}

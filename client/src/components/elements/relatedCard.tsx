@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type Word from "@/interface/components/Word";
 import type Character from "@/interface/components/Character";
 import type Passage from "@/interface/components/Passage";
@@ -16,21 +17,22 @@ function getHref(languageId: string, item: Partial<Word> | Partial<Character> | 
 }
 
 export default function RelatedCard({ languageId, words = [], characters = [], passages = [] }: RelatedCardProps) {
+  const t = useTranslations("elements");
   const groups = [
     {
-      title: "Words",
+      title: t("relatedWords"),
       kind: "word" as const,
       items: words,
       label: (item: Partial<Word>) => item.word ?? "",
     },
     {
-      title: "Characters",
+      title: t("relatedCharacters"),
       kind: "character" as const,
       items: characters,
       label: (item: Partial<Character>) => item.character ?? "",
     },
     {
-      title: "Passages",
+      title: t("relatedPassages"),
       kind: "passage" as const,
       items: passages,
       label: (item: Partial<Passage>) => item.text ?? "",
@@ -39,7 +41,7 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
 
   return (
     <section className="card">
-      <h2 className="mb-1 text-lg font-semibold">Related Components</h2>
+      <h2 className="mb-1 text-lg font-semibold">{t("relatedComponentsHeading")}</h2>
       {groups.length > 0 ? (
         <div className="index-divider pt-3 flex flex-col gap-4">
           {groups.map((group) => (
@@ -70,7 +72,7 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
           ))}
         </div>
       ) : (
-        <p className="index-divider pt-3 text-sm text-muted">No related components found.</p>
+        <p className="index-divider pt-3 text-sm text-muted">{t("noRelatedComponents")}</p>
       )}
     </section>
   );

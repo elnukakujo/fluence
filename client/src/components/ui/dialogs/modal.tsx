@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // Shared accessible modal: portal, Escape / backdrop-click to close, focus moved in and restored.
 export default function Modal({ title, subtitle, onClose, children, footer }: {
@@ -15,6 +16,7 @@ export default function Modal({ title, subtitle, onClose, children, footer }: {
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
+  const t = useTranslations("ui");
   closeRef.current = onClose; // callers pass inline lambdas; don't re-run the focus effect on every render
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function Modal({ title, subtitle, onClose, children, footer }: {
             <h3 id={titleId} className="font-serif text-lg">{title}</h3>
             {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close"
+          <button type="button" onClick={onClose} aria-label={t("close")}
             className="btn btn-secondary !p-2 !min-h-0 shrink-0">
             <X size={16} aria-hidden />
           </button>

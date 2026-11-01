@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
 import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
 
@@ -25,6 +26,7 @@ export default function CalligraphyPracticeCanvas({
   difficulty: number;
   onResult: (r: { similarity: number; strokeOrderErrors: number }) => void;
 }) {
+  const t = useTranslations("calligraphy");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [referenceStrokes, setReferenceStrokes] = useState<Stroke[] | null>(null);
   const [userStrokes, setUserStrokes] = useState<Stroke[]>([]);
@@ -161,7 +163,7 @@ export default function CalligraphyPracticeCanvas({
   }
 
   if (referenceStrokes === null) {
-    return <p className="text-sm text-muted">No stroke data available for this character.</p>;
+    return <p className="text-sm text-muted">{t("noStrokeData")}</p>;
   }
 
   return (
@@ -179,10 +181,10 @@ export default function CalligraphyPracticeCanvas({
       <p className="text-sm text-muted">
         Strokes: {userStrokes.length}{referenceStrokes ? ` / ${referenceStrokes.length}` : ""}
       </p>
-      {lastStrokeWrong && <p className="text-sm" style={{ color: "var(--color-danger)" }}>Wrong stroke — try again</p>}
+      {lastStrokeWrong && <p className="text-sm" style={{ color: "var(--color-danger)" }}>{t("wrongStroke")}</p>}
       <div className="flex gap-3">
         <button type="button" className="btn" onClick={handleClear}>
-          Clear
+          {t("clearButton")}
         </button>
       </div>
     </div>

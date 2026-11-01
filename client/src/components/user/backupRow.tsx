@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Download, RotateCcw, Trash2 } from "lucide-react";
 import ConfirmDialog from "./confirmDialog";
 
@@ -22,10 +23,15 @@ export default function BackupRow({
   onDelete: () => void;
   disabled: boolean;
 }) {
+  const t = useTranslations("settingsAdmin.backups");
   const [confirmRestore, setConfirmRestore] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const type = backup.filename.includes("auto") ? "Auto" : "Manual"; // ponytail: heuristic, TODO: add type field to backup API response
+  const typeLabels = {
+    auto: t("backupType.auto"),
+    manual: t("backupType.manual"),
+  };
+  const type = backup.filename.includes("auto") ? typeLabels.auto : typeLabels.manual;
   const date = new Date(backup.created_at).toLocaleString();
 
   return (
@@ -58,7 +64,7 @@ export default function BackupRow({
           disabled={disabled}
         >
           <RotateCcw size={14} />
-          <span className="hidden sm:inline">Restore</span>
+          <span className="hidden sm:inline">{t("restore")}</span>
         </button>
         <button
           type="button"
@@ -67,7 +73,7 @@ export default function BackupRow({
           title="Not yet implemented"
         >
           <Download size={14} />
-          <span className="hidden sm:inline">Download</span>
+          <span className="hidden sm:inline">{t("download")}</span>
         </button>
         <button
           type="button"
@@ -76,14 +82,14 @@ export default function BackupRow({
           disabled={disabled}
         >
           <Trash2 size={14} />
-          <span className="hidden sm:inline">Delete</span>
+          <span className="hidden sm:inline">{t("delete")}</span>
         </button>
       </div>
 
       {confirmRestore && (
         <ConfirmDialog
-          message={`Restore database from "${backup.filename}"? This will overwrite current data.`}
-          confirmLabel="Confirm Restore"
+          message={t("restoreConfirm", { name: backup.filename })}
+          confirmLabel={t("confirmRestore")}
           danger
           onConfirm={() => { setConfirmRestore(false); onRestore(); }}
           onCancel={() => setConfirmRestore(false)}
@@ -92,8 +98,8 @@ export default function BackupRow({
 
       {confirmDelete && (
         <ConfirmDialog
-          message={`Delete backup "${backup.filename}"?`}
-          confirmLabel="Delete"
+          message={t("deleteConfirm", { name: backup.filename })}
+          confirmLabel={t("delete")}
           danger
           onConfirm={() => { setConfirmDelete(false); onDelete(); }}
           onCancel={() => setConfirmDelete(false)}

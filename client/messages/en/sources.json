@@ -1,0 +1,22 @@
+{
+  "sources": "Sources",
+  "noSourcesYet": "No sources yet.",
+  "newSource": "+ New",
+  "createNewSource": "Create New Source",
+  "updateSource": "Update Source",
+  "sourceDetail": "Source Detail",
+  "editSourceInformations": "Edit Source Informations",
+  "name": "Name",
+  "sourceNamePlaceholder": "Source name",
+  "sourceType": "Source Type",
+  "description": "Description",
+  "addSource": "Add Source",
+  "vocab": "Vocab",
+  "calli": "Calli",
+  "grammar": "Grammar",
+  "exercise": "Exercise",
+  "lesson": "Lesson",
+  "lang": "Lang",
+  "updateSourceFailed": "Failed to update source.",
+  "createSourceFailed": "Failed to create source."
+}

@@ -30,6 +30,7 @@ function formatDate(
 	locale?: string,
 	options?: Intl.DateTimeFormatOptions,
 	withTime?: boolean,
+	todayLabel?: string,
 ): string | null {
 	if (!date) return null;
 
@@ -38,7 +39,7 @@ function formatDate(
 
 	if (withTime) {
 		const isToday = parsed.toDateString() === new Date().toDateString();
-		const datePart = isToday ? "Today" : new Intl.DateTimeFormat(locale, options ?? dateWithTimeOptions).format(parsed);
+		const datePart = isToday ? (todayLabel || "Today") : new Intl.DateTimeFormat(locale, options ?? dateWithTimeOptions).format(parsed);
 		const timePart = new Intl.DateTimeFormat(locale, timeOptions).format(parsed);
 		return `${datePart} at ${timePart}`;
 	}

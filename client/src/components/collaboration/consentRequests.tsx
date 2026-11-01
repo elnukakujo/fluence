@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { GitMerge } from "lucide-react";
 import { listAwaitingConsent, consent, decline } from "@/api/collaboration";
 
 type Request = Awaited<ReturnType<typeof listAwaitingConsent>>[number];
 
 export default function ConsentRequests() {
+  const t = useTranslations("collaboration");
   const [requests, setRequests] = useState<Request[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -35,8 +37,8 @@ export default function ConsentRequests() {
   if (!loaded || requests.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2" aria-label="Merge requests">
-      <h2 className="font-serif">Merge requests</h2>
+    <section className="flex flex-col gap-2" aria-label={t("mergeRequests")}>
+      <h2 className="font-serif">{t("mergeRequests")}</h2>
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
       <ul className="flex flex-col gap-2">
         {requests.map((r) => (
@@ -44,18 +46,18 @@ export default function ConsentRequests() {
             <span className="flex items-start gap-3 text-sm">
               <GitMerge size={18} aria-hidden className="mt-0.5 shrink-0 text-accent" />
               <span className="flex flex-col gap-0.5">
-                <span className="font-medium">{r.collaborator_name ?? r.collaborator_id} wants to merge</span>
+                <span className="font-medium">{r.collaborator_name ?? r.collaborator_id} {t("wantsToMerge")}</span>
                 <span className="text-muted">
-                  Their {r.language_name ?? "language"} would be combined into yours. Their lessons are added to yours.
+                  {t("mergeDescription", { language: r.language_name ?? "language" })}
                 </span>
               </span>
             </span>
             <span className="flex gap-2">
               <button type="button" className="btn btn-primary" disabled={busy === r.id} onClick={() => answer(r.id, consent)}>
-                Approve merge
+                {t("approveMerge")}
               </button>
               <button type="button" className="btn btn-secondary" disabled={busy === r.id} onClick={() => answer(r.id, decline)}>
-                Decline
+                {t("decline")}
               </button>
             </span>
           </li>

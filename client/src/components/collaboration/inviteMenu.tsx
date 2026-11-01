@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Globe, Layers, Search, UserMinus, UserPlus, X } from "lucide-react";
 import { listUsers, listCollaborators, invite, remove, listLessonRecipients, unshareLesson, listLanguageLessons } from "@/api/collaboration";
 import ConfirmDialog from "@/components/user/confirmDialog";
@@ -10,16 +11,7 @@ type Collab = { id: string; status: string; mode?: string | null; shared?: boole
 type User = { id: string; display_name: string };
 type Offer = "full" | "partial";
 
-const STATUS: Record<string, { label: string; tone: string }> = {
-  accepted: { label: "Collaborating", tone: "var(--color-success)" },
-  pending: { label: "Invite sent", tone: "var(--color-warning)" },
-  awaiting_master_consent: { label: "Awaiting your approval", tone: "var(--color-warning)" },
-};
-
-const OFFERS: { value: Offer; title: string; body: string; Icon: typeof Globe }[] = [
-  { value: "full", title: "Whole language", body: "Co-edit everything, now and later.", Icon: Globe },
-  { value: "partial", title: "Some lessons", body: "Share only the lessons you pick.", Icon: Layers },
-];
+// STATUS and OFFERS are dynamically generated now with translations
 
 function Avatar({ name, active }: { name: string; active: boolean }) {
   return <span aria-hidden className={`avatar ${active ? "avatar-active" : ""}`}>{name.trim().charAt(0).toUpperCase() || "?"}</span>;
@@ -29,6 +21,7 @@ export default function InviteMenu({ targetType, targetId }: {
   targetType: "language" | "lesson";
   targetId: string;
 }) {
+  const t = useTranslations("collaboration");
   const [users, setUsers] = useState<User[]>([]);
   const [collaborators, setCollaborators] = useState<Record<string, Collab>>({});
   const [loading, setLoading] = useState(true);
@@ -42,6 +35,18 @@ export default function InviteMenu({ targetType, targetId }: {
   const [lessons, setLessons] = useState<{ id: string; title: string }[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const latest = useRef(0);
+
+  // Build STATUS and OFFERS with translations
+  const STATUS: Record<string, { label: string; tone: string }> = {
+    accepted: { label: t("collaborating"), tone: "var(--color-success)" },
+    pending: { label: t("inviteSent"), tone: "var(--color-warning)" },
+    awaiting_master_consent: { label: t("awaitingApproval"), tone: "var(--color-warning)" },
+  };
+
+  const OFFERS: { value: Offer; title: string; body: string; Icon: typeof Globe }[] = [
+    { value: "full", title: t("wholeLanguage"), body: t("coEditEverything"), Icon: Globe },
+    { value: "partial", title: t("someLessons"), body: t("pickLessonsOnly"), Icon: Layers },
+  ];
 
   // Debounce typing; the server matches name, username and email but only returns display names.
   useEffect(() => {
@@ -118,21 +123,21 @@ export default function InviteMenu({ targetType, targetId }: {
         </span>
         {!collab ? (
           <button type="button" className="btn btn-primary !px-3" disabled={disabled || offerInvalid}
-            title={offerInvalid ? "Pick at least one lesson first" : undefined}
-            aria-label={`Invite ${u.display_name}`}
-            onClick={() => run(u.id, () => invite(u.id, targetType, targetId, offer), "Failed to invite")}>
-            <UserPlus size={15} aria-hidden /> {disabled ? "Inviting…" : "Invite"}
+            title={offerInvalid ? t("pickAtLeastOne") : undefined}
+            aria-label={t("inviteSomeone", { name: u.display_name })}
+            onClick={() => run(u.id, () => invite(u.id, targetType, targetId, offer), t("failedToInvite"))}>
+            <UserPlus size={15} aria-hidden /> {disabled ? t("inviting") : t("invite")}
           </button>
         ) : collab.status === "pending" ? (
           <button type="button" className="btn btn-secondary !px-3" disabled={disabled}
-            aria-label={`Cancel invite to ${u.display_name}`}
-            onClick={() => run(u.id, () => remove(collab.id), "Failed to cancel invite")}>
-            Cancel
+            aria-label={t("cancelInvite", { name: u.display_name })}
+            onClick={() => run(u.id, () => remove(collab.id), t("failedToCancel"))}>
+            {t("cancel")}
           </button>
         ) : collab.status === "accepted" ? (
           <button type="button" className="btn btn-secondary !px-3" disabled={disabled}
-            aria-label={`Remove ${u.display_name}`} onClick={() => setRemoving(u)}>
-            <UserMinus size={15} aria-hidden /> Remove
+            aria-label={t("removeSomeone", { name: u.display_name })} onClick={() => setRemoving(u)}>
+            <UserMinus size={15} aria-hidden /> {t("remove")}
           </button>
         ) : null}
       </li>
@@ -144,8 +149,8 @@ export default function InviteMenu({ targetType, targetId }: {
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
 
       {isLanguage && (
-        <section aria-label="What to share" className="flex flex-col gap-2">
-          <div role="radiogroup" aria-label="What to share" className="flex flex-col gap-2 sm:flex-row">
+        <section aria-label={t("whatToShare")} className="flex flex-col gap-2">
+          <div role="radiogroup" aria-label={t("whatToShare")} className="flex flex-col gap-2 sm:flex-row">
             {OFFERS.map(({ value, title, body, Icon }) => (
               <button key={value} type="button" role="radio" aria-checked={offerMode === value}
                 className="choice" onClick={() => setOfferMode(value)}>
@@ -160,15 +165,15 @@ export default function InviteMenu({ targetType, targetId }: {
           {offerMode === "partial" && (
             <fieldset className="flex flex-col gap-1 rounded-xl border border-border p-2">
               <legend className="flex w-full items-center justify-between px-1 text-xs text-muted">
-                <span>{picked.size}/{lessons.length} lessons</span>
+                <span>{t("selected", { n: picked.size, total: lessons.length })}</span>
                 {lessons.length > 0 && (
                   <button type="button" className="text-accent underline"
                     onClick={() => setPicked(new Set(allPicked ? [] : lessons.map((l) => l.id)))}>
-                    {allPicked ? "Select none" : "Select all"}
+                    {allPicked ? t("selectNone") : t("selectAll")}
                   </button>
                 )}
               </legend>
-              {lessons.length === 0 && <p className="px-1 py-2 text-sm text-muted">This language has no lessons yet.</p>}
+              {lessons.length === 0 && <p className="px-1 py-2 text-sm text-muted">{t("noLessonsYet")}</p>}
               <ul className="flex max-h-36 flex-col overflow-y-auto">
                 {lessons.map((l) => (
                   <li key={l.id}>
@@ -181,7 +186,7 @@ export default function InviteMenu({ targetType, targetId }: {
                 ))}
               </ul>
               {offerInvalid && lessons.length > 0 && (
-                <p className="px-1 text-xs text-muted">Pick at least one lesson to enable invites.</p>
+                <p className="px-1 text-xs text-muted">{t("pickAtLeastOne")}</p>
               )}
             </fieldset>
           )}
@@ -190,10 +195,10 @@ export default function InviteMenu({ targetType, targetId }: {
 
       <div className="search-field">
         <Search size={16} aria-hidden />
-        <input type="search" className="input" placeholder="Search by name, username or email"
-          aria-label="Search people" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input type="search" className="input" placeholder={t("searchByName")}
+          aria-label={t("searchPeople")} value={query} onChange={(e) => setQuery(e.target.value)} />
         {query && (
-          <button type="button" aria-label="Clear search"
+          <button type="button" aria-label={t("clearSearch")}
             className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:bg-accent-soft"
             onClick={() => { setQuery(""); setTerm(""); }}>
             <X size={14} aria-hidden />
@@ -202,31 +207,31 @@ export default function InviteMenu({ targetType, targetId }: {
       </div>
 
       {loading ? (
-        <div aria-busy="true" aria-label="Loading people" className="flex flex-col gap-2">
+        <div aria-busy="true" aria-label={t("loadingPeople")} className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => <div key={i} className="skeleton h-12" />)}
         </div>
       ) : (
         <div className={`flex flex-col gap-3 transition-opacity ${searching ? "opacity-60" : ""}`}>
           <p className="sr-only" role="status" aria-live="polite">
-            {people.length} {people.length === 1 ? "person" : "people"} found
+            {t("noPeopleStatus", { count: people.length })}
           </p>
           {people.length === 0 && (
             <p className="rounded-xl border border-dashed border-border py-6 text-center text-sm text-muted">
-              {term ? <>No one matches “{term}”.</> : "No other users yet."}
+              {term ? t("noOneMatches", { term }) : t("noOtherUsers")}
             </p>
           )}
           {inCircle.length > 0 && (
-            <section aria-label="Already invited">
+            <section aria-label={targetType === "lesson" ? t("sharedWith") : t("alreadyInvited")}>
               <h4 className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted">
-                {targetType === "lesson" ? "Shared with" : "Already invited"}
+                {targetType === "lesson" ? t("sharedWith") : t("alreadyInvited")}
               </h4>
               <ul className="flex flex-col">{inCircle.map(row)}</ul>
             </section>
           )}
           {others.length > 0 && (
-            <section aria-label="People">
+            <section aria-label={t("people")}>
               <h4 className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted">
-                {term ? "Results" : "People"}
+                {term ? t("results") : t("people")}
               </h4>
               <ul className="flex max-h-72 flex-col overflow-y-auto">{others.map(row)}</ul>
             </section>
@@ -237,17 +242,19 @@ export default function InviteMenu({ targetType, targetId }: {
       {removing && (
         <ConfirmDialog
           danger
-          confirmLabel="Remove"
-          message={`Remove ${removing.display_name}? ${
-            collaborators[removing.id]?.mode === "partial" || collaborators[removing.id]?.shared
-              ? "They lose access to your shared lessons."
-              : "They keep a copy of the content in their own account."}`}
+          confirmLabel={t("remove")}
+          message={t("removeConfirm", {
+            name: removing.display_name,
+            additional: collaborators[removing.id]?.mode === "partial" || collaborators[removing.id]?.shared
+              ? t("loseAccessShared")
+              : t("keepCopyContent")
+          })}
           onCancel={() => setRemoving(null)}
           onConfirm={() => {
             const target = removing;
             setRemoving(null);
             const c = collaborators[target.id];
-            run(target.id, () => c.shared ? unshareLesson(targetId, target.id) : remove(c.id), "Failed to remove");
+            run(target.id, () => c.shared ? unshareLesson(targetId, target.id) : remove(c.id), t("failedToRemove"));
           }}
         />
       )}

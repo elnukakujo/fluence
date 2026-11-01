@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type Lesson from "@/interface/containers/Lesson";
 import LessonOverviewCard from "@/components/lesson/lessonOverviewCard";
 import { languageProficiencySystems } from "@/utils/language_iso639";
@@ -62,6 +63,7 @@ export default function LessonsSection({
     lessons: Lesson[];
     language_code: string;
 }) {
+    const t = useTranslations("language");
     const [query, setQuery]     = useState("");
     const [filters, setFilters] = useState<FilterState>({ tags: [], sources: [], levelCodes: [] });
     const [open, setOpen]       = useState(false);
@@ -106,7 +108,7 @@ export default function LessonsSection({
                     <input
                         className="input"
                         type="search"
-                        placeholder="Search lessons…"
+                        placeholder={t("searchPlaceholder")}
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                     />
@@ -124,7 +126,7 @@ export default function LessonsSection({
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                                 <path d="M1 3h12M3 7h8M5 11h4" strokeLinecap="round" />
                             </svg>
-                            Filters
+                            {t("filters")}
                             {activeFilterCount > 0 && (
                                 <span className="badge" style={{ marginLeft: "0.125rem" }}>
                                     {activeFilterCount}
@@ -196,7 +198,7 @@ export default function LessonsSection({
                                         style={{ width: "100%", fontSize: "0.8125rem" }}
                                         onClick={clearAll}
                                     >
-                                        Clear all filters
+                                        {t("clearAllFilters")}
                                     </button>
                                 )}
                             </div>
@@ -216,13 +218,13 @@ export default function LessonsSection({
                 </ul>
             ) : (
                 <p style={{ color: "var(--color-muted)", fontSize: "0.9rem" }}>
-                    No lessons match your search.
+                    {t("noLessonsMatch")}
                 </p>
             )}
 
             {activeFilterCount > 0 && (
                 <p style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>
-                    {filtered.length} of {lessons.length} lessons shown
+                    {t("lessonsShown", { n: filtered.length, total: lessons.length })}
                 </p>
             )}
         </section>

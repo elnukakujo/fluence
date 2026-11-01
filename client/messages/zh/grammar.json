@@ -1,0 +1,22 @@
+{
+  "heading": "语法",
+  "emptyState": "空",
+  "total": "总计",
+  "sheet": "语法表",
+  "flashcardTitle": "点击展示",
+  "exampleWords": "例词",
+  "exampleSentences": "例句",
+  "addNewButton": "添加新语法",
+  "practiceButton": "闪卡练习",
+  "nextButton": "下一条语法",
+  "formHeading": "语法信息",
+  "titleLabel": "标题",
+  "explanationLabel": "解释",
+  "learnableSentencesHeading": "学习句子",
+  "exampleSentenceLabel": "例句",
+  "exampleSentenceTranslationLabel": "例句翻译",
+  "updateButton": "更新语法",
+  "addButton": "添加语法",
+  "updateFailure": "语法更新失败。查看控制台了解详情。",
+  "createFailure": "语法创建失败。查看控制台了解详情。"
+}

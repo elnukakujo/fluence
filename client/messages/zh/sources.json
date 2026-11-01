@@ -1,0 +1,22 @@
+{
+  "sources": "来源",
+  "noSourcesYet": "暂无来源。",
+  "newSource": "+ 新建",
+  "createNewSource": "创建新来源",
+  "updateSource": "更新来源",
+  "sourceDetail": "来源详情",
+  "editSourceInformations": "编辑来源信息",
+  "name": "名称",
+  "sourceNamePlaceholder": "来源名称",
+  "sourceType": "来源类型",
+  "description": "描述",
+  "addSource": "添加来源",
+  "vocab": "词汇",
+  "calli": "书法",
+  "grammar": "语法",
+  "exercise": "练习",
+  "lesson": "课程",
+  "lang": "语言",
+  "updateSourceFailed": "无法更新来源。",
+  "createSourceFailed": "无法创建来源。"
+}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Ring } from "ldrs/react";
+import { useTranslations } from "next-intl";
 //@ts-ignore
 import 'ldrs/react/Ring.css';
 
@@ -15,6 +16,7 @@ import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { useRef } from "react";
 
 export default function AnsweringExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const question = exercise.question || "";
     const answer = exercise.answer || "";
     const text_support = exercise.text_support || "";
@@ -69,12 +71,12 @@ export default function AnsweringExercise({ exercise }: { exercise: Exercise }) 
     return (
         <form className="card flex flex-col space-y-2" onSubmit={handleSubmit}>
             <section>
-                <h3>Question:</h3>
+                <h3>{t("question")}</h3>
                 <Markdown remarkPlugins={[remarkGfm]}>{question}</Markdown>
             </section>
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support: </h3>
+                    <h3>{t("textSupport")} </h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -102,7 +104,7 @@ export default function AnsweringExercise({ exercise }: { exercise: Exercise }) 
                         />
                     )
                     : (
-                        <p>Check Answers</p>
+                        <p>{t("checkAnswers")}</p>
                     )}
                 </button>
             ) : null}
@@ -114,26 +116,26 @@ export default function AnsweringExercise({ exercise }: { exercise: Exercise }) 
                         <>
                             <p>
                                 {feedbackMessage && (
-                                    <span className="font-medium">Feedback: </span>
+                                    <span className="font-medium">{t("feedback")} </span>
                                 )}
                                 {feedbackMessage}
                             </p>
                             <p>
-                                ✓ Correct!
+                                {t("correct")}
                             </p>
                             <p>
-                                {`The correct answer is:${answer}`}
+                                {t("correctAnswer")}{answer}
                             </p>
                         </>
-                    ) : <p>✗ Some answers are incorrect (Attempt {attempts}/3)</p>}
+                    ) : <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>}
                     <p>
-                        
-                        {`Level:${currentLevel!.label} (${currentLevel!.stars})`}
+
+                        {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">Correct answer was: {answer}</p>
-                        </div>  
+                            <p className="font-medium">{t("correctAnswer")} {answer}</p>
+                        </div>
                     )}
                 </div>
             )}

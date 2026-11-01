@@ -21,7 +21,7 @@ export default function TagSelector({
 }: TagSelectorProps) {
   return (
     <EntitySelector<Tag>
-      label="Tags"
+      label="tags"
       selectedIds={selectedTagIds}
       onSelectionChange={onTagsChange}
       elementId={elementId}

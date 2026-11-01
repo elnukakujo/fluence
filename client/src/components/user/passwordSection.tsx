@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import SaveButton from "./saveButton";
 import PasswordStrengthBar from "./passwordStrengthBar";
@@ -8,6 +9,7 @@ import { updateUserPassword } from "@/api/user";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function PasswordSection({ userId }: { userId: string }) {
+  const t = useTranslations("settings.password");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -22,9 +24,9 @@ export default function PasswordSection({ userId }: { userId: string }) {
     setError("");
 
     if (!currentPassword && !newPassword && !confirmPassword) return;
-    if (!currentPassword) { setError("Current password is required to set a new password"); return; }
-    if (newPassword !== confirmPassword) { setError("New passwords do not match"); return; }
-    if (newPassword.length < 8) { setError("New password must be at least 8 characters"); return; }
+    if (!currentPassword) { setError(t("required")); return; }
+    if (newPassword !== confirmPassword) { setError(t("mismatch")); return; }
+    if (newPassword.length < 8) { setError(t("minLength")); return; }
 
     setSaving(true);
     try {
@@ -34,7 +36,7 @@ export default function PasswordSection({ userId }: { userId: string }) {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update password");
+      setError(err instanceof Error ? err.message : t("failedUpdate"));
     } finally {
       setSaving(false);
     }
@@ -63,7 +65,7 @@ export default function PasswordSection({ userId }: { userId: string }) {
         className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-50 hover:opacity-80 focus:outline-2 focus:outline-offset-1 focus:outline-[var(--color-accent)]"
         onClick={() => setShow(!show)}
         tabIndex={-1}
-        aria-label={show ? "Hide password" : "Show password"}
+        aria-label={show ? t("hidePassword") : t("showPassword")}
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
@@ -71,8 +73,8 @@ export default function PasswordSection({ userId }: { userId: string }) {
   );
 
   return (
-    <SectionCard title="Password">
-      <p className="text-sm opacity-60">Leave all fields blank to keep your current password.</p>
+    <SectionCard title={t("title")}>
+      <p className="text-sm opacity-60">{t("helpText")}</p>
 
       {error && (
         <p className="text-sm" style={{ color: "var(--color-danger)" }} role="alert">
@@ -82,25 +84,25 @@ export default function PasswordSection({ userId }: { userId: string }) {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Current Password</span>
-          {passwordInput(currentPassword, setCurrentPassword, showCurrent, setShowCurrent, "Enter current password", "current-password")}
+          <span className="text-sm opacity-70">{t("current")}</span>
+          {passwordInput(currentPassword, setCurrentPassword, showCurrent, setShowCurrent, t("currentPlaceholder"), "current-password")}
         </label>
 
         <div className="index-divider" />
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">New Password</span>
-          {passwordInput(newPassword, setNewPassword, showNew, setShowNew, "Enter new password", "new-password")}
+          <span className="text-sm opacity-70">{t("new")}</span>
+          {passwordInput(newPassword, setNewPassword, showNew, setShowNew, t("newPlaceholder"), "new-password")}
           {newPassword && <PasswordStrengthBar password={newPassword} />}
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Confirm New Password</span>
-          {passwordInput(confirmPassword, setConfirmPassword, showConfirm, setShowConfirm, "Re-enter new password", "new-password")}
+          <span className="text-sm opacity-70">{t("confirm")}</span>
+          {passwordInput(confirmPassword, setConfirmPassword, showConfirm, setShowConfirm, t("confirmPlaceholder"), "new-password")}
         </label>
 
         <div>
-          <SaveButton isLoading={saving} onSuccessLabel="Password updated" />
+          <SaveButton isLoading={saving} onSuccessLabel={t("updateSuccessLabel")} />
         </div>
       </form>
     </SectionCard>

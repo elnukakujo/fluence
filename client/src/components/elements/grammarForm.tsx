@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { useRouter } from "next/navigation";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
@@ -15,6 +16,7 @@ import { faTrash, faAdd } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Grammar>; lesson_id: string}) {
+    const t = useTranslations("grammar");
     const router = useRouter();
     const isUpdate = Boolean(grammar?.id);
 
@@ -70,7 +72,7 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
             router.refresh();
         } catch (error) {
             console.error(`Failed to ${isUpdate ? "update" : "create"} grammar:`, error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} grammar. Check console for details.`);
+            alert(isUpdate ? t("updateFailure") : t("createFailure"));
         } finally {
             setIsSubmitting(false);
         }
@@ -95,9 +97,9 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
     return (
         <form className="flex flex-col space-y-12" onSubmit={handleSubmit}>
             <article className="flex flex-col space-y-2 items-center">
-                <h3>Grammar Informations</h3>
+                <h3>{t("formHeading")}</h3>
                 <AutoWidthInput
-                    label="Title"
+                    label={t("titleLabel")}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required={true}
@@ -105,7 +107,7 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
                 <AutoSizeTextArea
                     value={explanation}
                     onChange={(e) => setExplanation(e.target.value)}
-                    label="Explanation"
+                    label={t("explanationLabel")}
                     required={true}
                 />
             </article>
@@ -120,7 +122,7 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
                 elementId={grammarData.id!}
             />
             <article className="flex flex-col space-y-2 items-center">
-                <h3>Learnable Sentences</h3>
+                <h3>{t("learnableSentencesHeading")}</h3>
                 {learnableSentence.map((sentence, key) => (
                     <section className="flex flex-col space-y-2 items-center" key={key}>
                             <button
@@ -132,13 +134,13 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
                                 <FontAwesomeIcon icon={faTrash}/>
                             </button>
                             <AutoWidthInput
-                                label="Example Sentence"
+                                label={t("exampleSentenceLabel")}
                                 value={sentence.text || ""}
                                 required
                                 onChange={(e) => handleLearnableSentenceChange(key, "text", e.target.value)}
                             />
                             <AutoWidthInput
-                                label="Example Sentence Translation"
+                                label={t("exampleSentenceTranslationLabel")}
                                 value={sentence.translation || ""}
                                 onChange={(e) => handleLearnableSentenceChange(key, "translation", e.target.value)}
                             />
@@ -155,7 +157,7 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
                     <FontAwesomeIcon icon={faAdd}/>
                 </button>
             </article>
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Grammar</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Grammar</SubmitButton>}
+            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addButton")}</SubmitButton>}
         </form>
     );
 }

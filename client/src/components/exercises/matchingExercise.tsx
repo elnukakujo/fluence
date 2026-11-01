@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
 import shuffle from 'lodash/shuffle';
 import ElementMediaCard from "@/components/elements/elementMediaCard";
@@ -16,6 +17,7 @@ type Item = {
 };
 
 export default function MatchingExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const content = exercise.content as { pairs: [string, string][] } | null;
     const text_support = exercise.text_support || "";
 
@@ -116,7 +118,7 @@ export default function MatchingExercise({ exercise }: { exercise: Exercise }) {
         <form className="card flex flex-col space-y-4">
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support: </h3>
+                    <h3>{t("textSupport")} </h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -163,13 +165,13 @@ export default function MatchingExercise({ exercise }: { exercise: Exercise }) {
 
             {attempts <= 2 && attempts > 0 && !isSuccess && (
                 <div className="card mt-4 border-danger/30 bg-danger/10 text-danger">
-                    <p>✗ Some answers are incorrect (Attempts left {attempts}/3)</p>
+                    <p>{t("attemptsLeftMatching", { attempts })}</p>
                 </div>
             )}
 
             {attempts < 0 && (
                 <div className="card mt-4 border-danger/30 bg-danger/10 text-danger">
-                    <p>Out of attempts! The correct pairs were the following:</p>
+                    <p>{t("outOfAttempts")}</p>
                     <ul>
                         {pairs.map((pair, index) => (
                             <li key={index}>{pair.map(item => item.value).join(' - ')}</li>
@@ -180,7 +182,7 @@ export default function MatchingExercise({ exercise }: { exercise: Exercise }) {
 
             {isSuccess && (
                 <div className="card mt-4 border-success/30 bg-success/10 text-success">
-                    <p>✓ Correct! Well done!</p>
+                    <p>{t("wellDone")}</p>
                 </div>
             )}
         </form>

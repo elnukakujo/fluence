@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
@@ -28,6 +29,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   range?: [number, number];
   canGenerateAudio?: boolean; // the user has a text-to-speech endpoint
 }) {
+  const t = useTranslations("ingestion");
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");
   const [tab, setTab] = useState<RowKind | null>(null);

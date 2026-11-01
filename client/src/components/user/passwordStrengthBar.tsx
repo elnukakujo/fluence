@@ -1,7 +1,9 @@
 "use client";
 
-function scorePassword(pw: string): { score: 0 | 1 | 2 | 3 | 4; label: string } {
-  if (!pw) return { score: 0, label: "Too short" };
+import { useTranslations } from "next-intl";
+
+function scorePassword(pw: string, labels: Record<number, string>): { score: 0 | 1 | 2 | 3 | 4; label: string } {
+  if (!pw) return { score: 0, label: labels[0] };
   let s = 0;
   if (pw.length >= 8) s++;
   if (pw.length >= 12) s++;
@@ -9,7 +11,6 @@ function scorePassword(pw: string): { score: 0 | 1 | 2 | 3 | 4; label: string } 
   if (/[0-9]/.test(pw)) s++;
   if (/[^A-Za-z0-9]/.test(pw)) s++;
   const clamped = Math.min(s, 4) as 0 | 1 | 2 | 3 | 4;
-  const labels = ["Too short", "Weak", "Fair", "Good", "Strong"] as const;
   return { score: clamped, label: labels[clamped] };
 }
 
@@ -22,7 +23,15 @@ const COLORS: Record<number, string> = {
 };
 
 export default function PasswordStrengthBar({ password }: { password: string }) {
-  const { score, label } = scorePassword(password);
+  const t = useTranslations("settings.password.strengthLabels");
+  const labels = {
+    0: t("tooShort"),
+    1: t("weak"),
+    2: t("fair"),
+    3: t("good"),
+    4: t("strong"),
+  };
+  const { score, label } = scorePassword(password, labels);
   return (
     <div className="flex flex-col gap-1" aria-live="polite">
       <div className="flex gap-1" role="progressbar" aria-valuenow={score} aria-valuemin={0} aria-valuemax={4} aria-label={`Password strength: ${label}`}>

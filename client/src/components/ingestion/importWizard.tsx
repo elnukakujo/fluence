@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type AcceptPayload } from "@/lib/ingestion/review";
 import ProgressBar from "@/components/ui/progressBar";
 import {
@@ -22,7 +23,7 @@ type Props = { languageId: string; lessonId: string; lessonTitle: string; settin
 export default function ImportWizard(props: Props) {
   const jobId = useSearchParams().get("job");
   return jobId ? <JobView key={jobId} jobId={jobId} {...props} /> : (
-    <UploadStep languageId={props.languageId} lessonId={props.lessonId} heading={`Import into “${props.lessonTitle}”`}
+    <UploadStep languageId={props.languageId} lessonId={props.lessonId} heading={`Import into "${props.lessonTitle}"`}
       settingsHref={props.settingsHref} base={`/languages/${props.languageId}/lesson/${props.lessonId}/import`}
       cancelHref={`/languages/${props.languageId}/lesson/${props.lessonId}`} />
   );
@@ -33,6 +34,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
   languageId: string; lessonId?: string; heading: string; settingsHref: string; base: string; cancelHref: string; languageCode?: string; showLevel?: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("ingestion");
   const [caps, setCaps] = useState<Capabilities | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [from, setFrom] = useState("");
@@ -55,7 +57,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
     e.preventDefault();
     const range = parsePageRange(from, to);
     if (!range.ok) return setError(range.error);
-    if (!file) return setError("Choose a PDF or an image first");
+    if (!file) return setError(t("documentLabel"));
     const form = new FormData();
     form.append("file", file);
     form.append("language_id", languageId);
@@ -80,23 +82,23 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
   return (
     <form onSubmit={submit} className="card step-header flex max-w-2xl flex-col gap-4">
       <div className="flex flex-col gap-3">
-      <StepProgress step={1} second={lessonId ? "Choose the pages" : "Choose the lessons"} />
+      <StepProgress step={1} second={lessonId ? t("chooseThePages") : t("chooseTheLessons")} />
         <h2>{heading}</h2>
         <p className="text-sm opacity-70">
-          We read the document, find the vocabulary, grammar, calligraphy and exercises, and show you everything to check next to the original page. Nothing is added until you confirm.
+          {t("readingDescription")}
         </p>
       </div>
 
       {blocked && (
         <div role="alert" className="card text-sm">
-          <p className="font-medium">You can&apos;t import yet</p>
+          <p className="font-medium">{t("cantImportYet")}</p>
           <ul className="list-disc pl-4">{caps!.reasons.map((r) => <li key={r.code}>{r.message}</li>)}</ul>
-          <Link href={settingsHref} className="link mt-2 inline-block">Go to Settings</Link>
+          <Link href={settingsHref} className="link mt-2 inline-block">{t("goToSettings")}</Link>
         </div>
       )}
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm opacity-70">Document (PDF or image)</span>
+        <span className="text-sm opacity-70">{t("documentLabel")}</span>
         <input className="input" type="file" accept=".pdf,image/*" disabled={blocked || busy}
           onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </label>
@@ -111,51 +113,49 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
       )}
 
       <fieldset className="flex flex-col gap-1" disabled={blocked || busy}>
-        <legend className="text-sm opacity-70">Pages (optional)</legend>
+        <legend className="text-sm opacity-70">{t("pagesLabel")}</legend>
         <div className="flex flex-wrap items-center gap-2">
-          <input className="input w-24" inputMode="numeric" aria-label="First page" placeholder="from" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <input className="input w-24" inputMode="numeric" aria-label={t("firstPageAriaLabel")} placeholder={t("firstPagePlaceholder")} value={from} onChange={(e) => setFrom(e.target.value)} />
           <span aria-hidden>–</span>
-          <input className="input w-24" inputMode="numeric" aria-label="Last page" placeholder="to" value={to} onChange={(e) => setTo(e.target.value)} />
+          <input className="input w-24" inputMode="numeric" aria-label={t("lastPageAriaLabel")} placeholder={t("lastPagePlaceholder")} value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <span className="text-xs opacity-60">
-          Leave empty to read the whole document. For a long book, pick just the pages of this lesson: it is faster
-          and cheaper, because each page is one call to your text model.
+          {t("pagesHint")}
         </span>
       </fieldset>
 
       {file && (
         <details className="text-sm" open>
-          <summary className="cursor-pointer opacity-70">Look through the document to find your pages</summary>
+          <summary className="cursor-pointer opacity-70">{t("lookThroughDocument")}</summary>
           <div className="mt-2"><FilePreview file={file} page={/^\d+$/.test(from.trim()) ? Number(from) : undefined} /></div>
         </details>
       )}
 
       <label className="flex items-start gap-2">
         <input type="checkbox" checked={handwritten} disabled={blocked || busy} onChange={(e) => setHandwritten(e.target.checked)} />
-        <span className="text-sm">This document is handwritten</span>
+        <span className="text-sm">{t("handwrittenLabel")}</span>
       </label>
       {handwritten && noVision && (
         <p className="text-sm" role="note">
-          ⚠ Handwriting is read best by a vision model and you haven&apos;t added one, so expect many items to need checking.{" "}
-          <Link href={settingsHref} className="link">Add one in Settings</Link>
+          ⚠ {t("handwrittenWarning")} {" "}
+          <Link href={settingsHref} className="link">{t("addOneInSettings")}</Link>
         </p>
       )}
 
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
       <div className="btn-row">
-        <button type="submit" className="btn btn-primary" disabled={blocked || busy || !file}>{busy ? "Uploading…" : "Start import"}</button>
-        <Link href={cancelHref} className="btn btn-secondary">Cancel</Link>
+        <button type="submit" className="btn btn-primary" disabled={blocked || busy || !file}>{busy ? t("uploadingButton") : t("uploadButton")}</button>
+        <Link href={cancelHref} className="btn btn-secondary">{t("cancelButton")}</Link>
       </div>
     </form>
   );
 }
 
-export const STATUS_TEXT: Record<string, string> = {
-  queued: "Waiting for its turn…", parsing: "Reading the document…", pages: "Classifying pages…", extracting: "Finding vocabulary, grammar, calligraphy and exercises…",
-};
+// STATUS_TEXT is now generated from translations in components that use it
 
 function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Props & { jobId: string }) {
   const router = useRouter();
+  const t = useTranslations("ingestion");
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const base = `/languages/${languageId}/lesson/${lessonId}/import`;
@@ -170,7 +170,7 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
         setJob(j);
         if (ACTIVE_STATUSES.includes(j.status)) timer = setTimeout(tick, 2000);
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "Could not load this import");
+        if (alive) setError(e instanceof Error ? e.message : t("couldNotLoad"));
       }
     };
     tick();
@@ -182,21 +182,24 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
     router.replace(base);
   };
 
-  if (error) return <div role="alert" className="card max-w-2xl">✗ {error} <Link href={base} className="link">Start a new import</Link></div>;
-  if (!job) return <div className="card max-w-2xl" aria-busy="true">Loading…</div>;
+  if (error) return <div role="alert" className="card max-w-2xl">✗ {error} <Link href={base} className="link">{t("uploadButton")}</Link></div>;
+  if (!job) return <div className="card max-w-2xl" aria-busy="true">{t("loadingEllipsis")}</div>;
 
   if (job.status === "pages") {
     return <PagesStep job={job} lessonId={lessonId} lessonTitle={lessonTitle} base={base} onRestart={startOver} />;
   }
   if (ACTIVE_STATUSES.includes(job.status)) {
+    const STATUS_TEXT: Record<string, string> = {
+      queued: t("waitingForTurn"), parsing: t("readingDocument"), pages: t("classifyingPages"), extracting: t("findingContent"),
+    };
     return (
       <div className="card step-header flex max-w-2xl flex-col">
-        <StepProgress step={job.status === "extracting" ? 3 : 1} second="Choose the pages" />
+        <StepProgress step={job.status === "extracting" ? 3 : 1} second={t("chooseTheLessons")} />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
         {job.status === "extracting" && <ProgressBar current={job.pages_done} total={job.pages_total} />}
         <p className="text-sm opacity-70">
-          This can take several minutes for a long scan. You can leave this page: find the import under “Imports” in the top bar.
+          {t("importTakesTime")}
         </p>
       </div>
     );
@@ -204,10 +207,10 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   if (job.status === "failed") {
     return (
       <div role="alert" className="card flex max-w-2xl flex-col gap-3">
-        <h2>The import failed</h2>
+        <h2>{t("importFailed")}</h2>
         <p>{job.error}</p>
-        {/endpoint/i.test(job.error ?? "") && <Link href={settingsHref} className="link">Go to Settings</Link>}
-        <div className="btn-row"><button className="btn btn-primary" onClick={startOver}>Try another document</button></div>
+        {/endpoint/i.test(job.error ?? "") && <Link href={settingsHref} className="link">{t("goToSettings")}</Link>}
+        <div className="btn-row"><button className="btn btn-primary" onClick={startOver}>{t("tryAnotherDocument")}</button></div>
       </div>
     );
   }
@@ -220,6 +223,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
   onRestart: () => void; job: Job; lessonId: string; lessonTitle: string; base: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("ingestion");
   const [pagesData, setPagesData] = useState<{ page_kinds: Record<string, string[]>; first_page: number; last_page: number; warnings: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -239,7 +243,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
   }, [job.id]);
 
   if (error && !pagesData) return <div role="alert" className="card max-w-2xl">Error: {error}</div>;
-  if (!pagesData) return <div className="card max-w-2xl" aria-busy="true">Loading pages...</div>;
+  if (!pagesData) return <div className="card max-w-2xl" aria-busy="true">{t("loadingPages")}</div>;
 
   const pages = Array.from(
     { length: pagesData.last_page - pagesData.first_page + 1 },
@@ -257,7 +261,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
       await confirmPages(job.id, pageKindsStr);
       router.push(`${base}?job=${job.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not confirm the pages");
+      setError(e instanceof Error ? e.message : t("confirmPageKindsDescription"));
       setSaving(false);
     }
   };
@@ -265,16 +269,16 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
   return (
     <section className="flex max-w-4xl flex-col gap-4">
       <header className="card step-header flex flex-col">
-        <StepProgress step={2} second="Choose the pages" />
-        <h2>Confirm page kinds in {job.filename}</h2>
-        <p className="text-sm opacity-70">We detected which kinds of content are on each page. Review and edit as needed, then continue to extraction.</p>
+        <StepProgress step={2} second={t("chooseThePages")} />
+        <h2>{t("confirmPageKinds", { filename: job.filename })}</h2>
+        <p className="text-sm opacity-70">{t("confirmPageKindsDescription")}</p>
         {pagesData.warnings.length > 0 && (<ul className="list-disc pl-5 text-sm">{pagesData.warnings.map((w) => <li key={w}>{w}</li>)}</ul>)}
       </header>
       <PageKindsWithViewer pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
       {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>Error: {error}</p>}
       <div className="btn-row flex-wrap">
-        <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>← Choose another document</button>
-        <button type="button" className="btn btn-primary" disabled={saving} onClick={confirm}>{saving ? "Starting..." : "Continue to extraction"}</button>
+        <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>{t("startAnotherDocument")}</button>
+        <button type="button" className="btn btn-primary" disabled={saving} onClick={confirm}>{saving ? t("startingButton") : t("continueToExtraction")}</button>
       </div>
     </section>
   );
@@ -285,6 +289,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
   onBack: () => Promise<void>; job: Job; lessonId: string; lessonTitle: string; languageId: string; base: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("ingestion");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -301,39 +306,39 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
   if (added !== null) {
     return (
       <div className="card flex max-w-2xl flex-col gap-3" role="status">
-        <h2>Added {added} {added === 1 ? "entry" : "entries"} to “{lessonTitle}”</h2>
-        <p className="text-sm opacity-70">They are tagged with the source “{job.source_title || `Imported from ${job.filename}`}”.</p>
+        <h2>{t("addedEntries", { count: added, lessonTitle })}</h2>
+        <p className="text-sm opacity-70">{t("taggedWithSource", { sourceTitle: job.source_title || `Imported from ${job.filename}` })}</p>
         {addNotes.length > 0 && <ul className="list-disc pl-5 text-sm" role="note">{addNotes.map((n) => <li key={n}>{n}</li>)}</ul>}
         <div className="btn-row">
-          <Link href={`/languages/${languageId}/lesson/${lessonId}`} className="btn btn-primary">Back to the lesson</Link>
-          <button className="btn btn-secondary" onClick={() => router.push(base)}>Import another document</button>
+          <Link href={`/languages/${languageId}/lesson/${lessonId}`} className="btn btn-primary">{t("backToLesson")}</Link>
+          <button className="btn btn-secondary" onClick={() => router.push(base)}>{t("importAnother")}</button>
         </div>
       </div>
     );
   }
   if (error) return <div role="alert" className="card max-w-2xl">✗ {error}</div>;
-  if (!candidates) return <div className="card max-w-2xl" aria-busy="true">Loading the results…</div>;
+  if (!candidates) return <div className="card max-w-2xl" aria-busy="true">{t("loadingResults")}</div>;
 
   const warnings = [...job.warnings, ...notes.filter((n) => !job.warnings.includes(n))];
   return (
     <section className="flex flex-col gap-4">
       <header className="card step-header flex flex-col">
-        <StepProgress step={3} second="Choose the pages" />
-        <h2>Review what we found in {job.filename}</h2>
+        <StepProgress step={3} second={t("chooseThePages")} />
+        <h2>{t("reviewResults", { filename: job.filename })}</h2>
         {warnings.length > 0 && (
           <details>
-            <summary className="cursor-pointer text-sm">{warnings.length} note{warnings.length > 1 ? "s" : ""} from the import</summary>
+            <summary className="cursor-pointer text-sm">{t("notesFromImport", { count: warnings.length })}</summary>
             <ul className="list-disc pl-5 text-sm">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
           </details>
         )}
       </header>
       <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} range={pageSpan(job.page_kinds)}
-        addLabel={(n) => `Add ${n} to “${lessonTitle}”`}
+        addLabel={(n) => t("addButton", { count: n, lessonTitle })}
         canGenerateAudio={canAudio}
         onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAddNotes(r.notes ?? []); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">
-        <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : "Could not go back"))}>← Back to the pages</button>
-        <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>Leave without adding</button>
+        <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotLoad")))}>{t("backToPages")}</button>
+        <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>{t("leaveWithoutAdding")}</button>
       </div>
     </section>
   );

@@ -1,0 +1,22 @@
+{
+  "heading": "Grammar",
+  "emptyState": "Empty",
+  "total": "Total",
+  "sheet": "Grammar Sheet",
+  "flashcardTitle": "Click to reveal",
+  "exampleWords": "Example Words",
+  "exampleSentences": "Example Sentences",
+  "addNewButton": "Add New Grammar",
+  "practiceButton": "Flashcard Practice",
+  "nextButton": "Next Grammar",
+  "formHeading": "Grammar Informations",
+  "titleLabel": "Title",
+  "explanationLabel": "Explanation",
+  "learnableSentencesHeading": "Learnable Sentences",
+  "exampleSentenceLabel": "Example Sentence",
+  "exampleSentenceTranslationLabel": "Example Sentence Translation",
+  "updateButton": "Update Grammar",
+  "addButton": "Add Grammar",
+  "updateFailure": "Failed to update grammar. Check console for details.",
+  "createFailure": "Failed to create grammar. Check console for details."
+}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 
 import Exercise from "@/interface/features/Exercise";
 import { updateScoreById } from "@/api/process";
@@ -11,6 +12,7 @@ import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
 export default function QuizzExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const content = exercise.content as { options: string[]; correct: number[] } | null;
     const text_support = exercise.text_support || "";
 
@@ -58,7 +60,7 @@ export default function QuizzExercise({ exercise }: { exercise: Exercise }) {
             </section>
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support:</h3>
+                    <h3>{t("textSupportColon")}</h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -84,7 +86,7 @@ export default function QuizzExercise({ exercise }: { exercise: Exercise }) {
                         className="btn btn-primary w-fit"
                         disabled={selected.length === 0}
                     >
-                        Check Answer
+                        {t("checkAnswer")}
                     </button>
                 </section>
             )}
@@ -92,7 +94,7 @@ export default function QuizzExercise({ exercise }: { exercise: Exercise }) {
             {hasFeedback && (
                 <div className={`card mt-4 ${isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
                     {isCorrect ? (
-                        <p>✓ Correct! Well done!</p>
+                        <p>{t("wellDone")}</p>
                     ) : (
                         <p>{`✗ Wrong answer (Attempt ${attempts}). The correct answers were: ${content.correct.map(i => content.options[i]).join(", ")}.`}</p>
                     )}

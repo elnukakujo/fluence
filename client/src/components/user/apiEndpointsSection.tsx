@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import EndpointCard, { ProviderOption, PROVIDER_OPTIONS as FALLBACK_PROVIDERS } from "./endpointCard";
 import SaveButton from "./saveButton";
@@ -16,6 +17,7 @@ export default function ApiEndpointsSection({
   prefId: string;
   endpoints: ApiEndpointConfig[];
 }) {
+  const t = useTranslations("settingsAdmin.apiEndpoints");
   const [endpoints, setEndpoints] = useState<ApiEndpointConfig[]>(initial);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export default function ApiEndpointsSection({
       await updateUserPreferences(prefId, { ai_endpoints: updated });
       setEndpoints(updated);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save endpoints");
+      setSaveError(err instanceof Error ? err.message : t("errors.failedSave"));
     } finally {
       setSaving(false);
     }
@@ -130,17 +132,17 @@ export default function ApiEndpointsSection({
   };
 
   return (
-    <SectionCard title="API Endpoints">
+    <SectionCard title={t("title")}>
       <p className="text-sm opacity-60">
-        Manage your LLM API connections. Only the active endpoint of each type is used.
+        {t("description")}
       </p>
 
       {endpoints.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-8 text-center" role="status">
           <span className="text-3xl opacity-30" aria-hidden="true">⚡</span>
-          <p className="text-sm opacity-40">No endpoints configured yet.</p>
+          <p className="text-sm opacity-40">{t("noEndpoints")}</p>
           <button type="button" className="btn btn-secondary mt-1" onClick={handleAdd}>
-            Configure your first endpoint
+            {t("configureFirst")}
           </button>
         </div>
       )}
@@ -178,18 +180,18 @@ export default function ApiEndpointsSection({
               onClick={handleAdd}
               disabled={saving}
             >
-              + Add Endpoint
+              {t("addButton")}
             </button>
             <div className="flex-1" />
-            <SaveButton isLoading={saving} onSuccessLabel="Endpoints saved" />
+            <SaveButton isLoading={saving} onSuccessLabel={t("deleteSuccess")} />
           </div>
         )}
       </form>
 
       {deleteIdx !== null && (
         <ConfirmDialog
-          message={`Delete "${endpoints[deleteIdx]?.name || "this endpoint"}"?`}
-          confirmLabel="Delete"
+          message={t("deleteConfirm", { name: endpoints[deleteIdx]?.name || "this endpoint" })}
+          confirmLabel={t("delete")}
           danger
           onConfirm={confirmDelete}
           onCancel={() => setDeleteIdx(null)}

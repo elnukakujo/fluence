@@ -3,21 +3,23 @@ import { getAllUserSources } from "@/api/source";
 import NavButton from "@/components/layout/navButton";
 import Source from "@/interface/systemData/Source";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { getTranslations } from "next-intl/server";
 
 export default async function SourcesPage() {
     const userId: string | null = await getCurrentUserId();
     if (!userId) redirect('/');
     const sources: Source[] = await getAllUserSources(userId);
+    const t = await getTranslations("sources");
 
     return (
         <div className="flex flex-col gap-4">
             <div className="flex justify-between items-baseline">
-                <h1>Sources</h1>
-                <NavButton path="/sources/new">+ New</NavButton>
+                <h1>{t("sources")}</h1>
+                <NavButton path="/sources/new">{t("newSource")}</NavButton>
             </div>
 
             {sources.length === 0 ? (
-                <p className="text-muted">No sources yet.</p>
+                <p className="text-muted">{t("noSourcesYet")}</p>
             ) : (
                 <ul className="card list-none flex flex-col gap-1">
                     {sources.map((source) => (

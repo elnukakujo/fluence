@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import BackupRow, { Backup } from "./backupRow";
 import { createBackup, deleteBackup, listBackups, restoreBackup } from "@/api/backup";
 
 export default function BackupSection() {
+  const t = useTranslations("settingsAdmin.backups");
   const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -29,7 +31,7 @@ export default function BackupSection() {
       setBackupName("");
     } catch (error) {
       console.error("Failed to create backup:", error);
-      alert("Failed to create backup.");
+      alert(t("failedCreate"));
     } finally {
       setCreating(false);
     }
@@ -41,7 +43,7 @@ export default function BackupSection() {
       await restoreBackup(filename);
     } catch (error) {
       console.error("Failed to restore backup:", error);
-      alert("Failed to restore backup.");
+      alert(t("failedRestore"));
     } finally {
       setLoading(false);
     }
@@ -53,15 +55,15 @@ export default function BackupSection() {
       await refresh();
     } catch (error) {
       console.error("Failed to delete backup:", error);
-      alert("Failed to delete backup.");
+      alert(t("failedDelete"));
     }
   };
 
   return (
-    <SectionCard title="Backups">
+    <SectionCard title={t("title")}>
       {/* Header row with Create button */}
       <div className="flex items-center justify-between">
-        <p className="text-sm opacity-60">Up to 10 most recent backups are kept automatically.</p>
+        <p className="text-sm opacity-60">{t("description")}</p>
         {!showCreateForm && backups.length > 0 && (
           <button
             type="button"
@@ -69,7 +71,7 @@ export default function BackupSection() {
             onClick={() => setShowCreateForm(true)}
             disabled={loading || creating}
           >
-            Create backup
+            {t("createButton")}
           </button>
         )}
       </div>
@@ -78,13 +80,13 @@ export default function BackupSection() {
       {showCreateForm && (
         <div className="flex flex-col gap-2 p-3 border border-dashed border-[var(--color-border)] rounded-lg">
           <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">Backup name (optional)</span>
+            <span className="text-sm opacity-70">{t("backupNameLabel")}</span>
             <input
               className="input"
               type="text"
               value={backupName}
               onChange={(e) => setBackupName(e.target.value)}
-              placeholder="e.g. before-upgrade"
+              placeholder={t("backupNamePlaceholder")}
               disabled={creating}
             />
           </label>
@@ -102,7 +104,7 @@ export default function BackupSection() {
               onClick={handleCreate}
               disabled={creating}
             >
-              {creating ? "Creating…" : "Start backup"}
+              {creating ? t("creating") : t("startBackup")}
             </button>
             <button
               type="button"
@@ -110,7 +112,7 @@ export default function BackupSection() {
               onClick={() => { setShowCreateForm(false); setBackupName(""); }}
               disabled={creating}
             >
-              Cancel
+              {t("cancel")}
             </button>
           </div>
         </div>
@@ -133,8 +135,8 @@ export default function BackupSection() {
         <div className="flex flex-col items-center gap-3 py-10 text-center" role="status">
           <span className="text-4xl opacity-25" aria-hidden="true">📦</span>
           <div>
-            <p className="text-sm opacity-50">No backups yet — create your first one</p>
-            <p className="text-xs opacity-30 mt-1">Backups are stored locally and kept for safekeeping.</p>
+            <p className="text-sm opacity-50">{t("noBackups")}</p>
+            <p className="text-xs opacity-30 mt-1">{t("noBackupsSubtext")}</p>
           </div>
           <button
             type="button"
@@ -142,7 +144,7 @@ export default function BackupSection() {
             onClick={() => setShowCreateForm(true)}
             disabled={creating}
           >
-            Create your first backup
+            {t("createFirstBackup")}
           </button>
         </div>
       )}

@@ -3,6 +3,7 @@
 import { updateScoreById } from "@/api/process";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import Calligraphy from "@/interface/features/Calligraphy";
 import BackButton from "@/components/ui/buttons/backButton";
 import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
@@ -16,6 +17,7 @@ import ProgressBar from "@/components/ui/progressBar";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 
 export default function CalligraphyFlashCard({ calligraphies }: { calligraphies: Calligraphy[] }) {
+    const t = useTranslations("calligraphy");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const calligraphy: Calligraphy = calligraphies[currentIndex];
     const startTimeRef = useRef<number>(performance.now());
@@ -74,26 +76,26 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             />
             {practiceResult !== null && (
                 <section className="card">
-                    <h3 className="font-serif">Practice Result</h3>
+                    <h3 className="font-serif">{t("practiceResult")}</h3>
                     <div className="index-divider flex flex-col gap-2.5">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted">Shape similarity</span>
+                            <span className="text-sm text-muted">{t("shapeSimilarity")}</span>
                             <span className="stat-value">{Math.round(practiceResult.similarity * 100)}%</span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted">Stroke order</span>
+                            <span className="text-sm text-muted">{t("strokeOrder")}</span>
                             <span
                                 className="text-sm font-medium"
                                 style={{ color: practiceResult.strokeOrderErrors === 0 ? "var(--color-success)" : "var(--color-danger)" }}
                             >
                                 {practiceResult.strokeOrderErrors === 0
-                                    ? "Correct"
-                                    : `${practiceResult.strokeOrderErrors} error${practiceResult.strokeOrderErrors === 1 ? "" : "s"}`}
+                                    ? t("strokeOrderCorrect")
+                                    : t("strokeOrderErrors", { n: practiceResult.strokeOrderErrors })}
                             </span>
                         </div>
                         {practiceScore !== null && (
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted">Mastery</span>
+                                <span className="text-sm text-muted">{t("mastery")}</span>
                                 <span className="text-sm">{Math.round(practiceScore)}/100</span>
                             </div>
                         )}
@@ -102,9 +104,9 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             )}
             <section className="flex flex-col space-y-4">
                 <div className="flex items-baseline justify-between">
-                    <h1>Calligraphy Sheet</h1>
+                    <h1>{t("sheet")}</h1>
                     {!showPractice && (
-                        <button className="btn" onClick={() => setShowPractice(true)}>Practice</button>
+                        <button className="btn" onClick={() => setShowPractice(true)}>{t("practiceButton")}</button>
                     )}
                 </div>
                 {showPractice ? (
@@ -119,13 +121,13 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                             onClick={reveal}
                             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); reveal(); } }}
                         >
-                            <h3 className="font-serif">Character</h3>
+                            <h3 className="font-serif">{t("character")}</h3>
                             <CharacterCard character={calligraphy.character} hiddenTranslation={true} hiddenAdditionalInformations={true} />
-                            <p className="text-sm opacity-60">Click to reveal</p>
+                            <p className="text-sm opacity-60">{t("flashcardTitle")}</p>
                         </div>
                         <div className="flashcard-face flashcard-face-back flex flex-col space-y-4">
                             <div className="card flex flex-col space-y-4">
-                                <h3 className="font-serif">Meaning</h3>
+                                <h3 className="font-serif">{t("meaning")}</h3>
                                 <CharacterCard character={calligraphy.character} hiddenTranslation={false} hiddenAdditionalInformations={false} />
                             </div>
                         </div>
@@ -140,7 +142,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                 <>
                     {calligraphy.example_words && (
                         <section className="flex flex-col space-y-4 items-baseline">
-                            <h3 className="font-serif">Example Words</h3>
+                            <h3 className="font-serif">{t("exampleWords")}</h3>
                             {calligraphy.example_words.map((word, index) => (
                                 <WordCard key={index} word={word} hiddenTranslation={false} hiddenAdditionalInformations={true} />
                             ))}
@@ -148,7 +150,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                     )}
                     {calligraphy.example_sentences && (
                         <section className="flex flex-col space-y-4 items-baseline">
-                            <h3 className="font-serif">Example Sentences</h3>
+                            <h3 className="font-serif">{t("exampleSentences")}</h3>
                             {calligraphy.example_sentences.map((sentence, index) => (
                                 <SentenceCard key={index} sentence={sentence} hiddenTranslation={false} />
                             ))}
@@ -159,7 +161,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                     <ElementPerformanceCard element={calligraphy} />
                     {currentIndex < calligraphies.length - 1 ? (
                         <button className="btn btn-primary" onClick={() => handleGoNext()}>
-                            <p>Next Calligraphy</p>
+                            <p>{t("nextButton")}</p>
                         </button>
                     ) : (
                         <BackButton>

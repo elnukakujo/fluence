@@ -5,6 +5,7 @@ import ExerciseForm from "@/components/exercises/exerciseForm";
 import Calligraphy from "@/interface/features/Calligraphy";
 import Grammar from "@/interface/features/Grammar";
 import Vocabulary from "@/interface/features/Vocabulary";
+import { getTranslations } from "next-intl/server";
 
 interface LessonElements {
     vocabularies: Vocabulary[];
@@ -13,6 +14,7 @@ interface LessonElements {
 }
 
 export default async function createExercisePage({ params }: { params: Promise<{ lesson_id: string }> }) {
+    const t = await getTranslations("languages");
     const { lesson_id } = await params;
 
     const calligraphies: Calligraphy[] = await getCalligraphyByLesson(lesson_id);
@@ -27,7 +29,7 @@ export default async function createExercisePage({ params }: { params: Promise<{
 
     return (
         <main className="flex flex-col items-center justify-center">
-            <h1 className="mb-4">Create New Exercise</h1>
+            <h1 className="mb-4">{t("createNewExercise")}</h1>
             <ExerciseForm lesson_id={lesson_id} lessonElements={lessonElements} />
         </main>
     );

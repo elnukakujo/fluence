@@ -3,6 +3,7 @@
 import BackButton from "@/components/ui/buttons/backButton";
 import { updateScoreById } from "@/api/process";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import WordCard from "./wordCard";
 import SentenceCard from "./sentenceCard";
@@ -13,6 +14,7 @@ import ProgressBar from "@/components/ui/progressBar";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 
 export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vocabulary[] }) {
+    const t = useTranslations("vocabulary");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const vocabulary: Vocabulary = vocabularies[currentIndex];
     const startTimeRef = useRef<number>(performance.now());
@@ -67,7 +69,7 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
                         }}
                     >
                         <WordCard word={vocabulary.word} hiddenTranslation={true} hiddenAdditionalInformations={false} />
-                        <p className="text-sm text-muted text-center mt-3">Click to reveal</p>
+                        <p className="text-sm text-muted text-center mt-3">{t("flashcardTitle")}</p>
                     </div>
                     <div className="flashcard-face flashcard-face-back card">
                         <WordCard word={vocabulary.word} hiddenTranslation={false} hiddenAdditionalInformations={false} />
@@ -85,7 +87,7 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
                 <>
                     {vocabulary.example_sentences && vocabulary.example_sentences.length > 0 && (
                         <section className="flex flex-col space-y-4">
-                            <h3 className="font-serif">Example sentences</h3>
+                            <h3 className="font-serif">{t("exampleSentences")}</h3>
                             {vocabulary.example_sentences.map((sentence, index) => (
                                 <SentenceCard key={index} sentence={sentence} hiddenTranslation={false} />
                             ))}
@@ -97,7 +99,7 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
 
                     {currentIndex < vocabularies.length - 1 ? (
                         <button className="btn btn-primary" onClick={handleGoNext}>
-                            Next vocabulary
+                            {t("nextButton")}
                         </button>
                     ) : (
                         <BackButton>Back to lesson</BackButton>

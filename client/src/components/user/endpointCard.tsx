@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Copy, Check, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
 import { Ring } from "ldrs/react";
 //@ts-ignore
@@ -35,34 +36,21 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { value: "custom", label: "Custom", base_url: "", auth_type: "bearer", api_format: "openai", purposes: ["text_gen", "tts", "ocr"] },
 ];
 
-const TYPE_OPTIONS = [
-  { value: "text_gen", label: "Text Generation" },
-  { value: "tts", label: "Text-to-Speech" },
-  { value: "ocr", label: "Document Extraction (OCR)" },
-] as const;
-
-const TYPE_LABELS: Record<string, string> = {
-  text_gen: "Text Gen",
-  tts: "TTS",
-  both: "Both",
-  ocr: "OCR",
-};
-
 // Providers offered for a purpose, from the catalog's `purposes`.
 // Vision is per-model, not per-provider - "Test connection" is what actually proves it.
 const offeredFor = (p: ProviderOption, type?: string) =>
   !!type && p.purposes.includes(type);
 
 // Map backend error patterns to user-friendly hints
-function friendlyError(error: string): string {
+function friendlyError(error: string, t: ReturnType<typeof useTranslations>): string {
   if (/cannot reach|no route|connection refused|timed out|getaddrinfo/i.test(error)) {
-    return "Cannot reach server — check host, port, and that no VPN/proxy is blocking LAN addresses";
+    return t("errors.cannotReach");
   }
   if (/not found|404/i.test(error)) {
-    return "Endpoint not found — does your base URL include the correct path (e.g. /v1)?";
+    return t("errors.notFound");
   }
   if (/auth|401|403|invalid.*key/i.test(error)) {
-    return "Authentication failed — check your API key";
+    return t("errors.authFailed");
   }
   return error;
 }
@@ -94,9 +82,23 @@ export default function EndpointCard({
   providers?: ProviderOption[];
   testing?: boolean;
 }) {
+  const t = useTranslations("settingsAdmin.apiEndpoints");
   const [expanded, setExpanded] = useState(!endpoint.api_type);
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const TYPE_OPTIONS = [
+    { value: "text_gen", label: "Text Generation" },
+    { value: "tts", label: "Text-to-Speech" },
+    { value: "ocr", label: "Document Extraction (OCR)" },
+  ] as const;
+
+  const TYPE_LABELS: Record<string, string> = {
+    text_gen: "Text Gen",
+    tts: "TTS",
+    both: "Both",
+    ocr: "OCR",
+  };
 
   const handleCopy = async () => {
     if (!endpoint.api_key) return;
@@ -123,21 +125,21 @@ export default function EndpointCard({
   const baseUrlWarning = useMemo(() => {
     if (!endpoint.base_url) return null;
     if (endpoint.base_url.includes("/v1")) return null;
-    return "Many providers require /v1 at the end of the base URL.";
-  }, [endpoint.base_url]);
+    return t("baseUrlWarning");
+  }, [endpoint.base_url, t]);
 
   const modelDisabled = !endpoint.base_url;
   const testDisabled = !endpoint.base_url?.trim();
-  const modelWarning = modelDisabled ? "Enter a base URL first" : null;
-  const testError = testResult && !testResult.ok ? friendlyError(testResult.error ?? "Connection failed") : null;
+  const modelWarning = modelDisabled ? t("modelDisabled") : null;
+  const testError = testResult && !testResult.ok ? friendlyError(testResult.error ?? t("errors.connectionFailed"), t) : null;
 
   const statusBadge = testResult
     ? testResult.ok
-      ? { label: `Connected — ${testResult.ms} ms`, color: "var(--color-success)", bg: "var(--color-success)" }
-      : { label: "Error", color: "var(--color-danger)", bg: "var(--color-danger)" }
+      ? { label: t("statusBadges.connected", { ms: testResult.ms ?? 0 }), color: "var(--color-success)", bg: "var(--color-success)" }
+      : { label: t("statusBadges.error"), color: "var(--color-danger)", bg: "var(--color-danger)" }
     : endpoint.base_url
-      ? { label: "Untested", color: "var(--color-muted)", bg: "var(--color-muted)" }
-      : { label: "Unconfigured", color: "var(--color-muted)", bg: "var(--color-muted)" };
+      ? { label: t("statusBadges.untested"), color: "var(--color-muted)", bg: "var(--color-muted)" }
+      : { label: t("statusBadges.unconfigured"), color: "var(--color-muted)", bg: "var(--color-muted)" };
 
   return (
     <div className="endpoint-card card">
@@ -150,7 +152,7 @@ export default function EndpointCard({
           aria-expanded={expanded}
         >
           {expanded ? <ChevronUp size={16} className="shrink-0 opacity-50" /> : <ChevronDown size={16} className="shrink-0 opacity-50" />}
-          <span className="font-medium truncate">{endpoint.name || "Unnamed endpoint"}</span>
+          <span className="font-medium truncate">{endpoint.name || t("title")}</span>
           <span className="badge">{TYPE_LABELS[endpoint.api_type ?? ""] ?? endpoint.api_type ?? "Unset"}</span>
         </button>
 
@@ -174,7 +176,7 @@ export default function EndpointCard({
             className="btn btn-secondary text-xs px-1.5"
             onClick={onMoveUp}
             disabled={disabled || index === 0}
-            aria-label="Move up"
+            aria-label={t("moveUp")}
           >
             <ArrowUp size={14} />
           </button>
@@ -183,7 +185,7 @@ export default function EndpointCard({
             className="btn btn-secondary text-xs px-1.5"
             onClick={onMoveDown}
             disabled={disabled || index === total - 1}
-            aria-label="Move down"
+            aria-label={t("moveDown")}
           >
             <ArrowDown size={14} />
           </button>
@@ -196,7 +198,7 @@ export default function EndpointCard({
 
           {/* Step 1: Purpose */}
           <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">Purpose</span>
+            <span className="text-sm opacity-70">{t("purpose")}</span>
             <select
               className="input"
               value={endpoint.api_type ?? ""}
@@ -213,19 +215,19 @@ export default function EndpointCard({
               }}
               disabled={disabled}
             >
-              <option value="">Select purpose…</option>
+              <option value="">{t("selectPurpose")}</option>
               {TYPE_OPTIONS.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
               {/* Legacy: "Both" can no longer be chosen, but saved endpoints keep it until changed */}
-              {endpoint.api_type === "both" && <option value="both">Both (legacy)</option>}
+              {endpoint.api_type === "both" && <option value="both">{t("testResults.legacy")}</option>}
             </select>
           </label>
 
           {/* Step 2: Provider (appears after purpose is selected) */}
           {endpoint.api_type && (
             <label className="flex flex-col gap-1">
-              <span className="text-sm opacity-70">Provider</span>
+              <span className="text-sm opacity-70">{t("provider")}</span>
               <select
                 className="input"
                 value={endpoint.provider ?? ""}
@@ -243,7 +245,7 @@ export default function EndpointCard({
                 }}
                 disabled={disabled}
               >
-                <option value="">Select provider…</option>
+                <option value="">{t("selectProvider")}</option>
                 {filteredProviders.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -257,8 +259,8 @@ export default function EndpointCard({
               {/* Voice (TTS only) — auto-detected from text language */}
               {(endpoint.api_type === "tts" || endpoint.api_type === "both") && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm opacity-70">Voice</span>
-                  <span className="text-xs opacity-40">Voice auto-detected from text language (e.g., Spanish → es_f, French → fr_f).</span>
+                  <span className="text-sm opacity-70">{t("voice")}</span>
+                  <span className="text-xs opacity-40">{t("voiceAutoDetect")}</span>
 
                   {/* Gender preference (Kokoro-style providers only) */}
                   {endpoint.provider === "local_tts" ? (
@@ -273,7 +275,7 @@ export default function EndpointCard({
                           onChange={() => onUpdate({ ...endpoint, voice_gender: "female" })}
                           disabled={disabled}
                         />
-                        <span className="text-sm">Female</span>
+                        <span className="text-sm">{t("female")}</span>
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <input
@@ -285,7 +287,7 @@ export default function EndpointCard({
                           onChange={() => onUpdate({ ...endpoint, voice_gender: "male" })}
                           disabled={disabled}
                         />
-                        <span className="text-sm">Male</span>
+                        <span className="text-sm">{t("male")}</span>
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <input
@@ -300,27 +302,27 @@ export default function EndpointCard({
                           }}
                           disabled={disabled}
                         />
-                        <span className="text-sm">Default</span>
+                        <span className="text-sm">{t("default")}</span>
                       </label>
                     </div>
                   ) : (
-                    <span className="text-xs opacity-30">Provider voices aren't gender-coded — set an explicit voice override if needed.</span>
+                    <span className="text-xs opacity-30">{t("voiceProviderNote")}</span>
                   )}
                 </div>
               )}
 
               {/* Base URL */}
               <label className="flex flex-col gap-1">
-                <span className="text-sm opacity-70">Base URL</span>
+                <span className="text-sm opacity-70">{t("baseUrl")}</span>
                 <input
                   className="input"
                   type="url"
                   value={endpoint.base_url ?? ""}
                   onChange={(e) => onUpdate({ ...endpoint, base_url: e.target.value || undefined })}
-                  placeholder="https://api.openai.com/v1"
+                  placeholder={t("baseUrlPlaceholder")}
                   disabled={disabled}
                 />
-                <span className="text-xs opacity-40">The API root — the app appends /audio/speech or /chat/completions automatically.</span>
+                <span className="text-xs opacity-40">{t("baseUrlHelp")}</span>
                 {baseUrlWarning && (
                   <span className="text-xs" style={{ color: "var(--color-warning, #e6a817)" }}>⚠ {baseUrlWarning}</span>
                 )}
@@ -328,14 +330,14 @@ export default function EndpointCard({
 
               {/* API Key */}
               <label className="flex flex-col gap-1">
-                <span className="text-sm opacity-70">API Key</span>
+                <span className="text-sm opacity-70">{t("apiKey")}</span>
                 <div className="relative">
                   <input
                     className="input pr-20"
                     type={showKey ? "text" : "password"}
                     value={endpoint.api_key ?? ""}
                     onChange={(e) => onUpdate({ ...endpoint, api_key: e.target.value || undefined })}
-                    placeholder="sk-..."
+                    placeholder={t("apiKeyPlaceholder")}
                     disabled={disabled}
                   />
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex gap-0.5">
@@ -344,7 +346,7 @@ export default function EndpointCard({
                       className="p-1 rounded opacity-50 hover:opacity-80"
                       onClick={() => setShowKey(!showKey)}
                       tabIndex={-1}
-                      aria-label={showKey ? "Hide API key" : "Show API key"}
+                      aria-label={showKey ? t("hideApiKey") : t("showApiKey")}
                     >
                       {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -353,7 +355,7 @@ export default function EndpointCard({
                       className="p-1 rounded opacity-50 hover:opacity-80"
                       onClick={handleCopy}
                       tabIndex={-1}
-                      aria-label="Copy API key"
+                      aria-label={t("copyApiKey")}
                       disabled={!endpoint.api_key}
                     >
                       {copied ? <Check size={14} color="var(--color-success)" /> : <Copy size={14} />}
@@ -364,14 +366,14 @@ export default function EndpointCard({
 
               {/* Model + Test Connection */}
               <label className="flex flex-col gap-1">
-                <span className="text-sm opacity-70">Model Name</span>
+                <span className="text-sm opacity-70">{t("modelName")}</span>
                 <div className="flex gap-2">
                   <input
                     className="input flex-1"
                     type="text"
                     value={endpoint.model ?? ""}
                     onChange={(e) => onUpdate({ ...endpoint, model: e.target.value || undefined })}
-                    placeholder={modelDisabled ? "Enter base URL first" : endpoint.api_type === "ocr" ? "A vision model, e.g. gpt-4o" : "e.g. gpt-4o"}
+                    placeholder={modelDisabled ? t("modelDisabled") : endpoint.api_type === "ocr" ? t("modelPlaceholderOCR") : t("modelPlaceholder")}
                     disabled={disabled || modelDisabled}
                   />
                   <button
@@ -383,13 +385,13 @@ export default function EndpointCard({
                     {testing ? (
                       <Ring size={14} stroke={2} bgOpacity={0} speed={3} color="var(--color-foreground)" />
                     ) : (
-                      "Test connection"
+                      t("testConnection")
                     )}
                   </button>
                 </div>
                 {endpoint.api_type === "ocr" && (
                   <span className="text-xs opacity-60">
-                    Used only to read pages the local OCR can&apos;t (handwriting, poor scans). The model must accept images; the test sends one.
+                    {t("ocrHelp")}
                   </span>
                 )}
                 {modelWarning && (
@@ -403,12 +405,12 @@ export default function EndpointCard({
                 {testResult?.ok && (
                   <div className="flex flex-col gap-1">
                     <span className="text-xs" style={{ color: "var(--color-success)" }}>
-                      ✓ {testResult.vision === "reads_images" ? "Connected and reads images" : "Connected"} — {testResult.ms} ms
+                      ✓ {testResult.vision === "reads_images" ? t("testResults.connectedReadsImages") : t("testResults.connected")} — {testResult.ms} ms
                     </span>
                     {/* Per-path breakdown for "both" endpoints */}
                     {testResult.tts_ok !== undefined && (
                       <span className="text-xs opacity-60">
-                        TTS: {testResult.tts_ok ? "✓" : "✗"} · text-gen: {testResult.text_gen_ok ? "✓" : "✗"}
+                        {t("testResults.ttsPrefix")} {testResult.tts_ok ? t("testResults.success") : t("testResults.failure")} · {t("testResults.textGenPrefix")} {testResult.text_gen_ok ? t("testResults.success") : t("testResults.failure")}
                         {testResult.text_gen_error ? ` (${testResult.text_gen_error})` : ""}
                       </span>
                     )}
@@ -417,7 +419,7 @@ export default function EndpointCard({
                 {/* Auto-detect model pills (Bug 1 fix: theme-aware colors) */}
                 {testResult?.ok && testResult.available_models && testResult.available_models.length > 0 && (
                   <div className="flex flex-col gap-1.5 mt-1">
-                    <span className="text-xs opacity-50">Available models — click to select:</span>
+                    <span className="text-xs opacity-50">{t("testResults.availableModels")}</span>
                     <div className="flex flex-wrap gap-1">
                       {testResult.available_models.map((fullPath: string) => {
                         const filename = fullPath.split("/").pop() || fullPath;
@@ -447,13 +449,13 @@ export default function EndpointCard({
 
           {/* Display Name */}
           <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">Display Name</span>
+            <span className="text-sm opacity-70">{t("displayName")}</span>
             <input
               className="input"
               type="text"
               value={endpoint.name ?? ""}
               onChange={(e) => onUpdate({ ...endpoint, name: e.target.value })}
-              placeholder="e.g. Local Llama"
+              placeholder={t("displayNamePlaceholder")}
               disabled={disabled}
             />
           </label>
@@ -467,7 +469,7 @@ export default function EndpointCard({
                 onClick={() => onUpdate({ ...endpoint, is_active: true })}
                 disabled={disabled}
               >
-                Activate
+                {t("activate")}
               </button>
             ) : (
               <button
@@ -476,7 +478,7 @@ export default function EndpointCard({
                 onClick={() => onUpdate({ ...endpoint, is_active: false })}
                 disabled={disabled}
               >
-                Deactivate
+                {t("deactivate")}
               </button>
             )}
             <button
@@ -485,7 +487,7 @@ export default function EndpointCard({
               onClick={onDelete}
               disabled={disabled}
             >
-              Delete
+              {t("delete")}
             </button>
           </div>
         </div>

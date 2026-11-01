@@ -1,0 +1,80 @@
+{
+  "sidebar": {
+    "profile": "Profile",
+    "security": "Security",
+    "learning": "Learning",
+    "aiFeatures": "AI Features",
+    "endpoints": "Endpoints"
+  },
+  "profile": {
+    "title": "Profile",
+    "username": "Username",
+    "usernamePlaceholder": "your_username",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "How your name appears",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "confirmNewEmail": "Confirm new email",
+    "confirmNewEmailPlaceholder": "Re-type your new email",
+    "emailMismatch": "Email addresses do not match",
+    "failedSave": "Failed to save profile"
+  },
+  "password": {
+    "title": "Password",
+    "helpText": "Leave all fields blank to keep your current password.",
+    "current": "Current Password",
+    "currentPlaceholder": "Enter current password",
+    "new": "New Password",
+    "newPlaceholder": "Enter new password",
+    "confirm": "Confirm New Password",
+    "confirmPlaceholder": "Re-enter new password",
+    "required": "Current password is required to set a new password",
+    "mismatch": "New passwords do not match",
+    "minLength": "New password must be at least 8 characters",
+    "failedUpdate": "Failed to update password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "updateSuccessLabel": "Password updated",
+    "strengthLabels": {
+      "tooShort": "Too short",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    }
+  },
+  "preferences": {
+    "title": "Learning Preferences",
+    "nativeLanguages": "Native Languages",
+    "dailyGoal": "Daily Goal",
+    "dailyGoalUnit": "min / day",
+    "learningGoals": "Learning Goals",
+    "learningGoalsPlaceholder": "What do you want to achieve? e.g. Read a novel, hold a conversation...",
+    "exerciseTypes": "Preferred Exercise Types"
+  },
+  "aiFeatures": {
+    "title": "AI Features",
+    "description": "Every feature runs through an API you connect yourself — nothing is bundled with the app.",
+    "enabledNoEndpoint": "AI features are enabled but no API endpoint is configured. Add one in the Endpoints section below.",
+    "feedback": "AI Feedback",
+    "feedbackDesc": "Exercise feedback and corrections",
+    "learnable": "Learnable Sentences",
+    "learnableDesc": "Contextual sentences for grammar points",
+    "example": "Example Sentences",
+    "exampleDesc": "Usage examples for vocabulary words",
+    "word": "Example Words",
+    "wordDesc": "Word suggestions for calligraphy characters",
+    "tts": "Text-to-Speech",
+    "ttsDesc": "Audio for words, sentences, and characters",
+    "resetDefaults": "Reset to defaults",
+    "saveSuccessLabel": "Features saved"
+  },
+  "buttons": {
+    "save": "Save changes",
+    "saveSuccess": "Saved",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "generic": "An error occurred"
+  }
+}

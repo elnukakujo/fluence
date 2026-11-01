@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type DailyStats from "@/interface/dataCollection/DailyStats";
 
 function toDateKey(iso: string): string {
@@ -41,6 +42,7 @@ function formatDuration(ms: number): string {
 type DayTotals = { items_reviewed: number; items_correct: number; time_studied_ms: number };
 
 export default function PracticeHeatmap({ history }: { history: DailyStats[] }) {
+    const t = useTranslations("language");
     // Rendered via position: fixed (not a CSS ::after tooltip) because the
     // heatmap's ancestor scroll container sets overflow-x: auto, which per
     // the CSS overflow spec forces overflow-y to also compute as auto (an
@@ -83,8 +85,8 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
     return (
         <section className="flex flex-col gap-2 text-sm">
             <div className="flex items-center justify-between gap-4">
-                <h4 className="font-serif text-base text-ink">Practice History</h4>
-                <span className="text-xs text-muted">Your recent activity</span>
+                <h4 className="font-serif text-base text-ink">{t("practiceHistory")}</h4>
+                <span className="text-xs text-muted">{t("recentActivity")}</span>
             </div>
             <div className="heatmap-scroll">
                 <div className="heatmap-grid">

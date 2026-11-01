@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { useTranslations } from "next-intl";
+
+function NoMatchingOptions() {
+  const t = useTranslations("ui");
+  return <p className="px-3 py-2 text-sm text-muted">{t("noMatchingOptions")}</p>;
+}
 
 export default function ClassicSelectMenu({
   label,
@@ -19,6 +25,7 @@ export default function ClassicSelectMenu({
   required?: boolean;
   multiple?: boolean;
 }) {
+  const t = useTranslations("ui");
   const [isOpen, setIsOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,8 +127,8 @@ export default function ClassicSelectMenu({
           onFocus={() => setIsOpen(true)}
           placeholder={
             multiple
-              ? selectedArray.length === 0 ? "Search or select…" : ""
-              : singleValue ? "" : "Search or select…"
+              ? selectedArray.length === 0 ? t("searchOrSelect") : ""
+              : singleValue ? "" : t("searchOrSelect")
           }
           className="min-w-[80px] flex-1 bg-transparent text-sm text-foreground placeholder:text-muted outline-none"
         />
@@ -147,7 +154,7 @@ export default function ClassicSelectMenu({
           className="card z-50 mt-1 max-h-52 overflow-y-auto p-0 shadow-md"
         >
           {filteredOptions.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-muted">No matching options</p>
+            <NoMatchingOptions />
           ) : (
             filteredOptions.map((option) => {
               const isSelected = !multiple && singleValue === option;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { getAllUsers, deleteUser, setUserBlocked, setUserApproved } from "@/api/user";
 import SectionCard from "./sectionCard";
 import RoleBadge from "./roleBadge";
@@ -8,6 +9,7 @@ import ConfirmDialog from "./confirmDialog";
 import type User from "@/interface/systemData/User";
 
 export default function UsersSection({ currentUserId }: { currentUserId: string }) {
+    const t = useTranslations("settingsAdmin.users");
     const [users, setUsers] = useState<User[]>([]);
     const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -36,8 +38,8 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
     };
 
     return (
-        <SectionCard title="Users">
-            <p className="text-sm opacity-60">Manage family accounts.</p>
+        <SectionCard title={t("title")}>
+            <p className="text-sm opacity-60">{t("description")}</p>
             <div className="flex flex-col gap-2">
                 {users.map((u) => (
                     <div key={u.id} className="card flex items-center justify-between gap-3 p-3">
@@ -48,7 +50,7 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
                             </div>
                             <span className="text-xs text-muted">{u.email}</span>
                             <span className="text-xs text-muted">
-                                Last login: {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "never"}
+                                {t("lastLogin", { date: u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : t("neverLoggedIn") })}
                             </span>
                         </div>
                         {u.id !== currentUserId && (
@@ -59,7 +61,7 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
                                         className="btn btn-primary text-sm"
                                         onClick={() => handleApprove(u.id!)}
                                     >
-                                        Approve
+                                        {t("approve")}
                                     </button>
                                 )}
                                 <button
@@ -67,14 +69,14 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
                                     className="btn btn-secondary text-sm"
                                     onClick={() => handleToggleBlock(u.id!, !u.blocked)}
                                 >
-                                    {u.blocked ? "Unblock" : (u.approved ? "Block" : "Reject")}
+                                    {u.blocked ? t("unblock") : (u.approved ? t("block") : t("reject"))}
                                 </button>
                                 <button
                                     type="button"
                                     className="btn btn-danger text-sm"
                                     onClick={() => setDeleting(u.id!)}
                                 >
-                                    Delete
+                                    {t("delete")}
                                 </button>
                             </div>
                         )}
@@ -83,8 +85,8 @@ export default function UsersSection({ currentUserId }: { currentUserId: string 
             </div>
             {deleting && (
                 <ConfirmDialog
-                    message="Delete this user and all their content? This cannot be undone."
-                    confirmLabel="Delete"
+                    message={t("deleteConfirm")}
+                    confirmLabel={t("delete")}
                     danger
                     onConfirm={handleDelete}
                     onCancel={() => setDeleting(null)}

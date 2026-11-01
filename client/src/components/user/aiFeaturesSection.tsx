@@ -1,20 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import ToggleRow from "./toggleRow";
 import SaveButton from "./saveButton";
 import { updateUserPreferences } from "@/api/userPreferences";
 import { AlertTriangle } from "lucide-react";
 import UserPreferences from "@/interface/systemData/UserPreferences";
-
-const FEATURES = [
-  { key: "feedback", label: "AI Feedback", desc: "Exercise feedback and corrections" },
-  { key: "learnable", label: "Learnable Sentences", desc: "Contextual sentences for grammar points" },
-  { key: "example", label: "Example Sentences", desc: "Usage examples for vocabulary words" },
-  { key: "word", label: "Example Words", desc: "Word suggestions for calligraphy characters" },
-  { key: "tts", label: "Text-to-Speech", desc: "Audio for words, sentences, and characters" },
-] as const;
 
 const DEFAULTS: Record<string, boolean> = {
   feedback: true, learnable: true, example: true, word: true, tts: true,
@@ -29,6 +22,7 @@ export default function AiFeaturesSection({
   preferences: Partial<UserPreferences>;
   hasEndpoints: boolean;
 }) {
+  const t = useTranslations("settings.aiFeatures");
   const [toggles, setToggles] = useState({
     feedback: preferences.ai_feedback_enabled ?? true,
     learnable: preferences.ai_learnable_sentence_enabled ?? true,
@@ -37,6 +31,14 @@ export default function AiFeaturesSection({
     tts: preferences.ai_tts_enabled ?? true,
   });
   const [saving, setSaving] = useState(false);
+
+  const FEATURES = [
+    { key: "feedback", label: t("feedback"), desc: t("feedbackDesc") },
+    { key: "learnable", label: t("learnable"), desc: t("learnableDesc") },
+    { key: "example", label: t("example"), desc: t("exampleDesc") },
+    { key: "word", label: t("word"), desc: t("wordDesc") },
+    { key: "tts", label: t("tts"), desc: t("ttsDesc") },
+  ] as const;
 
   const anyEnabled = Object.values(toggles).some(Boolean);
 
@@ -67,9 +69,9 @@ export default function AiFeaturesSection({
   };
 
   return (
-    <SectionCard title="AI Features">
+    <SectionCard title={t("title")}>
       <p className="text-sm opacity-60">
-        Every feature runs through an API you connect yourself — nothing is bundled with the app.
+        {t("description")}
       </p>
 
       {anyEnabled && !hasEndpoints && (
@@ -79,7 +81,7 @@ export default function AiFeaturesSection({
           role="alert"
         >
           <AlertTriangle size={16} aria-hidden="true" />
-          <span>AI features are enabled but no API endpoint is configured. Add one in the <strong>Endpoints</strong> section below.</span>
+          <span>{t("enabledNoEndpoint")}</span>
         </div>
       )}
 
@@ -102,9 +104,9 @@ export default function AiFeaturesSection({
             onClick={resetToDefaults}
             disabled={saving}
           >
-            Reset to defaults
+            {t("resetDefaults")}
           </button>
-          <SaveButton isLoading={saving} />
+          <SaveButton isLoading={saving} onSuccessLabel={t("saveSuccessLabel")} />
         </div>
       </form>
     </SectionCard>

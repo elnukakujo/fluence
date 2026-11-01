@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { searchElements, type SearchCategory, type SearchResult } from "@/api/search";
 
@@ -11,6 +12,7 @@ const BADGE_COLORS: Record<SearchCategory, string> = {
 };
 
 export default function SearchBar({ currentUserId }: { currentUserId: string | null }) {
+  const t = useTranslations("search");
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -136,7 +138,7 @@ export default function SearchBar({ currentUserId }: { currentUserId: string | n
               setIsOpen(false);
             }
           }}
-          placeholder="Search..."
+          placeholder={t("placeholder")}
           className="input rounded-full pr-10"
         />
         {isLoading && (
@@ -168,7 +170,7 @@ export default function SearchBar({ currentUserId }: { currentUserId: string | n
               ))}
             </ul>
           ) : !isLoading ? (
-            <div className="px-3 py-3 text-sm text-muted">No results found</div>
+            <div className="px-3 py-3 text-sm text-muted">{t("noResults")}</div>
           ) : null}
         </div>
       )}

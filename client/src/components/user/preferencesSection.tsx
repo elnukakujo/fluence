@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
@@ -15,6 +16,7 @@ const EXERCISE_TYPES = [
 ];
 
 export default function PreferencesSection({ preferences }: { preferences: Partial<UserPreferences> }) {
+  const t = useTranslations("settings.preferences");
   const [nativeLanguages, setNativeLanguages] = useState<string[]>(
     preferences.native_language_iso639_2 ?? []
   );
@@ -41,11 +43,11 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
   };
 
   return (
-    <SectionCard title="Learning Preferences">
+    <SectionCard title={t("title")}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Target Language */}
         <ClassicSelectMenu
-          label="Native Languages"
+          label={t("nativeLanguages")}
           options={Object.values(LANGUAGE_to_ISO639_2T)}
           selectedOption={nativeLanguages}
           onChange={(v) => setNativeLanguages(v as string[])}
@@ -54,7 +56,7 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
 
         {/* Daily Goal */}
         <div className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">Daily Goal</span>
+          <span className="text-sm opacity-70">{t("dailyGoal")}</span>
           <div className="flex items-center gap-3">
             <input
               type="range"
@@ -65,7 +67,7 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
               value={dailyGoal}
               onChange={(e) => setDailyGoal(Number(e.target.value))}
               disabled={saving}
-              aria-label="Daily goal in minutes"
+              aria-label={t("dailyGoal")}
             />
             <input
               type="number"
@@ -76,23 +78,23 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
               value={dailyGoal}
               onChange={(e) => setDailyGoal(Number(e.target.value))}
               disabled={saving}
-              aria-label="Daily goal minutes value"
+              aria-label={t("dailyGoal")}
             />
-            <span className="text-sm opacity-60">min / day</span>
+            <span className="text-sm opacity-60">{t("dailyGoalUnit")}</span>
           </div>
         </div>
 
         {/* Learning Goals */}
         <AutoSizeTextArea
-          label="Learning Goals"
+          label={t("learningGoals")}
           value={learningGoals}
           onChange={(e) => setLearningGoals(e.target.value)}
-          placeholder="What do you want to achieve? e.g. Read a novel, hold a conversation..."
+          placeholder={t("learningGoalsPlaceholder")}
         />
 
         {/* Preferred Exercise Types */}
         <ClassicSelectMenu
-          label="Preferred Exercise Types"
+          label={t("exerciseTypes")}
           options={EXERCISE_TYPES}
           selectedOption={exerciseTypes}
           onChange={(v) => setExerciseTypes(v as string[])}

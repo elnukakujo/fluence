@@ -8,12 +8,14 @@ import ElementPerformanceCard from "@/components/elements/elementPerformanceCard
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
+import { getTranslations } from "next-intl/server";
 
 export default async function PassagePage({
   params,
 }: {
   params: Promise<{ language_id: string; passage_id: string }>;
 }) {
+  const t = await getTranslations("languages");
   const { passage_id, language_id } = await params;
   const passage = (await getPassageById(passage_id)) as Passage & {
     words?: Partial<Word>[];
@@ -23,7 +25,7 @@ export default async function PassagePage({
   return (
     <main>
       <article className="flex flex-col space-y-4">
-        <h1>Passage Sheet</h1>
+        <h1>{t("passageSheet")}</h1>
         <SentenceCard sentence={passage} />
 
         <RelatedCard
@@ -37,7 +39,7 @@ export default async function PassagePage({
         <ElementPerformanceCard element={passage} />
       </article>
       <nav className="flex flex-row space-x-4">
-        <DeleteButton element_id={passage.id!}>Delete Passage</DeleteButton>
+        <DeleteButton element_id={passage.id!}>{t("deletePassageButton")}</DeleteButton>
       </nav>
     </main>
   );

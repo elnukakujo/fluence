@@ -1,0 +1,22 @@
+{
+  "tags": "标签",
+  "noTagsYet": "暂无标签。",
+  "newTag": "+ 新建",
+  "createNewTag": "创建新标签",
+  "updateTag": "更新标签",
+  "tagDetail": "标签详情",
+  "editTagInformations": "编辑标签信息",
+  "name": "名称",
+  "tagNamePlaceholder": "标签名称",
+  "color": "颜色",
+  "description": "描述",
+  "addTag": "添加标签",
+  "vocab": "词汇",
+  "calli": "书法",
+  "grammar": "语法",
+  "exercise": "练习",
+  "lesson": "课程",
+  "lang": "语言",
+  "updateTagFailed": "无法更新标签。",
+  "createTagFailed": "无法创建标签。"
+}

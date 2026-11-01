@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { Check } from "lucide-react";
 
 export default function SaveButton({
-  children = "Save changes",
+  children,
   isLoading = false,
   onSuccessLabel,
 }: {
@@ -14,6 +15,8 @@ export default function SaveButton({
   isLoading?: boolean;
   onSuccessLabel?: string;
 }) {
+  const t = useTranslations("settings.buttons");
+  const defaultLabel = children ?? t("save");
   const [showSuccess, setShowSuccess] = useState(false);
   const wasLoading = useRef(false);
 
@@ -30,14 +33,14 @@ export default function SaveButton({
     return (
       <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: "var(--color-success)" }}>
         <Check size={16} aria-hidden="true" />
-        {onSuccessLabel ?? "Saved"}
+        {onSuccessLabel ?? t("saveSuccess")}
       </span>
     );
   }
 
   return (
     <button type="submit" className="btn btn-primary" disabled={isLoading}>
-      {isLoading ? <Ring size={16} color="#fff" /> : children}
+      {isLoading ? <Ring size={16} color="#fff" /> : defaultLabel}
     </button>
   );
 }

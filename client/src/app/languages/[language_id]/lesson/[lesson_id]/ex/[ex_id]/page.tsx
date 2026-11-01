@@ -18,8 +18,10 @@ import ElementPerformanceCard from "@/components/elements/elementPerformanceCard
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import { getExerciseById } from "@/api/exercise";
+import { getTranslations } from "next-intl/server";
 
 export default async function ExercisePage( { params } : { params: Promise<{ language_id: string; lesson_id: string; ex_id: string }>}) {
+    const t = await getTranslations("languages");
     const { language_id, lesson_id, ex_id } = await params;
 
     const exercise: Exercise = await getExerciseById(ex_id);
@@ -57,20 +59,20 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             {exercise.exercise_type === 'quizz' && <QuizzExercise exercise={exercise} />}
 
             <ElementTagsCard element={exercise} />
-            <ElementSourcesCard element={exercise} />    
+            <ElementSourcesCard element={exercise} />
             <ElementPerformanceCard element={exercise}/>
 
             <nav className="flex flex-row space-x-4">
                 <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}/update`}>
-                    <p>Update the Exercise</p>
+                    <p>{t("updateExerciseButton")}</p>
                 </NavButton>
                 <DeleteButton
                     element_id={exercise.id!}
                 >
-                    <p>Delete Exercise</p>
+                    <p>{t("deleteExerciseButton")}</p>
                 </DeleteButton>
                 <BackButton>
-                    <p>Back to Lesson</p>
+                    <p>{t("backToLesson")}</p>
                 </BackButton>
             </nav>
         </main>

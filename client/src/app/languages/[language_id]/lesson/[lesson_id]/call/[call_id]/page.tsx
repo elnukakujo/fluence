@@ -9,6 +9,7 @@ import SentenceCard from "@/components/elements/sentenceCard";
 import CharacterCard from "@/components/elements/characterCard";
 import RelatedCard from "@/components/elements/relatedCard";
 import { getCalligraphyById } from "@/api/calligraphy";
+import { getTranslations } from "next-intl/server";
 
 type paramsType = {
     language_id: string;
@@ -17,17 +18,18 @@ type paramsType = {
 };
 
 export default async function CalligraphyPage({ params }: { params: Promise<paramsType> }) {
+    const t = await getTranslations("languages");
     const { call_id, language_id, lesson_id } = await params;
     const calligraphy: Character = await getCalligraphyById(call_id);
 
     return (
         <main>
             <article className="flex flex-col space-y-4">
-                <h1>Calligraphy Sheet</h1>
+                <h1>{t("calligraphySheet")}</h1>
                 <CharacterCard character={calligraphy.character} />
                 {calligraphy.example_words && calligraphy.example_words.length > 0 && (
                     <section className="flex flex-col space-y-4 items-baseline">
-                        <h3>Example Words</h3>
+                        <h3>{t("exampleWords")}</h3>
                         {calligraphy.example_words.map((word, idx) => (
                             <WordCard key={idx} word={word} />
                         ))}
@@ -35,7 +37,7 @@ export default async function CalligraphyPage({ params }: { params: Promise<para
                 )}
                 {calligraphy.example_sentences && calligraphy.example_sentences.length > 0 && (
                     <section className="flex flex-col space-y-4 items-baseline">
-                        <h3>Example Sentences</h3>
+                        <h3>{t("exampleSentences")}</h3>
                         {calligraphy.example_sentences.map((sentence, idx) => (
                             <SentenceCard key={idx} sentence={sentence} />
                         ))}
@@ -55,9 +57,9 @@ export default async function CalligraphyPage({ params }: { params: Promise<para
             </article>
             <nav className="flex flex-row space-x-4">
                 <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/call/${call_id}/update`}>
-                    Update the informations
+                    {t("updateCalligraphy")}
                 </NavButton>
-                <DeleteButton element_id={calligraphy.id!} />
+                <DeleteButton element_id={calligraphy.id!}>{t("deleteCalligraphyButton")}</DeleteButton>
             </nav>
         </main>
     );

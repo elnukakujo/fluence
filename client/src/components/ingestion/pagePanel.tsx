@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { pageImageUrl } from "@/api/ingestion";
 import ImageViewer from "@/components/media/imageViewer";
 
@@ -14,6 +15,7 @@ export default function PagePanel({ jobId, page, range, onPage }: {
   range: [number, number];
   onPage: (page: number) => void;
 }) {
+  const t = useTranslations("ingestion");
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [first, last] = range;
@@ -22,38 +24,38 @@ export default function PagePanel({ jobId, page, range, onPage }: {
   return (
     <div className="order-first lg:order-last lg:sticky lg:top-20 lg:w-80 lg:self-start xl:w-96">
       <button type="button" className="btn btn-secondary mb-2 lg:hidden" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {open ? "Hide the page" : "Show the original page"}
+        {open ? t("hideThePage") : t("showThePage")}
       </button>
       <div className={`${open ? "fixed inset-x-0 bottom-0 z-40 max-h-[65vh] overflow-auto border-t shadow-lg" : "hidden"} flex-col gap-2 border-gray-300 bg-white p-3 lg:static lg:flex lg:max-h-none lg:rounded-lg lg:border lg:p-4 lg:shadow-none dark:border-gray-700 dark:bg-gray-950 ${open ? "flex" : ""}`}>
         <div className="flex items-center justify-between gap-2">
-          <button type="button" className="btn btn-secondary min-h-11" aria-label="Previous page" onClick={() => onPage(shown - 1)} disabled={shown <= first}>
+          <button type="button" className="btn btn-secondary min-h-11" aria-label={t("previousPage")} onClick={() => onPage(shown - 1)} disabled={shown <= first}>
             ← Prev
           </button>
-          <span className="text-center text-sm font-medium" aria-live="polite">Page {shown} ({first}-{last})</span>
-          <button type="button" className="btn btn-secondary min-h-11" aria-label="Next page" onClick={() => onPage(shown + 1)} disabled={shown >= last}>
+          <span className="text-center text-sm font-medium" aria-live="polite">{t("pageWithRange", { shown, first, last })}</span>
+          <button type="button" className="btn btn-secondary min-h-11" aria-label={t("nextPage")} onClick={() => onPage(shown + 1)} disabled={shown >= last}>
             Next →
           </button>
         </div>
         <div className="flex items-center justify-between gap-2 text-sm">
           <label className="flex items-center gap-2">
-            <span className="opacity-70">Go to</span>
-            <select className="input w-auto" aria-label="Go to page" value={shown} onChange={(e) => onPage(Number(e.target.value))}>
+            <span className="opacity-70">{t("goToPage")}</span>
+            <select className="input w-auto" aria-label={t("goToPage")} value={shown} onChange={(e) => onPage(Number(e.target.value))}>
               {Array.from({ length: last - first + 1 }, (_, i) => first + i).map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </label>
-          <div className="flex items-center gap-1" role="group" aria-label="Zoom">
-            <button type="button" className="btn btn-secondary" aria-label="Zoom out" disabled={zoom <= MIN_ZOOM} onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z - STEP))}>−</button>
-            <button type="button" className="btn btn-secondary" aria-label="Reset zoom" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
-            <button type="button" className="btn btn-secondary" aria-label="Zoom in" disabled={zoom >= MAX_ZOOM} onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + STEP))}>+</button>
+          <div className="flex items-center gap-1" role="group" aria-label={t("zoomLabel")}>
+            <button type="button" className="btn btn-secondary" aria-label={t("zoomOutAriaLabel")} disabled={zoom <= MIN_ZOOM} onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z - STEP))}>−</button>
+            <button type="button" className="btn btn-secondary" aria-label={t("resetZoomAriaLabel")} onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+            <button type="button" className="btn btn-secondary" aria-label={t("zoomInAriaLabel")} disabled={zoom >= MAX_ZOOM} onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + STEP))}>+</button>
           </div>
         </div>
         {/* scroll inside the frame when zoomed; click the page for the full-size viewer */}
         <div className="max-h-[60vh] overflow-auto rounded border border-gray-200 bg-gray-50 lg:max-h-[70vh] dark:border-gray-800 dark:bg-gray-900" tabIndex={0} aria-label="Page image, scrollable">
           <div style={{ width: `${zoom * 100}%` }}>
-            <ImageViewer src={pageImageUrl(jobId, shown)} alt={`Page ${shown} of the document`} className="block w-full" />
+            <ImageViewer src={pageImageUrl(jobId, shown)} alt={t("originalPageAlt", { page: shown })} className="block w-full" />
           </div>
         </div>
-        <button type="button" className="btn btn-secondary lg:hidden" onClick={() => setOpen(false)}>Close</button>
+        <button type="button" className="btn btn-secondary lg:hidden" onClick={() => setOpen(false)}>{t("imageViewerClose")}</button>
       </div>
     </div>
   );

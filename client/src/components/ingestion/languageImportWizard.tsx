@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Job, type LessonProgress, type Structure, acceptLesson, confirmStructure, deleteJob, getJob,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/ingestion/structure";
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
 import StepProgress from "./stepProgress";
-import { STATUS_TEXT, UploadStep } from "./importWizard";
+import { UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
 import { PageKindsWithViewer } from "./pageKinds";
 
@@ -33,6 +34,7 @@ export default function LanguageImportWizard(props: Props) {
 
 function JobView({ jobId, languageId, languageName, settingsHref, base }: Props & { jobId: string; base: string }) {
   const router = useRouter();
+  const t = useTranslations("ingestion");
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0); // bump to restart polling after the user confirms the lessons
@@ -63,13 +65,16 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
   if (!job) return <div className="card max-w-2xl" aria-busy="true">Loading…</div>;
 
   if (job.status === "queued" || job.status === "parsing") {
+    const STATUS_TEXT: Record<string, string> = {
+      queued: t("waitingForTurn"), parsing: t("readingDocument"),
+    };
     return (
       <div className="card step-header flex max-w-2xl flex-col">
-        <StepProgress step={1} second="Choose the lessons" />
+        <StepProgress step={1} second={t("chooseTheLessons")} />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
         <p className="text-sm opacity-70">
-          Reading a long scan takes a few minutes. You can leave this page: the import is listed under "Imports" in the top bar.
+          {t("importTakesTime")}
         </p>
       </div>
     );

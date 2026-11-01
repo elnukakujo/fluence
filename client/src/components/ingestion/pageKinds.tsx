@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { pageImageUrl } from "@/api/ingestion";
 import PagePanel from "./pagePanel";
 
@@ -16,12 +17,14 @@ type Props = {
 
 const KINDS: Kind[] = ["vocabulary", "grammar", "calligraphy", "exercise"];
 
-function getKindLabel(kind: Kind): string {
-  if (kind === "calligraphy") return "Calligraphy";
-  return kind.charAt(0).toUpperCase() + kind.slice(1);
+function getKindLabel(kind: Kind, t: ReturnType<typeof useTranslations>): string {
+  if (kind === "calligraphy") return t("calligraphyLabel");
+  const map = { vocabulary: "vocabularyLabel", grammar: "grammarLabel", exercise: "exerciseLabel" } as const;
+  return t(map[kind] || kind);
 }
 
 export default function PageKinds({ pages, value, onChange, jobId, onFocusPage }: Props) {
+  const t = useTranslations("ingestion");
   const toggleKind = (page: number, kind: Kind) => {
     const currentKinds = value[page] || [];
     const newKinds = currentKinds.includes(kind)
@@ -40,11 +43,11 @@ export default function PageKinds({ pages, value, onChange, jobId, onFocusPage }
             <li key={page} className="card flex flex-col gap-2" onFocus={() => onFocusPage?.(page)} onClick={() => onFocusPage?.(page)}>
               <div className="flex flex-wrap items-start gap-3">
                 <div className="flex-shrink-0">
-                  <p className="text-sm font-medium">Page {page}</p>
+                  <p className="text-sm font-medium">{t("pageDisplay", { page })}</p>
                   {jobId && (
                     <img
                       src={pageImageUrl(jobId, page)}
-                      alt={`Preview of page ${page}`}
+                      alt={t("pageImageAlt", { page })}
                       loading="lazy"
                       className="mt-2 h-24 w-auto object-contain"
                     />
@@ -63,12 +66,12 @@ export default function PageKinds({ pages, value, onChange, jobId, onFocusPage }
                           style={isActive ? { background: "var(--color-primary)", color: "var(--color-primary-foreground)" } : undefined}
                           onClick={() => toggleKind(page, kind)}
                         >
-                          {isActive ? "✓ " : ""}{getKindLabel(kind)}
+                          {isActive ? "✓ " : ""}{getKindLabel(kind, t)}
                         </button>
                       );
                     })}
                   </div>
-                  {isEmpty && <p className="mt-2 text-sm opacity-70 italic">Nothing here or contents page - skipped</p>}
+                  {isEmpty && <p className="mt-2 text-sm opacity-70 italic">{t("skipped")}</p>}
                 </div>
               </div>
             </li>

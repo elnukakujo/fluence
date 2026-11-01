@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Layers, Merge, Users } from "lucide-react";
 import { listInvites, accept, reject } from "@/api/collaboration";
 import Modal from "@/components/ui/dialogs/modal";
@@ -8,14 +9,8 @@ import Modal from "@/components/ui/dialogs/modal";
 type Invite = Awaited<ReturnType<typeof listInvites>>[number];
 type Mode = "full" | "partial";
 
-const MODES: { value: Mode; title: string; body: string; Icon: typeof Merge }[] = [
-  { value: "full", title: "Full sync", Icon: Merge,
-    body: "Merge your language into theirs. You both edit one shared course." },
-  { value: "partial", title: "Partial sync", Icon: Layers,
-    body: "Keep your language separate and pick which of their lessons to share." },
-];
-
 export default function Invites() {
+  const t = useTranslations("collaboration");
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [accepting, setAccepting] = useState<Invite | null>(null);
@@ -23,6 +18,13 @@ export default function Invites() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const MODES: { value: Mode; title: string; body: string; Icon: typeof Merge }[] = [
+    { value: "full", title: t("fullSync"), Icon: Merge,
+      body: t("mergeLang") },
+    { value: "partial", title: t("partialSync"), Icon: Layers,
+      body: t("keepLangSeparate") },
+  ];
 
   async function load() {
     setInvites(await listInvites());
@@ -75,8 +77,8 @@ export default function Invites() {
   const canConfirm = !!mode && (mode === "full" || selected.size > 0);
 
   return (
-    <section className="flex flex-col gap-2" aria-label="Collaboration invites">
-      <h2 className="font-serif">Collaboration invites</h2>
+    <section className="flex flex-col gap-2" aria-label={t("collaborationInvites")}>
+      <h2 className="font-serif">{t("collaborationInvites")}</h2>
       <ul className="flex flex-col gap-2">
         {invites.map((inv) => (
           <li key={inv.id} className="card flex items-center justify-between gap-3">
@@ -94,16 +96,16 @@ export default function Invites() {
             <span className="flex gap-2">
               {inv.target_type === "lesson" ? (
                 <button type="button" className="btn btn-primary" onClick={() => run(() => accept(inv.id))}>
-                  Accept
+                  {t("accept")}
                 </button>
               ) : (
                 <button type="button" className="btn btn-primary" onClick={() => openAccept(inv)}>
-                  Review
+                  {t("review")}
                 </button>
               )}
               <button type="button" className="btn btn-secondary"
                 onClick={() => run(() => reject(inv.id))}>
-                Decline
+                {t("decline")}
               </button>
             </span>
           </li>
@@ -117,23 +119,22 @@ export default function Invites() {
           onClose={close}
           footer={
             <>
-              <button type="button" className="btn btn-secondary" onClick={close} disabled={busy}>Cancel</button>
+              <button type="button" className="btn btn-secondary" onClick={close} disabled={busy}>{t("cancel")}</button>
               <button type="button" className="btn btn-primary" disabled={!canConfirm || busy}
                 onClick={() => run(() => mode === "partial"
                   ? accept(accepting.id, "partial", lessons.map((l) => l.id).filter((id) => selected.has(id)))
                   : accept(accepting.id, "full"))}>
-                {busy ? "Joining…" : mode === "partial" ? `Share ${selected.size} lesson${selected.size === 1 ? "" : "s"}` : "Join"}
+                {busy ? t("joining") : mode === "partial" ? t("shareLessons", { n: selected.size }) : t("join")}
               </button>
             </>
           }
         >
           {partialOnly && (
             <p className="text-sm text-muted">
-              {accepting.master_name ?? accepting.master_id} offered {lessons.length} lesson{lessons.length === 1 ? "" : "s"} only.
-              Choose which to keep, or take them all.
+              {t("offeredLessons", { name: accepting.master_name ?? accepting.master_id, count: lessons.length })}
             </p>
           )}
-          {!partialOnly && <div role="radiogroup" aria-label="Sync mode" className="flex flex-col gap-2">
+          {!partialOnly && <div role="radiogroup" aria-label={t("syncMode")} className="flex flex-col gap-2">
             {MODES.map(({ value, title, body, Icon }) => {
               const active = mode === value;
               return (
@@ -153,20 +154,20 @@ export default function Invites() {
 
           {mode === "full" && (
             <p className="text-xs text-muted">
-              If you already study this language pair, the owner must approve the merge before it happens.
+              {t("approveRequired")}
             </p>
           )}
 
           {mode === "partial" && (
             <fieldset className="flex flex-col gap-2">
               <legend className="flex w-full items-center justify-between text-sm font-medium">
-                <span>Lessons to share · {selected.size}/{lessons.length}</span>
+                <span>{t("lessonsToShare", { selected: selected.size, total: lessons.length })}</span>
                 <button type="button" className="text-xs text-accent underline"
                   onClick={() => setSelected(new Set(selected.size === lessons.length ? [] : lessons.map((l) => l.id)))}>
-                  {selected.size === lessons.length ? "Select none" : "Select all"}
+                  {selected.size === lessons.length ? t("selectNone") : t("selectAll")}
                 </button>
               </legend>
-              {lessons.length === 0 && <p className="text-sm text-muted">The owner has no lessons yet.</p>}
+              {lessons.length === 0 && <p className="text-sm text-muted">{t("ownerHasNoLessons")}</p>}
               <ul className="flex flex-col max-h-56 overflow-y-auto">
                 {lessons.map((l) => (
                   <li key={l.id}>

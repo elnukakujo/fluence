@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Ring } from 'ldrs/react';
+import { useTranslations } from "next-intl";
 //@ts-ignore
 import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
@@ -85,7 +86,7 @@ function SpeechLine({
             <p className='text-sm italic'>{line.text}</p>
             <div>
                 {isUser && (
-                    <p className="text-xs text-muted">Reference:</p>
+                    <p className="text-xs text-muted">{/* t("reference") */}Reference:</p>
                 )}
                 <audio ref={registerAudioRef} src={audioSrc} controls className="h-8 w-48"/>
             </div>
@@ -96,6 +97,7 @@ function SpeechLine({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ConversationExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const audioFiles = exercise.audio_files!;
     const textSupport = exercise.text_support || "";
     const imageFiles = exercise.image_files!;
@@ -387,25 +389,25 @@ export default function ConversationExercise({ exercise }: { exercise: Exercise 
                                         onClick={() => handleEvaluation()}
                                         disabled={!lineStates[idx].audioUrl|| lineStates[idx].attempts >= 3}
                                     >
-                                        {isLoading ? <Ring size={20} color="#fff" /> : "Submit"}
+                                        {isLoading ? <Ring size={20} color="#fff" /> : t("submit")}
                                     </button>
                                 </span>
                             )}
                             {speaker.isUser && (lineStates[idx]?.isCorrect || (lineStates[idx]?.attempts ?? 0) > 0) && lineStates[idx]?.level && lineStates[idx]?.similarityScore !== null && (
                                 <section className={`card max-w-sm text-sm ${lineStates[idx].isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
                                     <p className="font-semibold">
-                                        {lineStates[idx].isCorrect ? "Good pronunciation" : "Needs improvement"}
+                                        {lineStates[idx].isCorrect ? t("goodPronunciation") : t("needsImprovement")}
                                     </p>
                                     <p>
-                                        Similarity: {(lineStates[idx].similarityScore * 100).toFixed(1)}%
+                                        {t("similarity", { score: (lineStates[idx].similarityScore * 100).toFixed(1) })}
                                     </p>
                                     <p>
-                                        Level: {lineStates[idx].level.label}
+                                        {t("level")}{lineStates[idx].level.label}
                                     </p>
                                     <p className="opacity-90">{lineStates[idx].level.description}</p>
                                     <p>
                                         {lineStates[idx].feedbackMessage && (
-                                            <span className="font-medium">Feedback: </span>
+                                            <span className="font-medium">{t("feedback")} </span>
                                         )}
                                         {lineStates[idx].feedbackMessage}
                                     </p>
@@ -417,11 +419,11 @@ export default function ConversationExercise({ exercise }: { exercise: Exercise 
             </section>
             {isFinished && (
                 <section className={`card mt-4 ${userLineIndices.every((i) => lineStates[i]?.isCorrect) ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    <h3 className="text-lg font-semibold">Exercise Completed</h3>
+                    <h3 className="text-lg font-semibold">{t("exerciseCompleted")}</h3>
                     <p className="mt-2">
                         {userLineIndices.every((i) => lineStates[i]?.isCorrect)
-                            ? "✓ Correct! Well done!"
-                            : `✗ You failed to pronounce some lines correctly (${userLineIndices.filter((i) => lineStates[i]?.isCorrect).length}/${userLineIndices.length} correct)`}
+                            ? t("wellDone")
+                            : t("failedPronounce", { correct: userLineIndices.filter((i) => lineStates[i]?.isCorrect).length, total: userLineIndices.length })}
                     </p>
                 </section>
             )}

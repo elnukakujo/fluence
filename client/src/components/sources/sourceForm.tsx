@@ -8,10 +8,12 @@ import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { useTranslations } from "next-intl";
 
 export default function SourceForm({ source, navDisabled = false, onSuccess }: { source?: Source | Partial<Source>, navDisabled?: boolean, onSuccess?: () => void }) {
     const isUpdate = Boolean(source?.id);
     const router = useRouter();
+    const t = useTranslations("sources");
 
     const sourceData: Partial<Source> = source ?? {
         id: "", user_id: "", title: "", date: "", description: "", source_type: ""
@@ -53,7 +55,7 @@ export default function SourceForm({ source, navDisabled = false, onSuccess }: {
         }
         } catch (error) {
         console.error("Error creating/updating source:", error);
-        alert(`Failed to ${isUpdate ? "update" : "create"} source.`);
+        alert(`Failed to ${isUpdate ? t("updateSource") : t("addSource")}.`);
         } finally {
         setIsSubmitting(false);
         if (onSuccess) onSuccess();
@@ -63,15 +65,15 @@ export default function SourceForm({ source, navDisabled = false, onSuccess }: {
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-center">
         <AutoWidthInput
-            label="Name"
+            label={t("name")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Source name"
+            placeholder={t("sourceNamePlaceholder")}
             required
         />
 
         <ClassicSelectMenu
-            label="Source Type"
+            label={t("sourceType")}
             options={[ "original", "textbook", "class", "online", "media", "social", "other" ]}
             selectedOption={sourceType}
             onChange={(e) => setSourceType(e as string)}
@@ -79,12 +81,12 @@ export default function SourceForm({ source, navDisabled = false, onSuccess }: {
         />
 
         <AutoSizeTextArea
-            label="Description"
+            label={t("description")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
         />
 
-        {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Source</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Source</SubmitButton>}
+        {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateSource")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addSource")}</SubmitButton>}
         </form>
     );
 }

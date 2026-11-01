@@ -8,6 +8,7 @@ import { createTag, updateTag } from "@/api/tag";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { useTranslations } from "next-intl";
 
 const PRESET_COLORS = [
   "#EF4444", "#F97316", "#EAB308", "#22C55E",
@@ -17,6 +18,7 @@ const PRESET_COLORS = [
 export default function TagForm({ tag, navDisabled = false, onSuccess }: { tag?: Tag | Partial<Tag>, navDisabled?: boolean, onSuccess?: () => void }) {
   const isUpdate = Boolean(tag?.id);
   const router = useRouter();
+  const t = useTranslations("tags");
 
   const tagData: Partial<Tag> = tag ?? {
     id: "", user_id: "", name: "", color: "", description: ""
@@ -71,7 +73,7 @@ export default function TagForm({ tag, navDisabled = false, onSuccess }: { tag?:
       }
     } catch (error) {
       console.error("Error creating/updating tag:", error);
-      alert(`Failed to ${isUpdate ? "update" : "create"} tag.`);
+      alert(`Failed to ${isUpdate ? t("updateTag") : t("addTag")}.`);
     } finally {
       setIsSubmitting(false);
       if (onSuccess) onSuccess();
@@ -81,16 +83,16 @@ export default function TagForm({ tag, navDisabled = false, onSuccess }: { tag?:
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-center">
       <AutoWidthInput
-        label="Name"
+        label={t("name")}
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Tag name"
+        placeholder={t("tagNamePlaceholder")}
         required
       />
 
       {/* Color picker */}
       <div className="flex flex-col gap-2 items-center">
-        <label className="text-sm font-medium">Color</label>
+        <label className="text-sm font-medium">{t("color")}</label>
 
         {/* Swatch trigger */}
         <div
@@ -131,12 +133,12 @@ export default function TagForm({ tag, navDisabled = false, onSuccess }: { tag?:
       </div>
 
       <AutoSizeTextArea
-        label="Description"
+        label={t("description")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
 
-      {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Tag</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Tag</SubmitButton>}
+      {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateTag")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addTag")}</SubmitButton>}
     </form>
   );
 }

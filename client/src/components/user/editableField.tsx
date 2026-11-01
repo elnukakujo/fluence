@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 
 export default function EditableField({
@@ -16,6 +17,7 @@ export default function EditableField({
     type?: string;
     placeholder?: string;
 }) {
+    const t = useTranslations("settings.buttons");
     const [editing, setEditing] = useState(false);
     const [current, setCurrent] = useState(value);
     const [saving, setSaving] = useState(false);
@@ -51,7 +53,7 @@ export default function EditableField({
                         disabled={saving}
                     />
                     <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                        {saving ? "..." : "Save"}
+                        {saving ? "..." : t("save")}
                     </button>
                     <button
                         type="button"
@@ -59,7 +61,7 @@ export default function EditableField({
                         onClick={handleCancel}
                         disabled={saving}
                     >
-                        Cancel
+                        {t("cancel")}
                     </button>
                 </div>
             ) : (

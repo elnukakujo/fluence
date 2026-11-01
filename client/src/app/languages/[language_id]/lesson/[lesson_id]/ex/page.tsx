@@ -4,8 +4,10 @@ import DeleteButton from "@/components/ui/buttons/deleteButton";
 import Exercise from "@/interface/features/Exercise";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { getTranslations } from "next-intl/server";
 
 export default async function ExercisesPage({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }){
+    const t = await getTranslations("languages");
     const { language_id, lesson_id } = await params;
 
     const exercises: Exercise[] = await getExercisesByLesson(lesson_id)
@@ -20,7 +22,7 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
 
     return(
         <main className="flex flex-col space-y-5">
-            <h1>Exercises</h1>
+            <h1>{t("exercises")}</h1>
             <article className="flex flex-col space-y-4">
                 {Object.entries(exercisesByType).map(([type, exercises]) => (
                     <section key={type}>
@@ -38,7 +40,7 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                                                     <p
                                                         key={idx}
                                                     >
-                                                        {part === '__' ? <span className="underline">[Blank]</span> : part}
+                                                        {part === '__' ? <span className="underline">{t("blankField")}</span> : part}
                                                     </p>
                                                 ))
                                             }
@@ -52,23 +54,23 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                                         const userLines = lines.filter((line) => line.speakerId === userId);
                                         return (
                                             <span className="flex flex-col">
-                                                <p>Total Exchanges: {lines.length}</p>
-                                                <p>User Lines: {userLines.length}</p>
-                                                <p>Unique Speakers: {speakers.length}</p>
+                                                <p>{t("totalExchanges", { count: lines.length })}</p>
+                                                <p>{t("userLines", { count: userLines.length })}</p>
+                                                <p>{t("uniqueSpeakers", { count: speakers.length })}</p>
                                             </span>
                                         );
                                     })()}
-                                    <p>Score: {exercise.score?.toFixed(2)}/100</p>
-                                    <p>Difficulty: {exercise.difficulty?.toFixed(1)}</p>
+                                    <p>{t("score", { score: exercise.score?.toFixed(2) })}</p>
+                                    <p>{t("difficulty", { difficulty: exercise.difficulty?.toFixed(1) })}</p>
                                     <nav className="flex flex-row space-x-2">
                                         <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}`}>
-                                            <p>Practice this Exercise</p>
+                                            <p>{t("practiceThisExercise")}</p>
                                         </NavButton>
                                         <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}/update`}>
-                                            <p>Update the Exercise</p>
+                                            <p>{t("updateExerciseButton")}</p>
                                         </NavButton>
                                         <DeleteButton element_id={exercise.id!}>
-                                            <p>Delete Exercise</p>
+                                            <p>{t("deleteExerciseButton")}</p>
                                         </DeleteButton>
                                     </nav>
                                 </li>
@@ -78,7 +80,7 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                 ))}
             </article>
             <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/new`}>
-                <p>Add New Exercise</p>
+                <p>{t("addNewExercise")}</p>
             </NavButton>
         </main>
     )

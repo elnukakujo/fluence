@@ -1,0 +1,9 @@
+{
+  "lessonTitle": "Title",
+  "enterLessonTitle": "Enter lesson title",
+  "description": "Description",
+  "enterLessonDescription": "Enter lesson description",
+  "level": "Level",
+  "addLesson": "Add Lesson",
+  "updateLesson": "Update Lesson"
+}

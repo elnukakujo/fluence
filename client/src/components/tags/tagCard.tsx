@@ -1,16 +1,28 @@
 import Tag from '@/interface/systemData/Tag';
+import { getTranslations } from "next-intl/server";
 
-const ROWS = [
-    { key: "voc",    label: "Vocab" },
-    { key: "call",   label: "Calli" },
-    { key: "gram",   label: "Grammar" },
-    { key: "ex",     label: "Exercise" },
-    { key: "lesson", label: "Lesson" },
-    { key: "lang",   label: "Lang" },
+type RowConfig = {
+    key: "voc" | "call" | "gram" | "ex" | "lesson" | "lang";
+    labelKey: string;
+}
+
+const ROWS_CONFIG: RowConfig[] = [
+    { key: "voc",    labelKey: "vocab" },
+    { key: "call",   labelKey: "calli" },
+    { key: "gram",   labelKey: "grammar" },
+    { key: "ex",     labelKey: "exercise" },
+    { key: "lesson", labelKey: "lesson" },
+    { key: "lang",   labelKey: "lang" },
 ] as const;
 
-export default function TagCard({ tag }: { tag: Tag }) {
+export default async function TagCard({ tag }: { tag: Tag }) {
     const elements = tag.elements;
+    const t = await getTranslations("tags");
+
+    const ROWS = ROWS_CONFIG.map(({ key, labelKey }) => ({
+        key,
+        label: t(labelKey),
+    }));
 
     return (
         <div className="pl-4 py-3 border-l-2" style={{ borderColor: tag.color }}>

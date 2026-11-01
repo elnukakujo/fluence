@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import ConflictError from "@/api/conflictError";
+import { useTranslations } from "next-intl";
 
 // error.diff never includes score/difficulty/dates (always keep the existing
 // value) or tags/sources/media (combined automatically) — see
@@ -24,6 +25,7 @@ export default function ConflictDialog({
     onCancel: () => void;
 }) {
     const editableFields = error.diff;
+    const t = useTranslations("ui");
 
     const [values, setValues] = useState<Record<string, string>>(() => {
         const initial: Record<string, string> = {};
@@ -37,11 +39,10 @@ export default function ConflictDialog({
         <div className="fixed inset-0 z-50 flex flex-col gap-4 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="card max-w-lg w-full flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold">
-                    This {error.entityType} already exists
+                    {t("thisEntityExists", { entityType: error.entityType })}
                 </h3>
                 <p className="text-sm text-muted">
-                    A {error.entityType} with this value already exists for this language.
-                    Review each conflicting field below and decide what to keep.
+                    {t("entityExistsDescription", { entityType: error.entityType })}
                 </p>
 
                 {editableFields.length > 0 && (
@@ -55,14 +56,14 @@ export default function ConflictDialog({
                                         className="btn btn-secondary"
                                         onClick={() => setValues(v => ({ ...v, [field]: String(error.existing[field] ?? "") }))}
                                     >
-                                        Use existing: &quot;{String(error.existing[field] ?? "—")}&quot;
+                                        {t("useExisting", { value: String(error.existing[field] ?? "—") })}
                                     </button>
                                     <button
                                         type="button"
                                         className="btn btn-secondary"
                                         onClick={() => setValues(v => ({ ...v, [field]: String(error.incoming[field] ?? "") }))}
                                     >
-                                        Use incoming: &quot;{String(error.incoming[field] ?? "—")}&quot;
+                                        {t("useIncoming", { value: String(error.incoming[field] ?? "—") })}
                                     </button>
                                 </div>
                                 <input
@@ -70,7 +71,7 @@ export default function ConflictDialog({
                                     className="input"
                                     value={values[field] ?? ""}
                                     onChange={(e) => setValues(v => ({ ...v, [field]: e.target.value }))}
-                                    placeholder={`Type a value for ${field}`}
+                                    placeholder={t("typeValueFor", { field })}
                                 />
                             </div>
                         ))}
@@ -78,38 +79,39 @@ export default function ConflictDialog({
                 )}
 
                 <p className="text-xs text-muted">
-                    Media, tags, and sources from both versions are combined automatically.
-                    Score, difficulty, and dates keep the existing entry&apos;s values.
+                    {t("mediaTagsSourcesCombined")}
+                    {" "}
+                    {t("scoreDifficultydatesKeep")}
                 </p>
 
                 <div className="flex flex-row gap-2 justify-end flex-wrap pt-2">
                     <button type="button" onClick={onCancel} className="btn btn-secondary">
-                        Cancel
+                        {t("cancel")}
                     </button>
                     <button
                         type="button"
                         onClick={onKeep}
                         className="btn btn-secondary"
-                        title="Discard what you entered, keep the existing entry as-is"
+                        title={t("keepExistingTitle")}
                     >
-                        Keep Existing
+                        {t("keepExisting")}
                     </button>
                     <button
                         type="button"
                         onClick={onOverwrite}
                         className="btn btn-danger"
-                        title="Replace the existing entry with what you entered"
+                        title={t("overwriteTitle")}
                     >
-                        Overwrite
+                        {t("overwrite")}
                     </button>
                     {editableFields.length > 0 && (
                         <button
                             type="button"
                             onClick={() => onManualResolve(values)}
                             className="btn btn-primary"
-                            title="Apply the values chosen/typed above"
+                            title={t("applyChosenValuesTitle")}
                         >
-                            Apply Chosen Values
+                            {t("applyChosenValues")}
                         </button>
                     )}
                 </div>

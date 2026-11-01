@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { languageProficiencySystems } from "@/utils/language_iso639";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import {getUserById} from "@/api/user";
@@ -21,6 +22,7 @@ const ISO639_2T_to_LANGUAGE: Record<string, string> = Object.fromEntries(
 );
 
 export default function LanguageForm({language}: { language?: Partial<Language> }) {
+    const t = useTranslations("language");
     const router = useRouter();
     const isUpdate = Boolean(language?.id);
     let languageData: Partial<Language>;
@@ -120,7 +122,7 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
     return (
         <form className="flex flex-col space-y-4 items-center" onSubmit={handleSubmit}>
             <ClassicSelectMenu
-                label="Language Name"
+                label={t("languageName")}
                 options={Object.keys(LANGUAGE_to_ISO639_2T)}
                 selectedOption={name}
                 onChange={(value) => {
@@ -134,32 +136,32 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
             {(name === "Custom" || (!Object.keys(LANGUAGE_to_ISO639_2T).includes(name) && name !== "")) && (
                 <AutoWidthInput
                     value={name}
-                    label="Custom Language Name"
+                    label={t("customLanguageName")}
                     onChange={(e) => {
                         setName(e.target.value);
                         setTargetIso639_2t(LANGUAGE_to_ISO639_2T[e.target.value] || "");
                     }}
-                    placeholder="Enter language name"
+                    placeholder={t("enterLanguageName")}
                     required
                 />
             )}
 
             <AutoWidthInput
                 value={alias || ""}
-                label="Alias"
+                label={t("alias")}
                 onChange={(e) => setAlias(e.target.value)}
-                placeholder="Enter alias"
+                placeholder={t("enterAlias")}
             />
 
             <AutoSizeTextArea
                 value={description || ""}
                 onChange={(e) => setDescription(e.target.value)}
-                label="Description"
-                placeholder="Enter description"
+                label={t("description")}
+                placeholder={t("enterDescription")}
             />
 
             <ClassicSelectMenu
-                label="Level"
+                label={t("level")}
                 options={levelOptions}
                 selectedOption={levelOptions[level]}
                 onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
@@ -169,14 +171,14 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
             {(name === "Custom" || (!Object.keys(LANGUAGE_to_ISO639_2T).includes(name) && name !== "")) && (
                 <AutoWidthInput
                     value={flag || ""}
-                    label="Flag"
+                    label={t("flag")}
                     onChange={(e) => setFlag(e.target.value)}
-                    placeholder="Enter flag emoji"
+                    placeholder={t("enterFlagEmoji")}
                 />
             )}
 
             <ClassicSelectMenu
-                label="Language Used to Study"
+                label={t("languageUsedToStudy")}
                 options={knownLanguageISO639_2T.map(iso => ISO639_2T_to_LANGUAGE[iso] || iso)}
                 selectedOption={ISO639_2T_to_LANGUAGE[sourceIso639_2t || ""] || ""}
                 onChange={(value) => setSourceIso639_2t(LANGUAGE_to_ISO639_2T[value as string] || "")}
@@ -195,7 +197,7 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
                 elementId={languageData.id!}
             />
 
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Language</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Language</SubmitButton>}
+            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateLanguage")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addLanguage")}</SubmitButton>}
         </form>
     );
 }

@@ -6,11 +6,13 @@ import { useEffect, useState } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 import shuffle from 'lodash/shuffle';
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
 export default function SelectInTheBlankExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const content = exercise.content as { segments: string[]; blanks: { options?: string[]; answer: string }[] } | null;
     const text_support = exercise.text_support || "";
     const segments = content?.segments ?? [];
@@ -114,14 +116,14 @@ export default function SelectInTheBlankExercise({ exercise }: { exercise: Exerc
         <form className="card flex flex-col space-y-4" onSubmit={handleSubmit}>
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support:</h3>
+                    <h3>{t("textSupportColon")}</h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
             <ElementMediaCard element={exercise}/>
 
             {wordBank && <section className="index-divider">
-                <h3>Word Bank:</h3>
+                <h3>{t("wordBank")}</h3>
                 <div className="flex flex-wrap gap-2">
                     {wordBank.map((word, i) => (
                         <button
@@ -145,7 +147,7 @@ export default function SelectInTheBlankExercise({ exercise }: { exercise: Exerc
                     type="submit"
                     className="btn btn-primary"
                 >
-                    <p>Check Answers</p>
+                    <p>{t("checkAnswers")}</p>
                 </button>
             )}
 
@@ -153,8 +155,8 @@ export default function SelectInTheBlankExercise({ exercise }: { exercise: Exerc
                 <div className={`card mt-4 ${isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
                     {isCorrect ? (
                         <>
-                            <p>✓ Correct! Well done!</p>
-                            <p>The correct answers are (in order):</p>
+                            <p>{t("wellDone")}</p>
+                            <p>{t("correctAnswers")}</p>
                             <div className="flex flex-row gap-2">
                                 {correctAnswers.map((ans, i) => (
                                     <span key={i} className="badge">{ans}</span>
@@ -162,11 +164,11 @@ export default function SelectInTheBlankExercise({ exercise }: { exercise: Exerc
                             </div>
                         </>
                     ) : (
-                        <p>{`✗ Some answers are incorrect (Attempt ${attempts}/3)`}</p>
+                        <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>
                     )}
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">Correct answers:</p>
+                            <p className="font-medium">{t("correctAnswers")}</p>
                             <div className="flex gap-2 mt-1">
                                 {correctAnswers.map((ans, i) => (
                                     <span key={i} className="badge">{ans}</span>

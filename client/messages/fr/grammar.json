@@ -1,0 +1,22 @@
+{
+  "heading": "Grammaire",
+  "emptyState": "Vide",
+  "total": "Total",
+  "sheet": "Feuille de grammaire",
+  "flashcardTitle": "Cliquez pour révéler",
+  "exampleWords": "Mots d'exemple",
+  "exampleSentences": "Phrases d'exemple",
+  "addNewButton": "Ajouter une nouvelle grammaire",
+  "practiceButton": "Entraînement par cartes",
+  "nextButton": "Grammaire suivante",
+  "formHeading": "Informations sur la grammaire",
+  "titleLabel": "Titre",
+  "explanationLabel": "Explication",
+  "learnableSentencesHeading": "Phrases d'apprentissage",
+  "exampleSentenceLabel": "Phrase d'exemple",
+  "exampleSentenceTranslationLabel": "Traduction de la phrase d'exemple",
+  "updateButton": "Mettre à jour la grammaire",
+  "addButton": "Ajouter une grammaire",
+  "updateFailure": "Échec de la mise à jour de la grammaire. Consultez la console pour plus de détails.",
+  "createFailure": "Échec de la création de la grammaire. Consultez la console pour plus de détails."
+}

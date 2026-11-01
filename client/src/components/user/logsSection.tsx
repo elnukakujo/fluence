@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import { fetchLogs } from "@/api/logs";
 
@@ -17,6 +18,7 @@ function levelOf(line: string): string | undefined {
 }
 
 export default function LogsSection() {
+  const t = useTranslations("settingsAdmin.logs");
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -28,11 +30,11 @@ export default function LogsSection() {
     try {
       setLogs(await fetchLogs());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch logs");
+      setError(err instanceof Error ? err.message : t("failedFetchLogs"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     refresh();
@@ -44,24 +46,24 @@ export default function LogsSection() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Failed to copy logs");
+      setError(t("failedCopyLogs"));
     }
   };
 
   return (
-    <SectionCard title="Logs">
+    <SectionCard title={t("title")}>
       <p className="text-sm opacity-60">
-        Server activity from the current session. Copy these to share when reporting a problem.
+        {t("description")}
       </p>
 
       <div className="flex items-center gap-2">
-        <span className="badge">{logs.length} lines</span>
+        <span className="badge">{t("lines", { count: logs.length })}</span>
         <div className="flex-1" />
         <button type="button" className="btn btn-secondary" onClick={refresh} disabled={loading}>
-          {loading ? "Loading…" : "Refresh"}
+          {loading ? t("loading") : t("refresh")}
         </button>
         <button type="button" className="btn btn-primary" onClick={handleCopy} disabled={logs.length === 0}>
-          {copied ? "Copied!" : "Copy logs"}
+          {copied ? t("copied") : t("copyLogs")}
         </button>
       </div>
 
@@ -77,7 +79,7 @@ export default function LogsSection() {
         className="rounded-lg border border-border bg-background p-3 font-mono text-xs leading-relaxed max-h-96 overflow-y-auto whitespace-pre-wrap break-words"
       >
         {logs.length === 0 ? (
-          <span className="text-muted">No log entries yet.</span>
+          <span className="text-muted">{t("noLogEntries")}</span>
         ) : (
           logs.map((line, i) => (
             <div key={i} className={LEVEL_CLASS[levelOf(line) ?? ""] ?? "text-foreground"}>

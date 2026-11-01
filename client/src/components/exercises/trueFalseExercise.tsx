@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 
 import Exercise from "@/interface/features/Exercise";
 import { updateScoreById } from "@/api/process";
@@ -11,6 +12,7 @@ import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
 export default function TrueFalseExercise({ exercise }: {exercise: Exercise}){
+    const t = useTranslations("exercises");
     const content = exercise.content as { statement: string; answer: boolean } | null;
     const text_support = exercise.text_support || "";
 
@@ -51,7 +53,7 @@ export default function TrueFalseExercise({ exercise }: {exercise: Exercise}){
             </section>
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support: </h3>
+                    <h3>{t("textSupport")} </h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -64,14 +66,14 @@ export default function TrueFalseExercise({ exercise }: {exercise: Exercise}){
                             onClick={() => setUserAnswer(true)}
                             className={`chip ${userAnswer === true ? 'bg-accent text-primary-foreground' : ''}`}
                         >
-                            True
+                            {t("true")}
                         </button>
                         <button
                             type="button"
                             onClick={() => setUserAnswer(false)}
                             className={`chip ${userAnswer === false ? 'bg-accent text-primary-foreground' : ''}`}
                         >
-                            False
+                            {t("false")}
                         </button>
                     </div>
                     <button
@@ -80,7 +82,7 @@ export default function TrueFalseExercise({ exercise }: {exercise: Exercise}){
                         className="btn btn-primary w-fit"
                         disabled={isCorrect}
                     >
-                        Check Answer
+                        {t("checkAnswer")}
                     </button>
                 </section>
             )}
@@ -88,7 +90,7 @@ export default function TrueFalseExercise({ exercise }: {exercise: Exercise}){
             {hasFeedback && (
                 <div className={`card mt-4 ${isCorrect ?
                     'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? '✓ Correct! Well done!' : `✗ Wrong answer. The correct answer was: ${content.answer ? "True" : "False"}.`}
+                    {isCorrect ? t("wellDone") : t("wrongAnswer", { correctAnswer: content.answer ? t("true") : t("false") })}
                 </div>
             )}
         </form>

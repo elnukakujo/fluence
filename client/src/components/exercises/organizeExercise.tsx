@@ -5,6 +5,7 @@ import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import shuffle from 'lodash/shuffle';
+import { useTranslations } from "next-intl";
 
 import { Ring } from 'ldrs/react';
 //@ts-ignore
@@ -17,6 +18,7 @@ import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
 export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const content = exercise.content as { items: string[]; answer_order: number[] } | null;
     const items = content?.items ?? [];
     const correctOrder = (content?.answer_order ?? []).map(i => items[i]);
@@ -80,13 +82,13 @@ export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
                 <>
                     {text_support.trim() !== "" && (
                         <section>
-                            <h3>Text Support: </h3>
+                            <h3>{t("textSupport")} </h3>
                             <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                         </section>
                     )}
                     <ElementMediaCard element={exercise}/>
                     <section className="index-divider">
-                        <h3>Words to Organize:</h3>
+                        <h3>{t("wordsToOrganize")}</h3>
                         <div className="flex flex-wrap gap-2">
                             {wordsToOrganize.map((word, index) => {
                                 const isSelected = userAnswer.some(item => item.sourceIndex === index);
@@ -111,7 +113,7 @@ export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
                         </div>
                     </section>
                     <section>
-                        <h3>Your answer: </h3>
+                        <h3>{t("yourAnswer")} </h3>
                         <div className="flex flex-wrap gap-2">
                             {userAnswer.map((item, index) => (
                                 <button
@@ -141,7 +143,7 @@ export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
                                 />
                             )
                             : (
-                                <p>Check Answers</p>
+                                <p>{t("checkAnswers")}</p>
                             )}
                         </button>
                     ) : null}
@@ -153,22 +155,22 @@ export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
                     {isCorrect ? (
                         <>
                             <p>
-                                ✓ Correct!
+                                {t("correct")}
                             </p>
                         </>
-                    ) : <p>✗ Some answers are incorrect (Attempt {attempts}/3)</p>}
+                    ) : <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>}
                     <p>
                         {feedbackMessage && (
-                            <span className="font-medium">Feedback: </span>
+                            <span className="font-medium">{t("feedback")} </span>
                         )}
                         {feedbackMessage}
                     </p>
                     <p>
-                        {`Level:${currentLevel!.label} (${currentLevel!.stars})`}
+                        {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">Correct answer was: {answer}</p>
+                            <p className="font-medium">{t("correctAnswer")} {answer}</p>
                         </div>
                     )}
                 </div>

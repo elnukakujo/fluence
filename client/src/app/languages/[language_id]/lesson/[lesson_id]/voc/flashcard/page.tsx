@@ -1,8 +1,10 @@
 import Vocabulary from "@/interface/features/Vocabulary";
 import { getVocabularyByLesson } from "@/api/vocabulary";
 import VocabularyFlashCard from "@/components/elements/vocabularyFlashCard";
+import { getTranslations } from "next-intl/server";
 
 export default async function VocabularyFlashCardPage({ params }: { params: Promise<{ language_id: string; lesson_id: string; voc_id: string }>}) {
+    const t = await getTranslations("languages");
     const { lesson_id } = await params;
 
     const vocabularies: Vocabulary[] = await getVocabularyByLesson(lesson_id);
@@ -10,7 +12,7 @@ export default async function VocabularyFlashCardPage({ params }: { params: Prom
 
     return (
         <main>
-            <h1>Vocabulary Flashcard</h1>
+            <h1>{t("vocabularyFlashcard")}</h1>
             <VocabularyFlashCard vocabularies={vocabularies} />
         </main>
     );

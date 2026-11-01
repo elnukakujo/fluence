@@ -1,0 +1,9 @@
+{
+  "lessonTitle": "Titre",
+  "enterLessonTitle": "Entrez le titre du cours",
+  "description": "Description",
+  "enterLessonDescription": "Entrez la description du cours",
+  "level": "Niveau",
+  "addLesson": "Ajouter un Cours",
+  "updateLesson": "Mettre à Jour le Cours"
+}

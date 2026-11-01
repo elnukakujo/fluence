@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import { getLevelForScore } from "@/utils/speech_levels";
 import { Ring } from 'ldrs/react';
@@ -15,6 +16,7 @@ import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
 export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercise }) {
+    const t = useTranslations("exercises");
     const content = exercise.content as { segments: string[]; blanks: { options?: string[]; answer: string }[] } | null;
     const text_support = exercise.text_support || "";
     const segments = content?.segments ?? [];
@@ -118,7 +120,7 @@ export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercis
         <form className="card flex flex-col space-y-4" onSubmit={handleSubmit}>
             {text_support.trim() !== "" && (
                 <section>
-                    <h3>Text Support:</h3>
+                    <h3>{t("textSupportColon")}</h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{text_support}</Markdown>
                 </section>
             )}
@@ -143,7 +145,7 @@ export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercis
                             color="white"
                         />
                     ) : (
-                        <p>Check Answers</p>
+                        <p>{t("checkAnswers")}</p>
                     )}
                 </button>
             )}
@@ -152,21 +154,21 @@ export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercis
                 <div className={`card mt-4 ${isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
                     {isCorrect ? (
                         <>
-                            <p>✓ Correct! Well done!</p>
+                            <p>{t("wellDone")}</p>
                         </>
                     ) : (
-                        <p>{`✗ Some answers are incorrect (Attempt ${attempts}/3)`}</p>
+                        <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>
                     )}
                     <p>
                         {feedbackMessage && (
-                            <span className="font-medium">Feedback: </span>
+                            <span className="font-medium">{t("feedback")} </span>
                         )}
                         {feedbackMessage}
                     </p>
-                    {currentLevel && <p>{`Level:${currentLevel.label} (${currentLevel.stars})`}</p>}
+                    {currentLevel && <p>{t("level")}{currentLevel.label} ({currentLevel.stars})</p>}
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">Correct answers:</p>
+                            <p className="font-medium">{t("correctAnswers")}</p>
                             <div className="flex gap-2 mt-1">
                                 {correctAnswers.map((ans, i) => (
                                 <span key={i} className="badge">{ans}</span>
