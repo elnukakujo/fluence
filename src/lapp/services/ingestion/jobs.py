@@ -3,10 +3,11 @@ import json
 import logging
 import re
 import shutil
+import time
 from pathlib import Path
 from typing import Optional
 
-from flask import Flask
+from flask import Flask, current_app
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
@@ -53,6 +54,11 @@ def document_path(media_root: str | Path, job_id: str) -> Path:
 def created_lesson_path(media_root: str | Path, job_id: str, lesson_index: int) -> Path:
     """Holds the id of the Lesson created when a proposed lesson was accepted (owned by the accept route)."""
     return job_dir(media_root, job_id) / f"lesson-{lesson_index}.txt"
+
+
+def paused_path(media_root: str | Path, job_id: str) -> Path:
+    """Exists while the user has the import paused (a marker file, so no schema change)."""
+    return job_dir(media_root, job_id) / "paused"
 
 
 class IngestionJobService:
@@ -140,6 +146,14 @@ def check_alive(svc: IngestionJobService, job_id: str) -> None:
     job = svc.get(job_id)
     if job is None or job["status"] == "failed":
         raise Stopped
+    # ponytail: a paused job waits here and holds the single ingest worker; give pause its own resumable
+    # step (or more workers) if paused imports ever starve other users' jobs.
+    paused = paused_path(current_app.config["MEDIA_ROOT"], job_id)
+    while paused.is_file():
+        time.sleep(1)
+        job = svc.get(job_id)
+        if job is None or job["status"] == "failed":
+            raise Stopped
 
 
 def _progress(svc: IngestionJobService, job_id: str):

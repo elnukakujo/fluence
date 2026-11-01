@@ -1,6 +1,6 @@
 "use client";
 
-import StopButton from "./stopButton";
+import JobControls from "./jobControls";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -206,7 +206,7 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
         <p className="text-sm opacity-70">
           {t("importTakesTime")}
         </p>
-        <div className="btn-row"><StopButton jobId={job.id} onStopped={async () => setJob(await getJob(jobId))} /></div>
+        <div className="btn-row"><JobControls jobId={job.id} paused={job.paused} onStopped={async () => setJob(await getJob(jobId))} /></div>
       </div>
     );
   }

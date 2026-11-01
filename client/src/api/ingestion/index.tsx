@@ -22,6 +22,7 @@ export type Job = {
   page_from: number | null;
   page_to: number | null;
   status: JobStatus;
+  paused?: boolean; // the user paused it; the reader waits before its next page
   finished?: boolean; // everything wanted from a ready import has been added
   pages_done: number;
   pages_total: number;
@@ -114,6 +115,18 @@ export async function acceptCandidates(jobId: string, lessonId: string, items: A
 export async function stopJob(jobId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/stop`, { method: "POST", headers: await getAuthHeaders() });
   if (!res.ok) return fail(res, "Could not stop this import");
+  notifyChanged();
+}
+
+export async function pauseJob(jobId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/pause`, { method: "POST", headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not pause this import");
+  notifyChanged();
+}
+
+export async function resumeJob(jobId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/resume`, { method: "POST", headers: await getAuthHeaders() });
+  if (!res.ok) return fail(res, "Could not resume this import");
   notifyChanged();
 }
 

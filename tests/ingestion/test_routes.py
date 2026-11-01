@@ -686,3 +686,26 @@ def test_a_lesson_marker_whose_lesson_does_not_exist_is_not_shown_as_added(app, 
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text("lesson_L999")
     assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is False
+
+
+def test_pause_holds_the_worker_until_resume_and_stop_releases_it(app, db, media_root, scheduled):
+    import threading, time
+    from lapp.services.ingestion.jobs import Stopped, check_alive
+    client = _setup(app, db, media_root)
+    job_id = _upload(client, lesson_id="lesson_L1").get_json()["job_id"]
+    svc.update(job_id, status="parsing")
+    assert client.post(f"/api/ingestion/{job_id}/pause").get_json() == {"paused": True}
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["paused"] is True
+    done = threading.Event()
+    def worker():
+        with app.app_context():
+            check_alive(svc, job_id)
+        done.set()
+    threading.Thread(target=worker, daemon=True).start()
+    time.sleep(0.3)
+    assert not done.is_set()                      # waiting while paused
+    assert client.post(f"/api/ingestion/{job_id}/resume").get_json() == {"paused": False}
+    assert done.wait(3)                           # carries on
+    client.post(f"/api/ingestion/{job_id}/pause")
+    client.post(f"/api/ingestion/{job_id}/stop")
+    assert client.get(f"/api/ingestion/{job_id}").get_json()["paused"] is False   # stop clears the pause

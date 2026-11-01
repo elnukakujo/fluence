@@ -68,6 +68,8 @@
   "audioClipsDisabled": "Ajouter un point de terminaison de synthèse vocale dans les paramètres pour activer cela.",
   "addButton": "Ajouter {count} à « {lessonTitle} »",
   "incompleteConfirmed": "{count, plural, one {# carte confirmée n'a pas de texte obligatoire (mot, titre, explication, un caractère, question ou réponse) et ne serait pas ajoutée.} other {# cartes confirmées n'ont pas de texte obligatoire (mot, titre, explication, un caractère, question ou réponse) et ne seraient pas ajoutées.}} Corrigez-les ou supprimez-les.",
+  "pauseImport": "Mettre en pause",
+  "resumeImport": "Reprendre",
   "stopImport": "Arrêter",
   "stopping": "Arrêt…",
   "couldNotStop": "Impossible d'arrêter cet import",

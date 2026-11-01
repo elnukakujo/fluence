@@ -1,6 +1,6 @@
 "use client";
 
-import StopButton from "./stopButton";
+import JobControls from "./jobControls";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -81,7 +81,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
         <p className="text-sm opacity-70">
           {t("languageImportTakesTime")}
         </p>
-        <div className="btn-row"><StopButton jobId={job.id} onStopped={async () => setJob(await getJob(jobId))} /></div>
+        <div className="btn-row"><JobControls jobId={job.id} paused={job.paused} onStopped={async () => setJob(await getJob(jobId))} /></div>
       </div>
     );
   }
@@ -277,7 +277,7 @@ function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { j
           {t("lessonsProgress", { ready, total: lessons.length, added: addedCount, languageName, reading: status === "extracting" ? "yes" : "no" })}
         </p>
         {status === "extracting" && <ProgressBar current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
-        {status === "extracting" && <div className="btn-row"><StopButton jobId={job.id} onStopped={onStopped} /></div>}
+        {status === "extracting" && <div className="btn-row"><JobControls jobId={job.id} paused={job.paused} onStopped={onStopped} /></div>}
         <p className="text-xs opacity-60">{t("reviewEachLesson")}</p>
         {status !== "extracting" && addedCount === 0 && (
           <div className="btn-row"><button type="button" className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotGoBack")))}>{t("backToTheLessons")}</button></div>

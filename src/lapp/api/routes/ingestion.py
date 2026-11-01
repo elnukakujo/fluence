@@ -14,7 +14,7 @@ from ...models.containers import Language
 from ...services import LessonService, VocabularyService
 from ...services.components import PassageService, CharacterService
 from ...services.features import GrammarService, ExerciseService, CalligraphyService
-from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir,
+from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir, paused_path,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
 from ...services.ingestion.structure import validate_structure
@@ -53,7 +53,8 @@ def _finished(job: dict) -> bool:
 
 
 def _public(job: dict) -> dict:
-    return {**{k: v for k, v in job.items() if k not in ("file_path", "user_id")}, "finished": _finished(job)}
+    return {**{k: v for k, v in job.items() if k not in ("file_path", "user_id")}, "finished": _finished(job),
+            "paused": paused_path(current_app.config["MEDIA_ROOT"], job["id"]).is_file()}
 
 
 def _page_range(first, last):
@@ -485,7 +486,49 @@ def stop_job(job_id: str):
     if job["status"] not in ("queued", "parsing", "extracting"):
         return jsonify({"error": "This import is not running"}), 409
     job_service.update(job_id, status="failed", error="Stopped by you.")
+    paused_path(current_app.config["MEDIA_ROOT"], job_id).unlink(missing_ok=True)
     return jsonify({"status": "failed"})
+
+
+@bp.route("/<job_id>/pause", methods=["POST"])
+@login_required
+def pause_job(job_id: str):
+    """Pause a running import before its next page; resume continues where it stopped.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "paused: true"}
+        409: {description: The job is not being worked on}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    if job["status"] not in ("queued", "parsing", "extracting"):
+        return jsonify({"error": "This import is not running"}), 409
+    paused_path(current_app.config["MEDIA_ROOT"], job_id).write_text("1")
+    return jsonify({"paused": True})
+
+
+@bp.route("/<job_id>/resume", methods=["POST"])
+@login_required
+def resume_job(job_id: str):
+    """Continue a paused import.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "paused: false"}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    paused_path(current_app.config["MEDIA_ROOT"], job_id).unlink(missing_ok=True)
+    return jsonify({"paused": False})
 
 
 @bp.route("/<job_id>/back", methods=["POST"])
