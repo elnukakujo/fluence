@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { nativeFromLocale, isLocale } from "@/i18n/locales";
 import { createUser, updateUser } from "@/api/user";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import User from "@/interface/systemData/User";
@@ -24,6 +26,8 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
 }) {
     const isUpdate = Boolean(user?.id);
     const router = useRouter();
+    const t = useTranslations("userForm");
+    const locale = useLocale();
 
     const userData: Partial<User> = user ?? {
         id: "", username: "", last_review: new Date().toISOString(), created_at: new Date().toISOString()
@@ -34,7 +38,9 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const [displayName, setDisplayName] = useState<string>(userData.display_name || "");
     const [email, setEmail] = useState<string>(userData.email || "");
     const [password, setPassword] = useState<string>("");
-    const [nativeLangs, setNativeLangs] = useState<string[]>(userData.preferences?.native_language_iso639_2 || []);
+    const [nativeLangs, setNativeLangs] = useState<string[]>(
+        userData.preferences?.native_language_iso639_2 || (!isUpdate && isLocale(locale) ? nativeFromLocale(locale) : []),
+    );
     const [learningGoals, setLearningGoals] = useState<string>(userData.preferences?.learning_goals || "");
     const [exerciseTypes, setExerciseTypes] = useState<string[]>(userData.preferences?.preferred_exercise_types || []);
     const [dailyGoal, setDailyGoal] = useState<string>((userData.preferences?.daily_goal_minutes ?? 20).toString());
@@ -45,11 +51,11 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
 
     const handleNext = () => {
         if (!username.trim() || !email.trim() || (!isUpdate && !password)) {
-            setStepError("Please fill in your username, email, and password.");
+            setStepError(t("fillRequired"));
             return;
         }
         if (!/^\S+@\S+\.\S+$/.test(email)) {
-            setStepError("Please enter a valid email address.");
+            setStepError(t("invalidEmail"));
             return;
         }
         setStepError("");
@@ -96,7 +102,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             }
         } catch (error) {
             console.error("Error creating/updating user:", error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} user.`);
+            alert(t(isUpdate ? "failedUpdate" : "failedCreate"));
         } finally {
             setIsSubmitting(false);
             if (onSuccess) onSuccess();
@@ -106,13 +112,12 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     if (createdPending) {
         return (
             <div className="card flex w-full max-w-md flex-col items-center gap-4 p-8 text-center">
-                <h3 className="text-xl">Account created</h3>
+                <h3 className="text-xl">{t("accountCreated")}</h3>
                 <p className="text-sm text-muted">
-                    Your account needs admin approval before you can sign in. You&apos;ll be able to
-                    log in once an admin approves it.
+                    {t("pendingApproval")}
                 </p>
                 <button type="button" className="btn btn-primary" onClick={() => router.push("/")}>
-                    Go to sign in
+                    {t("goToSignIn")}
                 </button>
             </div>
         );
@@ -122,7 +127,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-center">
             {/* ── Step indicator ─────────────────────────────────── */}
             <div className="flex w-full items-center gap-2">
-                <span className="badge whitespace-nowrap">Step {step} of 2</span>
+                <span className="badge whitespace-nowrap">{t("step", { step })}</span>
                 <div className="h-1 flex-1 overflow-hidden rounded-full bg-border">
                     <div
                         className="h-full bg-primary transition-all duration-300"
@@ -139,34 +144,34 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
 
             {step === 1 ? (
                 <div key="step-1" className="animate-fade-in flex w-full flex-col gap-4 items-center">
-                    <h3 className="self-start">Your account</h3>
+                    <h3 className="self-start">{t("yourAccount")}</h3>
                     <AutoWidthInput
-                        label="Username"
+                        label={t("username")}
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter username"
+                        placeholder={t("usernamePlaceholder")}
                         required
                     />
                     <AutoWidthInput
-                        label="Display Name"
+                        label={t("displayName")}
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Shown instead of username, optional"
+                        placeholder={t("displayNamePlaceholder")}
                     />
                     <AutoWidthInput
                         type="email"
-                        label="Email"
+                        label={t("email")}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter email"
+                        placeholder={t("emailPlaceholder")}
                         required={!isUpdate}
                     />
                     <AutoWidthInput
                         type={showPassword ? "text" : "password"}
-                        label={isUpdate ? "New Password (leave blank to keep current)" : "Password"}
+                        label={isUpdate ? t("newPassword") : t("password")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder={isUpdate ? "Leave blank to keep current password" : "Enter password"}
+                        placeholder={isUpdate ? t("newPasswordPlaceholder") : t("passwordPlaceholder")}
                         required={!isUpdate}
                     />
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -175,38 +180,38 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             checked={showPassword}
                             onChange={(e) => setShowPassword(e.target.checked)}
                         />
-                        Show password
+                        {t("showPassword")}
                     </label>
                     <button type="button" className="btn btn-primary w-full" onClick={handleNext}>
-                        Next
+                        {t("next")}
                     </button>
                 </div>
             ) : (
                 <div key="step-2" className="animate-fade-in flex w-full flex-col gap-4 items-center">
-                    <h3 className="self-start">Your preferences</h3>
+                    <h3 className="self-start">{t("preferences")}</h3>
                     <article className="flex flex-col space-y-2 items-center">
                         <ClassicSelectMenu
-                            label="Native Languages"
+                            label={t("nativeLanguages")}
                             options={Object.keys(LANGUAGE_to_ISO639_2T)}
                             selectedOption={nativeLangs.map((iso) => ISO639_2T_to_LANGUAGE[iso] ?? iso)}
                             onChange={(selected) => setNativeLangs((selected as string[]).map((name) => LANGUAGE_to_ISO639_2T[name] ?? name))}
                             multiple
                         />
                         <AutoSizeTextArea
-                            label="Learning Goals"
+                            label={t("learningGoals")}
                             value={learningGoals}
                             onChange={(e) => setLearningGoals(e.target.value)}
-                            placeholder="Enter learning goals"
+                            placeholder={t("learningGoalsPlaceholder")}
                         />
                         <ClassicSelectMenu
-                            label="Preferred Exercise Types"
+                            label={t("exerciseTypes")}
                             options={EXERCISE_TYPES}
                             selectedOption={exerciseTypes}
                             onChange={(selected) => setExerciseTypes(selected as string[])}
                             multiple
                         />
                         <ClassicSelectMenu
-                            label="Daily Goal (minutes)"
+                            label={t("dailyGoal")}
                             options={DAILY_GOAL_OPTIONS}
                             selectedOption={dailyGoal}
                             onChange={(selected) => setDailyGoal(selected as string)}
@@ -214,10 +219,10 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                     </article>
                     <div className="flex w-full gap-2">
                         <button type="button" className="btn btn-secondary flex-1" onClick={handleBack}>
-                            Back
+                            {t("back")}
                         </button>
                         <button type="submit" className="btn btn-primary flex-1" disabled={isSubmitting}>
-                            {isSubmitting ? <Ring size={16} color="#fff" /> : isUpdate ? "Save changes" : "Create account"}
+                            {isSubmitting ? <Ring size={16} color="#fff" /> : isUpdate ? t("saveChanges") : t("createAccount")}
                         </button>
                     </div>
                 </div>
