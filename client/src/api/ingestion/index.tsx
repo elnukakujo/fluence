@@ -59,10 +59,15 @@ export async function getCapabilities(languageId: string, lessonId?: string): Pr
   return res.json();
 }
 
+/** Tells the navbar's Imports button to refresh right away (it otherwise polls slowly while nothing is running). */
+export const INGESTION_CHANGED = "ingestion:changed";
+const notifyChanged = () => { if (typeof window !== "undefined") window.dispatchEvent(new Event(INGESTION_CHANGED)); };
+
 export async function uploadDocument(form: FormData): Promise<{ job_id: string }> {
   // no Content-Type header: the browser must set the multipart boundary itself
   const res = await fetch(`${BASE_URL}/api/ingestion`, { method: "POST", body: form });
   if (!res.ok) return fail(res, "Upload failed");
+  notifyChanged();
   return res.json();
 }
 
@@ -101,12 +106,14 @@ export async function acceptCandidates(jobId: string, lessonId: string, items: A
     body: JSON.stringify(body),
   });
   if (!res.ok) return fail(res, "Could not add the selected items");
+  notifyChanged();
   return res.json();
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}`, { method: "DELETE", headers: await getAuthHeaders() });
   if (!res.ok) return fail(res, "Could not delete this import");
+  notifyChanged();
 }
 
 /** Keep a picture or audio file the user chose in place of a suggested one; it is attached when the item is added. */
@@ -122,6 +129,7 @@ export async function uploadMedia(jobId: string, file: File): Promise<{ id: stri
 export async function stepBack(jobId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/back`, { method: "POST", headers: await getAuthHeaders() });
   if (!res.ok) return fail(res, "Could not go back");
+  notifyChanged();
 }
 
 /** 1-based document page. Same-origin, so the session cookie authorises the <img>. */
@@ -140,6 +148,7 @@ export async function confirmStructure(jobId: string, lessons: { title: string; 
     method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),
   });
   if (!res.ok) return fail(res, "Could not start the extraction");
+  notifyChanged();
   return res.json();
 }
 
@@ -154,6 +163,7 @@ export async function confirmPages(jobId: string, pageKinds: Record<string, stri
     method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ page_kinds: pageKinds }),
   });
   if (!res.ok) return fail(res, "Could not confirm the pages");
+  notifyChanged();
   return res.json();
 }
 
@@ -171,5 +181,6 @@ export async function acceptLesson(jobId: string, index: number, items: AcceptIt
     method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),
   });
   if (!res.ok) return fail(res, "Could not add this lesson");
+  notifyChanged();
   return res.json();
 }

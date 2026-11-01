@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import StepProgress from "./stepProgress";
-import { ACTIVE_STATUSES, type Job, deleteJob, listJobs } from "@/api/ingestion";
+import { ACTIVE_STATUSES, INGESTION_CHANGED, type Job, deleteJob, listJobs } from "@/api/ingestion";
+
+// Poll fast only while a job is progressing by itself; otherwise nothing changes until the user acts
+// (and our own actions / tab focus refresh immediately).
+export const POLL_ACTIVE_MS = 5000;
+export const POLL_IDLE_MS = 60000;
+const SELF_PROGRESSING = ["queued", "parsing", "extracting"];
 
 export type IndicatorState = "running" | "attention" | "ready" | "failed" | "idle";
 
@@ -36,8 +42,14 @@ export default function ImportsIndicator() {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
+  const busy = useRef(false); // true while a job is progressing by itself
+
   const load = useCallback(async () => {
-    try { setJobs(await listJobs()); } catch { /* the bar must never break the page */ }
+    try {
+      const list = await listJobs();
+      busy.current = list.some((j) => SELF_PROGRESSING.includes(j.status) && !j.finished);
+      setJobs(list);
+    } catch { /* the bar must never break the page */ }
   }, []);
 
   useEffect(() => {
@@ -45,10 +57,22 @@ export default function ImportsIndicator() {
     let alive = true;
     const loop = async () => {
       if (!document.hidden) await load();
-      if (alive) timer = setTimeout(loop, 5000);
+      if (alive) timer = setTimeout(loop, busy.current ? POLL_ACTIVE_MS : POLL_IDLE_MS);
+    };
+    const refreshNow = () => {
+      if (document.hidden) return;
+      clearTimeout(timer);
+      loop();
     };
     loop();
-    return () => { alive = false; clearTimeout(timer); };
+    document.addEventListener("visibilitychange", refreshNow);
+    window.addEventListener(INGESTION_CHANGED, refreshNow);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", refreshNow);
+      window.removeEventListener(INGESTION_CHANGED, refreshNow);
+    };
   }, [load]);
 
   // the menu closes when the user clicks elsewhere, tabs away or presses Escape
@@ -69,7 +93,7 @@ export default function ImportsIndicator() {
 
   return (
     <div className="relative" ref={box} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}>
-      <button type="button" className="btn btn-secondary min-h-11 shrink-0" aria-expanded={open} aria-haspopup="true" aria-label={t("importsAriaLabel", { state: t(`indicatorState_${state}`) })} onClick={() => setOpen((o) => !o)}>
+      <button type="button" className="btn btn-secondary min-h-11 shrink-0" aria-expanded={open} aria-haspopup="true" aria-label={t("importsAriaLabel", { state: t(`indicatorState_${state}`) })} onClick={() => { if (!open) load(); setOpen((o) => !o); }}>
         <span className="inline-flex items-center gap-2"><StateIcon state={state} /><span className="max-md:hidden">{t("importsLabel")}</span></span>{count > 0 && <span className="badge ml-1 md:ml-2" aria-label={running ? t("runningCount", { count: running }) : t("readyCount", { count: ready })}>{count}</span>}
       </button>
       {open && (

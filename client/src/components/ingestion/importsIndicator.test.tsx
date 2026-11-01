@@ -8,7 +8,7 @@ import ImportsIndicator, { indicatorState } from "./importsIndicator";
 const jobs = vi.hoisted(() => ({ list: [] as { id: string; status: string; filename: string; pages_done: number; pages_total: number }[] }));
 vi.mock("next/link", () => ({ default: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }));
 vi.mock("@/api/ingestion", () => ({
-  ACTIVE_STATUSES: ["queued", "parsing", "extracting"], deleteJob: vi.fn(), listJobs: () => Promise.resolve(jobs.list),
+  ACTIVE_STATUSES: ["queued", "parsing", "extracting"], INGESTION_CHANGED: "ingestion:changed", deleteJob: vi.fn(), listJobs: () => Promise.resolve(jobs.list),
 }));
 
 const j = (status: string) => ({ status }) as { status: "ready" };
