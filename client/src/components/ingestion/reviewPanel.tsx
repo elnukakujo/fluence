@@ -49,6 +49,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const confirmVerified = () => setRows((rs) => rs.map((r) =>
     ((r.candidate.kind ?? "vocabulary") === active && r.candidate.status === "verified" && !r.deleted ? { ...r, selected: true } : r)));
 
+  const setActive = (change: Partial<Row>) => setRows((rs) => rs.map((r) => ((r.candidate.kind ?? "vocabulary") === active && !r.deleted ? { ...r, ...change } : r)));
+
   const add = async () => {
     setSaving(true);
     setError(null);
@@ -213,6 +215,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
               </button>
             ))}
             <button type="button" className="btn btn-secondary" onClick={confirmVerified}>{t("confirmAllVerified")}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setActive({ selected: true })}>{t("confirmAll")}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setActive({ deleted: true, selected: false })}>{t("rejectAll")}</button>
           </div>
         )}
 

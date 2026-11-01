@@ -63,6 +63,8 @@
   "filterAll": "全部",
   "filterVerified": "在文本中找到",
   "filterFlagged": "需要检查",
+  "confirmAll": "全部确认",
+  "rejectAll": "全部拒绝",
   "confirmAllVerified": "确认所有已验证的",
   "audioClips": "使用我的文本到语音端点生成 {count} 个{count, plural, one {缺失音频片段} other {缺失音频片段}}（每个片段一次调用）",
   "audioClipsDisabled": "在设置中添加文本到语音端点以启用此功能。",

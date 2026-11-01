@@ -219,6 +219,15 @@ describe("ReviewPanel", () => {
     expect(screen.getByRole("button", { name: "Add 1" })).toBeInTheDocument();
   });
 
+  it("Confirm all and Reject all act on every item of the open tab only", async () => {
+    const a: Candidate = { id: "a", word: "a", translation: "x", quote: "a", page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[a, { ...a, id: "b", word: "b" }, grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Confirm all" }));
+    expect(screen.getByRole("button", { name: "Add 2" })).toBeInTheDocument();   // the grammar card is in another tab
+    await userEvent.click(screen.getByRole("button", { name: "Reject all" }));
+    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
+  });
+
   it("shows the page panel with the original page and a toggle on small screens", async () => {
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} range={[1, 9]} />);
     expect(screen.getByText("Page 3 (1-9)")).toBeInTheDocument();

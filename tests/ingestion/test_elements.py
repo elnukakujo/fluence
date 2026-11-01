@@ -164,10 +164,10 @@ def test_exercise_content_ok_non_structured():
     assert not el.exercise_content_ok("essay", {"x": 1})
 
 
-def test_exercise_answer_in_chunk_is_verified():
+def test_an_exercise_is_never_verified_even_when_its_answer_is_in_the_text():
     raw = {"exercise_type": "answering", "question": "What?", "answer": "Yes", "text_support": None, "content": None, "quote": "What? Yes"}
     c = el.verify_element("exercise", raw, _chunk("What? Yes"), "en")
-    assert c.status == "verified" and _codes(c) == set()
+    assert c.status == "flagged" and _codes(c) == {"exercise_unreliable"}
 
 
 def test_exercise_answer_not_in_chunk_is_flagged_answer_generated():
@@ -328,7 +328,7 @@ def test_structured_exercises_are_stored_the_way_the_apps_form_stores_them():
     raw = {"exercise_type": "select_in_the_blank", "question": "The cat is red.", "answer": "cat", "text_support": None, "quote": "The cat is red.",
            "content": {"segments": ["The ", " is red."], "blanks": [{"answer": "cat", "options": ["cat", "dog"]}]}}
     c = el.verify_element("exercise", raw, _chunk(text), "en")
-    assert (c.fields["question"], c.fields["answer"]) == ("The __ is red.", "cat") and c.status == "verified"
+    assert (c.fields["question"], c.fields["answer"]) == ("The __ is red.", "cat") and c.status == "flagged"
     quiz = {"exercise_type": "quizz", "question": "Pick", "answer": "x", "text_support": None, "quote": "Pick",
             "content": {"options": ["a", "b", "c"], "correct": [1]}}
     q = el.verify_element("exercise", quiz, _chunk("Pick a b c"), "en")
@@ -361,10 +361,10 @@ def test_a_conversation_is_stored_as_the_json_the_apps_runner_parses():
     assert [s["isUser"] for s in q["speakers"]] == [False, True] and q["speakers"][0]["id"] == "s1"
     assert q["lines"] == [{"speakerId": "s1", "text": "你好吗?", "audioIndex": None}, {"speakerId": "s2", "text": "我很好。", "audioIndex": None}]
     assert a["speakers"] == [q["speakers"][1]] and a["lines"] == [q["lines"][1]]       # the answer is the learner's part only
-    assert c.fields["content"] is None and c.status == "verified"
+    assert c.fields["content"] is None and c.status == "flagged"
 
 
 def test_a_speaking_exercise_stores_its_prompt_as_the_answer_like_the_form():
     raw = {"exercise_type": "speaking", "question": "Read aloud: 你好", "answer": "something else", "text_support": None, "content": None, "quote": "你好"}
     c = el.verify_element("exercise", raw, _chunk("Read aloud: 你好"), "zh")
-    assert c.fields["answer"] == c.fields["question"] and c.status == "verified"
+    assert c.fields["answer"] == c.fields["question"] and c.status == "flagged"

@@ -252,6 +252,8 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         if not question or not answer:
             return None
 
+        flag("exercise_unreliable", "Exercises are rebuilt by the model from the page - always check this one before adding it")
+
         # Check if question is in the chunk
         if normalise(raw.get("question") or question) not in text:
             flag("quote_not_in_source", "The question does not appear in the source text")
