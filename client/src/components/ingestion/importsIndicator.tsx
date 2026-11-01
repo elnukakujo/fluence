@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Check, CircleX, Download, LoaderCircle } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faExclamation } from "@fortawesome/free-solid-svg-icons";
 import StepProgress from "./stepProgress";
 import { ACTIVE_STATUSES, INGESTION_CHANGED, type Job, deleteJob, listJobs } from "@/api/ingestion";
 
@@ -77,13 +80,15 @@ export function StepRing({ job, state }: { job: Pick<Job, "status" | "pages_done
   );
 }
 
+// lucide icons (same set and stroke as the other navbar buttons); the plain "!" for "needs you" is FontAwesome's faExclamation,
+// which the app already uses (back arrow). Failure is a circled X so the two never look alike.
 function StateIcon({ state }: { state: IndicatorState }) {
-  const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.25, strokeLinecap: "round" as const, "aria-hidden": true };
-  if (state === "running") return <svg {...common} className="animate-spin motion-reduce:animate-none" data-testid="spinner"><path d="M12 3a9 9 0 1 0 9 9" /></svg>;
-  if (state === "ready") return <svg {...common}><path d="M5 13l4 4L19 7" /></svg>;
-  if (state === "failed") return <svg {...common}><path d="M12 7v6M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>;
-  if (state === "attention") return <svg {...common}><path d="M12 8v5M12 17h.01" /><path d="M4 20h16L12 4z" /></svg>;
-  return <svg {...common}><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>;
+  const props = { size: 20, strokeWidth: 2.25, "aria-hidden": true } as const;
+  if (state === "running") return <LoaderCircle {...props} className="animate-spin motion-reduce:animate-none" data-testid="spinner" />;
+  if (state === "ready") return <Check {...props} />;
+  if (state === "failed") return <CircleX {...props} />;
+  if (state === "attention") return <FontAwesomeIcon icon={faExclamation} aria-hidden data-testid="attention-icon" className="size-5" />;
+  return <Download {...props} />;
 }
 
 // Scans take minutes, so imports outlive the page that started them: this is the way back.
