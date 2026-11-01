@@ -1,4 +1,4 @@
-FROM node:20-slim AS deps
+FROM node:22-slim AS deps
 WORKDIR /app/client
 COPY client/package.json client/package-lock.json ./
 RUN npm ci
@@ -14,9 +14,10 @@ ARG LAPP_EXTRA_MEDIA_HOSTS
 ARG LAPP_INTERNAL_HOST
 ARG LAPP_INTERNAL_PORT
 ENV LAPP_PUBLIC_HOST=$LAPP_PUBLIC_HOST LAPP_PUBLIC_PORT=$LAPP_PUBLIC_PORT LAPP_EXTRA_MEDIA_HOSTS=$LAPP_EXTRA_MEDIA_HOSTS LAPP_INTERNAL_HOST=$LAPP_INTERNAL_HOST LAPP_INTERNAL_PORT=$LAPP_INTERNAL_PORT
-RUN node_modules/.bin/next build
+# cap V8 heap so the build fits on a small VM
+RUN NODE_OPTIONS=--max-old-space-size=1536 node_modules/.bin/next build
 
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 WORKDIR /app/client
 COPY --from=build /app/client ./
 ARG LAPP_PUBLIC_HOST
