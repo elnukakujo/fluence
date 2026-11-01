@@ -67,6 +67,7 @@
   "audioClips": "Créer {count, plural, one {# clip audio manquant} other {# clips audio manquants}} avec mon point de terminaison de synthèse vocale (un appel par clip)",
   "audioClipsDisabled": "Ajouter un point de terminaison de synthèse vocale dans les paramètres pour activer cela.",
   "addButton": "Ajouter {count} à « {lessonTitle} »",
+  "incompleteConfirmed": "{count, plural, one {# carte confirmée n'a pas de texte obligatoire (mot, titre, explication, un caractère, question ou réponse) et ne serait pas ajoutée.} other {# cartes confirmées n'ont pas de texte obligatoire (mot, titre, explication, un caractère, question ou réponse) et ne seraient pas ajoutées.}} Corrigez-les ou supprimez-les.",
   "addingButton": "Ajout…",
   "foundInText": "Trouvé dans le texte du document",
   "notConfirmed": "N'a pas pu être confirmé",

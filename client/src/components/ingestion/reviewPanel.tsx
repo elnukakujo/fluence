@@ -53,7 +53,14 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     setSaving(true);
     setError(null);
     try {
-      await onAdd(toAcceptItems(rows, tts && canGenerateAudio));
+      const payload = toAcceptItems(rows, tts && canGenerateAudio);
+      const sent = payload.items.length + (payload.elements?.length ?? 0);
+      if (sent < counts.selected) {   // a confirmed card with a required field emptied is never dropped silently
+        setError(t("incompleteConfirmed", { count: counts.selected - sent }));
+        setSaving(false);
+        return;
+      }
+      await onAdd(payload);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("couldNotAddItems"));
       setSaving(false);

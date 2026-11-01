@@ -358,11 +358,17 @@ class DatabaseManager:
             session = self.get_session()
             close_session = True
         
+        # commit=False shares the caller's transaction: a SAVEPOINT keeps a failed insert from
+        # rolling back everything the caller already wrote (e.g. the lesson and its earlier items).
+        nested = None if commit else session.begin_nested()
         try:
             session.add(obj)
             # commit=False defers to the enclosing session_scope; flush still
             # populates generated IDs and surfaces IntegrityError here.
             session.commit() if commit else session.flush()
+            if nested:
+                nested.commit()
+                nested = None
             session.refresh(obj)  # Refresh to get generated IDs
 
             # Load all relationships before closing the session
@@ -372,12 +378,12 @@ class DatabaseManager:
             logger.info(f"Inserted {type(obj).__name__} with id: {obj.id}")
             return obj
         except IntegrityError as e:
-            session.rollback()
+            (nested or session).rollback()
             logger.warning(f"Insert failed due to integrity error: {e}")
             # Attempt to modify existing record
             return self.modify(obj, session, load_relationships, commit=commit)
         except SQLAlchemyError as e:
-            session.rollback()
+            (nested or session).rollback()
             logger.error(f"Insert failed: {e}")
             return None
         finally:
@@ -438,9 +444,13 @@ class DatabaseManager:
             session = self.get_session()
             close_session = True
         
+        nested = None if commit else session.begin_nested()
         try:
             merged_obj = session.merge(obj)
             session.commit() if commit else session.flush()
+            if nested:
+                nested.commit()
+                nested = None
             session.refresh(merged_obj)
             
             # Load all relationships before closing the session
@@ -450,7 +460,7 @@ class DatabaseManager:
             logger.info(f"Modified {type(merged_obj).__name__} with id: {merged_obj.id}")
             return merged_obj
         except SQLAlchemyError as e:
-            session.rollback()
+            (nested or session).rollback()
             logger.error(f"Modify failed: {e}")
             return None
         finally:
@@ -574,7 +584,7 @@ class DatabaseManager:
             if existing:
                 return existing
             else:
-                logger.warning(f"No {model_class.__name__} found with attributes: {attr_values}")
+                logger.debug(f"No {model_class.__name__} found with attributes: {attr_values}")
                 return None
         finally:
             if close_session:

@@ -779,6 +779,8 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 if grammar:
                     source_service.add_source_to_element(source.id, grammar.id, session=session)
                     created += 1
+            else:
+                notes_out.append(f"Grammar “{title}” is already in this lesson, so it was not added again.")
 
         elif kind == "calligraphy":
             character = str(fields.get("character", "")).strip()
@@ -805,6 +807,8 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 if calli:
                     source_service.add_source_to_element(source.id, calli.id, session=session)
                     created += 1
+            else:
+                notes_out.append(f"Calligraphy “{character}” is already in this lesson, so it was not added again.")
 
         elif kind == "exercise":
             question = str(fields.get("question", "")).strip()
@@ -835,6 +839,8 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                 if created_exercise:
                     source_service.add_source_to_element(source.id, created_exercise.id, session=session)
                     created += 1
+            else:
+                notes_out.append(f"The exercise “{question[:40]}” is already in this lesson, so it was not added again.")
 
     return created
 
