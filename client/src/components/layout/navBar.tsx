@@ -5,15 +5,18 @@ import { usePathname, useRouter } from "next/navigation";
 import BackButton from "@/components/ui/buttons/backButton";
 import SearchBar from "@/components/layout/searchBar";
 import { logout } from "@/api/user";
+import { useTranslations } from "next-intl";
+import LocaleSwitcher from "@/components/layout/localeSwitcher";
 import ImportsIndicator from "@/components/ingestion/importsIndicator";
 
 const primaryLinks = [
-	{ href: "/", label: "Home" },
-	{ href: "/sources", label: "Sources" },
-	{ href: "/tags", label: "Tags" },
-];
+	{ href: "/", key: "home" },
+	{ href: "/sources", key: "sources" },
+	{ href: "/tags", key: "tags" },
+] as const;
 
 export default function NavBar({ currentUserId }: { currentUserId: string | null }) {
+	const t = useTranslations("navBar");
 	const pathname = usePathname();
 	const router = useRouter();
 
@@ -53,7 +56,7 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 										: "text-muted hover:bg-accent-soft hover:text-foreground"
 								}`}
 							>
-								{link.label}
+								{t(link.key)}
 								{active && (
 									<span
 										aria-hidden
@@ -67,25 +70,28 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 				<div className="nav-search">
 					<SearchBar currentUserId={currentUserId} />
 				</div>
-                <div className={`nav-user flex items-center gap-2 ${currentUserId ? "visible" : "invisible pointer-events-none"}`}>
-                    {currentUserId && <ImportsIndicator />}
-                    <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={async () => {
-                            await logout();
-                            router.push('/');
-                            router.refresh();
-                        }}
-                    >
-                        Log out
-                    </button>
-                    <Link
-                        href={`/user/${currentUserId}/update`}
-                        className="btn btn-primary shrink-0"
-                    >
-                        Settings
-                    </Link>
+                <div className="nav-user flex items-center gap-2">
+                    <LocaleSwitcher currentUserId={currentUserId} />
+                    <div className={`flex items-center gap-2 ${currentUserId ? "visible" : "invisible pointer-events-none"}`}>
+                        {currentUserId && <ImportsIndicator />}
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={async () => {
+                                await logout();
+                                router.push('/');
+                                router.refresh();
+                            }}
+                        >
+                            {t("logout")}
+                        </button>
+                        <Link
+                            href={`/user/${currentUserId}/update`}
+                            className="btn btn-primary shrink-0"
+                        >
+                            {t("settings")}
+                        </Link>
+                    </div>
                 </div>
 			</div>
 		</header>
