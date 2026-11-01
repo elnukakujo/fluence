@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, ChangeEvent, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDeleteLeft } from '@fortawesome/free-solid-svg-icons'
@@ -8,7 +9,7 @@ import { faDeleteLeft } from '@fortawesome/free-solid-svg-icons'
 import { uploadImage, uploadAudio } from "@/api/process";
 import { BASE_URL } from '@/api';
 
-export default function MediaLoader({ 
+export default function MediaLoader({
   imageUrl = [],
   setImageUrl,
   audioUrl = [],
@@ -19,6 +20,7 @@ export default function MediaLoader({
   audioUrl?: string[];
   setAudioUrl: (audioUrl: string[]) => void;
 }) {
+  const t = useTranslations("media");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -111,7 +113,7 @@ export default function MediaLoader({
       onKeyDown={(e) => e.stopPropagation()}
     >
       <div>
-        <h3 className="text-sm font-medium mb-2">Image</h3>
+        <h3 className="text-sm font-medium mb-2">{t("mediaLoaderImage")}</h3>
         <input
           type="file"
           ref={imageInputRef}
@@ -125,7 +127,7 @@ export default function MediaLoader({
             onClick={() => imageInputRef.current?.click()}
             className="btn btn-secondary"
           >
-            Upload Image
+            {t("mediaLoaderUploadImage")}
           </button>
           {imagePreviewUrl && (
             <button
@@ -133,7 +135,7 @@ export default function MediaLoader({
               onClick={clearImage}
               className="btn btn-danger"
             >
-              Clear Image(s)
+              {t("mediaLoaderClearImages")}
             </button>
           )}
         </div>
@@ -144,7 +146,7 @@ export default function MediaLoader({
                 <figure key={index} className="flex flex-row items-center space-x-4 mb-4">
                   <Image
                     src={url}
-                    alt="Preview"
+                    alt={t("mediaLoaderPreview")}
                     className="object-contain"
                     width={150}
                     height={150}
@@ -172,7 +174,7 @@ export default function MediaLoader({
 
       {/* Audio Upload Section */}
       <div>
-        <h3 className="text-sm font-medium mb-2">Audio</h3>
+        <h3 className="text-sm font-medium mb-2">{t("mediaLoaderAudio")}</h3>
         <input
           type="file"
           ref={audioInputRef}
@@ -186,7 +188,7 @@ export default function MediaLoader({
             onClick={() => audioInputRef.current?.click()}
             className="btn btn-secondary"
           >
-            Upload Audio
+            {t("mediaLoaderUploadAudio")}
           </button>
           {audioPreviewUrl && (
             <button
@@ -194,7 +196,7 @@ export default function MediaLoader({
               onClick={clearAudio}
               className="btn btn-danger"
             >
-              Clear Audio(s)
+              {t("mediaLoaderClearAudios")}
             </button>
           )}
         </div>

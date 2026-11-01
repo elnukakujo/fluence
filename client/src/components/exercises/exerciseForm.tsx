@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { useRouter } from "next/navigation";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
@@ -30,6 +32,7 @@ function toggleLineBreak(value: string): string {
 }
 
 function SegmentInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+    const t = useTranslations("exercises");
     const hasBreak = value.endsWith("\n");
     return (
         <div className="flex items-center gap-2">
@@ -42,7 +45,7 @@ function SegmentInput({ value, onChange, placeholder }: { value: string; onChang
             <button
                 type="button"
                 className={`chip ${hasBreak ? 'bg-accent text-primary-foreground' : ''}`}
-                title="Insert a line-break separator after this segment"
+                title={t("lineBreakTitle")}
                 onClick={() => onChange(toggleLineBreak(value))}
             >
                 ⏎
@@ -61,6 +64,7 @@ function BlankContentEditor({
     segments: string[]; setSegments: (v: string[]) => void;
     blanks: BlankRow[]; setBlanks: (v: BlankRow[]) => void;
 }) {
+    const t = useTranslations("exercises");
     const addBlank = () => {
         setBlanks([...blanks, { answer: "", options: "" }]);
         setSegments([...segments, ""]);
@@ -71,19 +75,19 @@ function BlankContentEditor({
     };
     return (
         <fieldset className="card flex flex-col gap-3 w-full">
-            <legend className="text-sm font-medium px-1 w-fit">Sentence with blanks</legend>
+            <legend className="text-sm font-medium px-1 w-fit">{t("sentenceWithBlanks")}</legend>
             <SegmentInput
-                placeholder="Text before first blank"
+                placeholder={t("textBeforeFirstBlank")}
                 value={segments[0] ?? ""}
                 onChange={(v) => setSegments([v, ...segments.slice(1)])}
             />
             {blanks.map((blank, i) => (
                 <div key={i} className="flex flex-col gap-2 border-t border-dashed border-border pt-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="badge">Blank {i + 1}</span>
+                        <span className="badge">{t("blankN", { n: i + 1 })}</span>
                         <input
                             className="input w-fit"
-                            placeholder="Answer"
+                            placeholder={t("answer")}
                             value={blank.answer}
                             onChange={(e) => setBlanks(blanks.map((b, idx) => idx === i ? { ...b, answer: e.target.value } : b))}
                             required
@@ -91,7 +95,7 @@ function BlankContentEditor({
                         {hasOptions && (
                             <input
                                 className="input"
-                                placeholder="Options (comma-separated, optional)"
+                                placeholder={t("options")}
                                 value={blank.options}
                                 onChange={(e) => setBlanks(blanks.map((b, idx) => idx === i ? { ...b, options: e.target.value } : b))}
                             />
@@ -99,13 +103,13 @@ function BlankContentEditor({
                         <button type="button" className="chip-remove" onClick={() => removeBlank(i)}>x</button>
                     </div>
                     <SegmentInput
-                        placeholder="Text after this blank"
+                        placeholder={t("textAfterBlank")}
                         value={segments[i + 1] ?? ""}
                         onChange={(v) => setSegments(segments.map((s, idx) => idx === i + 1 ? v : s))}
                     />
                 </div>
             ))}
-            <button type="button" className="btn btn-secondary w-fit" onClick={addBlank}>+ Add blank</button>
+            <button type="button" className="btn btn-secondary w-fit" onClick={addBlank}>{t("addBlank")}</button>
         </fieldset>
     );
 }
@@ -117,6 +121,7 @@ function QuizzContentEditor({
     options: string[]; setOptions: (v: string[]) => void;
     correct: number[]; setCorrect: (v: number[]) => void;
 }) {
+    const t = useTranslations("exercises");
     const toggleCorrect = (i: number) => {
         setCorrect(correct.includes(i) ? correct.filter(c => c !== i) : [...correct, i]);
     };
@@ -126,7 +131,7 @@ function QuizzContentEditor({
     };
     return (
         <fieldset className="card flex flex-col gap-2 w-full">
-            <legend className="text-sm font-medium px-1 w-fit">Options (check all valid answers)</legend>
+            <legend className="text-sm font-medium px-1 w-fit">{t("optionsCheckAll")}</legend>
             {options.map((option, i) => (
                 <div key={i} className="flex items-center gap-2">
                     <input
@@ -136,7 +141,7 @@ function QuizzContentEditor({
                     />
                     <input
                         className="input"
-                        placeholder="Option text"
+                        placeholder={t("optionText")}
                         value={option}
                         onChange={(e) => setOptions(options.map((o, idx) => idx === i ? e.target.value : o))}
                         required
@@ -144,31 +149,33 @@ function QuizzContentEditor({
                     {options.length > 1 && <button type="button" className="chip-remove" onClick={() => removeOption(i)}>x</button>}
                 </div>
             ))}
-            <button type="button" className="btn btn-secondary w-fit" onClick={() => setOptions([...options, ""])}>+ Add option</button>
+            <button type="button" className="btn btn-secondary w-fit" onClick={() => setOptions([...options, ""])}>{t("addOption")}</button>
         </fieldset>
     );
 }
 
 function MatchingContentEditor({ pairs, setPairs }: { pairs: [string, string][]; setPairs: (v: [string, string][]) => void }) {
+    const t = useTranslations("exercises");
     return (
         <fieldset className="card flex flex-col gap-2 w-full">
-            <legend className="text-sm font-medium px-1 w-fit">Pairs</legend>
+            <legend className="text-sm font-medium px-1 w-fit">{t("pairs")}</legend>
             {pairs.map((pair, i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <input className="input" placeholder="Left" value={pair[0]} onChange={(e) => setPairs(pairs.map((p, idx) => idx === i ? [e.target.value, p[1]] : p))} required />
-                    <input className="input" placeholder="Right" value={pair[1]} onChange={(e) => setPairs(pairs.map((p, idx) => idx === i ? [p[0], e.target.value] : p))} required />
+                    <input className="input" placeholder={t("left")} value={pair[0]} onChange={(e) => setPairs(pairs.map((p, idx) => idx === i ? [e.target.value, p[1]] : p))} required />
+                    <input className="input" placeholder={t("right")} value={pair[1]} onChange={(e) => setPairs(pairs.map((p, idx) => idx === i ? [p[0], e.target.value] : p))} required />
                     {pairs.length > 1 && <button type="button" className="chip-remove" onClick={() => setPairs(pairs.filter((_, idx) => idx !== i))}>x</button>}
                 </div>
             ))}
-            <button type="button" className="btn btn-secondary w-fit" onClick={() => setPairs([...pairs, ["", ""]])}>+ Add pair</button>
+            <button type="button" className="btn btn-secondary w-fit" onClick={() => setPairs([...pairs, ["", ""]])}>{t("addPair")}</button>
         </fieldset>
     );
 }
 
 function OrganizeContentEditor({ items, setItems }: { items: string[]; setItems: (v: string[]) => void }) {
+    const t = useTranslations("exercises");
     return (
         <fieldset className="card flex flex-col gap-2 w-full">
-            <legend className="text-sm font-medium px-1 w-fit">Items, in correct order</legend>
+            <legend className="text-sm font-medium px-1 w-fit">{t("items")}</legend>
             {items.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
                     <span className="text-xs text-muted">#{i + 1}</span>
@@ -176,7 +183,7 @@ function OrganizeContentEditor({ items, setItems }: { items: string[]; setItems:
                     {items.length > 1 && <button type="button" className="chip-remove" onClick={() => setItems(items.filter((_, idx) => idx !== i))}>x</button>}
                 </div>
             ))}
-            <button type="button" className="btn btn-secondary w-fit" onClick={() => setItems([...items, ""])}>+ Add item</button>
+            <button type="button" className="btn btn-secondary w-fit" onClick={() => setItems([...items, ""])}>{t("addItem")}</button>
         </fieldset>
     );
 }
@@ -210,6 +217,7 @@ export default function ExerciseForm({
     lesson_id: string;
     lessonElements: LessonElements;
 }) {
+    const t = useTranslations("exercises");
     const router = useRouter();
     const isUpdate = Boolean(exercise?.id);
 
@@ -408,7 +416,7 @@ export default function ExerciseForm({
         };
 
         if (exerciseType === "speaking" && audioUrl.length === 0) {
-            alert("Speaking exercises require an audio file. Please upload one.");
+            alert(t("speakingNeedsAudio"));
             return;
         }
 
@@ -428,7 +436,7 @@ export default function ExerciseForm({
             router.refresh();
         } catch (error) {
             console.error(`Failed to ${isUpdate ? "update" : "create"} exercise:`, error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} exercise. Check console for details.`);
+            alert(t(isUpdate ? "failedUpdate" : "failedCreate"));
         } finally {
             setIsSubmitting(false);
         }
@@ -437,8 +445,9 @@ export default function ExerciseForm({
     return (
         <form className="flex flex-col space-y-4 items-center min-w-[40rem]" onSubmit={handleSubmit}>
             <ClassicSelectMenu
-                label="Exercise Type"
+                label={t("exerciseType")}
                 options={EXERCISE_TYPE_OPTIONS}
+                optionLabel={(v) => (EXERCISE_TYPE_KEY[v] ? t(EXERCISE_TYPE_KEY[v]) : undefined)}
                 selectedOption={exerciseType || ""}
                 onChange={(value) => setExerciseType(value as Exercise["exercise_type"])}
                 required
@@ -451,7 +460,7 @@ export default function ExerciseForm({
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             className="card flex w-full overflow-hidden p-2"
-                            label="Question"
+                            label={t("questionLabel")}
                             required
                         />
                     )}
@@ -460,7 +469,7 @@ export default function ExerciseForm({
                         value={supportText}
                         onChange={(e) => setSupportText(e.target.value)}
                         className="card flex w-full overflow-hidden p-2"
-                        label="Support"
+                        label={t("support")}
                     />
 
                     <MediaLoader imageUrl={imageUrl} setImageUrl={setImageUrl} audioUrl={audioUrl} setAudioUrl={setAudioUrl} />
@@ -482,13 +491,13 @@ export default function ExerciseForm({
                                 value={tfStatement}
                                 onChange={(e) => setTfStatement(e.target.value)}
                                 className="card flex w-full overflow-hidden p-2"
-                                label="Statement"
+                                label={t("statement")}
                                 required
                             />
                             <TrueFalseInput
                                 value={tfAnswer}
                                 onChange={(e) => setTfAnswer(e.target.value === "true")}
-                                label="Answer"
+                                label={t("answer")}
                             />
                         </>
                     )}
@@ -519,7 +528,7 @@ export default function ExerciseForm({
                         <AutoSizeTextArea
                             value={answer}
                             onChange={(e) => setAnswer(e.target.value)}
-                            label="Answer"
+                            label={t("answer")}
                             required
                         />
                     )}
@@ -532,13 +541,13 @@ export default function ExerciseForm({
                             }))}
                             selectedElements={relatedVocabularies}
                             setSelectedElements={setRelatedVocabularies}
-                            label="Associated Vocabulary"
+                            label={t("associatedVocabulary")}
                         />
                         <OpenCloseMenu
                             elements={lessonElements.grammars.map((item) => ({ id: item.id!, value: item.title }))}
                             selectedElements={relatedGrammars}
                             setSelectedElements={setRelatedGrammars}
-                            label="Associated Grammar"
+                            label={t("associatedGrammar")}
                         />
                         <OpenCloseMenu
                             elements={lessonElements.calligraphies.map((item) => ({
@@ -547,7 +556,7 @@ export default function ExerciseForm({
                             }))}
                             selectedElements={relatedCalligraphies}
                             setSelectedElements={setRelatedCalligraphies}
-                            label="Associated Calligraphies"
+                            label={t("associatedCalligraphies")}
                         />
                     </section>
 
@@ -563,7 +572,7 @@ export default function ExerciseForm({
                         elementId={exerciseData.id!}
                     />
 
-                    {isUpdate ? <SubmitButton isLoading={isSubmitting}>Update Exercise</SubmitButton> : <SubmitButton isLoading={isSubmitting}>Add Exercise</SubmitButton>}
+                    {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateExercise")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addExercise")}</SubmitButton>}
                 </>
             )}
         </form>

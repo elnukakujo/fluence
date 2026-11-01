@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type Language from '@/interface/containers/Language';
 import { languageProficiencySystems, getLevelLabel } from '@/utils/language_iso639';
 import SharedBadge from '../collaboration/sharedBadge';
@@ -9,6 +10,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function LanguageOverviewCard({ language }: { language: Language }) {
+    const t = useTranslations("language");
     const router = useRouter();
 
     const handleCardClick = () => {
@@ -29,7 +31,7 @@ export default function LanguageOverviewCard({ language }: { language: Language 
                 <p className="text-2xl">{language.flag}</p>
                 <h3 className="font-serif text-lg text-ink line-clamp-2">{language.name} ({language.alias})</h3>
                 <span className="text-xs flex flex-row gap-1 items-center text-muted">
-                    <p>From</p>
+                    <p>{t("from")}</p>
                     <p className="badge">{sourceLanguage?.englishName ?? 'Unknown'}</p>
                 </span>
             </header>

@@ -18,5 +18,6 @@
   "updateButton": "Update Grammar",
   "addButton": "Add Grammar",
   "updateFailure": "Failed to update grammar. Check console for details.",
-  "createFailure": "Failed to create grammar. Check console for details."
+  "createFailure": "Failed to create grammar. Check console for details.",
+  "backToLesson": "Back to Lesson"
 }

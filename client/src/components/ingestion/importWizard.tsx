@@ -21,9 +21,10 @@ type Props = { languageId: string; lessonId: string; lessonTitle: string; settin
 
 // ?job=<id> in the URL makes an import resumable: refresh, or come back from the Imports menu.
 export default function ImportWizard(props: Props) {
+  const t = useTranslations("ingestion");
   const jobId = useSearchParams().get("job");
   return jobId ? <JobView key={jobId} jobId={jobId} {...props} /> : (
-    <UploadStep languageId={props.languageId} lessonId={props.lessonId} heading={`Import into "${props.lessonTitle}"`}
+    <UploadStep languageId={props.languageId} lessonId={props.lessonId} heading={t("importHeadingLesson", { lessonTitle: props.lessonTitle })}
       settingsHref={props.settingsHref} base={`/languages/${props.languageId}/lesson/${props.lessonId}/import`}
       cancelHref={`/languages/${props.languageId}/lesson/${props.lessonId}`} />
   );
@@ -57,7 +58,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
     e.preventDefault();
     const range = parsePageRange(from, to);
     if (!range.ok) return setError(range.error);
-    if (!file) return setError(t("documentLabel"));
+    if (!file) return setError(t("chooseFileFirst"));
     const form = new FormData();
     form.append("file", file);
     form.append("language_id", languageId);
@@ -74,7 +75,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
       const { job_id } = await uploadDocument(form);
       router.replace(`${base}?job=${job_id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : t("uploadFailed"));
       setBusy(false);
     }
   };
@@ -261,7 +262,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
       await confirmPages(job.id, pageKindsStr);
       router.push(`${base}?job=${job.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("confirmPageKindsDescription"));
+      setError(e instanceof Error ? e.message : t("couldNotConfirmPages"));
       setSaving(false);
     }
   };
@@ -307,7 +308,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
     return (
       <div className="card flex max-w-2xl flex-col gap-3" role="status">
         <h2>{t("addedEntries", { count: added, lessonTitle })}</h2>
-        <p className="text-sm opacity-70">{t("taggedWithSource", { sourceTitle: job.source_title || `Imported from ${job.filename}` })}</p>
+        <p className="text-sm opacity-70">{t("taggedWithSource", { sourceTitle: job.source_title || t("importedFrom", { filename: job.filename }) })}</p>
         {addNotes.length > 0 && <ul className="list-disc pl-5 text-sm" role="note">{addNotes.map((n) => <li key={n}>{n}</li>)}</ul>}
         <div className="btn-row">
           <Link href={`/languages/${languageId}/lesson/${lessonId}`} className="btn btn-primary">{t("backToLesson")}</Link>
@@ -337,7 +338,7 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
         canGenerateAudio={canAudio}
         onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAddNotes(r.notes ?? []); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">
-        <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotLoad")))}>{t("backToPages")}</button>
+        <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotGoBack")))}>{t("backToPages")}</button>
         <button className="btn btn-secondary" onClick={() => router.push(`/languages/${languageId}/lesson/${lessonId}`)}>{t("leaveWithoutAdding")}</button>
       </div>
     </section>

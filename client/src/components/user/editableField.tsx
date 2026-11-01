@@ -66,13 +66,13 @@ export default function EditableField({
                 </div>
             ) : (
                 <div className="flex items-center gap-2">
-                    <span className="input">{current || <span className="opacity-40">Not set</span>}</span>
+                    <span className="input">{current || <span className="opacity-40">{t("notSet")}</span>}</span>
                     <button
                         type="button"
                         className="btn btn-secondary"
                         onClick={() => setEditing(true)}
                     >
-                        Edit
+                        {t("edit")}
                     </button>
                 </div>
             )}

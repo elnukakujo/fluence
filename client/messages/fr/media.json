@@ -26,5 +26,13 @@
   "imageViewerViewFullSize": "Voir en taille réelle",
   "imageViewerClose": "Fermer",
   "imageViewerZoomOut": "Zoom avant",
-  "imageViewerZoomIn": "Zoom arrière"
+  "imageViewerZoomIn": "Zoom arrière",
+  "mediaLoaderImage": "Image",
+  "mediaLoaderUploadImage": "Importer une image",
+  "mediaLoaderClearImages": "Effacer l'image(s)",
+  "mediaLoaderAudio": "Audio",
+  "mediaLoaderUploadAudio": "Importer l'audio",
+  "mediaLoaderClearAudios": "Effacer l'audio(s)",
+  "mediaLoaderPreview": "Aperçu",
+  "imageViewerResetZoom": "Réinitialiser le zoom"
 }

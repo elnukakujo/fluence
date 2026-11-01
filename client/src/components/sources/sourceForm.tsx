@@ -55,7 +55,7 @@ export default function SourceForm({ source, navDisabled = false, onSuccess }: {
         }
         } catch (error) {
         console.error("Error creating/updating source:", error);
-        alert(`Failed to ${isUpdate ? t("updateSource") : t("addSource")}.`);
+        alert(t(isUpdate ? "updateSourceFailed" : "createSourceFailed"));
         } finally {
         setIsSubmitting(false);
         if (onSuccess) onSuccess();

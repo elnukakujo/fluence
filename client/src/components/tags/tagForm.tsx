@@ -73,7 +73,7 @@ export default function TagForm({ tag, navDisabled = false, onSuccess }: { tag?:
       }
     } catch (error) {
       console.error("Error creating/updating tag:", error);
-      alert(`Failed to ${isUpdate ? t("updateTag") : t("addTag")}.`);
+      alert(t(isUpdate ? "updateTagFailed" : "createTagFailed"));
     } finally {
       setIsSubmitting(false);
       if (onSuccess) onSuccess();

@@ -40,5 +40,7 @@
   "mastery": "Maîtrise",
   "noStrokeData": "Pas de données de trait disponibles pour ce caractère.",
   "wrongStroke": "Mauvais trait — réessayez",
-  "clearButton": "Effacer"
+  "clearButton": "Effacer",
+  "backToLesson": "Retour à la leçon",
+  "resolveConflictError": "Impossible de résoudre le conflit. Vérifiez la console pour plus de détails."
 }

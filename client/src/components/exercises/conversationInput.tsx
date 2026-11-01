@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export default function ConversationInput({
     onChange: (fields: { question: string; answer: string }) => void;
     totalAudioSlots?: number;
 }) {
+    const t = useTranslations("exercises");
     // ── Init ──────────────────────────────────────────────────────────────────
     const initialData = (): { speakers: Speaker[]; lines: ConversationLine[] } => {
         if (value) {
@@ -137,7 +139,7 @@ export default function ConversationInput({
 
             {/* Speakers */}
             <fieldset className="card flex flex-col gap-2">
-                <legend className="text-sm font-medium px-1 w-fit">Speakers</legend>
+                <legend className="text-sm font-medium px-1 w-fit">{t("speakers")}</legend>
 
                 {speakers.map((sp) => (
                     <div key={sp.id} className="flex items-center gap-2">
@@ -154,7 +156,7 @@ export default function ConversationInput({
                         )}
                         {!sp.isUser && speakers.length > 2 && (
                             <button type="button" onClick={() => removeSpeaker(sp.id)} className="text-sm text-danger">
-                                Remove
+                                {t("remove")}
                             </button>
                         )}
                     </div>
@@ -162,14 +164,14 @@ export default function ConversationInput({
 
                 {speakers.length < 5 && (
                     <button type="button" onClick={addSpeaker} className="text-sm text-accent self-start">
-                        + Add speaker
+                        {t("addSpeaker")}
                     </button>
                 )}
             </fieldset>
 
             {/* Lines */}
             <fieldset className="card flex flex-col gap-3">
-                <legend className="text-sm font-medium px-1 w-fit">Conversation</legend>
+                <legend className="text-sm font-medium px-1 w-fit">{t("conversation")}</legend>
 
                 {lines.map((line, idx) => (
                     <div key={idx} className="flex flex-col gap-1 border-b border-border pb-3 last:border-0 last:pb-0">
@@ -198,7 +200,7 @@ export default function ConversationInput({
                                 }
                                 className="input w-fit text-sm"
                             >
-                                <option value="">No audio</option>
+                                <option value="">{t("noAudio")}</option>
                                 {Array.from({ length: totalAudioSlots }, (_, i) => (
                                     <option key={i} value={i}>Audio #{i + 1}</option>
                                 ))}
@@ -206,21 +208,21 @@ export default function ConversationInput({
 
                             <button type="button" onClick={() => moveLine(idx, "up")} disabled={idx === 0} className="text-xs text-muted disabled:opacity-30">↑</button>
                             <button type="button" onClick={() => moveLine(idx, "down")} disabled={idx === lines.length - 1} className="text-xs text-muted disabled:opacity-30">↓</button>
-                            <button type="button" onClick={() => removeLine(idx)} disabled={lines.length <= 1} className="text-xs text-danger disabled:opacity-30">Remove</button>
+                            <button type="button" onClick={() => removeLine(idx)} disabled={lines.length <= 1} className="text-xs text-danger disabled:opacity-30">{t("remove")}</button>
                         </div>
 
                         <textarea
                             value={line.text}
                             onChange={(e) => updateLine(idx, { ...line, text: e.target.value })}
                             rows={2}
-                            placeholder="Line text…"
+                            placeholder={t("lineText")}
                             className="input text-sm resize-none"
                         />
                     </div>
                 ))}
 
                 <button type="button" onClick={addLine} className="text-sm text-accent self-start">
-                    + Add line
+                    {t("addLine")}
                 </button>
             </fieldset>
         </div>

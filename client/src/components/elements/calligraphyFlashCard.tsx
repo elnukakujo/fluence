@@ -18,6 +18,7 @@ import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 
 export default function CalligraphyFlashCard({ calligraphies }: { calligraphies: Calligraphy[] }) {
     const t = useTranslations("calligraphy");
+    const tElements = useTranslations("elements");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const calligraphy: Calligraphy = calligraphies[currentIndex];
     const startTimeRef = useRef<number>(performance.now());
@@ -165,7 +166,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                         </button>
                     ) : (
                         <BackButton>
-                            <p>Back to Lesson</p>
+                            <p>{t("backToLesson")}</p>
                         </BackButton>
                     )}
                 </>

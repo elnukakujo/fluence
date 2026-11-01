@@ -67,7 +67,7 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
               value={dailyGoal}
               onChange={(e) => setDailyGoal(Number(e.target.value))}
               disabled={saving}
-              aria-label={t("dailyGoal")}
+              aria-label={t("dailyGoalAria")}
             />
             <input
               type="number"
@@ -78,7 +78,7 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
               value={dailyGoal}
               onChange={(e) => setDailyGoal(Number(e.target.value))}
               disabled={saving}
-              aria-label={t("dailyGoal")}
+              aria-label={t("dailyGoalValueAria")}
             />
             <span className="text-sm opacity-60">{t("dailyGoalUnit")}</span>
           </div>

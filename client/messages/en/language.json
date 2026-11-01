@@ -45,5 +45,10 @@
   "lessonDescription": "Description",
   "enterLessonDescription": "Enter lesson description",
   "addLesson": "Add Lesson",
-  "updateLesson": "Update Lesson"
+  "updateLesson": "Update Lesson",
+  "tagsLabel": "Tags",
+  "sourcesLabel": "Sources",
+  "createFailed": "Failed to create language. Check console for details.",
+  "updateFailed": "Failed to update language. Check console for details.",
+  "lastUpdatedMessage": "Last updated"
 }

@@ -102,7 +102,7 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
                             {t("nextButton")}
                         </button>
                     ) : (
-                        <BackButton>Back to lesson</BackButton>
+                        <BackButton>{t("backToLesson")}</BackButton>
                     )}
                 </>
             )}

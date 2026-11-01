@@ -113,7 +113,7 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
             router.refresh();
         } catch (error) {
             console.error(`Failed to ${isUpdate ? "update" : "create"} language:`, error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} language. Check console for details.`);
+            alert(t(isUpdate ? "updateFailed" : "createFailed"));
         } finally {
             setIsSubmitting(false);
         }

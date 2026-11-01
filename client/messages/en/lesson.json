@@ -5,5 +5,7 @@
   "enterLessonDescription": "Enter lesson description",
   "level": "Level",
   "addLesson": "Add Lesson",
-  "updateLesson": "Update Lesson"
+  "updateLesson": "Update Lesson",
+  "createFailed": "Failed to create lesson. Check console for details.",
+  "updateFailed": "Failed to update lesson. Check console for details."
 }

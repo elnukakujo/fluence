@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { pageImageUrl, uploadMedia } from "@/api/ingestion";
 import type { Row } from "@/lib/ingestion/review";
 
@@ -9,6 +10,7 @@ import type { Row } from "@/lib/ingestion/review";
 export default function MediaFields({ row, jobId, ttsAvailable, onPatch }: {
   row: Row; jobId: string; ttsAvailable: boolean; onPatch: (change: Partial<Row>) => void;
 }) {
+  const t = useTranslations("ingestion");
   const [error, setError] = useState<string | null>(null);
   const crop = row.candidate.image_crop;
   const lines = row.candidate.audio_lines ?? [];
@@ -19,10 +21,10 @@ export default function MediaFields({ row, jobId, ttsAvailable, onPatch }: {
     setError(null);
     try {
       const r = await uploadMedia(jobId, file);
-      if (r.kind !== kind) return setError(kind === "image" ? "Choose a picture file" : "Choose an audio file");
+      if (r.kind !== kind) return setError(kind === "image" ? t("chooseImageFile") : t("chooseAudioFile"));
       done({ id: r.id, name: file.name });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not upload this file");
+      setError(e instanceof Error ? e.message : t("couldNotUploadFile"));
     }
   };
 
@@ -31,11 +33,11 @@ export default function MediaFields({ row, jobId, ttsAvailable, onPatch }: {
   const cw = x1 - x0, ch = y1 - y0;
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-dashed border-gray-300 p-3 dark:border-gray-700" aria-label="Support media">
+    <div className="flex flex-col gap-3 rounded border border-dashed border-gray-300 p-3 dark:border-gray-700" aria-label={t("supportMedia")}>
       {crop && (
         <div className="flex flex-col gap-2">
-          <p className="field-label">Picture found next to this item</p>
-          <div role="img" aria-label="Cropped picture from the page" className="w-full max-w-xs rounded border border-gray-300 bg-white bg-no-repeat dark:border-gray-700"
+          <p className="field-label">{t("pictureFound")}</p>
+          <div role="img" aria-label={t("croppedPictureAlt")} className="w-full max-w-xs rounded border border-gray-300 bg-white bg-no-repeat dark:border-gray-700"
             style={{
               aspectRatio: `${cw} / ${ch}`,
               backgroundImage: `url(${pageImageUrl(jobId, crop.page + 1)})`,
@@ -45,24 +47,23 @@ export default function MediaFields({ row, jobId, ttsAvailable, onPatch }: {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={!!row.useCrop && !row.imageUpload} disabled={!!row.imageUpload}
               onChange={(e) => onPatch({ useCrop: e.target.checked })} />
-            Add it as the support image
+            {t("addItAsImage")}
           </label>
         </div>
       )}
       <div className="flex flex-col gap-1">
-        <label className="field-label" htmlFor={`img-${row.candidate.id}`}>{crop ? "Or use my own picture" : "Support picture (optional)"}</label>
+        <label className="field-label" htmlFor={`img-${row.candidate.id}`}>{crop ? t("orUseOwnPicture") : t("supportPictureOptional")}</label>
         <input id={`img-${row.candidate.id}`} className="input" type="file" accept="image/*"
           onChange={(e) => upload(e.target.files?.[0], "image", (u) => onPatch({ imageUpload: u }))} />
         {row.imageUpload && (
-          <p className="text-sm">Using {row.imageUpload.name}{" "}
-            <button type="button" className="link underline" onClick={() => onPatch({ imageUpload: undefined })}>Remove</button></p>
+          <p className="text-sm">{t("usingFile", { name: row.imageUpload.name })}{" "}
+            <button type="button" className="link underline" onClick={() => onPatch({ imageUpload: undefined })}>{t("removeButton")}</button></p>
         )}
       </div>
       {lines.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="field-label">
-            Audio: {lines.length} clip{lines.length === 1 ? "" : "s"}
-            {ttsAvailable ? " - made with your text-to-speech endpoint when you add the lesson, unless you replace a clip" : " - no text-to-speech endpoint is set up, so add your own clips or leave it without sound"}
+            {t(ttsAvailable ? "audioSummaryTts" : "audioSummaryNoTts", { count: lines.length })}
           </p>
           <ul className="flex flex-col gap-2">
             {lines.map((line, i) => (
@@ -73,9 +74,9 @@ export default function MediaFields({ row, jobId, ttsAvailable, onPatch }: {
                     <button type="button" className="link underline" onClick={() => {
                       const { [i]: _gone, ...rest } = row.audioUploads ?? {};
                       onPatch({ audioUploads: rest });
-                    }}>Remove</button></span>
+                    }}>{t("removeButton")}</button></span>
                 ) : (
-                  <input type="file" accept="audio/*" aria-label={`Replace the audio of line ${i + 1}`} className="input w-auto"
+                  <input type="file" accept="audio/*" aria-label={t("replaceAudioLine", { n: i + 1 })} className="input w-auto"
                     onChange={(e) => upload(e.target.files?.[0], "audio", (u) => onPatch({ audioUploads: { ...row.audioUploads, [i]: u } }))} />
                 )}
               </li>

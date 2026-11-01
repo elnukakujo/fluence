@@ -10,13 +10,13 @@ export default async function NewUserPage() {
                 <section className="card flex w-full max-w-md flex-col gap-6 p-8">
                     <header className="flex flex-col items-center gap-2 text-center">
                         <h1 className="text-3xl">Fluence</h1>
-                        <p className="text-sm text-muted">{t("buttons.save")}</p>
+                        <p className="text-sm text-muted">{t("createAccountTagline")}</p>
                     </header>
 
                     <UserForm />
 
                     <footer className="text-center text-sm text-muted">
-                        Already registered? <Link href="/">Sign in</Link>
+                        {t("alreadyRegistered")} <Link href="/">{t("signInLink")}</Link>
                     </footer>
                 </section>
             </div>

@@ -49,5 +49,6 @@
   "calligraphySheet": "Feuille de calligraphie",
   "updateCalligraphy": "Mettre à jour la calligraphie",
   "calligraphyFlashcard": "Flashcard de calligraphie",
-  "deleteCalligraphyButton": "Supprimer la calligraphie"
+  "deleteCalligraphyButton": "Supprimer la calligraphie",
+  "updateInformations": "Mettre à jour les informations"
 }

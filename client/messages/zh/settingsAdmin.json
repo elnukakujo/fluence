@@ -12,6 +12,14 @@
     "addButton": "+ 添加端点",
     "purpose": "目的",
     "selectPurpose": "选择目的…",
+    "purposeTextGen": "文本生成",
+    "purposeTTS": "文本转语音",
+    "purposeOCR": "文档提取（OCR）",
+    "typeTextGen": "文本生成",
+    "typeTTS": "TTS",
+    "typeBoth": "两者",
+    "typeOCR": "OCR",
+    "active": "活跃",
     "provider": "提供商",
     "selectProvider": "选择提供商…",
     "voice": "语音",
@@ -68,7 +76,9 @@
       "legacy": "两者（旧版）"
     },
     "deleteConfirm": "删除 \"{name}\" ？",
-    "deleteSuccess": "端点已保存"
+    "deleteSuccess": "端点已保存",
+    "modelWarning": "请先输入基础 URL",
+    "unnamedEndpoint": "未命名端点"
   },
   "backups": {
     "title": "备份",
@@ -84,6 +94,7 @@
     "restore": "恢复",
     "download": "下载",
     "delete": "删除",
+    "notYetImplemented": "尚未实现",
     "restoreConfirm": "从 \"{name}\" 恢复数据库？这将覆盖当前数据。",
     "confirmRestore": "确认恢复",
     "deleteConfirm": "删除备份 \"{name}\" ？",
@@ -94,6 +105,7 @@
       "auto": "自动",
       "manual": "手动"
     },
+    "latest": "最新",
     "cancel": "取消"
   },
   "logs": {

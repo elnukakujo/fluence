@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 export default function TrueFalseInput({
   value,
   onChange,
@@ -12,6 +14,7 @@ export default function TrueFalseInput({
   label?: string;
   className?: string;
 }) {
+  const t = useTranslations("exercises");
   return (
     <div className={`flex flex-col space-y-2 ${className}`}>
       <label className="text-sm font-medium text-foreground">
@@ -27,7 +30,7 @@ export default function TrueFalseInput({
             className="h-4 w-4 text-accent border-border rounded focus:ring-accent"
             {...props}
           />
-          <span className="ml-2">True</span>
+          <span className="ml-2">{t("true")}</span>
         </label>
         <label className="inline-flex items-center">
           <input
@@ -38,7 +41,7 @@ export default function TrueFalseInput({
             className="h-4 w-4 text-accent border-border rounded focus:ring-accent"
             {...props}
           />
-          <span className="ml-2">False</span>
+          <span className="ml-2">{t("false")}</span>
         </label>
       </div>
     </div>

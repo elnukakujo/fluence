@@ -2,12 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import StepProgress from "./stepProgress";
 import { ACTIVE_STATUSES, type Job, deleteJob, listJobs } from "@/api/ingestion";
-
-const LABEL: Record<Job["status"], string> = {
-  queued: "Waiting", parsing: "Reading…", pages: "Choose content types", structure: "Choose the lessons", extracting: "Finding the content…", ready: "Ready to review", failed: "Failed",
-};
 
 export type IndicatorState = "running" | "attention" | "ready" | "failed" | "idle";
 
@@ -23,10 +20,6 @@ export function stepOf(j: Pick<Job, "status">): 1 | 2 | 3 {
   return j.status === "pages" || j.status === "structure" ? 2 : j.status === "extracting" || j.status === "ready" ? 3 : 1;
 }
 
-const STATE_TEXT: Record<IndicatorState, string> = {
-  running: "import running", attention: "import waiting for you", ready: "import ready to review", failed: "import failed", idle: "no active import",
-};
-
 function StateIcon({ state }: { state: IndicatorState }) {
   const common = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.5, strokeLinecap: "round" as const, "aria-hidden": true };
   if (state === "running") return <svg {...common} className="animate-spin" data-testid="spinner"><path d="M12 3a9 9 0 1 0 9 9" /></svg>;
@@ -38,6 +31,7 @@ function StateIcon({ state }: { state: IndicatorState }) {
 
 // Scans take minutes, so imports outlive the page that started them: this is the way back.
 export default function ImportsIndicator() {
+  const t = useTranslations("ingestion");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -75,8 +69,8 @@ export default function ImportsIndicator() {
 
   return (
     <div className="relative" ref={box} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}>
-      <button type="button" className="btn btn-secondary" aria-expanded={open} aria-haspopup="true" aria-label={`Imports: ${STATE_TEXT[state]}`} onClick={() => setOpen((o) => !o)}>
-        <span className="inline-flex items-center gap-2"><StateIcon state={state} />Imports</span>{count > 0 && <span className="badge ml-2" aria-label={running ? `${running} running` : `${ready} ready`}>{count}</span>}
+      <button type="button" className="btn btn-secondary" aria-expanded={open} aria-haspopup="true" aria-label={t("importsAriaLabel", { state: t(`indicatorState_${state}`) })} onClick={() => setOpen((o) => !o)}>
+        <span className="inline-flex items-center gap-2"><StateIcon state={state} />{t("importsLabel")}</span>{count > 0 && <span className="badge ml-2" aria-label={running ? t("runningCount", { count: running }) : t("readyCount", { count: ready })}>{count}</span>}
       </button>
       {open && (
         <ul className="card absolute left-0 top-full z-40 mt-2 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 text-sm shadow-lg sm:left-auto sm:right-0">
@@ -87,11 +81,11 @@ export default function ImportsIndicator() {
                   href={j.lesson_id ? `/languages/${j.language_id}/lesson/${j.lesson_id}/import?job=${j.id}` : `/languages/${j.language_id}/import?job=${j.id}`}>
                   {j.filename}
                 </Link>
-                <StepProgress step={stepOf(j)} second={j.lesson_id ? "Choose the pages" : "Choose the lessons"} />
-                <span className="opacity-70">{j.finished ? "Added - nothing left to do" : LABEL[j.status]}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}</span>
+                <StepProgress step={stepOf(j)} second={j.lesson_id ? t("chooseThePages") : t("chooseTheLessons")} />
+                <span className="opacity-70">{j.finished ? t("addedNothingLeft") : t(`jobStatus_${j.status}`)}{j.status === "extracting" && j.pages_total > 0 ? ` ${j.pages_done}/${j.pages_total}` : ""}</span>
               </div>
               {!ACTIVE_STATUSES.includes(j.status) && (
-                <button type="button" className="btn btn-secondary" aria-label={`Remove import ${j.filename}`}
+                <button type="button" className="btn btn-secondary" aria-label={t("removeImport", { filename: j.filename })}
                   onClick={async () => { await deleteJob(j.id).catch(() => undefined); load(); }}>×</button>
               )}
             </li>

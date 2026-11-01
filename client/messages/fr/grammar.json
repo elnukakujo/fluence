@@ -18,5 +18,6 @@
   "updateButton": "Mettre à jour la grammaire",
   "addButton": "Ajouter une grammaire",
   "updateFailure": "Échec de la mise à jour de la grammaire. Consultez la console pour plus de détails.",
-  "createFailure": "Échec de la création de la grammaire. Consultez la console pour plus de détails."
+  "createFailure": "Échec de la création de la grammaire. Consultez la console pour plus de détails.",
+  "backToLesson": "Retour à la leçon"
 }

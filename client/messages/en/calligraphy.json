@@ -40,5 +40,7 @@
   "mastery": "Mastery",
   "noStrokeData": "No stroke data available for this character.",
   "wrongStroke": "Wrong stroke — try again",
-  "clearButton": "Clear"
+  "clearButton": "Clear",
+  "backToLesson": "Back to Lesson",
+  "resolveConflictError": "Failed to resolve conflict. Check console for details."
 }

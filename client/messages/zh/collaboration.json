@@ -67,5 +67,6 @@
   "incomingSharedLabel": "{count} 个与您共享",
   "incomingSharedTitle": "{count} 个课程由他人与您共享",
   "sharedWithYou": "由其所有者与您共享",
-  "noLessonsYet": "暂无课程。"
+  "noLessonsYet": "该语言暂无课程。",
+  "pickAtLeastOneEnable": "请至少选择一节课程以启用邀请。"
 }

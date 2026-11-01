@@ -50,7 +50,9 @@
     "dailyGoalUnit": "min / jour",
     "learningGoals": "Objectifs d'apprentissage",
     "learningGoalsPlaceholder": "Qu'aimeriez-vous réaliser ? par ex. Lire un roman, avoir une conversation...",
-    "exerciseTypes": "Types d'exercices préférés"
+    "exerciseTypes": "Types d'exercices préférés",
+    "dailyGoalAria": "Objectif quotidien en minutes",
+    "dailyGoalValueAria": "Valeur de l'objectif quotidien en minutes"
   },
   "aiFeatures": {
     "title": "Fonctionnalités IA",
@@ -72,9 +74,15 @@
   "buttons": {
     "save": "Enregistrer les modifications",
     "saveSuccess": "Enregistré",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "notSet": "Non défini"
   },
   "errors": {
     "generic": "Une erreur s'est produite"
-  }
+  },
+  "sectionsAriaLabel": "Sections des paramètres",
+  "createAccountTagline": "Créez votre compte pour commencer à apprendre.",
+  "alreadyRegistered": "Déjà inscrit ?",
+  "signInLink": "Se connecter"
 }

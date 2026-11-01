@@ -22,5 +22,8 @@
   "lastSeen": "最后看到",
   "strokeCount": "{n} 笔",
   "exampleSentences": "例句",
-  "exampleWords": "例词"
+  "exampleWords": "例词",
+  "backToLanguage": "返回语言",
+  "clickToReveal": "点击展示",
+  "resolveConflictError": "无法解决冲突。查看控制台了解详情。"
 }

@@ -9,17 +9,17 @@ import BackButton from "@/components/ui/buttons/backButton";
 import ProgressBar from "../ui/progressBar";
 
 const EXERCISE_TYPE_LABELS: Record<string, string> = {
-    essay: "exercises.essay",
-    answering: "exercises.answering",
-    translate: "exercises.translate",
-    organize: "exercises.organize",
-    type_in_the_blank: "exercises.typeInTheBlank",
-    select_in_the_blank: "exercises.selectInTheBlank",
-    matching: "exercises.matching",
-    true_false: "exercises.trueFalse",
-    speaking: "exercises.speaking",
-    conversation: "exercises.conversation",
-    quizz: "exercises.quizz",
+    essay: "essay",
+    answering: "answering",
+    translate: "translate",
+    organize: "organize",
+    type_in_the_blank: "typeInTheBlank",
+    select_in_the_blank: "selectInTheBlank",
+    matching: "matching",
+    true_false: "trueFalse",
+    speaking: "speaking",
+    conversation: "conversation",
+    quizz: "quizz",
 };
 
 export default function ExercisePractice( { exercise_lists } : { exercise_lists: Exercise[] }) {
@@ -39,7 +39,7 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
                 total={exercise_lists.length}
             />
             <div className="flex items-center justify-between">
-                <span className="badge">{EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""] ?? currentExercise.exercise_type}</span>
+                <span className="badge">{EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""] ? t(EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""]) : currentExercise.exercise_type}</span>
             </div>
             <div key={currentExercise.id ?? currentIndex} className="animate-fade-in">
                 <ExerciseRunner exercise={currentExercise} />

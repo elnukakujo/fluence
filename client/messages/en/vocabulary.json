@@ -22,5 +22,7 @@
   "updateButton": "Update Vocabulary",
   "addButton": "Add Vocabulary",
   "updateFailure": "Failed to update vocabulary. Check console for details.",
-  "createFailure": "Failed to create vocabulary. Check console for details."
+  "createFailure": "Failed to create vocabulary. Check console for details.",
+  "backToLesson": "Back to lesson",
+  "resolveConflictError": "Failed to resolve conflict. Check console for details."
 }

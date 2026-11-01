@@ -26,5 +26,13 @@
   "imageViewerViewFullSize": "查看全尺寸",
   "imageViewerClose": "关闭",
   "imageViewerZoomOut": "缩小",
-  "imageViewerZoomIn": "放大"
+  "imageViewerZoomIn": "放大",
+  "mediaLoaderImage": "图像",
+  "mediaLoaderUploadImage": "上传图像",
+  "mediaLoaderClearImages": "清除图像",
+  "mediaLoaderAudio": "音频",
+  "mediaLoaderUploadAudio": "上传音频",
+  "mediaLoaderClearAudios": "清除音频",
+  "mediaLoaderPreview": "预览",
+  "imageViewerResetZoom": "重置缩放"
 }

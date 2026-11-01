@@ -49,5 +49,6 @@
   "calligraphySheet": "Calligraphy Sheet",
   "updateCalligraphy": "Update Calligraphy",
   "calligraphyFlashcard": "Calligraphy Flashcard",
-  "deleteCalligraphyButton": "Delete Calligraphy"
+  "deleteCalligraphyButton": "Delete Calligraphy",
+  "updateInformations": "Update the informations"
 }

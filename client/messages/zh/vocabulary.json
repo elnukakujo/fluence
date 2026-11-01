@@ -22,5 +22,7 @@
   "updateButton": "更新词汇",
   "addButton": "添加词汇",
   "updateFailure": "词汇更新失败。查看控制台了解详情。",
-  "createFailure": "词汇创建失败。查看控制台了解详情。"
+  "createFailure": "词汇创建失败。查看控制台了解详情。",
+  "backToLesson": "返回课程",
+  "resolveConflictError": "无法解决冲突。查看控制台了解详情。"
 }

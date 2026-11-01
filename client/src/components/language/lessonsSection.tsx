@@ -157,7 +157,7 @@ export default function LessonsSection({
 
                                 {options.tags.length > 0 && (
                                     <div>
-                                        <p className="filter-group-label">Tags</p>
+                                        <p className="filter-group-label">{t("tagsLabel")}</p>
                                         <div className="filter-chips">
                                             {options.tags.map(tag => (
                                                 <button
@@ -175,7 +175,7 @@ export default function LessonsSection({
 
                                 {options.sources.length > 0 && (
                                     <div>
-                                        <p className="filter-group-label">Sources</p>
+                                        <p className="filter-group-label">{t("sourcesLabel")}</p>
                                         <div className="filter-chips">
                                             {options.sources.map(source => (
                                                 <button

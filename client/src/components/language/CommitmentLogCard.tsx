@@ -27,7 +27,7 @@ export default function CommitmentLogCard({ commitmentLog }: { commitmentLog: Co
         <section className="flex flex-col gap-3 text-sm">
             <div className="flex items-center justify-between gap-4">
                 <h4 className="font-serif text-base text-ink">{t("commitment")}</h4>
-                <DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} message={t("lastUpdated")} withTime />
+                <DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} message={t("lastUpdatedMessage")} withTime />
             </div>
 
             <div className="flex flex-row gap-3 overflow-x-auto">

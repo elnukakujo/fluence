@@ -40,5 +40,7 @@
   "mastery": "掌握程度",
   "noStrokeData": "此字符没有笔划数据。",
   "wrongStroke": "错误的笔划 — 请重试",
-  "clearButton": "清除"
+  "clearButton": "清除",
+  "backToLesson": "返回课程",
+  "resolveConflictError": "无法解决冲突。查看控制台了解详情。"
 }

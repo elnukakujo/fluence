@@ -111,7 +111,7 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
             await submit(element, onConflict);
         } catch (error) {
             console.error("Failed to resolve vocabulary conflict:", error);
-            alert("Failed to resolve conflict. Check console for details.");
+            alert(t("resolveConflictError"));
         } finally {
             setIsSubmitting(false);
         }

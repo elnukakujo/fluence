@@ -168,7 +168,7 @@ export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercis
                     {currentLevel && <p>{t("level")}{currentLevel.label} ({currentLevel.stars})</p>}
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">{t("correctAnswers")}</p>
+                            <p className="font-medium">{t("correctAnswersLabel")}</p>
                             <div className="flex gap-2 mt-1">
                                 {correctAnswers.map((ans, i) => (
                                 <span key={i} className="badge">{ans}</span>

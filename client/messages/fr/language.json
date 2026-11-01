@@ -45,5 +45,10 @@
   "lessonDescription": "Description",
   "enterLessonDescription": "Entrez la description du cours",
   "addLesson": "Ajouter un Cours",
-  "updateLesson": "Mettre à Jour le Cours"
+  "updateLesson": "Mettre à Jour le Cours",
+  "tagsLabel": "Étiquettes",
+  "sourcesLabel": "Sources",
+  "createFailed": "Impossible de créer la langue. Consultez la console pour plus de détails.",
+  "updateFailed": "Impossible de mettre à jour la langue. Consultez la console pour plus de détails.",
+  "lastUpdatedMessage": "Dernière mise à jour"
 }

@@ -50,7 +50,9 @@
     "dailyGoalUnit": "分钟 / 天",
     "learningGoals": "学习目标",
     "learningGoalsPlaceholder": "您想实现什么？例如 读一部小说、进行对话...",
-    "exerciseTypes": "偏好的练习类型"
+    "exerciseTypes": "偏好的练习类型",
+    "dailyGoalAria": "每日目标（分钟）",
+    "dailyGoalValueAria": "每日目标分钟数"
   },
   "aiFeatures": {
     "title": "AI 功能",
@@ -72,9 +74,15 @@
   "buttons": {
     "save": "保存更改",
     "saveSuccess": "已保存",
-    "cancel": "取消"
+    "cancel": "取消",
+    "edit": "编辑",
+    "notSet": "未设置"
   },
   "errors": {
     "generic": "发生了一个错误"
-  }
+  },
+  "sectionsAriaLabel": "设置分区",
+  "createAccountTagline": "创建账号，开始学习。",
+  "alreadyRegistered": "已有账号？",
+  "signInLink": "登录"
 }

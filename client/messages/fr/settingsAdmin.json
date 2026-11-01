@@ -12,6 +12,14 @@
     "addButton": "+ Ajouter un point d'accès",
     "purpose": "Objectif",
     "selectPurpose": "Sélectionnez l'objectif…",
+    "purposeTextGen": "Génération de texte",
+    "purposeTTS": "Synthèse vocale",
+    "purposeOCR": "Extraction de documents (OCR)",
+    "typeTextGen": "Génération de texte",
+    "typeTTS": "TTS",
+    "typeBoth": "Les deux",
+    "typeOCR": "OCR",
+    "active": "Actif",
     "provider": "Fournisseur",
     "selectProvider": "Sélectionnez le fournisseur…",
     "voice": "Voix",
@@ -68,7 +76,9 @@
       "legacy": "Les deux (hérité)"
     },
     "deleteConfirm": "Supprimer \"{name}\" ?",
-    "deleteSuccess": "Points d'accès enregistrés"
+    "deleteSuccess": "Points d'accès enregistrés",
+    "modelWarning": "Saisissez d'abord une URL de base",
+    "unnamedEndpoint": "Point d'accès sans nom"
   },
   "backups": {
     "title": "Sauvegardes",
@@ -84,6 +94,7 @@
     "restore": "Restaurer",
     "download": "Télécharger",
     "delete": "Supprimer",
+    "notYetImplemented": "Pas encore implémenté",
     "restoreConfirm": "Restaurer la base de données à partir de \"{name}\" ? Cela écrasera les données actuelles.",
     "confirmRestore": "Confirmer la restauration",
     "deleteConfirm": "Supprimer la sauvegarde \"{name}\" ?",
@@ -94,6 +105,7 @@
       "auto": "Automatique",
       "manual": "Manuel"
     },
+    "latest": "Dernier",
     "cancel": "Annuler"
   },
   "logs": {

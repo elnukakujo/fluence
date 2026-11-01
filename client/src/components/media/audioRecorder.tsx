@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { MediaRecorder, register } from "extendable-media-recorder";
 import { connect } from "extendable-media-recorder-wav-encoder";
 import { uploadAudio } from "@/api/process";
@@ -28,6 +29,7 @@ interface AudioRecorderProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioRecorderProps) {
+    const t = useTranslations("media");
     const [status, setStatus] = useState<Status>("idle");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [errorMsg, setErrorMsg] = useState<string>("");
@@ -123,7 +125,7 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
                         disabled={isProcessing}
                         className="btn btn-danger"
                     >
-                        🎙 {hasRecording ? "Re-record" : "Record"}
+                        🎙 {hasRecording ? t("audioRecorderReRecord") : t("audioRecorderRecord")}
                     </button>
                 ) : (
                     <button
@@ -131,15 +133,15 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
                         onClick={stopRecording}
                         className="btn btn-secondary"
                     >
-                        ⏹ Stop
+                        ⏹ {t("audioRecorderStop")}
                     </button>
                 )}
 
                 {status === "processing" && (
-                    <span className="text-sm text-muted animate-pulse">Encoding audio…</span>
+                    <span className="text-sm text-muted animate-pulse">{t("audioRecorderEncodingAudio")}</span>
                 )}
                 {status === "uploading" && (
-                    <span className="text-sm text-muted animate-pulse">Uploading…</span>
+                    <span className="text-sm text-muted animate-pulse">{t("audioRecorderUploading")}</span>
                 )}
 
                 {hasRecording && (
@@ -149,7 +151,7 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
 
             {status === "error" && (
                 <span className="text-sm text-danger">
-                    Error: {errorMsg || "Something went wrong — check the console."}
+                    {t("audioRecorderError", { error: errorMsg || t("audioRecorderCheckConsole") })}
                 </span>
             )}
         </div>

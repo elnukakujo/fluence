@@ -12,7 +12,7 @@ import PagePanel from "./pagePanel";
 import MediaFields from "./mediaFields";
 import ReviewCard from "./reviewCard";
 
-const TAB_LABEL: Record<RowKind, string> = { vocabulary: "Vocabulary", grammar: "Grammar", calligraphy: "Calligraphy", exercise: "Exercises" };
+const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
   vocabulary: ["translation", "phonetic", "word_type"], calligraphy: ["meaning", "phonetic", "radical", "strokes"],
 };
@@ -55,7 +55,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     try {
       await onAdd(toAcceptItems(rows, tts && canGenerateAudio));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add the selected items");
+      setError(e instanceof Error ? e.message : t("couldNotAddItems"));
       setSaving(false);
     }
   };
@@ -68,12 +68,12 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     const reasons = warningReasons(c);
     const info = infoNotes(c);
     const has = (code: string) => c.flags.some((f) => f.code === code);
-    const confirmedTitle = c.status === "verified" ? "Found in the document text" : "Could not be confirmed";
+    const confirmedTitle = c.status === "verified" ? t("foundInText") : t("notConfirmed");
     const footer = (
       <>
         {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
         {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
-        <p className="text-sm opacity-70">Page {c.page + 1} · "{c.quote}" <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>View page</button></p>
+        <p className="text-sm opacity-70">{t("pageQuote", { page: c.page + 1, quote: c.quote })} <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>{t("viewPage")}</button></p>
       </>
     );
     const common = {
@@ -86,19 +86,19 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("grammar_generated");
       return (
         <ReviewCard {...common} summary={<><strong>{row.title}</strong> <span className="opacity-70">{clip(row.explanation ?? "")}</span></>}
-          badge={generated ? "✎ Generated" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
-          badgeTitle={generated ? "Written by the model from the page text - check it" : confirmedTitle}>
+          badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
+          badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>
           <label className="flex flex-col gap-1">
-            <span className="field-label">Title</span>
+            <span className="field-label">{t("title")}</span>
             <input className="input" value={row.title || ""} onChange={(e) => patch(c.id, { title: e.target.value })} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="field-label">Explanation</span>
+            <span className="field-label">{t("explanation")}</span>
             <textarea className="input input-grow min-h-40" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
           </label>
           {row.original_text && (
             <details className="text-sm">
-              <summary className="cursor-pointer">Original page text</summary>
+              <summary className="cursor-pointer">{t("originalPageText")}</summary>
               <p className="mt-2 whitespace-pre-wrap rounded bg-gray-100 p-2 text-xs opacity-70 dark:bg-gray-900">{row.original_text}</p>
             </details>
           )}
@@ -108,20 +108,20 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     if (kind === "calligraphy") {
       return (
         <ReviewCard {...common} existing={c.existing} summary={<><span className="mr-2 text-2xl">{row.character}</span>{row.meaning}</>}
-          badge={c.status === "verified" ? "✓ Found in text" : "⚠ Check this"} badgeTitle={confirmedTitle}>
+          badge={c.status === "verified" ? t("verifiedBadge") : t("checkBadge")} badgeTitle={confirmedTitle}>
           <div className="flex flex-wrap gap-3">
             <label className="flex min-w-16 flex-col gap-1">
-              <span className="field-label">Character</span>
+              <span className="field-label">{t("character")}</span>
               <input className="input text-center text-2xl" value={row.character || ""} onChange={(e) => patch(c.id, { character: e.target.value })} maxLength={1} />
             </label>
             {(["phonetic", "meaning", "radical"] as const).map((key) => (
               <label key={key} className="flex min-w-24 flex-1 flex-col gap-1">
-                <span className="field-label">{key}</span>
+                <span className="field-label">{t(`field_${key}`)}</span>
                 <input className="input" value={row[key] || ""} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
               </label>
             ))}
             <label className="flex min-w-20 flex-col gap-1">
-              <span className="field-label">Strokes</span>
+              <span className="field-label">{t("strokes")}</span>
               <input className="input" type="number" value={row.strokes ?? ""} onChange={(e) => patch(c.id, { strokes: e.target.value || null })} />
             </label>
           </div>
@@ -132,19 +132,19 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("answer_generated");
       return (
         <ReviewCard {...common} summary={row.exercise_type === "conversation"
-          ? <><span className="badge mr-2">conversation</span><span className="block whitespace-pre-line">{dialogueLines(row.question ?? "").join("\n")}</span></>
-          : <><span className="badge mr-2">{row.exercise_type || "exercise"}</span>{clip(row.question ?? "")}</>}
-          badge={generated ? "✎ Generated answer" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
-          badgeTitle={generated ? "The model wrote this answer, not found in the document" : confirmedTitle}>
+          ? <><span className="badge mr-2">{t("conversation")}</span><span className="block whitespace-pre-line">{dialogueLines(row.question ?? "").join("\n")}</span></>
+          : <><span className="badge mr-2">{row.exercise_type || t("exerciseFallback")}</span>{clip(row.question ?? "")}</>}
+          badge={generated ? t("generatedAnswer") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
+          badgeTitle={generated ? t("generatedAnswerTitle") : confirmedTitle}>
           <label className="flex flex-col gap-1">
-            <span className="field-label">Question</span>
+            <span className="field-label">{t("question")}</span>
             <textarea className="input input-grow" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="field-label">Answer</span>
+            <span className="field-label">{t("answer")}</span>
             <textarea className="input input-grow" value={row.answer || ""} onChange={(e) => patch(c.id, { answer: e.target.value })} />
           </label>
-          {row.content && <p className="text-sm opacity-70"><strong>Content:</strong> <code className="text-xs">{JSON.stringify(row.content)}</code></p>}
+          {row.content && <p className="text-sm opacity-70"><strong>{t("contentColon")}</strong> <code className="text-xs">{JSON.stringify(row.content)}</code></p>}
         </ReviewCard>
       );
     }
@@ -153,19 +153,19 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     return (
       <ReviewCard {...common} existing={exists}
         summary={<><strong>{row.word}</strong> {row.phonetic && <span className="opacity-70">{row.phonetic} </span>}— {row.translation}{row.word_type && <span className="opacity-60"> ({row.word_type})</span>}</>}
-        badge={generated ? "✎ Generated translation" : c.status === "verified" ? "✓ Found in text" : "⚠ Check this"}
-        badgeTitle={generated ? "The document gave no translation; the model wrote this one" : confirmedTitle}>
+        badge={generated ? t("generatedTranslation") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
+        badgeTitle={generated ? t("generatedTranslationTitle") : confirmedTitle}>
         <div className="flex flex-wrap gap-3">
           {(["word", "translation", "phonetic"] as const).map((key) => (
             <label key={key} className="flex min-w-32 flex-1 flex-col gap-1">
-              <span className="field-label">{key}</span>
+              <span className="field-label">{t(`field_${key}`)}</span>
               <input className="input" value={row[key] || ""} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
             </label>
           ))}
           <label className="flex min-w-32 flex-col gap-1">
-            <span className="field-label">type</span>
+            <span className="field-label">{t("field_type")}</span>
             <select className="input" value={row.word_type || ""} onChange={(e) => patch(c.id, { word_type: e.target.value })}>
-              {WORD_TYPES.map((t) => <option key={t} value={t}>{t || "—"}</option>)}
+              {WORD_TYPES.map((w) => <option key={w} value={w}>{w || "—"}</option>)}
             </select>
           </label>
         </div>
@@ -178,34 +178,34 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-2">
           <p aria-live="polite">
-            {counts.total} found · {counts.verified} found in the text · {counts.flagged} need your check · {counts.selected} to add
+            {t("foundStatistics", { total: counts.total, verified: counts.verified, flagged: counts.flagged, selected: counts.selected })}
           </p>
           <p className="text-xs opacity-60">
-            Only items you confirm are added. "Found in the text" means the item and its quote appear in the document; anything written by the model starts unconfirmed: compare it with the page.
+            {t("reviewExplanation")}
           </p>
         </div>
 
         {groups.length > 0 && (
-          <div role="tablist" aria-label="Kinds of element" className="flex flex-wrap gap-x-5 border-b border-gray-300 dark:border-gray-700">
+          <div role="tablist" aria-label={t("kindsOfElement")} className="flex flex-wrap gap-x-5 border-b border-gray-300 dark:border-gray-700">
             {groups.map(([k, rs]) => (
               <button key={k} type="button" role="tab" aria-selected={k === active} className="review-tab min-h-11" data-active={k === active}
                 onClick={() => setTab(k)}>
-                {TAB_LABEL[k]} {rs.filter((r) => !r.deleted).length}
+                {t(TAB_KEY[k])} {rs.filter((r) => !r.deleted).length}
               </button>
             ))}
           </div>
         )}
 
-        {counts.total === 0 && groups.length === 0 && <p className="card">Nothing was found here: no vocabulary, grammar, calligraphy or exercises.</p>}
+        {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
 
         {groups.length > 0 && (
           <div className="btn-row flex-wrap">
             {(["all", "verified", "flagged"] as Filter[]).map((f) => (
               <button key={f} type="button" className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-                {f === "all" ? "All" : f === "verified" ? "Found in the text" : "Need checking"}
+                {f === "all" ? t("filterAll") : f === "verified" ? t("filterVerified") : t("filterFlagged")}
               </button>
             ))}
-            <button type="button" className="btn btn-secondary" onClick={confirmVerified}>Confirm all verified</button>
+            <button type="button" className="btn btn-secondary" onClick={confirmVerified}>{t("confirmAllVerified")}</button>
           </div>
         )}
 
@@ -215,15 +215,15 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={tts && canGenerateAudio} disabled={!canGenerateAudio} onChange={(e) => setTts(e.target.checked)} />
             <span>
-              Make the {clips} missing audio clip{clips === 1 ? "" : "s"} with my text-to-speech endpoint (one call per clip)
-              {!canGenerateAudio && <span className="block opacity-70">Add a text-to-speech endpoint in Settings to turn this on.</span>}
+              {t("audioClips", { count: clips })}
+              {!canGenerateAudio && <span className="block opacity-70">{t("audioClipsDisabled")}</span>}
             </span>
           </label>
         )}
         {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
         <div className="btn-row flex-wrap">
           <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>
-            {saving ? "Adding…" : addLabel(counts.selected)}
+            {saving ? t("addingButton") : addLabel(counts.selected)}
           </button>
         </div>
       </div>
@@ -231,9 +231,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       <PagePanel jobId={jobId} page={focusedPage} range={pageSpan} onPage={setFocusedPage} />
 
       {preview !== null && (
-        <Modal title={`Page ${preview} of ${filename}`} onClose={() => setPreview(null)}>
+        <Modal title={t("imageViewerTitle", { page: preview, filename })} onClose={() => setPreview(null)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={pageImageUrl(jobId, preview)} alt={`The original page ${preview} of the document`} className="mx-auto max-h-[70vh]" />
+          <img src={pageImageUrl(jobId, preview)} alt={t("originalPageAltLong", { page: preview })} className="mx-auto max-h-[70vh]" />
         </Modal>
       )}
     </div>

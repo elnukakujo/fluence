@@ -17,7 +17,7 @@ export default function ExerciseList({ exProps}: { exProps: Exercise[]}) {
     return (
         <section className="card flex flex-col gap-4 w-[14rem] h-fit">
             <header>
-                <h2>Exercises</h2>
+                <h2>{t("exercises")}</h2>
                 {exProps.length > 0 ? (
                     <div className="flex flex-col gap-1">
                         <span className="text-sm text-muted">{t("totalExercises")} {exProps.length}</span>
@@ -25,7 +25,7 @@ export default function ExerciseList({ exProps}: { exProps: Exercise[]}) {
                         <DifficultyDisplay difficulty={averageDifficulty} />
                     </div>
                 ) : (
-                    <p>Empty</p>
+                    <p>{t("emptyState")}</p>
                 )}
             </header>
             <nav className="index-divider flex flex-col gap-2">

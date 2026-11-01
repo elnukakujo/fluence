@@ -74,5 +74,22 @@
   "matching": "配对",
   "trueFalse": "真/假",
   "speaking": "说话",
-  "quizz": "问卷"
+  "quizz": "问卷",
+  "exercises": "练习",
+  "emptyState": "空",
+  "lineBreakTitle": "在此段后插入换行分隔符",
+  "blankN": "空格 {n}",
+  "speakingNeedsAudio": "口语练习需要音频文件，请上传一个。",
+  "failedUpdate": "更新练习失败。详情请查看控制台。",
+  "failedCreate": "创建练习失败。详情请查看控制台。",
+  "exerciseType": "练习类型",
+  "questionLabel": "问题",
+  "associatedVocabulary": "相关词汇",
+  "associatedGrammar": "相关语法",
+  "associatedCalligraphies": "相关书法",
+  "updateExercise": "更新练习",
+  "addExercise": "添加练习",
+  "lineText": "台词文本…",
+  "correctAnswersLabel": "正确答案：",
+  "correctAnswerWas": "正确答案是："
 }

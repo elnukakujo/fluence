@@ -1,3 +1,4 @@
+import { IntlMessageFormat } from "intl-messageformat";
 import { loadMessages } from "@/i18n/loadMessages";
 
 // Components under test render real English strings from messages/en without a provider.
@@ -9,8 +10,13 @@ const get = (ns: string | undefined, key: string): string => {
   }
   return typeof cur === "string" ? cur : key;
 };
-const fill = (s: string, v?: Record<string, unknown>) =>
-  s.replace(/\{(\w+)\}/g, (_, k) => String(v?.[k] ?? `{${k}}`));
+const fill = (s: string, v?: Record<string, unknown>) => {
+  try {
+    return String(new IntlMessageFormat(s, "en").format(v as never));
+  } catch {
+    return s;
+  }
+};
 const translator = (ns?: string) => {
   const t = (key: string, v?: Record<string, unknown>) => fill(get(ns, key), v);
   t.rich = t; t.raw = (key: string) => get(ns, key);

@@ -5,6 +5,7 @@ import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import { nativeFromLocale, isLocale } from "@/i18n/locales";
 import { createUser, updateUser } from "@/api/user";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
@@ -27,6 +28,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const isUpdate = Boolean(user?.id);
     const router = useRouter();
     const t = useTranslations("userForm");
+    const tEx = useTranslations("exercises");
     const locale = useLocale();
 
     const userData: Partial<User> = user ?? {
@@ -206,6 +208,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                         <ClassicSelectMenu
                             label={t("exerciseTypes")}
                             options={EXERCISE_TYPES}
+                            optionLabel={(v) => (EXERCISE_TYPE_KEY[v] ? tEx(EXERCISE_TYPE_KEY[v]) : undefined)}
                             selectedOption={exerciseTypes}
                             onChange={(selected) => setExerciseTypes(selected as string[])}
                             multiple

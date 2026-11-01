@@ -45,5 +45,8 @@
   "leaveConfirmMessage": "Leave this shared lesson? You will lose access to it, and the owner can invite you again.",
   "typeValueFor": "Type a value for {field}",
   "medium": "Medium",
-  "trivial": "Trivial"
+  "trivial": "Trivial",
+  "today": "Today",
+  "atLabel": "at",
+  "removeOption": "Remove {option}"
 }

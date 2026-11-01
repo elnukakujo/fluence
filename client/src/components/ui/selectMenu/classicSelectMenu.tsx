@@ -17,6 +17,7 @@ export default function ClassicSelectMenu({
   onChange,
   required = false,
   multiple = false,
+  optionLabel,
 }: {
   label: string;
   options: string[];
@@ -24,8 +25,11 @@ export default function ClassicSelectMenu({
   onChange: (value: string | string[]) => void;
   required?: boolean;
   multiple?: boolean;
+  /** Optional display mapping for fixed enum-like options (value stays untouched). */
+  optionLabel?: (value: string) => string | undefined;
 }) {
   const t = useTranslations("ui");
+  const tUi = useTranslations("ui");
   const [isOpen, setIsOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +46,7 @@ export default function ClassicSelectMenu({
     : "";
 
   const formatLabel = (value: string) =>
+    optionLabel?.(value) ??
     value.replace(/[-_]/g, " ").replace(/^./, (m) => m.toUpperCase());
 
   const filteredOptions = options.filter((opt) => {
@@ -110,7 +115,7 @@ export default function ClassicSelectMenu({
               type="button"
               onClick={(e) => handleRemove(opt, e)}
               className="chip-remove text-accent"
-              aria-label={`Remove ${opt}`}
+              aria-label={tUi("removeOption", { option: formatLabel(opt) })}
             >
               <FontAwesomeIcon icon={faTimes} className="text-[10px]" />
             </button>

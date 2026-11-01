@@ -45,5 +45,10 @@
   "lessonDescription": "描述",
   "enterLessonDescription": "输入课程描述",
   "addLesson": "添加课程",
-  "updateLesson": "更新课程"
+  "updateLesson": "更新课程",
+  "tagsLabel": "标签",
+  "sourcesLabel": "资源",
+  "createFailed": "无法创建语言。检查控制台获取详细信息。",
+  "updateFailed": "无法更新语言。检查控制台获取详细信息。",
+  "lastUpdatedMessage": "最后更新"
 }

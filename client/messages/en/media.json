@@ -26,5 +26,13 @@
   "imageViewerViewFullSize": "View full size",
   "imageViewerClose": "Close",
   "imageViewerZoomOut": "Zoom out",
-  "imageViewerZoomIn": "Zoom in"
+  "imageViewerZoomIn": "Zoom in",
+  "mediaLoaderImage": "Image",
+  "mediaLoaderUploadImage": "Upload Image",
+  "mediaLoaderClearImages": "Clear Image(s)",
+  "mediaLoaderAudio": "Audio",
+  "mediaLoaderUploadAudio": "Upload Audio",
+  "mediaLoaderClearAudios": "Clear Audio(s)",
+  "mediaLoaderPreview": "Preview",
+  "imageViewerResetZoom": "Reset zoom"
 }

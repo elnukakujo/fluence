@@ -77,7 +77,7 @@ export default function LessonForm({ lesson, language_id }: { lesson?: Partial<L
             router.refresh();
         } catch (error) {
             console.error(`Failed to ${isUpdate ? "update" : "create"} lesson:`, error);
-            alert(`Failed to ${isUpdate ? "update" : "create"} lesson. Check console for details.`);
+            alert(t(isUpdate ? "updateFailed" : "createFailed"));
         } finally {
             setIsSubmitting(false);
         }

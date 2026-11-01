@@ -112,7 +112,7 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
             await submit(element, onConflict);
         } catch (error) {
             console.error("Failed to resolve calligraphy conflict:", error);
-            alert("Failed to resolve conflict. Check console for details.");
+            alert(t("resolveConflictError"));
         } finally {
             setIsSubmitting(false);
         }

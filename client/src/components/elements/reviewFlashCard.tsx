@@ -49,7 +49,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
                 <p className="text-muted">{t("nothingToReview")}</p>
-                <BackButton>Back to Language</BackButton>
+                <BackButton>{t("backToLanguage")}</BackButton>
             </article>
         );
     }
@@ -94,7 +94,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                             {t("nextButton")}
                         </button>
                     ) : (
-                        <BackButton>Back to Language</BackButton>
+                        <BackButton>{t("backToLanguage")}</BackButton>
                     )}
                 </>
             ) : (
@@ -122,11 +122,11 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                                 )}
                                 {isCalligraphy(card) && (
                                     <>
-                                        <h3 className="font-serif">Character</h3>
+                                        <h3 className="font-serif">{t("characterHeading")}</h3>
                                         <CharacterCard character={card.character} hiddenTranslation={true} hiddenAdditionalInformations={true} />
                                     </>
                                 )}
-                                <p className="text-sm text-muted text-center mt-3">Click to reveal</p>
+                                <p className="text-sm text-muted text-center mt-3">{t("clickToReveal")}</p>
                             </div>
                             <div className="flashcard-face flashcard-face-back card">
                                 {isVocabulary(card) && (
@@ -182,7 +182,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                                     {t("nextButton")}
                                 </button>
                             ) : (
-                                <BackButton>Back to Language</BackButton>
+                                <BackButton>{t("backToLanguage")}</BackButton>
                             )}
                         </>
                     )}

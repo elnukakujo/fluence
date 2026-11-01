@@ -132,7 +132,7 @@ export default function TranslateExercise({ exercise }: {exercise: Exercise}){
                     </p>
                     {attempts >= 3 && !isCorrect && (
                         <div className="mt-2">
-                            <p className="font-medium">{t("correctAnswer")}</p>
+                            <p className="font-medium">{t("correctAnswerWas")}</p>
                             <p>{answer}</p>
                         </div>
                     )}

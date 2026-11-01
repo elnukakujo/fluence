@@ -43,7 +43,7 @@ export default function BackupRow({
           </span>
           {backup.is_latest && (
             <span className="badge" style={{ background: "var(--color-success)", color: "#fffbf3" }}>
-              Latest
+              {t("latest")}
             </span>
           )}
         </div>
@@ -70,7 +70,7 @@ export default function BackupRow({
           type="button"
           className="btn btn-secondary text-xs"
           disabled
-          title="Not yet implemented"
+          title={t("notYetImplemented")}
         >
           <Download size={14} />
           <span className="hidden sm:inline">{t("download")}</span>

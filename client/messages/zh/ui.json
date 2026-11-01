@@ -45,5 +45,8 @@
   "leaveConfirmMessage": "离开此共享课程？你将失去访问权限，所有者可以再次邀请你。",
   "typeValueFor": "为 {field} 输入值",
   "medium": "中等",
-  "trivial": "极简单"
+  "trivial": "极简单",
+  "today": "今天",
+  "atLabel": "在",
+  "removeOption": "移除 {option}"
 }

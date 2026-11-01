@@ -103,7 +103,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                         </button>
                     ) : (
                         <BackButton>
-                            <p>Back to Lesson</p>
+                            <p>{t("backToLesson")}</p>
                         </BackButton>
                     )}
                 </>

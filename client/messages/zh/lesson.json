@@ -5,5 +5,7 @@
   "enterLessonDescription": "输入课程描述",
   "level": "级别",
   "addLesson": "添加课程",
-  "updateLesson": "更新课程"
+  "updateLesson": "更新课程",
+  "createFailed": "无法创建课程。检查控制台获取详细信息。",
+  "updateFailed": "无法更新课程。检查控制台获取详细信息。"
 }

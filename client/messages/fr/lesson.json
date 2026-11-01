@@ -5,5 +5,7 @@
   "enterLessonDescription": "Entrez la description du cours",
   "level": "Niveau",
   "addLesson": "Ajouter un Cours",
-  "updateLesson": "Mettre à Jour le Cours"
+  "updateLesson": "Mettre à Jour le Cours",
+  "createFailed": "Impossible de créer le cours. Consultez la console pour plus de détails.",
+  "updateFailed": "Impossible de mettre à jour le cours. Consultez la console pour plus de détails."
 }

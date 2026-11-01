@@ -29,16 +29,16 @@ export default function PagePanel({ jobId, page, range, onPage }: {
       <div className={`${open ? "fixed inset-x-0 bottom-0 z-40 max-h-[65vh] overflow-auto border-t shadow-lg" : "hidden"} flex-col gap-2 border-gray-300 bg-white p-3 lg:static lg:flex lg:max-h-none lg:rounded-lg lg:border lg:p-4 lg:shadow-none dark:border-gray-700 dark:bg-gray-950 ${open ? "flex" : ""}`}>
         <div className="flex items-center justify-between gap-2">
           <button type="button" className="btn btn-secondary min-h-11" aria-label={t("previousPage")} onClick={() => onPage(shown - 1)} disabled={shown <= first}>
-            ← Prev
+            {t("prevButton")}
           </button>
           <span className="text-center text-sm font-medium" aria-live="polite">{t("pageWithRange", { shown, first, last })}</span>
           <button type="button" className="btn btn-secondary min-h-11" aria-label={t("nextPage")} onClick={() => onPage(shown + 1)} disabled={shown >= last}>
-            Next →
+            {t("nextButton")}
           </button>
         </div>
         <div className="flex items-center justify-between gap-2 text-sm">
           <label className="flex items-center gap-2">
-            <span className="opacity-70">{t("goToPage")}</span>
+            <span className="opacity-70">{t("goTo")}</span>
             <select className="input w-auto" aria-label={t("goToPage")} value={shown} onChange={(e) => onPage(Number(e.target.value))}>
               {Array.from({ length: last - first + 1 }, (_, i) => first + i).map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -50,7 +50,7 @@ export default function PagePanel({ jobId, page, range, onPage }: {
           </div>
         </div>
         {/* scroll inside the frame when zoomed; click the page for the full-size viewer */}
-        <div className="max-h-[60vh] overflow-auto rounded border border-gray-200 bg-gray-50 lg:max-h-[70vh] dark:border-gray-800 dark:bg-gray-900" tabIndex={0} aria-label="Page image, scrollable">
+        <div className="max-h-[60vh] overflow-auto rounded border border-gray-200 bg-gray-50 lg:max-h-[70vh] dark:border-gray-800 dark:bg-gray-900" tabIndex={0} aria-label={t("pageImageScrollable")}>
           <div style={{ width: `${zoom * 100}%` }}>
             <ImageViewer src={pageImageUrl(jobId, shown)} alt={t("originalPageAlt", { page: shown })} className="block w-full" />
           </div>

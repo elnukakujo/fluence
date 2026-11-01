@@ -49,5 +49,6 @@
   "calligraphySheet": "书法表",
   "updateCalligraphy": "更新书法",
   "calligraphyFlashcard": "书法闪卡",
-  "deleteCalligraphyButton": "删除书法"
+  "deleteCalligraphyButton": "删除书法",
+  "updateInformations": "更新信息"
 }

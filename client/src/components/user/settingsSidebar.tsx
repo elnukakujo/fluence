@@ -49,7 +49,7 @@ export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean
   };
 
   return (
-    <nav className="settings-sidebar" role="navigation" aria-label="Settings sections">
+    <nav className="settings-sidebar" role="navigation" aria-label={t("sectionsAriaLabel")}>
       <ul className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
         {sections.map((s) => (
           <li key={s.id}>

@@ -88,16 +88,16 @@ export default function EndpointCard({
   const [copied, setCopied] = useState(false);
 
   const TYPE_OPTIONS = [
-    { value: "text_gen", label: "Text Generation" },
-    { value: "tts", label: "Text-to-Speech" },
-    { value: "ocr", label: "Document Extraction (OCR)" },
+    { value: "text_gen", labelKey: "purposeTextGen" },
+    { value: "tts", labelKey: "purposeTTS" },
+    { value: "ocr", labelKey: "purposeOCR" },
   ] as const;
 
   const TYPE_LABELS: Record<string, string> = {
-    text_gen: "Text Gen",
-    tts: "TTS",
-    both: "Both",
-    ocr: "OCR",
+    text_gen: t("typeTextGen"),
+    tts: t("typeTTS"),
+    both: t("typeBoth"),
+    ocr: t("typeOCR"),
   };
 
   const handleCopy = async () => {
@@ -130,7 +130,7 @@ export default function EndpointCard({
 
   const modelDisabled = !endpoint.base_url;
   const testDisabled = !endpoint.base_url?.trim();
-  const modelWarning = modelDisabled ? t("modelDisabled") : null;
+  const modelWarning = modelDisabled ? t("modelWarning") : null;
   const testError = testResult && !testResult.ok ? friendlyError(testResult.error ?? t("errors.connectionFailed"), t) : null;
 
   const statusBadge = testResult
@@ -152,7 +152,7 @@ export default function EndpointCard({
           aria-expanded={expanded}
         >
           {expanded ? <ChevronUp size={16} className="shrink-0 opacity-50" /> : <ChevronDown size={16} className="shrink-0 opacity-50" />}
-          <span className="font-medium truncate">{endpoint.name || t("title")}</span>
+          <span className="font-medium truncate">{endpoint.name || t("unnamedEndpoint")}</span>
           <span className="badge">{TYPE_LABELS[endpoint.api_type ?? ""] ?? endpoint.api_type ?? "Unset"}</span>
         </button>
 
@@ -165,7 +165,7 @@ export default function EndpointCard({
 
         {endpoint.is_active && (
           <span className="badge" style={{ background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}>
-            Active
+            {t("active")}
           </span>
         )}
 
@@ -216,8 +216,8 @@ export default function EndpointCard({
               disabled={disabled}
             >
               <option value="">{t("selectPurpose")}</option>
-              {TYPE_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
+              {TYPE_OPTIONS.map(({ value, labelKey }) => (
+                <option key={value} value={value}>{t(labelKey)}</option>
               ))}
               {/* Legacy: "Both" can no longer be chosen, but saved endpoints keep it until changed */}
               {endpoint.api_type === "both" && <option value="both">{t("testResults.legacy")}</option>}

@@ -1,3 +1,5 @@
+"use client";
+
 type DateDisplayProps = {
 	date?: string | Date | null;
 	locale?: string;
@@ -6,6 +8,8 @@ type DateDisplayProps = {
     message?: string;
     // Show the time alongside the date, with "Today" in place of today's date.
     withTime?: boolean;
+    todayLabel?: string;
+    atLabel?: string;
 };
 
 const defaultOptions: Intl.DateTimeFormatOptions = {
@@ -31,6 +35,7 @@ function formatDate(
 	options?: Intl.DateTimeFormatOptions,
 	withTime?: boolean,
 	todayLabel?: string,
+	atLabel?: string,
 ): string | null {
 	if (!date) return null;
 
@@ -41,7 +46,7 @@ function formatDate(
 		const isToday = parsed.toDateString() === new Date().toDateString();
 		const datePart = isToday ? (todayLabel || "Today") : new Intl.DateTimeFormat(locale, options ?? dateWithTimeOptions).format(parsed);
 		const timePart = new Intl.DateTimeFormat(locale, timeOptions).format(parsed);
-		return `${datePart} at ${timePart}`;
+		return `${datePart} ${atLabel || "at"} ${timePart}`;
 	}
 
 	return new Intl.DateTimeFormat(locale, options ?? defaultOptions).format(parsed);
@@ -54,8 +59,10 @@ export default function DateDisplay({
 	fallback = "-",
     message,
     withTime,
+    todayLabel = "Today",
+    atLabel = "at",
 }: DateDisplayProps) {
-	const formattedDate = formatDate(date, locale, options, withTime);
+	const formattedDate = formatDate(date, locale, options, withTime, todayLabel, atLabel);
 
 	return (
 		<div className="inline-flex items-center gap-2">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, FileText } from "lucide-react";
 
 interface AudioPlayerProps {
@@ -12,7 +13,7 @@ interface AudioPlayerProps {
     onComplete?: () => void;
 }
 
-const LEVEL_LABELS  = ["Beginner", "Elementary", "Intermediate", "Upper-Int.", "Advanced", "Mastery"];
+const LEVEL_KEYS  = ["levelBeginner", "levelElementary", "levelIntermediate", "levelUpperInt", "levelAdvanced", "levelMastery"];
 const SPEED_STEPS   = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const WAVEFORM_BARS = 38;
 
@@ -29,9 +30,10 @@ function fmt(secs: number) {
 
 // ─── Waveform ─────────────────────────────────────────────────────────────────
 
-function Waveform({ progress, onSeek }: {
+function Waveform({ progress, onSeek, ariaLabel }: {
     progress: number;
     onSeek: (ratio: number) => void;
+    ariaLabel: string;
 }) {
     const ref = useRef<HTMLDivElement>(null);
 
@@ -49,7 +51,7 @@ function Waveform({ progress, onSeek }: {
             className="flex items-center gap-[2px] h-12 w-full cursor-pointer select-none"
             onClick={handleClick}
             role="slider"
-            aria-label="Seek audio"
+            aria-label={ariaLabel}
             aria-valuenow={Math.round(progress * 100)}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -85,6 +87,7 @@ export default function AudioPlayer({
   transcript,
   onComplete,
 }: AudioPlayerProps) {
+  const t = useTranslations("media");
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const [playing,        setPlaying]        = useState(false);
@@ -199,7 +202,7 @@ export default function AudioPlayer({
                   </span>
                   {level !== undefined && (
                     <span className={`badge level-${level}`} style={{ fontSize: "0.68rem" }}>
-                      {LEVEL_LABELS[level]}
+                      {t(LEVEL_KEYS[level])}
                     </span>
                   )}
                 </div>
@@ -216,7 +219,7 @@ export default function AudioPlayer({
       )}
 
       <div className="mt-2 mb-1">
-        <Waveform progress={progress} onSeek={seekByRatio} />
+        <Waveform progress={progress} onSeek={seekByRatio} ariaLabel={t("waveformSliderAriaLabel")} />
       </div>
 
       <div className="flex justify-between font-mono text-[0.7rem] text-muted mb-3">
@@ -225,15 +228,15 @@ export default function AudioPlayer({
       </div>
 
       <div className="flex items-center justify-center gap-3 mb-3">
-        <button type="button" className="btn btn-secondary !p-2 !rounded-full" onClick={() => skip(-5)} aria-label="Back 5 seconds">
+        <button type="button" className="btn btn-secondary !p-2 !rounded-full" onClick={() => skip(-5)} aria-label={t("audioPlayerSkipBack")}>
           <SkipBack size={16} />
         </button>
 
-        <button type="button" className="ap-play-btn" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+        <button type="button" className="ap-play-btn" onClick={togglePlay} aria-label={playing ? t("audioPlayerPause") : t("audioPlayerPlay")}>
           {playing ? <Pause size={20} /> : <Play size={20} />}
         </button>
 
-        <button type="button" className="btn btn-secondary !p-2 !rounded-full" onClick={() => skip(5)} aria-label="Forward 5 seconds">
+        <button type="button" className="btn btn-secondary !p-2 !rounded-full" onClick={() => skip(5)} aria-label={t("audioPlayerSkipForward")}>
           <SkipForward size={16} />
         </button>
       </div>
@@ -241,13 +244,13 @@ export default function AudioPlayer({
       <div className="flex items-center justify-between">
         <span className="font-mono text-[0.7rem] text-muted">
           {playCount === 0
-            ? "Not yet played"
-            : <>{`Played `}<span className="text-accent font-semibold">{playCount}×</span></>
+            ? t("audioPlayerNotYetPlayed")
+            : t("audioPlayerPlayedCount", { count: playCount })
           }
         </span>
 
         <div className="flex items-center gap-2">
-          <button type="button" className="btn btn-secondary !p-2 !rounded-full" onClick={restart} aria-label="Restart">
+          <button type="button" className="btn btn-secondary !p-2 !rounded-full" onClick={restart} aria-label={t("audioPlayerRestart")}>
             <RotateCcw size={14} />
           </button>
 
@@ -255,7 +258,7 @@ export default function AudioPlayer({
             type="button"
             className="badge cursor-pointer font-mono text-[0.72rem] hover:bg-accent hover:text-primary-foreground transition-colors"
             onClick={() => setSpeedIdx((i) => (i + 1) % SPEED_STEPS.length)}
-            aria-label="Playback speed"
+            aria-label={t("audioPlayerPlaybackSpeed")}
           >
             {SPEED_STEPS[speedIdx]}×
           </button>
@@ -266,9 +269,9 @@ export default function AudioPlayer({
               className="badge cursor-pointer hover:bg-accent hover:text-primary-foreground transition-colors flex items-center gap-1"
               onClick={() => setShowTranscript((v) => !v)}
               aria-expanded={showTranscript}
-              aria-label="Toggle transcript"
+              aria-label={t("audioPlayerToggleTranscript")}
             >
-              <FileText size={12} /> Script
+              <FileText size={12} /> {t("audioPlayerScript")}
             </button>
           )}
         </div>

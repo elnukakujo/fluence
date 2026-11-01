@@ -45,5 +45,8 @@
   "leaveConfirmMessage": "Quitter cette leçon partagée ? Vous perdrez l'accès, et le propriétaire peut vous inviter à nouveau.",
   "typeValueFor": "Tapez une valeur pour {field}",
   "medium": "Moyen",
-  "trivial": "Trivial"
+  "trivial": "Trivial",
+  "today": "Aujourd'hui",
+  "atLabel": "à",
+  "removeOption": "Retirer {option}"
 }

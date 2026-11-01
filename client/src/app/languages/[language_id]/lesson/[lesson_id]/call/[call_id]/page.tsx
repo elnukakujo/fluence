@@ -57,7 +57,7 @@ export default async function CalligraphyPage({ params }: { params: Promise<para
             </article>
             <nav className="flex flex-row space-x-4">
                 <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/call/${call_id}/update`}>
-                    {t("updateCalligraphy")}
+                    {t("updateInformations")}
                 </NavButton>
                 <DeleteButton element_id={calligraphy.id!}>{t("deleteCalligraphyButton")}</DeleteButton>
             </nav>

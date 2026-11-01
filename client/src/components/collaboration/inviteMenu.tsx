@@ -186,7 +186,7 @@ export default function InviteMenu({ targetType, targetId }: {
                 ))}
               </ul>
               {offerInvalid && lessons.length > 0 && (
-                <p className="px-1 text-xs text-muted">{t("pickAtLeastOne")}</p>
+                <p className="px-1 text-xs text-muted">{t("pickAtLeastOneEnable")}</p>
               )}
             </fieldset>
           )}

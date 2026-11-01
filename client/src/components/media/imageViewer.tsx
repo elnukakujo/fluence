@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 
 type ImageViewerProps = {
@@ -14,6 +15,7 @@ const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 
 export default function ImageViewer({ src, alt = "", className = "" }: ImageViewerProps) {
+    const t = useTranslations("media");
     const [open, setOpen] = useState(false);
     const [zoom, setZoom] = useState(1);
     const backdropRef = useRef<HTMLDivElement>(null);
@@ -54,7 +56,7 @@ export default function ImageViewer({ src, alt = "", className = "" }: ImageView
             <button
                 type="button"
                 className={`imageviewer-thumb ${className}`}
-                aria-label="View full size"
+                aria-label={t("imageViewerViewFullSize")}
                 onClick ={(e) => { e.stopPropagation(); setOpen(true); }}
                 onKeyDown={(e) => e.stopPropagation()}
             >
@@ -70,7 +72,7 @@ export default function ImageViewer({ src, alt = "", className = "" }: ImageView
                     onClick ={(e) => { e.stopPropagation(); handleBackdropClick(e); }}
                     onKeyDown={(e) => e.stopPropagation()}
                 >
-                    <button className="imageviewer-close" onClick={close} aria-label="Close">
+                    <button className="imageviewer-close" onClick={close} aria-label={t("imageViewerClose")}>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                             <path d="M1 1l12 12M13 1L1 13" />
                         </svg>
@@ -90,13 +92,13 @@ export default function ImageViewer({ src, alt = "", className = "" }: ImageView
                             className="btn btn-secondary"
                             style={{ padding: "0.25rem 0.625rem", fontSize: "1rem", lineHeight: 1 }}
                             onClick={zoomOut}
-                            aria-label="Zoom out"
+                            aria-label={t("imageViewerZoomOut")}
                             disabled={zoom <= MIN_ZOOM}
                         >−</button>
                         <button
                             className="imageviewer-zoom-label"
                             onClick={() => setZoom(1)}
-                            title="Reset zoom"
+                            title={t("imageViewerResetZoom")}
                         >
                             {Math.round(zoom * 100)}%
                         </button>
@@ -104,7 +106,7 @@ export default function ImageViewer({ src, alt = "", className = "" }: ImageView
                             className="btn btn-secondary"
                             style={{ padding: "0.25rem 0.625rem", fontSize: "1rem", lineHeight: 1 }}
                             onClick={zoomIn}
-                            aria-label="Zoom in"
+                            aria-label={t("imageViewerZoomIn")}
                             disabled={zoom >= MAX_ZOOM}
                         >+</button>
                     </div>

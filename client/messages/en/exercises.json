@@ -74,5 +74,22 @@
   "matching": "Matching",
   "trueFalse": "True / False",
   "speaking": "Speaking",
-  "quizz": "Quizz"
+  "quizz": "Quizz",
+  "exercises": "Exercises",
+  "emptyState": "Empty",
+  "lineBreakTitle": "Insert a line-break separator after this segment",
+  "blankN": "Blank {n}",
+  "speakingNeedsAudio": "Speaking exercises require an audio file. Please upload one.",
+  "failedUpdate": "Failed to update exercise. Check console for details.",
+  "failedCreate": "Failed to create exercise. Check console for details.",
+  "exerciseType": "Exercise Type",
+  "questionLabel": "Question",
+  "associatedVocabulary": "Associated Vocabulary",
+  "associatedGrammar": "Associated Grammar",
+  "associatedCalligraphies": "Associated Calligraphies",
+  "updateExercise": "Update Exercise",
+  "addExercise": "Add Exercise",
+  "lineText": "Line text…",
+  "correctAnswersLabel": "Correct answers:",
+  "correctAnswerWas": "Correct answer was:"
 }

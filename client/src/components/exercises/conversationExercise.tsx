@@ -331,7 +331,7 @@ export default function ConversationExercise({ exercise }: { exercise: Exercise 
         <form className="card flex flex-col gap-4">
             {textSupport.trim() !== "" && (
                 <section>
-                    <h3>Support</h3>
+                    <h3>{t("support")}</h3>
                     <Markdown remarkPlugins={[remarkGfm]}>{textSupport}</Markdown>
                 </section>
             )}
@@ -339,7 +339,7 @@ export default function ConversationExercise({ exercise }: { exercise: Exercise 
             {imageFiles.length > 0 && (
                 <section>
                     {imageFiles.map((src, i) => (
-                        <Image key={i} src={`${BASE_URL}${src}`} alt="Support" width={300} height={300} />
+                        <Image key={i} src={`${BASE_URL}${src}`} alt={t("support")} width={300} height={300} />
                     ))}
                 </section>
             )}

@@ -22,5 +22,8 @@
   "lastSeen": "Last seen",
   "strokeCount": "{n} strokes",
   "exampleSentences": "Example sentences",
-  "exampleWords": "Example Words"
+  "exampleWords": "Example Words",
+  "backToLanguage": "Back to Language",
+  "clickToReveal": "Click to reveal",
+  "resolveConflictError": "Failed to resolve conflict. Check console for details."
 }

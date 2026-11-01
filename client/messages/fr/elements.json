@@ -22,5 +22,8 @@
   "lastSeen": "Vu pour la dernière fois",
   "strokeCount": "{n} coups",
   "exampleSentences": "Phrases d'exemple",
-  "exampleWords": "Mots d'exemple"
+  "exampleWords": "Mots d'exemple",
+  "backToLanguage": "Retour à la langue",
+  "clickToReveal": "Cliquez pour révéler",
+  "resolveConflictError": "Impossible de résoudre le conflit. Vérifiez la console pour plus de détails."
 }

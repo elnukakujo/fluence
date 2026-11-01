@@ -12,6 +12,14 @@
     "addButton": "+ Add Endpoint",
     "purpose": "Purpose",
     "selectPurpose": "Select purpose…",
+    "purposeTextGen": "Text Generation",
+    "purposeTTS": "Text-to-Speech",
+    "purposeOCR": "Document Extraction (OCR)",
+    "typeTextGen": "Text Gen",
+    "typeTTS": "TTS",
+    "typeBoth": "Both",
+    "typeOCR": "OCR",
+    "active": "Active",
     "provider": "Provider",
     "selectProvider": "Select provider…",
     "voice": "Voice",
@@ -68,7 +76,9 @@
       "legacy": "Both (legacy)"
     },
     "deleteConfirm": "Delete \"{name}\"?",
-    "deleteSuccess": "Endpoints saved"
+    "deleteSuccess": "Endpoints saved",
+    "modelWarning": "Enter a base URL first",
+    "unnamedEndpoint": "Unnamed endpoint"
   },
   "backups": {
     "title": "Backups",
@@ -84,6 +94,7 @@
     "restore": "Restore",
     "download": "Download",
     "delete": "Delete",
+    "notYetImplemented": "Not yet implemented",
     "restoreConfirm": "Restore database from \"{name}\"? This will overwrite current data.",
     "confirmRestore": "Confirm Restore",
     "deleteConfirm": "Delete backup \"{name}\"?",
@@ -94,6 +105,7 @@
       "auto": "Auto",
       "manual": "Manual"
     },
+    "latest": "Latest",
     "cancel": "Cancel"
   },
   "logs": {
