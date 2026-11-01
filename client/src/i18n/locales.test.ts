@@ -10,6 +10,9 @@ describe("locales", () => {
     expect(pickLocale(undefined, "de;q=0.9,fr;q=0.8,en;q=0.1")).toBe("fr");
     expect(pickLocale(undefined, "en;q=0.2,zh;q=0.9")).toBe("zh");
   });
+  it("ignores languages refused with q=0", () => {
+    expect(pickLocale(undefined, "zh;q=0")).toBe("en");
+  });
   it("defaults to en", () => {
     expect(pickLocale("", null)).toBe("en");
     expect(pickLocale(undefined, "de")).toBe("en");

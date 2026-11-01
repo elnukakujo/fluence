@@ -17,6 +17,7 @@ export function pickLocale(cookie: string | undefined, acceptLanguage: string | 
       const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
       return { lang: tag.split("-")[0].toLowerCase(), q: q ? parseFloat(q.slice(2)) : 1, i };
     })
+    .filter((r) => r.q > 0)
     .sort((a, b) => b.q - a.q || a.i - b.i);
   return ranked.map((r) => r.lang).find(isLocale) ?? DEFAULT_LOCALE;
 }
