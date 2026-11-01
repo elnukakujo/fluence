@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { login, updateUserPassword } from "@/api/user";
 
 export default function LoginForm() {
     const router = useRouter();
+    const t = useTranslations("loginForm");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(false);
@@ -37,7 +39,7 @@ export default function LoginForm() {
             router.push('/');
             router.refresh();
         } catch {
-            setError("Login failed. Please try again.");
+            setError(t("loginFailed"));
         } finally {
             setSubmitting(false);
         }
@@ -53,7 +55,7 @@ export default function LoginForm() {
             router.push('/');
             router.refresh();
         } catch {
-            setError("Could not set password. Please try again.");
+            setError(t("setPasswordFailed"));
         } finally {
             setSubmitting(false);
         }
@@ -64,7 +66,7 @@ export default function LoginForm() {
             <section className="card flex w-full max-w-sm flex-col gap-6 p-8">
                 <header className="flex flex-col items-center gap-2 text-center">
                     <h1 className="text-3xl">Fluence</h1>
-                    <p className="text-sm text-muted">Become fluent. Sign in to continue.</p>
+                    <p className="text-sm text-muted">{t("tagline")}</p>
                 </header>
 
                 <form
@@ -82,7 +84,7 @@ export default function LoginForm() {
 
                     <div className="flex flex-col gap-1.5">
                         <label htmlFor="login-email" className="text-sm font-medium">
-                            Email
+                            {t("email")}
                         </label>
                         <input
                             id="login-email"
@@ -90,7 +92,7 @@ export default function LoginForm() {
                             className="input"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@example.com"
+                            placeholder={t("emailPlaceholder")}
                             autoComplete="email"
                             required
                         />
@@ -98,7 +100,7 @@ export default function LoginForm() {
 
                     <div className="flex flex-col gap-1.5">
                         <label htmlFor="login-password" className="text-sm font-medium">
-                            {needsPassword ? "Set a password" : "Password"}
+                            {needsPassword ? t("setPassword") : t("password")}
                         </label>
                         <input
                             id="login-password"
@@ -106,7 +108,7 @@ export default function LoginForm() {
                             className="input"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder={needsPassword ? "Choose a password" : "Enter password"}
+                            placeholder={needsPassword ? t("choosePasswordPlaceholder") : t("passwordPlaceholder")}
                             autoComplete={needsPassword ? "new-password" : "current-password"}
                             required
                         />
@@ -114,13 +116,13 @@ export default function LoginForm() {
 
                     {needsPassword && (
                         <p className="text-sm text-muted">
-                            This account has no password yet — set one to sign in.
+                            {t("noPasswordYet")}
                         </p>
                     )}
 
                     <div className="flex flex-col gap-3 pt-1">
                         <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
-                            <span>Show password</span>
+                            <span>{t("showPassword")}</span>
                             <input
                                 type="checkbox"
                                 className="toggle-switch"
@@ -129,7 +131,7 @@ export default function LoginForm() {
                             />
                         </label>
                         <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
-                            <span>Remember me</span>
+                            <span>{t("rememberMe")}</span>
                             <input
                                 type="checkbox"
                                 className="toggle-switch"
@@ -143,15 +145,15 @@ export default function LoginForm() {
                         {submitting ? (
                             <Ring size={18} color="#fff" />
                         ) : needsPassword ? (
-                            "Set password & sign in"
+                            t("setAndSignIn")
                         ) : (
-                            "Sign in"
+                            t("signIn")
                         )}
                     </button>
                 </form>
 
                 <footer className="text-center text-sm text-muted">
-                    New here? <Link href="/user/new">Create an account</Link>
+                    {t("newHere")} <Link href="/user/new">{t("createAccount")}</Link>
                 </footer>
             </section>
         </div>
