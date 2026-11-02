@@ -57,6 +57,8 @@ export default async function Language({ params }: { params: Promise<{ language_
                     <LessonsSection
                         lessons={allLessons}
                         language_code={language.target_iso639_2t ?? ""}
+                        languageId={language_id}
+                        canManage={isOwner}
                     />
                 )}
 

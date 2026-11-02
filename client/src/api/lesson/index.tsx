@@ -56,3 +56,24 @@ export async function leaveSharedLesson(lessonId: string) {
   if (!res.ok) throw new Error("Failed to stop sharing");
   return res.json();
 }
+
+
+async function failWith(res: Response, fallback: string): Promise<never> {
+  const body = await res.json().catch(() => null);
+  throw new Error(body?.error ?? fallback);
+}
+
+export async function reorderLessons(languageId: string, ids: string[]) {
+  const res = await fetch(`${BASE_URL}/api/lessons/reorder`, {
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ language_id: languageId, ids }),
+  });
+  if (!res.ok) await failWith(res, "Failed to reorder lessons");
+}
+
+export async function bulkDeleteLessons(ids: string[]): Promise<{ deleted: number }> {
+  const res = await fetch(`${BASE_URL}/api/lessons/bulk-delete`, {
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) return failWith(res, "Failed to delete lessons");
+  return res.json();
+}

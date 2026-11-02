@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type Lesson from "@/interface/containers/Lesson";
 import LessonOverviewCard from "@/components/lesson/lessonOverviewCard";
 import { languageProficiencySystems } from "@/utils/language_iso639";
+import ManageLessons from "./manageLessons";
 
 type FilterState = {
     tags: string[];
@@ -59,14 +60,19 @@ function lessonMatchesFilter(lesson: Lesson, filters: FilterState, levelCodes: s
 export default function LessonsSection({
     lessons,
     language_code,
+    languageId,
+    canManage = false,
 }: {
     lessons: Lesson[];
     language_code: string;
+    languageId?: string;
+    canManage?: boolean;
 }) {
     const t = useTranslations("language");
     const [query, setQuery]     = useState("");
     const [filters, setFilters] = useState<FilterState>({ tags: [], sources: [], levelCodes: [] });
     const [open, setOpen]       = useState(false);
+    const [manage, setManage]   = useState(false);
     const dropdownRef           = useRef<HTMLDivElement>(null);
 
     const proficiencySystem = languageProficiencySystems[language_code];
@@ -113,6 +119,12 @@ export default function LessonsSection({
                         onChange={e => setQuery(e.target.value)}
                     />
                 </div>
+
+                {canManage && languageId && (
+                    <button type="button" className={`btn ${manage ? "btn-primary" : "btn-secondary"}`} aria-pressed={manage} onClick={() => setManage(m => !m)}>
+                        {manage ? t("doneManaging") : t("manageLessons")}
+                    </button>
+                )}
 
                 {/* Filter trigger */}
                 {hasOptions && (
@@ -208,7 +220,10 @@ export default function LessonsSection({
             </div>
 
             {/* Results */}
-            {filtered.length > 0 ? (
+            {manage && canManage && languageId ? (
+                <ManageLessons lessons={lessons} languageId={languageId} visibleIds={new Set(filtered.map(l => l.id))}
+                    reorderLocked={query !== "" || activeFilterCount > 0} />
+            ) : filtered.length > 0 ? (
                 <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 list-none">
                     {filtered.map(lesson => (
                         <li key={lesson.id}>
