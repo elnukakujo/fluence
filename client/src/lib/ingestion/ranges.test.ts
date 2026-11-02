@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countPages, parsePageRanges } from "./ranges";
+import { countPages, expandRanges, formatRanges, parsePageRanges, toRanges } from "./ranges";
 
 const r = (start: string, end: string) => ({ start, end });
 
@@ -29,4 +29,17 @@ describe("parsePageRanges", () => {
 
 describe("countPages", () => {
   it("sums the pages of all ranges", () => expect(countPages([[1, 3], [10, 11]])).toBe(5));
+});
+
+describe("formatRanges / expandRanges / toRanges", () => {
+  it("writes ranges the way people read them", () => {
+    expect(formatRanges([[21, 28], [45, 52]])).toBe("21-28, 45-52");
+    expect(formatRanges([[5, 5], [9, 10]])).toBe("5, 9-10");
+    expect(formatRanges([])).toBe("");
+  });
+  it("expands to the pages in order and compresses back", () => {
+    expect(expandRanges([[1, 2], [5, 5]])).toEqual([1, 2, 5]);
+    expect(toRanges([1, 2, 5, 7, 8])).toEqual([[1, 2], [5, 5], [7, 8]]);
+    expect(toRanges([])).toEqual([]);
+  });
 });

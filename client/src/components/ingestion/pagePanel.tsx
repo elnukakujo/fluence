@@ -4,22 +4,31 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { pageImageUrl } from "@/api/ingestion";
 import ImageViewer from "@/components/media/imageViewer";
+import { formatRanges, toRanges } from "@/lib/ingestion/ranges";
 
 const MIN_ZOOM = 0.5, MAX_ZOOM = 3, STEP = 0.25;
 
-// The original page next to the review. Prev/Next stay inside `range` (the lesson's pages). Sticky on wide
+// The original page next to the review. Prev/Next stay inside `range` (the lesson's pages), or step through `pages`
+// when the lesson is made of separate ranges. Sticky on wide
 // screens; on narrow ones a bottom sheet opened from a button at the top.
-export default function PagePanel({ jobId, page, range, onPage }: {
+export default function PagePanel({ jobId, page, range, pages, onPage }: {
   jobId: string;
   page: number;
   range: [number, number];
+  pages?: number[];
   onPage: (page: number) => void;
 }) {
   const t = useTranslations("ingestion");
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [first, last] = range;
-  const shown = Math.min(Math.max(page, first), last);
+  const list = pages && pages.length ? pages : null;
+  const [first, last] = list ? [list[0], list[list.length - 1]] : range;
+  const shown = list ? (list.find((n) => n >= page) ?? last) : Math.min(Math.max(page, first), last);
+  const at = list ? list.indexOf(shown) : -1;
+  const prev = list ? list[at - 1] : shown - 1;
+  const next = list ? list[at + 1] : shown + 1;
+  const options = list ?? Array.from({ length: last - first + 1 }, (_, i) => first + i);
+  const span = list ? formatRanges(toRanges(list)) : `${first}-${last}`;
 
   return (
     <div className="order-first lg:order-last lg:sticky lg:top-20 lg:w-80 lg:self-start xl:w-96">
@@ -28,11 +37,11 @@ export default function PagePanel({ jobId, page, range, onPage }: {
       </button>
       <div className={`${open ? "fixed inset-x-0 bottom-0 z-40 max-h-[65vh] overflow-auto border-t shadow-lg" : "hidden"} flex-col gap-2 border-gray-300 bg-white p-3 lg:static lg:flex lg:max-h-none lg:rounded-lg lg:border lg:p-4 lg:shadow-none dark:border-gray-700 dark:bg-gray-950 ${open ? "flex" : ""}`}>
         <div className="flex items-center justify-between gap-2">
-          <button type="button" className="btn btn-secondary min-h-11" aria-label={t("previousPage")} onClick={() => onPage(shown - 1)} disabled={shown <= first}>
+          <button type="button" className="btn btn-secondary min-h-11" aria-label={t("previousPage")} onClick={() => onPage(prev)} disabled={list ? at <= 0 : shown <= first}>
             {t("prevButton")}
           </button>
-          <span className="text-center text-sm font-medium" aria-live="polite">{t("pageWithRange", { shown, first, last })}</span>
-          <button type="button" className="btn btn-secondary min-h-11" aria-label={t("nextPage")} onClick={() => onPage(shown + 1)} disabled={shown >= last}>
+          <span className="text-center text-sm font-medium" aria-live="polite">{t("pageWithRange", { shown, span })}</span>
+          <button type="button" className="btn btn-secondary min-h-11" aria-label={t("nextPage")} onClick={() => onPage(next)} disabled={list ? at >= list.length - 1 : shown >= last}>
             {t("nextButton")}
           </button>
         </div>
@@ -40,7 +49,7 @@ export default function PagePanel({ jobId, page, range, onPage }: {
           <label className="flex items-center gap-2">
             <span className="opacity-70">{t("goTo")}</span>
             <select className="input w-auto" aria-label={t("goToPage")} value={shown} onChange={(e) => onPage(Number(e.target.value))}>
-              {Array.from({ length: last - first + 1 }, (_, i) => first + i).map((n) => <option key={n} value={n}>{n}</option>)}
+              {options.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </label>
           <div className="flex items-center gap-1" role="group" aria-label={t("zoomLabel")}>

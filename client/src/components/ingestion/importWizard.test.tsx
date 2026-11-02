@@ -14,6 +14,7 @@ vi.mock("@/api/ingestion", () => ({
   ...api,
   ACTIVE_STATUSES: ["queued", "parsing", "pages", "extracting"],
   pageImageUrl: () => "/x.png",
+  flattenElements: () => [],
 }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("job=j1"),
@@ -66,5 +67,28 @@ describe("LanguageImportWizard", () => {
     expect(api.confirmStructure).toHaveBeenCalledWith(
       "j1", [{ title: "Lesson A", ranges: [[1, 2]] }], { "1": ["vocabulary", "grammar"], "2": [] },
     );
+  });
+
+  it("names every page range of a lesson, not the span between them", async () => {
+    api.getJob.mockResolvedValue(job("ready"));
+    api.getCapabilities.mockResolvedValue({ can_import: true, reasons: [], warnings: [] });
+    api.getLanguageCandidates.mockResolvedValue({
+      status: "ready", warnings: [],
+      lessons: [{ index: 0, title: "Lesson 13", start_page: 21, end_page: 52, ranges: [[21, 28], [45, 52]], verified: true, note: null,
+        status: "done", error: null, counts: { total: 0, verified: 0, flagged: 0 }, created_lesson_id: null, candidates: [], elements: [] }],
+    });
+    render(<LanguageImportWizard languageId="l" languageName="Japanese" settingsHref="/s" />);
+    expect(await screen.findByText(/pages 21-28, 45-52/)).toBeInTheDocument();
+    expect(screen.queryByText(/pages 21-52/)).not.toBeInTheDocument();
+  });
+
+  it("names the ranges in the 'confirm kinds' summary of the lesson step too", async () => {
+    api.getJob.mockResolvedValue(job("structure"));
+    api.getStructure.mockResolvedValue({
+      status: "structure", confirmed: false, first_page: 1, last_page: 6, warnings: [], page_kinds: { "1": ["vocabulary"], "2": [], "5": [], "6": [] },
+      lessons: [{ index: 0, title: "Lesson A", start_page: 1, end_page: 6, ranges: [[1, 2], [5, 6]], verified: true, note: null, status: "pending", error: null, counts: null, created_lesson_id: null }],
+    });
+    render(<LanguageImportWizard languageId="l" languageName="Japanese" settingsHref="/s" />);
+    expect(await screen.findByText("Confirm kinds on pages 1-2, 5-6")).toBeInTheDocument();
   });
 });

@@ -14,7 +14,7 @@ import {
   type Draft, addDraft, draftRanges, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
 } from "@/lib/ingestion/structure";
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
-import { parsePageRanges } from "@/lib/ingestion/ranges";
+import { expandRanges, formatRanges, lessonRanges, parsePageRanges } from "@/lib/ingestion/ranges";
 import PageRanges from "./pageRanges";
 import StepProgress from "./stepProgress";
 import { UploadStep } from "./importWizard";
@@ -166,8 +166,6 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
       <ul className="flex flex-col gap-2">
         {drafts.map((d, i) => {
           const ranges = draftRanges(d);
-          const startPage = ranges.length ? ranges[0][0] : NaN;
-          const endPage = ranges.length ? ranges[ranges.length - 1][1] : NaN;
           const lessonPages = ranges.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, idx) => a + idx));
           const check = parsePageRanges(d.ranges, structure.first_page, structure.last_page);
           return (
@@ -190,7 +188,7 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
               {d.note && <p className="text-sm">⚠ {d.note}</p>}
               {d.include && lessonPages.length > 0 && (
                 <details className="text-sm">
-                  <summary className="cursor-pointer opacity-70">{t("confirmKindsOnPages", { start: startPage, end: endPage })}</summary>
+                  <summary className="cursor-pointer opacity-70">{t("confirmKindsOnPages", { ranges: formatRanges(ranges) })}</summary>
                   <div className="mt-2 pl-4">
                     <PageKindsWithViewer
                       jobId={job.id}
@@ -306,7 +304,7 @@ function LessonSection({ job, lesson: l, languageId, canAudio, defaultOpen, adde
   return (
     <details className="card" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="cursor-pointer">
-        <strong>{l.title}</strong> · {t("lessonPagesRange", { start: l.start_page, end: l.end_page })} ·{" "}
+        <strong>{l.title}</strong> · {t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })} ·{" "}
         {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
           : t("lessonCounts", { total: l.counts?.total ?? 0, flagged: l.counts?.flagged ?? 0 })}
       </summary>
@@ -321,7 +319,7 @@ function LessonSection({ job, lesson: l, languageId, canAudio, defaultOpen, adde
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} canGenerateAudio={canAudio}
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} pages={expandRanges(lessonRanges(l))} canGenerateAudio={canAudio}
             addLabel={(n) => t("addToNewLesson", { count: n, title: l.title })}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);

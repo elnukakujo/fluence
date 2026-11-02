@@ -27,3 +27,24 @@ export function parsePageRanges(rows: RangeDraft[], first = 1, last?: number): P
 }
 
 export const countPages = (ranges: [number, number][]) => ranges.reduce((n, [a, b]) => n + (b - a + 1), 0);
+
+/** "21-28, 45-52": the ranges as people read them (a one-page range is just the page). */
+export const formatRanges = (ranges: [number, number][]) => ranges.map(([a, b]) => (a === b ? String(a) : `${a}-${b}`)).join(", ");
+
+/** Every page of the ranges, in order. */
+export const expandRanges = (ranges: [number, number][]) => ranges.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, i) => a + i));
+
+/** Sorted page numbers -> the ranges they form. */
+export function toRanges(pages: number[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const n of pages) {
+    const last = out[out.length - 1];
+    if (last && n === last[1] + 1) last[1] = n;
+    else out.push([n, n]);
+  }
+  return out;
+}
+
+/** A structure lesson's ranges; older jobs only carry start_page / end_page. */
+export const lessonRanges = (l: { start_page: number; end_page: number; ranges?: [number, number][] }): [number, number][] =>
+  l.ranges?.length ? l.ranges : [[l.start_page, l.end_page]];

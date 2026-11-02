@@ -85,4 +85,31 @@ describe("PagePanel", () => {
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Go to page" }), "4");
     expect(onPage).toHaveBeenCalledWith(4);
   });
+
+  describe("with a lesson made of separate page ranges", () => {
+    const pages = [21, 22, 45, 46];
+
+    it("steps from the end of one range to the start of the next, and back", async () => {
+      const onPage = vi.fn();
+      const { rerender } = render(<PagePanel jobId="job1" page={22} range={[21, 46]} pages={pages} onPage={onPage} />);
+      await userEvent.click(screen.getByRole("button", { name: /next/i }));
+      expect(onPage).toHaveBeenLastCalledWith(45);
+      rerender(<PagePanel jobId="job1" page={45} range={[21, 46]} pages={pages} onPage={onPage} />);
+      await userEvent.click(screen.getByRole("button", { name: /prev/i }));
+      expect(onPage).toHaveBeenLastCalledWith(22);
+    });
+
+    it("lists only the lesson's pages, names the ranges and disables Next on the last one", () => {
+      render(<PagePanel jobId="job1" page={46} range={[21, 46]} pages={pages} onPage={vi.fn()} />);
+      expect(screen.getByText("Page 46 (21-22, 45-46)")).toBeInTheDocument();
+      const options = Array.from(screen.getByRole("combobox", { name: /go to page/i }).querySelectorAll("option")).map((o) => o.textContent);
+      expect(options).toEqual(["21", "22", "45", "46"]);
+      expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+    });
+
+    it("moves a page between the ranges to the next page that belongs to the lesson", () => {
+      render(<PagePanel jobId="job1" page={30} range={[21, 46]} pages={pages} onPage={vi.fn()} />);
+      expect(screen.getByText("Page 45 (21-22, 45-46)")).toBeInTheDocument();
+    });
+  });
 });

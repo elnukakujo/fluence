@@ -89,7 +89,7 @@ export function PageKindsWithViewer({ jobId, pages, ...rest }: Props & { jobId: 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
       <div className="min-w-0 flex-1"><PageKinds {...rest} pages={pages} jobId={jobId} onFocusPage={setPage} /></div>
-      <PagePanel jobId={jobId} page={page} range={[pages[0], pages[pages.length - 1]]} onPage={setPage} />
+      <PagePanel jobId={jobId} page={page} range={[pages[0], pages[pages.length - 1]]} pages={pages} onPage={setPage} />
     </div>
   );
 }

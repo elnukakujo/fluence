@@ -20,13 +20,14 @@ const clip = (t: string, n = 140) => (t.length > n ? `${t.slice(0, n)}…` : t);
 
 // The candidate list shared by lesson-level and language-level imports: one tab per kind, each item a compact card
 // the user confirms, edits or deletes. Only confirmed items are added; verified ones start confirmed.
-export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range, canGenerateAudio = false }: {
+export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range, pages, canGenerateAudio = false }: {
   jobId: string;
   filename: string;
   candidates: Candidate[];
   addLabel: (selected: number) => string;
   onAdd: (payload: AcceptPayload) => Promise<void>;
   range?: [number, number];
+  pages?: number[];   // the lesson's own pages when it is made of separate ranges
   canGenerateAudio?: boolean; // the user has a text-to-speech endpoint
 }) {
   const t = useTranslations("ingestion");
@@ -239,7 +240,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         </div>
       </div>
 
-      <PagePanel jobId={jobId} page={focusedPage} range={pageSpan} onPage={setFocusedPage} />
+      <PagePanel jobId={jobId} page={focusedPage} range={pageSpan} pages={pages} onPage={setFocusedPage} />
 
       {preview !== null && (
         <Modal title={t("imageViewerTitle", { page: preview, filename })} onClose={() => setPreview(null)}>
