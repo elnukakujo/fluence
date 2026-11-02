@@ -22,8 +22,8 @@ from .types import Block, Document, Page, ParseError
 logger = logging.getLogger(__name__)
 
 PIPELINE_VERSION = "1"
-MAX_FILE_BYTES = 50 * 1024 * 1024
-MAX_PAGES = 300
+MAX_FILE_BYTES = 100 * 1024 * 1024
+MAX_PAGES = 500
 MAX_PAGE_PIXELS = 80_000_000      # per page after rendering/decoding (~320 MB as BGR)
 RENDER_DPI = 200
 # TODO(calibrate): needs real sample files - placeholders, not measured values
