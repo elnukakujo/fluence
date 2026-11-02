@@ -7,5 +7,21 @@
   "addLesson": "添加课程",
   "updateLesson": "更新课程",
   "createFailed": "无法创建课程。检查控制台获取详细信息。",
-  "updateFailed": "无法更新课程。检查控制台获取详细信息。"
+  "updateFailed": "无法更新课程。检查控制台获取详细信息。",
+  "mergeTitle": "合并课程",
+  "mergeIntro": "对比两门课程，然后填写合并后的课程信息。课程 A 会保留，并接收 B 的全部内容。",
+  "lessonSide": "课程 {side}：{title}",
+  "mergedLesson": "合并后的课程",
+  "noDescription": "暂无描述",
+  "itemsCount": "{n} 项内容",
+  "useA": "用 A",
+  "useB": "用 B",
+  "useFromA": "使用 A 的{field}",
+  "useFromB": "使用 B 的{field}",
+  "mergeSummary": "{n} 项内容将移入此课程；“{other}”将被删除。内容本身不会改变。",
+  "mergeConfirm": "合并课程",
+  "merging": "正在合并…",
+  "mergeFailed": "无法合并课程",
+  "mergeInvalid": "请选择此语言的两门不同课程进行合并。",
+  "backToLanguage": "返回语言页面"
 }

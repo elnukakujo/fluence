@@ -7,5 +7,21 @@
   "addLesson": "Add Lesson",
   "updateLesson": "Update Lesson",
   "createFailed": "Failed to create lesson. Check console for details.",
-  "updateFailed": "Failed to update lesson. Check console for details."
+  "updateFailed": "Failed to update lesson. Check console for details.",
+  "mergeTitle": "Merge lessons",
+  "mergeIntro": "Compare the two lessons, then word the merged lesson. Lesson A is kept and receives everything from B.",
+  "lessonSide": "Lesson {side}: {title}",
+  "mergedLesson": "Merged lesson",
+  "noDescription": "No description",
+  "itemsCount": "{n, plural, one {# item} other {# items}}",
+  "useA": "Use A",
+  "useB": "Use B",
+  "useFromA": "Use A's {field}",
+  "useFromB": "Use B's {field}",
+  "mergeSummary": "{n, plural, one {# item moves} other {# items move}} into this lesson; “{other}” is deleted. Nothing is removed from the items themselves.",
+  "mergeConfirm": "Merge lessons",
+  "merging": "Merging…",
+  "mergeFailed": "Could not merge the lessons",
+  "mergeInvalid": "Choose two different lessons of this language to merge.",
+  "backToLanguage": "Back to the language"
 }

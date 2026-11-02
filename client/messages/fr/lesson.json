@@ -7,5 +7,21 @@
   "addLesson": "Ajouter",
   "updateLesson": "Modifier",
   "createFailed": "Impossible de créer le cours. Consultez la console pour plus de détails.",
-  "updateFailed": "Impossible de mettre à jour le cours. Consultez la console pour plus de détails."
+  "updateFailed": "Impossible de mettre à jour le cours. Consultez la console pour plus de détails.",
+  "mergeTitle": "Fusionner des leçons",
+  "mergeIntro": "Comparez les deux leçons, puis rédigez la leçon fusionnée. La leçon A est conservée et reçoit tout le contenu de B.",
+  "lessonSide": "Leçon {side} : {title}",
+  "mergedLesson": "Leçon fusionnée",
+  "noDescription": "Aucune description",
+  "itemsCount": "{n, plural, one {# élément} other {# éléments}}",
+  "useA": "Prendre A",
+  "useB": "Prendre B",
+  "useFromA": "Prendre le champ {field} de A",
+  "useFromB": "Prendre le champ {field} de B",
+  "mergeSummary": "{n, plural, one {# élément passe} other {# éléments passent}} dans cette leçon ; « {other} » est supprimée. Les éléments eux-mêmes ne sont pas modifiés.",
+  "mergeConfirm": "Fusionner les leçons",
+  "merging": "Fusion…",
+  "mergeFailed": "Impossible de fusionner les leçons",
+  "mergeInvalid": "Choisissez deux leçons différentes de cette langue à fusionner.",
+  "backToLanguage": "Retour à la langue"
 }

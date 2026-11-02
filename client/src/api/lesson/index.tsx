@@ -77,3 +77,9 @@ export async function bulkDeleteLessons(ids: string[]): Promise<{ deleted: numbe
   if (!res.ok) return failWith(res, "Failed to delete lessons");
   return res.json();
 }
+
+export async function mergeLessons(data: { first_id: string; second_id: string; title: string; description?: string; level?: number }): Promise<Lesson> {
+  const res = await fetch(`${BASE_URL}/api/lessons/merge`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(data) });
+  if (!res.ok) return failWith(res, "Failed to merge the lessons");
+  return res.json();
+}
