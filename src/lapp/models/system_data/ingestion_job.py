@@ -17,8 +17,7 @@ class IngestionJob(Base):
     filename = Column(String, nullable=False)
     file_path = Column(String, nullable=False)          # relative to MEDIA_ROOT
     handwritten = Column(Boolean, nullable=False, default=False)
-    page_from = Column(Integer, nullable=True)           # 1-based, inclusive; null = whole document
-    page_to = Column(Integer, nullable=True)
+    page_ranges = Column(JSON, nullable=True)            # [[first, last], ...] 1-based, inclusive, sorted; null = whole document
     status = Column(String, nullable=False, default='queued')
     pages_done = Column(Integer, nullable=False, default=0)
     pages_total = Column(Integer, nullable=False, default=0)
@@ -39,7 +38,7 @@ class IngestionJob(Base):
         return {
             "id": self.id, "user_id": self.user_id, "language_id": self.language_id,
             "lesson_id": self.lesson_id, "filename": self.filename, "file_path": self.file_path,
-            "handwritten": self.handwritten, "page_from": self.page_from, "page_to": self.page_to, "status": self.status,
+            "handwritten": self.handwritten, "page_ranges": self.page_ranges, "status": self.status,
             "pages_done": self.pages_done, "pages_total": self.pages_total,
             "error": self.error, "structure": self.structure, "page_kinds": self.page_kinds, "warnings": self.warnings or [],
             "source_title": self.source_title, "source_type": self.source_type, "source_description": self.source_description, "level": self.level,

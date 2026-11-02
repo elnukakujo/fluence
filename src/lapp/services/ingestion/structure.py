@@ -91,23 +91,61 @@ def _ask_batch(batch: list[int], texts: dict[int, str], api: dict, target_name: 
     return None
 
 
+def _whole(n) -> bool:
+    return isinstance(n, int) and not isinstance(n, bool)
+
+
+def normalize_ranges(raw, first_page: int = 1, last_page: int | None = None) -> tuple[list[list[int]] | None, str | None]:
+    """A list of `[start, end]` (or `{start_page, end_page}`) -> (sorted ranges, None) or (None, reason).
+    Touching ranges (`[1,5],[6,9]`) are fine; overlapping ones are not."""
+    if not isinstance(raw, list) or not raw:
+        return None, "Give at least one page range"
+    ranges = []
+    for item in raw:
+        if isinstance(item, dict):
+            item = [item.get("start_page"), item.get("end_page")]
+        if not (isinstance(item, (list, tuple)) and len(item) == 2 and all(_whole(n) for n in item)):
+            return None, "Page ranges must be whole numbers"
+        start, end = item
+        if start < first_page or end < start or (last_page is not None and end > last_page):
+            where = f"within {first_page}-{last_page} and " if last_page is not None else ""
+            return None, f"Pages {start}-{end} must be {where}end on or after the first page (from page {first_page})"
+        ranges.append([start, end])
+    ranges.sort()
+    for a, b in zip(ranges, ranges[1:]):
+        if b[0] <= a[1]:
+            return None, f"Pages {a[0]}-{a[1]} and {b[0]}-{b[1]} overlap"
+    return ranges, None
+
+
+def pages_in_ranges(ranges: list[list[int]], page: int) -> bool:
+    return any(start <= page <= end for start, end in ranges)
+
+
+def lesson_ranges(lesson: dict) -> list[list[int]]:
+    """A stored structure lesson's ranges (older jobs only have start_page/end_page)."""
+    return lesson.get("ranges") or [[lesson["start_page"], lesson["end_page"]]]
+
+
 def validate_structure(lessons, first_page: int, last_page: int) -> tuple[list[dict] | None, str | None]:
-    """The user's edited structure -> (clean, sorted lessons, None) or (None, reason)."""
+    """The user's edited structure -> (clean, sorted lessons, None) or (None, reason).
+    A lesson gives `ranges` or the legacy `start_page`/`end_page`; ranges may not overlap, within or across lessons."""
     if not isinstance(lessons, list) or not lessons:
         return None, "Add at least one lesson"
     clean = []
     for item in lessons:
-        title = str(item.get("title") or "").strip() if isinstance(item, dict) else ""
-        start, end = (item.get("start_page"), item.get("end_page")) if isinstance(item, dict) else (None, None)
+        item = item if isinstance(item, dict) else {}
+        title = str(item.get("title") or "").strip()
         if not title:
             return None, "Every lesson needs a title"
-        if not (isinstance(start, int) and isinstance(end, int)) or isinstance(start, bool) or isinstance(end, bool):
-            return None, f"“{title}”: pages must be whole numbers"
-        if start < first_page or end > last_page or end < start:
-            return None, f"“{title}”: pages must be within {first_page}-{last_page} and end on or after the first page"
-        clean.append({"title": title, "start_page": start, "end_page": end})
+        raw = item.get("ranges") if item.get("ranges") is not None else [[item.get("start_page"), item.get("end_page")]]
+        ranges, error = normalize_ranges(raw, first_page, last_page)
+        if error:
+            return None, f"“{title}”: {error}"
+        clean.append({"title": title, "start_page": ranges[0][0], "end_page": ranges[-1][1], "ranges": ranges})
+    spans = sorted(((r[0], r[1], c["title"]) for c in clean for r in c["ranges"]))
+    for (_, end, a), (start, _, b) in zip(spans, spans[1:]):
+        if start <= end:
+            return None, f"“{a}” and “{b}” overlap" if a != b else f"“{a}” has overlapping ranges"
     clean.sort(key=lambda c: c["start_page"])
-    for a, b in zip(clean, clean[1:]):
-        if b["start_page"] <= a["end_page"]:
-            return None, f"“{a['title']}” and “{b['title']}” overlap"
     return clean, None

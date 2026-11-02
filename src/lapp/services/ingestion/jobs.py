@@ -21,7 +21,7 @@ from ..parsing.types import Document
 from .classify import classify_pages
 from .extract import ExtractionError
 from .pipeline import build_candidates
-from .structure import _ABORT_KINDS, propose_structure
+from .structure import _ABORT_KINDS, lesson_ranges, pages_in_ranges, propose_structure
 from .types import ALL_KINDS
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def paused_path(media_root: str | Path, job_id: str) -> Path:
 class IngestionJobService:
     @transactional
     def create(self, user_id: str, language_id: str, lesson_id: Optional[str], filename: str,
-               handwritten: bool = False, page_from: Optional[int] = None, page_to: Optional[int] = None,
+               handwritten: bool = False, page_ranges: Optional[list] = None,
                source_title: Optional[str] = None, source_type: Optional[str] = None,
                source_description: Optional[str] = None, level: Optional[int] = None,
                session: Optional[Session] = None) -> dict:
@@ -72,7 +72,7 @@ class IngestionJobService:
         job = IngestionJob(
             id=job_id, user_id=user_id, language_id=language_id, lesson_id=lesson_id,
             filename=filename, file_path=f"ingestion/{job_id}/{safe_filename(filename)}",
-            handwritten=handwritten, page_from=page_from, page_to=page_to, status="queued", warnings=[],
+            handwritten=handwritten, page_ranges=page_ranges, status="queued", warnings=[],
             source_title=source_title, source_type=source_type, source_description=source_description, level=level,
         )
         session.add(job)
@@ -221,7 +221,7 @@ def _parse_job(svc: IngestionJobService, ctx: _Ctx) -> Document:
     job = ctx.job
     return parse(ctx.media_root / job["file_path"], target_iso639_2t=ctx.target, source_iso639_2t=ctx.source,
                  remote=ctx.remote, handwritten=job["handwritten"], cache_dir=ctx.media_root / "parse_cache",
-                 pages=(job["page_from"], job["page_to"]) if job["page_from"] else None,
+                 pages=[tuple(r) for r in job["page_ranges"]] if job["page_ranges"] else None,
                  progress=_progress(svc, job_id))
 
 
@@ -336,7 +336,7 @@ def _propose_lessons(svc: IngestionJobService, ctx: _Ctx, doc: Document) -> None
     numbers = [p.index + 1 for p in doc.pages]
     structure = {
         "confirmed": False, "first_page": min(numbers), "last_page": max(numbers),
-        "lessons": [{**p.model_dump(), "index": i, "status": "pending", "error": None, "counts": None}
+        "lessons": [{**p.model_dump(), "ranges": [[p.start_page, p.end_page]], "index": i, "status": "pending", "error": None, "counts": None}
                     for i, p in enumerate(proposals)],
     }
     check_alive(svc, job_id)
@@ -357,8 +357,9 @@ def _run_language_extraction(app: Flask, svc: IngestionJobService, job_id: str) 
     svc.update(job_id, status="extracting", pages_done=0, pages_total=len(lessons))
 
     for lesson in lessons:
+        ranges = lesson_ranges(lesson)
         part = Document(sha256=doc.sha256, pipeline_version=doc.pipeline_version, pages=[
-            p for p in doc.pages if lesson["start_page"] <= p.index + 1 <= lesson["end_page"]])
+            p for p in doc.pages if pages_in_ranges(ranges, p.index + 1)])
         try:
             result = build_candidates(part, ctx.text_api, ctx.target, ctx.source, lookup, page_kinds=page_kinds,
                                       progress=lambda *_: check_alive(svc, job_id))

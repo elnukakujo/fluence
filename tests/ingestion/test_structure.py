@@ -137,3 +137,43 @@ def test_invalid_structures_are_rejected_with_a_reason(lessons):
 def test_gaps_between_lessons_are_allowed():
     clean, err = _v([{"title": "A", "start_page": 1, "end_page": 3}, {"title": "B", "start_page": 10, "end_page": 12}])
     assert err is None and len(clean) == 2
+
+
+# ---- page ranges -------------------------------------------------------------
+
+from lapp.services.ingestion.structure import normalize_ranges, pages_in_ranges
+
+
+def test_normalize_ranges_sorts_and_allows_touching():
+    assert normalize_ranges([[10, 12], [1, 5], [6, 9]]) == ([[1, 5], [6, 9], [10, 12]], None)
+    assert normalize_ranges([{"start_page": 3, "end_page": 4}]) == ([[3, 4]], None)
+
+
+@pytest.mark.parametrize("raw,last", [
+    ([], None), ("x", None), ([[1, 5], [5, 9]], None), ([[3, 2]], None), ([["a", 2]], None),
+    ([[0, 2]], None), ([[1, 99]], 20), ([[True, 2]], None),
+])
+def test_normalize_ranges_rejects_bad_input_with_a_reason(raw, last):
+    out, err = normalize_ranges(raw, 1, last)
+    assert out is None and err
+
+
+def test_pages_in_ranges():
+    assert [pages_in_ranges([[1, 2], [5, 5]], n) for n in (1, 2, 3, 5, 6)] == [True, True, False, True, False]
+
+
+def test_validate_structure_accepts_several_ranges_per_lesson():
+    clean, err = _v([{"title": "A", "ranges": [[1, 3], [15, 16]]}, {"title": "B", "ranges": [[4, 14]]}])
+    assert err is None
+    assert [(c["title"], c["ranges"], c["start_page"], c["end_page"]) for c in clean] == [
+        ("A", [[1, 3], [15, 16]], 1, 16), ("B", [[4, 14]], 4, 14)]
+
+
+def test_validate_structure_rejects_overlap_between_lessons_ranges():
+    clean, err = _v([{"title": "A", "ranges": [[1, 3], [10, 12]]}, {"title": "B", "ranges": [[11, 14]]}])
+    assert clean is None and "overlap" in err
+
+
+def test_validate_structure_legacy_start_end_becomes_one_range():
+    clean, err = _v([{"title": "A", "start_page": 2, "end_page": 4}])
+    assert err is None and clean[0]["ranges"] == [[2, 4]]

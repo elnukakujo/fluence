@@ -154,3 +154,11 @@ def test_extraction_uses_the_stored_kinds_and_writes_elements(app, job, media_ro
         {"total": 0, "verified": 0, "flagged": 0, "elements": 0}, {"total": 0, "verified": 0, "flagged": 0, "elements": 1}]
     second = json.loads(candidates_path(media_root, job["id"], 1).read_text())
     assert [e["kind"] for e in second["elements"]] == ["grammar"]
+
+
+def test_a_lesson_with_several_ranges_extracts_only_those_pages(app, job, media_root, monkeypatch):
+    _confirmed(job, media_root, lessons=[{"title": "Scattered", "start_page": 1, "end_page": 4, "ranges": [[1, 2], [4, 4]]}])
+    seen = []
+    monkeypatch.setattr(pipeline_module, "extract_chunk", lambda chunk, *a: seen.append(chunk.page) or [])
+    run_language_extraction(app, job["id"])
+    assert sorted(set(seen)) == [0, 1, 3]

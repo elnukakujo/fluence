@@ -143,23 +143,27 @@ def test_delete_removes_the_row_and_the_files(app, db, media_root, scheduled):
     assert not folder.exists() and client.get(f"/api/ingestion/{job_id}").status_code == 404
 
 
-def test_upload_stores_a_page_range(app, db, media_root, scheduled):
+def test_upload_stores_page_ranges(app, db, media_root, scheduled):
     client = _setup(app, db, media_root)
-    job_id = _upload(client, page_from="40", page_to="55").get_json()["job_id"]
-    job = svc.get(job_id)
-    assert (job["page_from"], job["page_to"]) == (40, 55)
+    job_id = _upload(client, page_ranges="[[300,310],[40,55]]").get_json()["job_id"]
+    assert svc.get(job_id)["page_ranges"] == [[40, 55], [300, 310]]
+
+
+def test_legacy_page_from_to_becomes_one_range(app, db, media_root, scheduled):
+    client = _setup(app, db, media_root)
+    assert svc.get(_upload(client, page_from="40", page_to="55").get_json()["job_id"])["page_ranges"] == [[40, 55]]
 
 
 def test_upload_without_a_range_keeps_it_null(app, db, media_root, scheduled):
     client = _setup(app, db, media_root)
-    job = svc.get(_upload(client).get_json()["job_id"])
-    assert (job["page_from"], job["page_to"]) == (None, None)
+    assert svc.get(_upload(client).get_json()["job_id"])["page_ranges"] is None
 
 
 def test_invalid_page_ranges_are_rejected(app, db, media_root, scheduled):
     client = _setup(app, db, media_root)
     for form in ({"page_from": "5"}, {"page_to": "5"}, {"page_from": "0", "page_to": "3"},
-                 {"page_from": "9", "page_to": "3"}, {"page_from": "a", "page_to": "3"}):
+                 {"page_from": "9", "page_to": "3"}, {"page_from": "a", "page_to": "3"},
+                 {"page_ranges": "not json"}, {"page_ranges": "[[1,5],[5,9]]"}, {"page_ranges": "[[3,2]]"}):
         assert _upload(client, **form).status_code == 400, form
     assert scheduled == []
 

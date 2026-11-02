@@ -17,7 +17,7 @@ from ...services.features import GrammarService, ExerciseService, CalligraphySer
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir, paused_path,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
-from ...services.ingestion.structure import validate_structure
+from ...services.ingestion.structure import lesson_ranges, normalize_ranges, validate_structure
 from ...services.ingestion.attach import attach_audio, attach_image, save_upload, with_audio_indexes
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
@@ -57,17 +57,21 @@ def _public(job: dict) -> dict:
             "paused": paused_path(current_app.config["MEDIA_ROOT"], job["id"]).is_file()}
 
 
-def _page_range(first, last):
-    """(range, error): both bounds or neither; 1-based, last >= first."""
-    first, last = (first or "").strip(), (last or "").strip()
+def _page_ranges(form):
+    """(ranges, error) from `page_ranges` (a JSON list of [first, last]) or the legacy `page_from`+`page_to`; (None, None) = whole document."""
+    raw = (form.get("page_ranges") or "").strip()
+    if raw:
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            return None, "page_ranges must be a JSON list like [[1, 5], [40, 52]]"
+        return normalize_ranges(parsed)
+    first, last = (form.get("page_from") or "").strip(), (form.get("page_to") or "").strip()
     if not first and not last:
         return None, None
     if not (first.isdigit() and last.isdigit()):
         return None, "Give both the first and the last page as whole numbers"
-    first, last = int(first), int(last)
-    if first < 1 or last < first:
-        return None, "The page range must start at 1 or later and end on or after its first page"
-    return (first, last), None
+    return normalize_ranges([[int(first), int(last)]])
 
 
 def _owned_job_or_404(job_id: str):
@@ -156,6 +160,7 @@ def upload():
         - {name: handwritten, in: formData, type: boolean, required: false}
         - {name: page_from, in: formData, type: integer, required: false}
         - {name: page_to, in: formData, type: integer, required: false}
+        - {name: page_ranges, in: formData, type: string, required: false, description: "JSON list of [first, last] pages, e.g. [[1,5],[40,52]]; overrides page_from/page_to"}
         - {name: source_title, in: formData, type: string, required: false}
         - {name: source_type, in: formData, type: string, required: false}
         - {name: source_description, in: formData, type: string, required: false}
@@ -174,7 +179,7 @@ def upload():
     if (request.content_length or 0) > MAX_FILE_BYTES + 1_000_000:
         return jsonify({"error": "File is too large"}), 400
 
-    page_range, error = _page_range(request.form.get("page_from"), request.form.get("page_to"))
+    page_ranges, error = _page_ranges(request.form)
     if error:
         return jsonify({"error": error}), 400
 
@@ -207,8 +212,7 @@ def upload():
 
     handwritten = (request.form.get("handwritten") or "").lower() in ("1", "true", "on", "yes")
     job = job_service.create(current_user_id(), language_id, lesson_id, file.filename, handwritten,
-                             page_from=page_range[0] if page_range else None,
-                             page_to=page_range[1] if page_range else None,
+                             page_ranges=page_ranges,
                              source_title=source_title, source_type=source_type,
                              source_description=source_description, level=level)
     media_root = Path(current_app.config["MEDIA_ROOT"])
@@ -273,6 +277,7 @@ def _lessons_view(job: dict, with_candidates: bool = False) -> list[dict]:
     out = []
     for lesson in (job["structure"] or {}).get("lessons", []):
         item = dict(lesson)
+        item["ranges"] = lesson_ranges(lesson)
         item["created_lesson_id"] = _created_id(job["id"], lesson["index"])
         if with_candidates and lesson["status"] == "done":
             path = candidates_path(media_root, job["id"], lesson["index"])
@@ -336,7 +341,8 @@ def confirm_structure(job_id: str):
                           type: object
                           properties:
                               title: {type: string}
-                              start_page: {type: integer}
+                              ranges: {type: array, items: {type: array, items: {type: integer}}, description: "[[first, last], ...]"}
+                              start_page: {type: integer, description: "legacy single range"}
                               end_page: {type: integer}
                   page_kinds:
                       type: object

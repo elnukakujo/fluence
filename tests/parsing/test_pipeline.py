@@ -350,3 +350,15 @@ def test_a_failing_progress_callback_never_breaks_the_parse(native_pdf, tmp_path
     def boom(done, total):
         raise RuntimeError("db is down")
     assert len(_parse(native_pdf, tmp_path, progress=boom).pages) == 2
+
+
+def test_several_ranges_select_their_union_in_document_order():
+    from lapp.services.parsing.pipeline import _select_pages
+    assert list(_select_pages([(4, 5), (1, 1)], 5)) == [0, 3, 4]
+    assert list(_select_pages([(1, 2), (2, 3)], 5)) == [0, 1, 2]
+    with pytest.raises(ParseError):
+        _select_pages([(1, 1), (9, 9)], 5)
+
+
+def test_parse_accepts_a_list_of_ranges(native_pdf, tmp_path):
+    assert [p.index for p in _parse(native_pdf, tmp_path, pages=[(2, 2), (1, 1)]).pages] == [0, 1]

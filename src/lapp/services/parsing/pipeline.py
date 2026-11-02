@@ -43,12 +43,12 @@ def parse(
     local: OcrEngine | None = None,
     handwritten: bool = False,
     cache_dir: Path | None = None,
-    pages: tuple[int, int] | None = None,
+    pages: tuple[int, int] | list[tuple[int, int]] | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> Document:
     """Parse a PDF or image into a Document. `cache_dir=None` disables caching (the library is Flask-free).
 
-    `pages=(first, last)` (1-based, inclusive; `last` is clamped to the document) processes only those pages;
+    `pages=(first, last)` or a list of such ranges (1-based, inclusive; `last` is clamped to the document) processes only those pages;
     page indexes in the result stay the document's own. An image has one page.
     `progress(done, total)` is called with (0, total) before the first page and after each page; it is best effort
     (an exception in it is logged and ignored) and is not called on a cache hit, which finishes at once.
@@ -63,7 +63,7 @@ def parse(
     sha = hashlib.sha256(data).hexdigest()
 
     key = hashlib.sha256(
-        f"{target_iso639_2t}|{source_iso639_2t}|{handwritten}|{getattr(remote, 'cache_id', remote is not None)}|{pages}".encode()
+        f"{target_iso639_2t}|{source_iso639_2t}|{handwritten}|{getattr(remote, 'cache_id', remote is not None)}|{_ranges_key(pages)}".encode()
     ).hexdigest()[:10]
     cache_file = cache_dir / f"{sha}-v{PIPELINE_VERSION}-{key}.json" if cache_dir else None
     if cache_file and cache_file.is_file():
@@ -157,17 +157,29 @@ class _Ctx:
         return self._local
 
 
-def _select_pages(pages: tuple[int, int] | None, count: int) -> range:
-    """Zero-based page indexes to process for a 1-based inclusive `pages` range (None = all)."""
+def _ranges(pages) -> list[tuple[int, int]]:
     if pages is None:
-        return range(count)
-    first, last = pages
-    if first < 1 or last < first or first > count:
-        raise ParseError("invalid_range", f"Pages {first}-{last} are outside this document ({count} page(s))")
-    return range(first - 1, min(last, count))
+        return []
+    return [tuple(pages)] if len(pages) == 2 and all(isinstance(n, int) for n in pages) else [tuple(r) for r in pages]
 
 
-def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages: tuple[int, int] | None = None,
+def _ranges_key(pages) -> list[tuple[int, int]]:
+    return sorted(_ranges(pages))
+
+
+def _select_pages(pages, count: int) -> list[int]:
+    """Zero-based page indexes (document order) for 1-based inclusive `pages`: None = all, `(first, last)` or a list of them."""
+    if pages is None:
+        return list(range(count))
+    selected: set[int] = set()
+    for first, last in _ranges(pages):
+        if first < 1 or last < first or first > count:
+            raise ParseError("invalid_range", f"Pages {first}-{last} are outside this document ({count} page(s))")
+        selected.update(range(first - 1, min(last, count)))
+    return sorted(selected)
+
+
+def _parse_pdf(data: bytes, ctx: _Ctx, doc: Document, pages=None,
                report: Callable[[int, int], None] = lambda done, total: None) -> None:
     try:
         pdf = pymupdf.open(stream=data, filetype="pdf")
