@@ -17,7 +17,7 @@ from ...utils.llm_providers import resolve_api
 from ...utils.model_api import ModelAPIError
 from ...utils.detect_language import get_language_by_iso2t
 from ..parsing import ParseError, parse, remote_engine_for
-from ..parsing.types import Document
+from ..parsing.types import Document, ParseCancelled
 from .classify import classify_pages
 from .extract import ExtractionError
 from .pipeline import build_candidates
@@ -120,6 +120,13 @@ class IngestionJobService:
         session.flush()
         return len(jobs)
 
+    @transactional
+    def queued_ids(self, session: Optional[Session] = None) -> list[str]:
+        """Jobs that were waiting for the single worker, oldest first. The executor queue is in memory, so at server
+        start these must be scheduled again or they would wait forever."""
+        rows = session.query(IngestionJob.id).filter(IngestionJob.status == "queued").order_by(IngestionJob.created_at).all()
+        return [job_id for (job_id,) in rows]
+
 
 def remove_job_files(media_root: str | Path, job_id: str) -> None:
     shutil.rmtree(job_dir(media_root, job_id), ignore_errors=True)
@@ -137,7 +144,7 @@ def run_language_extraction(app: Flask, job_id: str) -> None:
     _guarded(app, job_id, _run_extraction)
 
 
-class Stopped(Exception):
+class Stopped(ParseCancelled):
     """The user pressed Stop: the job was marked failed ("Stopped by you.") while this worker was still on it."""
 
 

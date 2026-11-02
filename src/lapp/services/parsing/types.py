@@ -20,6 +20,10 @@ class ParseError(Exception):
         super().__init__(message)
 
 
+class ParseCancelled(Exception):
+    """Raised by a progress callback to abort parse(). Every other callback error is logged and ignored."""
+
+
 class Word(BaseModel):
     text: str
     bbox: BBox

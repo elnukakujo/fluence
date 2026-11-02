@@ -35,9 +35,13 @@ class AppScheduler:
         self._register_tasks()
         
         from ..services.ingestion.jobs import IngestionJobService
-        interrupted = IngestionJobService().fail_interrupted()
+        jobs = IngestionJobService()
+        interrupted = jobs.fail_interrupted()
         if interrupted:
             logger.warning("Marked %s interrupted ingestion job(s) as failed", interrupted)
+        for job_id in jobs.queued_ids():
+            self.schedule_ingestion(app, job_id)
+            logger.info("Re-queued ingestion job %s that was waiting before the restart", job_id)
 
         logger.info("✅ AppScheduler initialized with Flask app")
     

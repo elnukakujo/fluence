@@ -17,7 +17,7 @@ from .classify import is_native_page
 from .native import extract_native_page
 from .ocr import OcrEngine, RapidOcrEngine, script_for
 from .preprocess import preprocess
-from .types import Block, Document, Page, ParseError
+from .types import Block, Document, Page, ParseCancelled, ParseError
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def parse(
     `pages=(first, last)` or a list of such ranges (1-based, inclusive; `last` is clamped to the document) processes only those pages;
     page indexes in the result stay the document's own. An image has one page.
     `progress(done, total)` is called with (0, total) before the first page and after each page; it is best effort
-    (an exception in it is logged and ignored) and is not called on a cache hit, which finishes at once.
+    (an exception in it is logged and ignored, except `ParseCancelled`, which aborts the parse) and is not called on a cache hit, which finishes at once.
     """
     path = Path(path)
     suffix = path.suffix.lower()
@@ -104,6 +104,8 @@ def _safe_progress(progress: Callable[[int, int], None] | None) -> Callable[[int
             return
         try:
             progress(done, total)
+        except ParseCancelled:
+            raise
         except Exception:
             logger.warning("progress callback failed", exc_info=True)
     return report

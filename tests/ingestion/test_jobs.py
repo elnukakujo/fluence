@@ -273,3 +273,34 @@ def test_parser_progress_is_saved_on_the_job_so_the_ui_can_show_it(app, db, medi
     monkeypatch.setattr(pipeline_module, "extract_chunk", lambda *a: [])
     run_ingestion_job(app, j["id"])
     assert reported == [(0, 7), (3, 7), (7, 7)]
+
+
+def test_stopping_a_job_aborts_the_page_loop_of_the_parser(app, db, media_root):
+    """Stop marks the job failed; the next page tick must reach parse() as an abort, not be swallowed as a progress hiccup."""
+    from lapp.services.ingestion.jobs import Stopped, _progress
+    from lapp.services.parsing.pipeline import _safe_progress
+    make_user(db, "user_U6")
+    make_language(db, "user_U6", "lang_L6", "lesson_L6")
+    j = svc.create("user_U6", "lang_L6", None, "n.pdf")
+    svc.update(j["id"], status="failed", error="Stopped by you.")
+    with app.app_context():
+        with pytest.raises(Stopped):
+            _safe_progress(_progress(svc, j["id"]))(1, 10)
+
+
+def test_server_start_requeues_waiting_jobs_and_fails_the_ones_that_were_running(app, db, media_root, monkeypatch):
+    """The executor queue lives in memory: a job still `queued` at restart must be scheduled again, not left waiting forever."""
+    from lapp.core.scheduler import AppScheduler
+    make_user(db, "user_U7")
+    make_language(db, "user_U7", "lang_L7", "lesson_L7")
+    waiting = svc.create("user_U7", "lang_L7", None, "wait.pdf")
+    first = svc.create("user_U7", "lang_L7", None, "running.pdf")
+    svc.update(first["id"], status="parsing")
+    scheduled = []
+    sched = AppScheduler()
+    monkeypatch.setattr(sched, "_register_tasks", lambda: None)
+    monkeypatch.setattr(sched, "schedule_ingestion", lambda a, job_id: scheduled.append(job_id))
+    sched.init_app(app)
+    assert scheduled == [waiting["id"]]
+    assert svc.get(waiting["id"])["status"] == "queued"
+    assert svc.get(first["id"])["status"] == "failed"

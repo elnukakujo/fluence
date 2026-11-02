@@ -3,7 +3,7 @@ import pytest
 
 from lapp.services.parsing import pipeline
 from lapp.services.parsing.pipeline import parse
-from lapp.services.parsing.types import Block, ParseError, Word
+from lapp.services.parsing.types import Block, ParseCancelled, ParseError, Word
 from lapp.utils.model_api import ModelAPIError
 
 
@@ -362,3 +362,23 @@ def test_several_ranges_select_their_union_in_document_order():
 
 def test_parse_accepts_a_list_of_ranges(native_pdf, tmp_path):
     assert [p.index for p in _parse(native_pdf, tmp_path, pages=[(2, 2), (1, 1)]).pages] == [0, 1]
+
+
+def test_a_progress_callback_can_cancel_the_parse(native_pdf, tmp_path):
+    calls = []
+
+    def progress(done, total):
+        calls.append(done)
+        if done >= 1:
+            raise ParseCancelled
+
+    with pytest.raises(ParseCancelled):
+        _parse(native_pdf, tmp_path, progress=progress)
+    assert calls == [0, 1]          # page 2 was never read
+
+
+def test_any_other_progress_failure_is_still_ignored(native_pdf, tmp_path):
+    def progress(done, total):
+        raise RuntimeError("db hiccup")
+
+    assert len(_parse(native_pdf, tmp_path, progress=progress).pages) == 2
