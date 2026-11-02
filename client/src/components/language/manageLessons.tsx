@@ -48,6 +48,7 @@ export default function ManageLessons({ lessons, languageId, visibleIds, reorder
     try {
       await reorderLessons(languageId, moveItem(previous, from, to));
       setAnnounce(t("movedTo", { title: byId.get(id)?.title ?? "", n: to + 1 }));
+      router.refresh(); // the lesson grid renders server-fetched props; reload them so the new order shows without a manual refresh
     } catch {
       setOrder(previous);
       setError(t("reorderFailed"));

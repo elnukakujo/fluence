@@ -51,6 +51,23 @@ describe("manage mode", () => {
     expect(rows.slice(0, 3)).toEqual(["Select Beta", "Select Alpha", "Select Gamma"]);
   });
 
+  it("reloads the server data after a saved reorder, so the lesson grid shows the new order", async () => {
+    renderIt();
+    await manage();
+    await userEvent.click(screen.getByRole("button", { name: "Move Alpha down" }));
+    await screen.findByText("Moved Alpha to position 2");
+    expect(nav.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload when saving the order fails", async () => {
+    api.reorderLessons.mockRejectedValue(new Error("nope"));
+    renderIt();
+    await manage();
+    await userEvent.click(screen.getByRole("button", { name: "Move Alpha down" }));
+    await screen.findByRole("alert");
+    expect(nav.refresh).not.toHaveBeenCalled();
+  });
+
   it("puts the order back and says so when saving fails", async () => {
     api.reorderLessons.mockRejectedValue(new Error("nope"));
     renderIt();
