@@ -262,6 +262,48 @@ def bulk_delete_lessons():
     return jsonify({'deleted': lesson_service.bulk_delete(ids)})
 
 
+@bp.route('/merge', methods=['POST'])
+@login_required
+def merge_lessons():
+    """Merge the second lesson into the first (same language); keeps every item.
+    ---
+    tags:
+      - Lessons
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+            type: object
+            properties:
+                first_id: {type: string, description: "survives, keeps its id, shares and collaborators"}
+                second_id: {type: string, description: "its items move to the first, then it is deleted"}
+                title: {type: string}
+                description: {type: string}
+                level: {type: integer}
+    responses:
+        200: {description: The merged lesson}
+        400: {description: Invalid request (same lesson, other language, blank title)}
+        403: {description: Not the owner of both lessons}
+        404: {description: A lesson was not found}
+    """
+    body = request.get_json(silent=True) or {}
+    first_id, second_id = body.get('first_id'), body.get('second_id')
+    title = str(body.get('title') or '').strip()
+    level = body.get('level')
+    if not isinstance(first_id, str) or not isinstance(second_id, str) or not title:
+        return jsonify({'error': 'first_id, second_id and a title are required'}), 400
+    if level is not None and (isinstance(level, bool) or not isinstance(level, int)):
+        return jsonify({'error': 'level must be an integer'}), 400
+    require_owns(first_id)
+    require_owns(second_id)
+    merged = lesson_service.merge(first_id, second_id, title, body.get('description'), level,
+                                  user_id=current_user_id(), as_dict=True)
+    if merged is None:
+        return jsonify({'error': 'The lessons must be two different lessons of the same language'}), 400
+    return jsonify(merged)
+
+
 @bp.route('/<lesson_id>', methods=['DELETE'])
 @login_required
 def delete_lesson(lesson_id: str):

@@ -241,6 +241,46 @@ class LessonService:
         return deleted
 
     @transactional
+    def merge(self, first_id: str, second_id: str, title: str, description: Optional[str], level: Optional[int],
+              user_id: Optional[str] = None, session: Optional[Session] = None,
+              as_dict: bool = False, include_relations: bool = True) -> Lesson | dict | None:
+        """Fold lesson `second` into lesson `first` (same language): every vocabulary / grammar / calligraphy / exercise
+        row is re-pointed to `first` (ids, links, scores and media stay valid; duplicates are kept), tags and sources are
+        united, `second` is deleted and `first` takes the lower position. The score is recomputed, never copied.
+        Returns None when the request is invalid (same lesson, missing lesson, different languages)."""
+        if first_id == second_id:
+            return None
+        first = self.get_by_id(first_id, session=session)
+        second = self.get_by_id(second_id, session=session)
+        if not first or not second or first.language_id != second.language_id:
+            return None
+
+        first.title = title
+        if description is not None:
+            first.description = description
+        if level is not None:
+            first.level = level
+        first.tags = list({t.id: t for t in [*first.tags, *second.tags]}.values())
+        first.sources = list({x.id: x for x in [*first.sources, *second.sources]}.values())
+        first.position = min(first.position, second.position)
+
+        for model in (Vocabulary, Grammar, Calligraphy, Exercise):
+            session.query(model).filter(model.lesson_id == second_id).update({"lesson_id": first_id}, synchronize_session=False)
+        session.flush()
+        session.expire_all()    # the delete below loads `second`'s (now empty) collections from the database
+        if not self.delete(second_id, session=session):
+            raise RuntimeError(f"Could not delete lesson {second_id} after merging it into {first_id}")
+
+        remaining = session.query(Lesson).filter(Lesson.language_id == first.language_id).order_by(Lesson.position, Lesson.created_at).all()
+        for position, lesson in enumerate(remaining):
+            lesson.position = position
+        if user_id:
+            self.update_score(first_id, user_id=user_id, session=session)
+        session.flush()
+        session.expire(first)
+        return self._serialize(first, as_dict, include_relations)
+
+    @transactional
     def update_score(self, lesson_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
         """
         Update lesson score based on average of all of its components scores.
