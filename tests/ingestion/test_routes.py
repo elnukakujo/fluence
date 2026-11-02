@@ -713,3 +713,23 @@ def test_pause_holds_the_worker_until_resume_and_stop_releases_it(app, db, media
     client.post(f"/api/ingestion/{job_id}/pause")
     client.post(f"/api/ingestion/{job_id}/stop")
     assert client.get(f"/api/ingestion/{job_id}").get_json()["paused"] is False   # stop clears the pause
+
+
+def test_a_reviewed_calligraphy_phonetic_beats_the_one_generated_for_the_same_import_words(app, db, media_root, scheduled, monkeypatch):
+    """Adding a word creates its kanji with a generated (romaji) phonetic. The calligraphy item the user reviewed in
+    the same import must still win, so the reviewed hiragana is what gets stored."""
+    from lapp.models.components import Character
+    from lapp.services.components import character as character_module, word as word_module
+    monkeypatch.setattr(word_module, "enrich_word", lambda **kw: {
+        "phonetic": "chuugoku", "translation": "China", "word_type": "noun", "word_gender": "", "characters": ["中"]})
+    monkeypatch.setattr(character_module, "enrich_character", lambda **kw: {"phonetic": "chuu", "radical": "", "meaning": ""})
+    client = _setup(app, db, media_root)
+    job_id = _ready_job(client)
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={
+        "lesson_id": "lesson_L1",
+        "items": [{"word": "中国"}],
+        "elements": [{"kind": "calligraphy", "fields": {"character": "中", "phonetic": "ちゅう", "meaning": "middle", "radical": None, "strokes": None}}],
+    })
+    assert res.status_code == 200 and res.get_json()["created_elements"] == 1
+    with db.session_scope() as s:
+        assert [c.phonetic for c in s.query(Character).filter(Character.character == "中")] == ["ちゅう"]

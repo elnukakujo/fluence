@@ -624,8 +624,7 @@ def accept_lesson(job_id: str, index: int):
                 title=(body.get("title") or lesson["title"]).strip(), language_id=job["language_id"],
                 user_id=owner_user_id(job["language_id"]), level=job.get("level")), session=session)
             lesson_id = created.id
-        added = _add_vocabulary(session, job, lesson_id, items)
-        added_elements = _add_elements(session, job, lesson_id, job["language_id"], elements, notes)
+        added, added_elements = _add_all(session, job, lesson_id, items, elements, notes)
     created_file.parent.mkdir(parents=True, exist_ok=True)
     created_file.write_text(lesson_id)
     return jsonify({"lesson_id": lesson_id, "created": added, "created_elements": added_elements, "notes": notes})
@@ -690,8 +689,7 @@ def accept(job_id: str):
 
     notes: list[str] = []
     with db_manager.session_scope() as session:   # one transaction: all or nothing
-        created = _add_vocabulary(session, job, lesson_id, items)
-        created_elements = _add_elements(session, job, lesson_id, job["language_id"], elements, notes)
+        created, created_elements = _add_all(session, job, lesson_id, items, elements, notes)
     marker = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, 0)   # lesson-level: marks the import as finished
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(lesson_id)
@@ -719,6 +717,17 @@ def _speaker(job: dict):
     code = get_language_by_iso2t(language.target_iso639_2t).iso1 if language else None
     tts = TTSService()
     return lambda text: tts.generate_audio(text=text, language_code=code, api=api)
+
+
+def _add_all(session, job: dict, lesson_id: str, items: list, elements: list, notes: list) -> tuple[int, int]:
+    """(vocabulary added, elements added). Calligraphy goes first: adding a word also creates its characters with a
+    generated (romaji) phonetic, and the reviewed calligraphy item would then be answered by that row under "keep"."""
+    is_calligraphy = [isinstance(e, dict) and e.get("kind") == "calligraphy" for e in elements]
+    first = [e for e, c in zip(elements, is_calligraphy) if c]
+    rest = [e for e, c in zip(elements, is_calligraphy) if not c]
+    added_elements = _add_elements(session, job, lesson_id, job["language_id"], first, notes)
+    added = _add_vocabulary(session, job, lesson_id, items)
+    return added, added_elements + _add_elements(session, job, lesson_id, job["language_id"], rest, notes)
 
 
 def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
