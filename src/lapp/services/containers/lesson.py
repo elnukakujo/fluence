@@ -275,13 +275,13 @@ class LessonService:
         for position, lesson in enumerate(remaining):
             lesson.position = position
         if user_id:
-            self.update_score(first_id, user_id=user_id, session=session)
+            self.update_score(first_id, user_id=user_id, touch=False, session=session)   # not a review: keep last_seen_at
         session.flush()
         session.expire(first)
         return self._serialize(first, as_dict, include_relations)
 
     @transactional
-    def update_score(self, lesson_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
+    def update_score(self, lesson_id: str, user_id: Optional[str] = None, touch: bool = True, session: Optional[Session] = None) -> "Score | None":
         """
         Update lesson score based on average of all of its components scores.
         
@@ -317,11 +317,11 @@ class LessonService:
             lesson_score = 0.0
             lesson_difficulty = 0.5
 
-        result = score_service.set(user_id, lesson_id, lesson_score, lesson_difficulty, session=session)
+        result = score_service.set(user_id, lesson_id, lesson_score, lesson_difficulty, touch=touch, session=session)
         if result:
             logger.info(f"Updated lesson {lesson_id} score: {result.score}")
 
-        if not (language_service.update_score(lesson.language_id, user_id=user_id, session=session)):
+        if not (language_service.update_score(lesson.language_id, user_id=user_id, touch=touch, session=session)):
             raise Exception(f"Failed to update language score for language {lesson.language_id} after lesson {lesson_id} score update.")
 
         return result

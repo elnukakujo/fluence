@@ -5,6 +5,7 @@ from lapp.models.components import Word
 from lapp.models.containers import Language, Lesson
 from lapp.models.features import Grammar, Vocabulary
 from lapp.models.system_data import LessonShare, Tag, User
+from lapp.models.system_data.score import Score
 from lapp.services import LessonService
 from lapp.services.auth import AuthService
 from lapp.services.system_data import ScoreService
@@ -110,3 +111,34 @@ def test_merge_by_a_non_owner_is_forbidden(app, db):
     other.set_cookie('session_token', AuthService().create_session("user_U2", remember=False))
     assert _merge(other).status_code == 403
     assert svc.get_by_id("lesson_L2") is not None
+
+
+def test_merge_keeps_last_seen_dates_of_lesson_and_language(app, db):
+    """A merge recomputes aggregates; it is not a review, so it must not stamp 'seen today'."""
+    client = _setup(app, db)
+    old = datetime(2026, 1, 5, 12, 0)
+    with db.session_scope() as s:
+        ScoreService().set("user_U1", "lesson_L1", 10.0, 0.5, session=s)
+        ScoreService().set("user_U1", "lang_L1", 10.0, 0.5, session=s)
+        for row in s.query(Score).filter(Score.element_id.in_(["lesson_L1", "lang_L1"])):
+            row.last_seen_at = old
+    assert _merge(client).status_code == 200
+    with db.session_scope() as s:
+        rows = {r.element_id: r.last_seen_at for r in s.query(Score).filter(Score.element_id.in_(["lesson_L1", "lang_L1"]))}
+    assert rows == {"lesson_L1": old, "lang_L1": old}
+
+
+def test_merge_of_never_reviewed_lessons_leaves_them_never_seen(app, db):
+    client = _setup(app, db)
+    assert _merge(client).status_code == 200
+    with db.session_scope() as s:
+        rows = {r.element_id: r.last_seen_at for r in s.query(Score).filter(Score.element_id.in_(["lesson_L1", "lang_L1"]))}
+    assert all(v is None for v in rows.values())
+
+
+def test_score_set_stamps_last_seen_by_default_and_can_skip_it(app, db):
+    _setup(app, db)
+    sc = ScoreService()
+    with db.session_scope() as s:
+        assert sc.set("user_U1", "lesson_L3", 5.0, 0.5, session=s).last_seen_at is not None
+        assert sc.set("user_U1", "lesson_L4", 5.0, 0.5, touch=False, session=s).last_seen_at is None

@@ -270,7 +270,7 @@ class LanguageService:
         return success
 
     @transactional
-    def update_score(self, language_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":
+    def update_score(self, language_id: str, user_id: Optional[str] = None, touch: bool = True, session: Optional[Session] = None) -> "Score | None":
         """
         Update language score based on average of all lesson scores.
         
@@ -314,7 +314,7 @@ class LanguageService:
         )
 
         result = score_service.set(user_id, language_id, language_score, language_difficulty,
-                                   current_lesson_id=current_lesson_id, session=session)
+                                   current_lesson_id=current_lesson_id, touch=touch, session=session)
 
         if result:
             logger.info(f"Updated language {language_id} score: {result.score}")

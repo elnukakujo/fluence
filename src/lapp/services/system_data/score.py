@@ -72,9 +72,10 @@ class ScoreService:
 
     @transactional
     def set(self, user_id: str, element_id: str, score: float, difficulty: float,
-            current_lesson_id: Optional[str] = None,
+            current_lesson_id: Optional[str] = None, touch: bool = True,
             session: Optional[Session] = None) -> Score:
-        """Upsert a Score row with explicit values (for container/component aggregates)."""
+        """Upsert a Score row with explicit values (for container/component aggregates).
+        `touch=False` leaves `last_seen_at` alone (None on a new row): a recompute that is not a review, e.g. a lesson merge."""
         now = datetime.now()
         row = session.query(Score).filter(
             Score.user_id == user_id,
@@ -88,14 +89,15 @@ class ScoreService:
                 score=score,
                 difficulty=difficulty,
                 created_at=now,
-                last_seen_at=now,
+                last_seen_at=now if touch else None,
                 current_lesson_id=current_lesson_id,
             )
             session.add(row)
         else:
             row.score = score
             row.difficulty = difficulty
-            row.last_seen_at = now
+            if touch:
+                row.last_seen_at = now
             if current_lesson_id is not None:
                 row.current_lesson_id = current_lesson_id
         session.flush()
