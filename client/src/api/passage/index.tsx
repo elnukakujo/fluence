@@ -1,7 +1,7 @@
 import { BASE_URL, getAuthHeaders } from "..";
 
 export async function getPassageById(passageId: string) {
-  const res = await fetch(`${BASE_URL}/api/passage/${passageId}`);
+  const res = await fetch(`${BASE_URL}/api/passage/${passageId}`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch passage ${passageId}`);
   return res.json();
 }
