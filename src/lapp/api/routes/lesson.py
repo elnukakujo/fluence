@@ -202,6 +202,66 @@ def update_lesson(lesson_id: str):
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
 
 
+@bp.route('/reorder', methods=['POST'])
+@login_required
+def reorder_lessons():
+    """Set the order of a language's lessons.
+    ---
+    tags:
+      - Lessons
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+            type: object
+            properties:
+                language_id: {type: string}
+                ids: {type: array, items: {type: string}, description: "every lesson id of the language, in the new order"}
+    responses:
+        200: {description: Order saved}
+        400: {description: ids are not exactly the language's lessons}
+        403: {description: Not the language's owner}
+    """
+    body = request.get_json(silent=True) or {}
+    language_id, ids = body.get('language_id'), body.get('ids')
+    if not isinstance(language_id, str) or not isinstance(ids, list):
+        return jsonify({'error': 'language_id and ids are required'}), 400
+    require_owns(language_id)
+    if not lesson_service.reorder(language_id, ids):
+        return jsonify({'error': "ids must be exactly the language's lessons, once each"}), 400
+    return jsonify({'success': True})
+
+
+@bp.route('/bulk-delete', methods=['POST'])
+@login_required
+def bulk_delete_lessons():
+    """Delete several lessons at once; all or nothing.
+    ---
+    tags:
+      - Lessons
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+            type: object
+            properties:
+                ids: {type: array, items: {type: string}}
+    responses:
+        200: {description: "{deleted: n}"}
+        400: {description: No ids}
+        403: {description: Not the owner of every lesson (nothing is deleted)}
+    """
+    ids = (request.get_json(silent=True) or {}).get('ids')
+    if not isinstance(ids, list) or not ids or not all(isinstance(i, str) for i in ids):
+        return jsonify({'error': 'ids must be a non-empty list'}), 400
+    ids = list(dict.fromkeys(ids))
+    for lesson_id in ids:       # check everything before deleting anything
+        require_owns(lesson_id)
+    return jsonify({'deleted': lesson_service.bulk_delete(ids)})
+
+
 @bp.route('/<lesson_id>', methods=['DELETE'])
 @login_required
 def delete_lesson(lesson_id: str):

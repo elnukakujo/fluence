@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 import logging
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,8 @@ class LessonService:
             filters={'language_id': language_id},
             session=session
         )
-        # Stable creation order: oldest first (find_all returns no ORDER BY).
-        lessons.sort(key=lambda lesson: lesson.created_at)
+        # The user's order, then oldest first (find_all returns no ORDER BY).
+        lessons.sort(key=lambda lesson: (lesson.position, lesson.created_at))
         return self._serialize_list(lessons, as_dict, include_relations)
 
     @transactional
@@ -129,11 +130,13 @@ class LessonService:
         Returns:
             Created LessonContainer object if successful, else None
         """
+        last = session.query(func.max(Lesson.position)).filter(Lesson.language_id == data.language_id).scalar()
         lesson = Lesson(
             id=db_manager.generate_new_id(
                 model_class=Lesson,
                 session=session
             ),
+            position=0 if last is None else last + 1,
             **{k: v for k, v in data.model_dump(exclude={'status', 'score', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True).items()},
             tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
             sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
@@ -216,6 +219,26 @@ class LessonService:
             logger.error(f"Failed to delete lesson: {lesson_id}")
 
         return success
+
+    @transactional
+    def reorder(self, language_id: str, ids: list[str], session: Optional[Session] = None) -> bool:
+        """Give the language's lessons the order of `ids`, which must be exactly its lesson ids (once each)."""
+        lessons = {l.id: l for l in session.query(Lesson).filter(Lesson.language_id == language_id).all()}
+        if not ids or len(ids) != len(set(ids)) or set(ids) != set(lessons):
+            return False
+        for position, lesson_id in enumerate(ids):
+            lessons[lesson_id].position = position
+        return True
+
+    @transactional
+    def bulk_delete(self, ids: list[str], session: Optional[Session] = None) -> int:
+        """Delete several lessons (and their collaborations) in the caller's transaction; returns how many were deleted."""
+        from ..system_data import CollaborationService
+        deleted = 0
+        for lesson_id in ids:
+            CollaborationService().purge_target("lesson", lesson_id, session=session)
+            deleted += bool(self.delete(lesson_id, session=session))
+        return deleted
 
     @transactional
     def update_score(self, lesson_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> "Score | None":

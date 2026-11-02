@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from ..base import BaseContainerModel
@@ -8,6 +8,7 @@ class Lesson(BaseContainerModel):
     __mapper_args__ = {"polymorphic_identity": "lesson"}
 
     title = Column(String, index=True)
+    position = Column(Integer, nullable=False, default=0, server_default="0")  # order within the language, 0-based
 
     # Foreign key
     language_id: Mapped[str] = mapped_column(ForeignKey('language.id'))
@@ -42,7 +43,8 @@ class Lesson(BaseContainerModel):
     def to_dict(self, include_relations: bool = True) -> dict:
         base_dict =  {
             **super().to_dict(include_relations=include_relations),
-            "title": self.title
+            "title": self.title,
+            "position": self.position,
         }
 
         if include_relations:

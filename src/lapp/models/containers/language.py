@@ -22,6 +22,7 @@ class Language(BaseContainerModel):
         back_populates="language",
         cascade="all, delete-orphan",
         foreign_keys=[Lesson.language_id],
+        order_by=[Lesson.position, Lesson.created_at],
     )
 
     # Components (word/passage/character) belong to the language too; cascade
