@@ -37,5 +37,9 @@ def db(app):
     with app.app_context():
         db_manager.drop_tables()
         db_manager.create_tables()
+        # Pooled connections keep server-side prepared statements from earlier tests; after the tables are
+        # recreated the first query on one fails with "cached plan must not change result type" and aborts
+        # the transaction (seen after test_generate_new_id's threads). Start every test on fresh connections.
+        db_manager.engine.dispose()
         yield db_manager
         db_manager.close_session()
