@@ -11,7 +11,8 @@ from .verify import _phonetic_flag, _source_flags, _words_present, normalise
 _SHAPES = {
     "grammar": ("title", '{"title": str, "explanation": str, "example_sentences": [str], "quote": str}',
                 "a grammar point is a titled explanation; copy `title` and `explanation` verbatim, never paraphrase; the explanation must be a sentence stating a rule or how the form works, "
-                "not an exercise instruction (e.g. 'Read the verbs'), a table header or a list of words; skip points with no such explanation"),
+                "not an exercise instruction (e.g. 'Read the verbs'), a table header or a list of words; skip points with no such explanation. "
+                "Write the explanation as GitHub-flavoured markdown: lists as `-` or `1.` lists, tables as a pipe table, **bold** where the book emphasises; no headings (the title is a separate field)"),
     "calligraphy": ("character", '{"character": str, "phonetic": str|null, "meaning": str|null, "radical": str|null, "strokes": int|null, "quote": str}',
                     "a calligraphy entry is for a single character with stroke order, practice grids, character breakdowns; give `radical` and `strokes` only if the text states them"),
     "exercise": ("question", '{"exercise_type": str, "question": str, "answer": str, "text_support": str|null, "content": object|null, "listening_text": str|null, "quote": str}',

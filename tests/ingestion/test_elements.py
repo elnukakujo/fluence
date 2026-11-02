@@ -368,3 +368,17 @@ def test_a_speaking_exercise_stores_its_prompt_as_the_answer_like_the_form():
     raw = {"exercise_type": "speaking", "question": "Read aloud: 你好", "answer": "something else", "text_support": None, "content": None, "quote": "你好"}
     c = el.verify_element("exercise", raw, _chunk("Read aloud: 你好"), "zh")
     assert c.fields["answer"] == c.fields["question"] and c.status == "flagged"
+
+
+def test_grammar_prompts_ask_for_markdown():
+    rule = el._SHAPES["grammar"][2].lower()
+    sheet = grammar_module._system_prompt("Japanese", None).lower()
+    for text in (rule, sheet):
+        assert "markdown" in text and "pipe table" in text and "plain text" not in text
+
+
+def test_markdown_table_explanation_is_kept_and_not_flagged_as_missing():
+    table = "Forms:\n\n| a | b |\n|---|---|\n| x | y |\n\n- rule one"
+    raw = {"title": "Forms", "explanation": table, "example_sentences": [], "quote": "Forms"}
+    c = el.verify_element("grammar", raw, _chunk("Forms a b x y rule one"), "zh")
+    assert c.fields["explanation"] == table and "explanation_not_in_source" not in _codes(c)
