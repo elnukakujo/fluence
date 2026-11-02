@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, initialRows, dialogueLines, mediaFor, pageSpan, ttsClipCount, parsePageRange, rowsByKind, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, initialRows, dialogueLines, mediaFor, pageSpan, ttsClipCount, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -85,18 +85,6 @@ describe("toAcceptItems", () => {
     const rows = initialRows([cand()]);
     rows[0].on_conflict = "merge";
     expect(toAcceptItems(rows).items[0].on_conflict).toBe("merge");
-  });
-});
-
-describe("parsePageRange", () => {
-  it("accepts an empty range as 'all pages'", () => {
-    expect(parsePageRange("", "")).toEqual({ ok: true, range: null });
-  });
-  it("accepts a valid range", () => {
-    expect(parsePageRange("40", " 55 ")).toEqual({ ok: true, range: [40, 55] });
-  });
-  it.each([["5", ""], ["", "5"], ["0", "3"], ["9", "3"], ["a", "3"], ["1.5", "3"]])("rejects %s-%s", (a, b) => {
-    expect(parsePageRange(a, b).ok).toBe(false);
   });
 });
 

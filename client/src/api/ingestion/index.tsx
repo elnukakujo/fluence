@@ -19,8 +19,7 @@ export type Job = {
   filename: string;
   source_title?: string | null;
   handwritten: boolean;
-  page_from: number | null;
-  page_to: number | null;
+  page_ranges: [number, number][] | null;
   status: JobStatus;
   paused?: boolean; // the user paused it; the reader waits before its next page
   finished?: boolean; // everything wanted from a ready import has been added
@@ -33,7 +32,7 @@ export type Job = {
 };
 
 export type LessonProgress = {
-  index: number; title: string; start_page: number; end_page: number; verified: boolean | null; note: string | null;
+  index: number; title: string; start_page: number; end_page: number; ranges?: [number, number][]; verified: boolean | null; note: string | null;
   status: "pending" | "done" | "failed"; error: string | null;
   counts: { total: number; verified: number; flagged: number } | null;
   created_lesson_id: string | null;
@@ -161,8 +160,8 @@ export async function getStructure(jobId: string): Promise<Structure> {
   return res.json();
 }
 
-export async function confirmStructure(jobId: string, lessons: { title: string; start_page: number; end_page: number }[], pageKinds?: Record<string, string[]>) {
-  const body: { lessons: { title: string; start_page: number; end_page: number }[]; page_kinds?: Record<string, string[]> } = { lessons };
+export async function confirmStructure(jobId: string, lessons: { title: string; ranges: [number, number][] }[], pageKinds?: Record<string, string[]>) {
+  const body: { lessons: { title: string; ranges: [number, number][] }[]; page_kinds?: Record<string, string[]> } = { lessons };
   if (pageKinds) body.page_kinds = pageKinds;
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/structure`, {
     method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),

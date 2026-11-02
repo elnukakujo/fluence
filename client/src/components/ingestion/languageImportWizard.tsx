@@ -11,9 +11,11 @@ import {
   flattenElements, getCapabilities, getLanguageCandidates, getStructure, stepBack,
 } from "@/api/ingestion";
 import {
-  type Draft, addDraft, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
+  type Draft, addDraft, draftRanges, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
 } from "@/lib/ingestion/structure";
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
+import { parsePageRanges } from "@/lib/ingestion/ranges";
+import PageRanges from "./pageRanges";
 import StepProgress from "./stepProgress";
 import { UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
@@ -163,12 +165,11 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
 
       <ul className="flex flex-col gap-2">
         {drafts.map((d, i) => {
-          const startPage = parseInt(d.start, 10);
-          const endPage = parseInt(d.end, 10);
-          const lessonPages = Array.from(
-            { length: endPage - startPage + 1 },
-            (_, idx) => startPage + idx
-          );
+          const ranges = draftRanges(d);
+          const startPage = ranges.length ? ranges[0][0] : NaN;
+          const endPage = ranges.length ? ranges[ranges.length - 1][1] : NaN;
+          const lessonPages = ranges.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, idx) => a + idx));
+          const check = parsePageRanges(d.ranges, structure.first_page, structure.last_page);
           return (
             <li key={i} className="card flex flex-col gap-2">
               <div className="flex flex-wrap items-end gap-3">
@@ -177,14 +178,6 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
                   <span className="text-xs opacity-60">{t("title")}</span>
                   <input className="input" value={d.title} onChange={(e) => set(i, { title: e.target.value })} />
                 </label>
-                <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs opacity-60">{t("firstPageAriaLabel")}</span>
-                  <input className="input" inputMode="numeric" value={d.start} onChange={(e) => set(i, { start: e.target.value })} />
-                </label>
-                <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs opacity-60">{t("lastPageAriaLabel")}</span>
-                  <input className="input" inputMode="numeric" value={d.end} onChange={(e) => set(i, { end: e.target.value })} />
-                </label>
                 {d.verified !== null && (
                   <span className="badge mb-2" title={d.verified ? t("titleOnFirstPage") : t("titleNotOnFirstPage")}>
                     {d.verified ? t("foundOnPage") : t("checkBadge")}
@@ -192,8 +185,10 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
                 )}
                 <button type="button" className="btn btn-secondary mb-1" aria-label={t("removeLessonAria", { n: i + 1 })} onClick={() => setDrafts((ds) => removeDraft(ds, i))}>×</button>
               </div>
+              <PageRanges rows={d.ranges} onChange={(r) => set(i, { ranges: r })} first={structure.first_page} last={structure.last_page}
+                errorRow={check.ok ? undefined : check.row} error={check.ok ? undefined : check.error} />
               {d.note && <p className="text-sm">⚠ {d.note}</p>}
-              {d.include && (
+              {d.include && lessonPages.length > 0 && (
                 <details className="text-sm">
                   <summary className="cursor-pointer opacity-70">{t("confirmKindsOnPages", { start: startPage, end: endPage })}</summary>
                   <div className="mt-2 pl-4">

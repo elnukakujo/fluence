@@ -261,5 +261,10 @@
   "languageImportTakesTime": "Reading a long scan takes a few minutes. You can leave this page: the import is listed under \"Imports\" in the top bar.",
   "goTo": "Go to",
   "importStepOf": "Step {step} of 3",
-  "pagesRead": "{done} of {total, plural, one {# page} other {# pages}} read"
+  "pagesRead": "{done} of {total, plural, one {# page} other {# pages}} read",
+  "rangeFromLabel": "From page",
+  "rangeToLabel": "To page",
+  "addRange": "Add range",
+  "removeRangeAria": "Remove range {n}",
+  "rangesSummary": "{ranges, plural, one {# range} other {# ranges}}, {pages, plural, one {# page} other {# pages}}"
 }

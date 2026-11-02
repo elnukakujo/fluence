@@ -11,7 +11,9 @@ import {
   ACTIVE_STATUSES, type Capabilities, type Job, type SourceMetadata, acceptCandidates, confirmPages, deleteJob, getCandidates, getCapabilities,
   getJob, getPages, stepBack, uploadDocument,
 } from "@/api/ingestion";
-import { type Candidate, pageSpan, parsePageRange } from "@/lib/ingestion/review";
+import { type Candidate, pageSpan } from "@/lib/ingestion/review";
+import { type RangeDraft, parsePageRanges } from "@/lib/ingestion/ranges";
+import PageRanges from "./pageRanges";
 import ReviewPanel from "./reviewPanel";
 import { PageKindsWithViewer } from "./pageKinds";
 import StepProgress from "./stepProgress";
@@ -39,8 +41,8 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
   const t = useTranslations("ingestion");
   const [caps, setCaps] = useState<Capabilities | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [rows, setRows] = useState<RangeDraft[]>([{ start: "", end: "" }]);
+  const [rangeError, setRangeError] = useState<{ row: number; message: string } | null>(null);
   const [handwritten, setHandwritten] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,15 +59,16 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const range = parsePageRange(from, to);
-    if (!range.ok) return setError(range.error);
+    const range = parsePageRanges(rows);
+    if (!range.ok) { setRangeError({ row: range.row, message: range.error }); return; }
+    setRangeError(null);
     if (!file) return setError(t("chooseFileFirst"));
     const form = new FormData();
     form.append("file", file);
     form.append("language_id", languageId);
     if (lessonId) form.append("lesson_id", lessonId);
     if (handwritten) form.append("handwritten", "true");
-    if (range.range) { form.append("page_from", String(range.range[0])); form.append("page_to", String(range.range[1])); }
+    if (range.ranges) form.append("page_ranges", JSON.stringify(range.ranges));
     if (source.source_title) form.append("source_title", source.source_title);
     if (source.source_type) form.append("source_type", source.source_type);
     if (source.source_description) form.append("source_description", source.source_description);
@@ -116,11 +119,8 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
 
       <fieldset className="flex flex-col gap-1" disabled={blocked || busy}>
         <legend className="text-sm opacity-70">{t("pagesLabel")}</legend>
-        <div className="flex flex-wrap items-center gap-2">
-          <input className="input w-24" inputMode="numeric" aria-label={t("firstPageAriaLabel")} placeholder={t("firstPagePlaceholder")} value={from} onChange={(e) => setFrom(e.target.value)} />
-          <span aria-hidden>–</span>
-          <input className="input w-24" inputMode="numeric" aria-label={t("lastPageAriaLabel")} placeholder={t("lastPagePlaceholder")} value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
+        <PageRanges rows={rows} onChange={(r) => { setRows(r); setRangeError(null); }} disabled={blocked || busy}
+          errorRow={rangeError?.row} error={rangeError?.message} />
         <span className="text-xs opacity-60">
           {t("pagesHint")}
         </span>
@@ -129,7 +129,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
       {file && (
         <details className="text-sm" open>
           <summary className="cursor-pointer opacity-70">{t("lookThroughDocument")}</summary>
-          <div className="mt-2"><FilePreview file={file} page={/^\d+$/.test(from.trim()) ? Number(from) : undefined} /></div>
+          <div className="mt-2"><FilePreview file={file} page={/^\d+$/.test(rows[0].start.trim()) ? Number(rows[0].start) : undefined} /></div>
         </details>
       )}
 

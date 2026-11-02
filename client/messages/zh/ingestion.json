@@ -261,5 +261,10 @@
   "languageImportTakesTime": "阅读较长的扫描件需要几分钟。您可以离开此页面：该导入会列在顶部栏的“导入”下。",
   "goTo": "前往",
   "importStepOf": "第 {step} 步，共 3 步",
-  "pagesRead": "已读取 {done} / {total} 页"
+  "pagesRead": "已读取 {done} / {total} 页",
+  "rangeFromLabel": "起始页",
+  "rangeToLabel": "结束页",
+  "addRange": "添加页码范围",
+  "removeRangeAria": "移除第 {n} 个范围",
+  "rangesSummary": "{ranges} 个范围，{pages} 页"
 }

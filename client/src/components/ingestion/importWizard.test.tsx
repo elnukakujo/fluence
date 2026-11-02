@@ -24,7 +24,7 @@ import ImportWizard from "./importWizard";
 import LanguageImportWizard from "./languageImportWizard";
 
 const job = (status: string) => ({
-  id: "j1", language_id: "l", lesson_id: "les", filename: "book.pdf", handwritten: false, page_from: null, page_to: null,
+  id: "j1", language_id: "l", lesson_id: "les", filename: "book.pdf", handwritten: false, page_ranges: null,
   status, pages_done: 0, pages_total: 0, error: null, warnings: [], created_at: null,
 });
 
@@ -64,7 +64,7 @@ describe("LanguageImportWizard", () => {
     await userEvent.click(screen.getByRole("button", { name: /Extract the content of 1 lesson/ }));
 
     expect(api.confirmStructure).toHaveBeenCalledWith(
-      "j1", [{ title: "Lesson A", start_page: 1, end_page: 2 }], { "1": ["vocabulary", "grammar"], "2": [] },
+      "j1", [{ title: "Lesson A", ranges: [[1, 2]] }], { "1": ["vocabulary", "grammar"], "2": [] },
     );
   });
 });

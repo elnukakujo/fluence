@@ -261,5 +261,10 @@
   "languageImportTakesTime": "La lecture d'un long scan prend quelques minutes. Vous pouvez quitter cette page : l'import est listé sous « Imports » dans la barre du haut.",
   "goTo": "Aller à",
   "importStepOf": "Étape {step} sur 3",
-  "pagesRead": "{done} sur {total, plural, one {# page lue} other {# pages lues}}"
+  "pagesRead": "{done} sur {total, plural, one {# page lue} other {# pages lues}}",
+  "rangeFromLabel": "De la page",
+  "rangeToLabel": "À la page",
+  "addRange": "Ajouter une plage",
+  "removeRangeAria": "Supprimer la plage {n}",
+  "rangesSummary": "{ranges, plural, one {# plage} other {# plages}}, {pages, plural, one {# page} other {# pages}}"
 }
