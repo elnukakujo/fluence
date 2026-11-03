@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SelectBox, SelectToggle, useItemSelection } from "@/components/elements/itemSelection";
 import NavButton from "@/components/layout/navButton";
 import Grammar from "@/interface/features/Grammar";
 import DifficultyDisplay from "@/components/ui/displays/difficultyDisplay";
@@ -11,6 +12,7 @@ export default function GrammarList({ gramProps}: { gramProps: Grammar[]}) {
     const t = useTranslations("grammar");
     const { language_id, lesson_id } = useParams<{ language_id: string, lesson_id: string }>();
 
+    const sel = useItemSelection();
     const router = useRouter();
     const handleClick = (id: string) => {
         router.push(`/languages/${language_id}/lesson/${lesson_id}/gram/${id}`);
@@ -25,6 +27,7 @@ export default function GrammarList({ gramProps}: { gramProps: Grammar[]}) {
         <section className="card flex flex-col gap-4 w-[14rem] h-fit">
             <header>
                 <h2>{t("heading")}</h2>
+                {gramProps.length > 0 && <SelectToggle />}
                 {gramProps.length > 0 && (
                     <div className="flex flex-col gap-1">
                         <span className="text-sm text-muted">{t("total")}: {gramProps.length}</span>
@@ -37,11 +40,9 @@ export default function GrammarList({ gramProps}: { gramProps: Grammar[]}) {
                 <ul className="index-divider list-item pl-5 space-y-1 list-none">
                     {gramProps.map((item, index) => (
                         <li key={index}>
-                            <button 
-                                onClick={() => handleClick(item.id!)} 
-                                className="text-left link">
-                                {item.title}
-                            </button>
+                            {sel.active ? <SelectBox id={item.id!}>{item.title}</SelectBox> : (
+                                <button onClick={() => handleClick(item.id!)} className="text-left link">{item.title}</button>
+                            )}
                         </li>
                     ))}
                 </ul>

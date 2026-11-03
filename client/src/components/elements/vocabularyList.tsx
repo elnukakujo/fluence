@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SelectBox, SelectToggle, useItemSelection } from "@/components/elements/itemSelection";
 import NavButton from "@/components/layout/navButton";
 
 import Vocabulary from "@/interface/features/Vocabulary";
@@ -12,6 +13,7 @@ export default function VocabularyList({ vocProps}: { vocProps: Vocabulary[]}) {
     const t = useTranslations("vocabulary");
     const { language_id, lesson_id } = useParams<{ language_id: string, lesson_id: string }>();
 
+    const sel = useItemSelection();
     const router = useRouter();
     const handleClick = (id: string) => {
         router.push(`/languages/${language_id}/lesson/${lesson_id}/voc/${id}`);
@@ -26,6 +28,7 @@ export default function VocabularyList({ vocProps}: { vocProps: Vocabulary[]}) {
         <section className="card flex flex-col gap-4 w-[14rem] h-fit">
             <header>
                 <h2>{t("heading")}</h2>
+                {vocProps.length > 0 && <SelectToggle />}
                 {vocProps.length > 0 && (
                     <div className="flex flex-col gap-1">
                         <span className="text-sm text-muted">{t("total")}: {vocProps.length}</span>
@@ -38,11 +41,9 @@ export default function VocabularyList({ vocProps}: { vocProps: Vocabulary[]}) {
                 <ul className="index-divider list-item pl-5 space-y-1 list-none">
                     {vocProps.map((item, index) => (
                         <li key={index}>
-                            <button 
-                                onClick={() => handleClick(item.id!)} 
-                                className="text-left link">
-                                {item.word.word} –{" "}{item.word.translation}
-                            </button>
+                            {sel.active ? <SelectBox id={item.id!}>{item.word.word} –{" "}{item.word.translation}</SelectBox> : (
+                                <button onClick={() => handleClick(item.id!)} className="text-left link">{item.word.word} –{" "}{item.word.translation}</button>
+                            )}
                         </li>
                     ))}
                 </ul>

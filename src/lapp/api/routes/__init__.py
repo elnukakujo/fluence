@@ -21,6 +21,7 @@ from .review import bp as review_bp
 from .auth import bp as auth_bp
 from .collaboration import bp as collaboration_bp
 from .ingestion import bp as ingestion_bp
+from .element import bp as element_bp
 __all__ = [
     language_bp,
     lesson_bp,
@@ -45,4 +46,5 @@ __all__ = [
     auth_bp,
     collaboration_bp,
     ingestion_bp,
+    element_bp,
 ]

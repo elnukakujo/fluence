@@ -4,12 +4,17 @@ import DeleteButton from "@/components/ui/buttons/deleteButton";
 import Exercise from "@/interface/features/Exercise";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import LessonItems, { SelectBox, SelectToggle } from "@/components/elements/itemSelection";
+import { getLessonById } from "@/api/lesson";
+import { getCurrentUserId } from "@/utils/user_cookie";
 import { getTranslations } from "next-intl/server";
 
 export default async function ExercisesPage({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }){
     const t = await getTranslations("languages");
     const { language_id, lesson_id } = await params;
 
+    const lesson = await getLessonById(lesson_id);
+    const userId = await getCurrentUserId();
     const exercises: Exercise[] = await getExercisesByLesson(lesson_id)
     const exercisesByType = exercises.reduce((group, exercise) => {
         const key = exercise.exercise_type || "unknown";
@@ -23,13 +28,15 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
     return(
         <main className="flex flex-col space-y-5">
             <h1>{t("exercises")}</h1>
-            <article className="flex flex-col space-y-4">
+            <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
+                {exercises.length > 0 && <div><SelectToggle /></div>}
                 {Object.entries(exercisesByType).map(([type, exercises]) => (
                     <section key={type}>
                         <h3>{type.charAt(0).toUpperCase() + type.slice(1)}</h3>
                         <ul className="list-none">
                             {exercises.map((exercise, index) => (
                                 <li key={index} className="card flex flex-col gap-2">
+                                    <SelectBox id={exercise.id!} onlyWhenActive>{exercise.exercise_type}</SelectBox>
                                     {!['type_in_the_blank', 'select_in_the_blank', 'conversation'].includes(exercise.exercise_type!) && (
                                         <Markdown remarkPlugins={[remarkGfm]}>{exercise.question}</Markdown>
                                     )}
@@ -78,7 +85,7 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                         </ul>
                     </section>
                 ))}
-            </article>
+            </LessonItems>
             <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/new`}>
                 <p>{t("addNewExercise")}</p>
             </NavButton>

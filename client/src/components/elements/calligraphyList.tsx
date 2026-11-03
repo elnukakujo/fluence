@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SelectBox, SelectToggle, useItemSelection } from "@/components/elements/itemSelection";
 import NavButton from "@/components/layout/navButton";
 import type Calligraphy from "@/interface/features/Calligraphy";
 import DifficultyDisplay from "@/components/ui/displays/difficultyDisplay";
@@ -11,6 +12,7 @@ export default function CalligraphyList({ callProps}: { callProps: Calligraphy[]
     const t = useTranslations("calligraphy");
     const { language_id, lesson_id } = useParams<{ language_id: string, lesson_id: string }>();
 
+    const sel = useItemSelection();
     const router = useRouter();
     const handleClick = (id: string) => {
         router.push(`/languages/${language_id}/lesson/${lesson_id}/call/${id}`);
@@ -25,6 +27,7 @@ export default function CalligraphyList({ callProps}: { callProps: Calligraphy[]
         <section className="card flex flex-col gap-4 w-[14rem] h-fit">
             <header>
                 <h2>{t("heading")}</h2>
+                {callProps.length > 0 && <SelectToggle />}
                 {callProps.length > 0 && (
                     <div className="flex flex-col gap-1">
                         <span className="text-sm text-muted">{t("total")}: {callProps.length}</span>
@@ -37,11 +40,9 @@ export default function CalligraphyList({ callProps}: { callProps: Calligraphy[]
                 <ul className="index-divider list-item pl-5 space-y-1 list-none">
                     {callProps.map((item, index) => (
                         <li key={index}>
-                            <button 
-                                onClick={() => handleClick(item.id!)} 
-                                className="text-left link">
-                                {item.character.character} –{" "}{item.character.phonetic}
-                            </button>
+                            {sel.active ? <SelectBox id={item.id!}>{item.character.character} –{" "}{item.character.phonetic}</SelectBox> : (
+                                <button onClick={() => handleClick(item.id!)} className="text-left link">{item.character.character} –{" "}{item.character.phonetic}</button>
+                            )}
                         </li>
                     ))}
                 </ul>

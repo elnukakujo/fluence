@@ -24,6 +24,7 @@ import { getExercisesByLesson } from "@/api/exercise";
 import LessonHeaderCard from "@/components/lesson/lessonHeaderCard";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import ImportButton from "@/components/ingestion/importButton";
+import LessonItems from "@/components/elements/itemSelection";
 import { getTranslations } from "next-intl/server";
 
 
@@ -61,12 +62,12 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                     )}
                 </nav>
             </header>
-            <article className="flex flex-row flex-wrap gap-8 justify-around">
+            <LessonItems isOwner={isOwner} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-row flex-wrap gap-8 justify-around">
                 <VocabularyList vocProps={vocabularies} />
                 <GrammarList gramProps={grammars} />
                 <CalligraphyList callProps={calligraphies} />
                 <ExerciseList exProps={exercises} />
-            </article>
+            </LessonItems>
         </main>
     );
 }
