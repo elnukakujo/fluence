@@ -36,7 +36,7 @@ export default function MergeEditor({ existing, incoming, fields, onDone, onCanc
               {t("newValue", { value: show(incoming[f]) || "—" })}
             </button>
           </div>
-          <input className="input" aria-label={t("resultField", { field: fieldName(t, f) })} value={result[f]} onChange={(e) => setResult({ ...result, [f]: e.target.value })} />
+          <input className="input" {...(f === "strokes" && { type: "number", min: 1, step: 1 })} aria-label={t("resultField", { field: fieldName(t, f) })} value={result[f]} onChange={(e) => setResult({ ...result, [f]: e.target.value })} />
         </div>
       ))}
       <div className="btn-row flex-wrap">

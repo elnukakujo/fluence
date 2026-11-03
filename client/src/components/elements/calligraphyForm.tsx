@@ -193,6 +193,7 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                     label={t("radicalLabel")}
                 />
                 <AutoWidthInput
+                    type="number"
                     value={strokes !== undefined ? strokes.toString() : ""}
                     onChange={(e) => setStrokes(parseInt(e.target.value) || undefined)}
                     label={t("strokesLabel")}
