@@ -135,15 +135,6 @@ export async function deleteJob(jobId: string): Promise<void> {
   notifyChanged();
 }
 
-/** Keep a picture or audio file the user chose in place of a suggested one; it is attached when the item is added. */
-export async function uploadMedia(jobId: string, file: File): Promise<{ id: string; kind: "image" | "audio" }> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/media`, { method: "POST", body: form });
-  if (!res.ok) return fail(res, "Could not upload this file");
-  return res.json();
-}
-
 /** Back from the review to the pages / lessons step (the results are discarded). */
 export async function stepBack(jobId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/back`, { method: "POST", headers: await getAuthHeaders() });

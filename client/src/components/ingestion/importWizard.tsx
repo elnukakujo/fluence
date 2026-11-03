@@ -3,6 +3,7 @@
 import JobControls from "./jobControls";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useDeleteWhenFinished } from "./useDeleteWhenFinished";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type AcceptPayload } from "@/lib/ingestion/review";
@@ -216,7 +217,10 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
         <h2>{t("importFailed")}</h2>
         <p>{job.error}</p>
         {/endpoint/i.test(job.error ?? "") && <Link href={settingsHref} className="link">{t("goToSettings")}</Link>}
-        <div className="btn-row"><button className="btn btn-primary" onClick={startOver}>{t("tryAnotherDocument")}</button></div>
+        <div className="btn-row">
+          <button className="btn btn-secondary" onClick={() => stepBack(jobId).then(async () => setJob(await getJob(jobId))).catch(() => {})}>{t("backToPages")}</button>
+          <button className="btn btn-primary" onClick={startOver}>{t("tryAnotherDocument")}</button>
+        </div>
       </div>
     );
   }
@@ -301,9 +305,8 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<number | null>(null);
   const [addNotes, setAddNotes] = useState<string[]>([]);
-  const [canAudio, setCanAudio] = useState(false);
+  useDeleteWhenFinished(job.id, added !== null);
 
-  useEffect(() => { Promise.resolve(getCapabilities(languageId, lessonId)).then((c) => setCanAudio(!!c?.can_generate_audio)).catch(() => undefined); }, [languageId, lessonId]); 
 
   useEffect(() => {
     getCandidates(job.id).then((r) => { setCandidates(r.candidates); setNotes(r.warnings); }).catch((e) => setError(e.message));
@@ -340,7 +343,6 @@ function Review({ job, lessonId, lessonTitle, languageId, base, onBack }: {
       </header>
       <ReviewPanel jobId={job.id} filename={job.filename} candidates={candidates} range={pageSpan(job.page_kinds)}
         addLabel={(n) => t("addButton", { count: n, lessonTitle })}
-        canGenerateAudio={canAudio}
         onAdd={async (payload) => { const r = await acceptCandidates(job.id, lessonId, payload.items, payload.elements); setAddNotes(r.notes ?? []); setAdded(r.created + (r.created_elements ?? 0)); }} />
       <div className="btn-row">
         <button className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotGoBack")))}>{t("backToPages")}</button>

@@ -6,8 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import ReviewPanel from "./reviewPanel";
 import type { Candidate } from "@/lib/ingestion/review";
 
-const uploadMedia = vi.hoisted(() => vi.fn());
-vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", uploadMedia }));
+vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png" }));
 
 const grammar: Candidate = {
   id: "g1", kind: "grammar", title: "Te-form", explanation: "Connects verbs", example_sentences: ["Tabete iru."], original_text: "This is the original OCR text from the page.",
@@ -160,7 +159,7 @@ describe("ReviewPanel", () => {
     expect(onAdd).toHaveBeenCalledWith({ items: [{ word: "水", translation: "water", phonetic: "shuǐ", word_type: "verb", on_conflict: "overwrite" }] });
   });
 
-  it("Keep existing deletes the new item and Undo brings it back", async () => {
+  it("Keep existing still adds the item to the lesson, using the saved character unchanged", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     const cal: Candidate = {
       id: "k1", kind: "calligraphy", character: "水", meaning: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [],
@@ -168,11 +167,7 @@ describe("ReviewPanel", () => {
     };
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[cal]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
     await userEvent.click(screen.getByRole("button", { name: "Keep existing" }));
-    expect(screen.getByText(/Kept your existing one/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(screen.getByRole("button", { name: "Keep existing" })).toHaveAttribute("aria-pressed", "true");
-    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
     expect(onAdd.mock.calls[0][0].elements[0].fields.on_conflict).toBe("keep");
   });
@@ -278,36 +273,5 @@ describe("ReviewPanel", () => {
     const sent = onAdd.mock.calls[0][0];
     expect(sent.items.map((i: { word: string }) => i.word)).toEqual(["beta"]);
     expect(sent.elements.map((e: { kind: string }) => e.kind)).toEqual(["calligraphy"]);
-  });
-
-  const spoken: Candidate = {
-    id: "sp", kind: "exercise", exercise_type: "speaking", question: "Say 你好", answer: "Say 你好", quote: "Say", page: 0, chunk_id: "c",
-    status: "verified", flags: [], min_conf: null, audio_lines: ["Say 你好", "再说一遍"],
-    image_crop: { page: 0, bbox: [0, 100, 100, 140], page_size: [200, 400], has_picture: true },
-  };
-
-  it("offers the detected picture and the spoken lines, and sends the TTS choice with the media", async () => {
-    const onAdd = vi.fn().mockResolvedValue(undefined);
-    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[spoken]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} canGenerateAudio />);
-    expect(screen.getByRole("img", { name: "Cropped picture from the page" })).toBeInTheDocument();
-    expect(screen.getByText("再说一遍")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("checkbox", { name: /Make the 2 missing audio clips/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
-    const media = onAdd.mock.calls[0][0].elements[0].media;
-    expect(media.image.crop.bbox).toEqual([0, 100, 100, 140]);
-    expect(media.audio).toEqual({ lines: ["Say 你好", "再说一遍"], uploads: {}, tts: true });
-  });
-
-  it("cannot turn TTS on without an endpoint, and a replaced clip is no longer counted", async () => {
-    uploadMedia.mockResolvedValue({ id: "c.wav", kind: "audio" });
-    const onAdd = vi.fn().mockResolvedValue(undefined);
-    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[spoken]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
-    expect(screen.getByRole("checkbox", { name: /Make the 2 missing audio clips/ })).toBeDisabled();
-    expect(screen.getByText(/Add a text-to-speech endpoint in Settings/)).toBeInTheDocument();
-    await userEvent.upload(screen.getByLabelText("Replace the audio of line 1"), new File(["x"], "mine.wav", { type: "audio/wav" }));
-    expect(await screen.findByText(/mine\.wav/)).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /Make the 1 missing audio clip / })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
-    expect(onAdd.mock.calls[0][0].elements[0].media.audio.uploads).toEqual({ 0: "c.wav" });
   });
 });

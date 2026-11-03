@@ -1,7 +1,5 @@
 // Pure helpers for the import review screen (no React, unit-tested).
 
-export type ImageCrop = { page: number; bbox: [number, number, number, number]; page_size: [number, number]; has_picture: boolean };
-
 export type Flag = { code: string; message: string; severity: "warning" | "info" };
 
 export type Candidate = {
@@ -17,8 +15,6 @@ export type Candidate = {
   flags: Flag[];
   min_conf: number | null;
   existing?: Record<string, string | number | boolean | null> | null; // what the app already holds for this item
-  image_crop?: ImageCrop | null; // a picture found beside the item on its page
-  audio_lines?: string[]; // what would be spoken, one clip per line
   // For non-vocabulary elements
   kind?: "grammar" | "calligraphy" | "exercise";
   title?: string;
@@ -54,10 +50,6 @@ export type Row = {
   word_type?: string;
   on_conflict: ConflictMode | null; // null = a conflicting card the user has not decided yet
   merged?: boolean; // the result was chosen in the merge editor
-  // support media: the detected crop is used unless switched off; an upload replaces it; audio clips can be replaced per line
-  useCrop?: boolean;
-  imageUpload?: { id: string; name: string };
-  audioUploads?: Record<number, { id: string; name: string }>;
   // For non-vocabulary elements
   title?: string;
   explanation?: string;
@@ -95,7 +87,6 @@ export function initialRows(candidates: Candidate[]): Row[] {
       candidate,
       selected: candidate.status === "verified" && !hasConflict(candidate),
       on_conflict: hasConflict(candidate) ? null : "keep",
-      useCrop: !!candidate.image_crop,
     };
     if (candidate.kind === "grammar") {
       row.title = candidate.title ?? "";
@@ -157,39 +148,16 @@ export function infoNotes(c: Candidate): string[] {
   return c.flags.filter((f) => f.severity === "info").map((f) => f.message);
 }
 
-export type Media = {
-  image?: { crop: ImageCrop } | { upload: string };
-  audio?: { lines: string[]; uploads: Record<number, string>; tts: boolean };
-};
-export type AcceptItem = { word: string; translation?: string; phonetic?: string; word_type?: string; on_conflict: ConflictMode; media?: Media };
-export type AcceptElement = { kind: string; fields: Record<string, unknown>; media?: Media };
+export type AcceptItem = { word: string; translation?: string; phonetic?: string; word_type?: string; on_conflict: ConflictMode };
+export type AcceptElement = { kind: string; fields: Record<string, unknown> };
 export type AcceptPayload = { items: AcceptItem[]; elements?: AcceptElement[] };
 
-/** The media the user chose for a row: their upload, else the detected picture if still on; audio per line. */
-export function mediaFor(r: Row, tts: boolean): Media | undefined {
-  const media: Media = {};
-  if (r.imageUpload) media.image = { upload: r.imageUpload.id };
-  else if (r.useCrop && r.candidate.image_crop) media.image = { crop: r.candidate.image_crop };
-  const lines = r.candidate.audio_lines ?? [];
-  if (lines.length > 0) {
-    media.audio = { lines, uploads: Object.fromEntries(Object.entries(r.audioUploads ?? {}).map(([i, u]) => [i, u.id])) as unknown as Record<number, string>, tts };
-  }
-  return media.image || media.audio ? media : undefined;
-}
-
-/** How many clips TTS would make for the confirmed rows (lines the user did not replace with an upload). */
-export function ttsClipCount(rows: Row[]): number {
-  return rows.filter((r) => r.selected && !r.deleted)
-    .reduce((n, r) => n + (r.candidate.audio_lines ?? []).filter((_, i) => !r.audioUploads?.[i]).length, 0);
-}
-
-export function toAcceptItems(rows: Row[], tts = false): AcceptPayload {
+export function toAcceptItems(rows: Row[]): AcceptPayload {
   const items: AcceptItem[] = [];
   const elements: AcceptElement[] = [];
 
   for (const r of rows) {
     if (!r.selected || r.deleted || needsDecision(r)) continue;
-    const nItems = items.length, nElements = elements.length;
 
     if (r.candidate.kind === "grammar") {
       const title = (r.title ?? "").trim();
@@ -244,11 +212,6 @@ export function toAcceptItems(rows: Row[], tts = false): AcceptPayload {
         if (value) item[key] = value;
       }
       items.push(item);
-    }
-    const media = mediaFor(r, tts);
-    if (media) {
-      if (items.length > nItems) items[nItems].media = media;
-      if (elements.length > nElements) elements[nElements].media = media;
     }
   }
 

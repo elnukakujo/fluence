@@ -6,10 +6,9 @@ import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
   type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, infoNotes, needsDecision,
-  dialogueLines, initialRows, rowsByKind, toAcceptItems, ttsClipCount, warningReasons, WORD_TYPES,
+  dialogueLines, initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
-import MediaFields from "./mediaFields";
 import ReviewCard from "./reviewCard";
 
 const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
@@ -20,7 +19,7 @@ const clip = (t: string, n = 140) => (t.length > n ? `${t.slice(0, n)}…` : t);
 
 // The candidate list shared by lesson-level and language-level imports: one tab per kind, each item a compact card
 // the user confirms, edits or deletes. Only confirmed items are added; verified ones start confirmed.
-export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range, pages, canGenerateAudio = false }: {
+export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range, pages }: {
   jobId: string;
   filename: string;
   candidates: Candidate[];
@@ -28,7 +27,6 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   onAdd: (payload: AcceptPayload) => Promise<void>;
   range?: [number, number];
   pages?: number[];   // the lesson's own pages when it is made of separate ranges
-  canGenerateAudio?: boolean; // the user has a text-to-speech endpoint
 }) {
   const t = useTranslations("ingestion");
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
@@ -37,11 +35,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const [preview, setPreview] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [tts, setTts] = useState(false);
   const [focusedPage, setFocusedPage] = useState<number>(candidates[0] ? candidates[0].page + 1 : range?.[0] ?? 1);
 
   const counts = useMemo(() => countRows(rows), [rows]);
-  const clips = useMemo(() => ttsClipCount(rows), [rows]);
   const groups = useMemo(() => rowsByKind(rows), [rows]);
   const active = groups.find(([k]) => k === tab)?.[0] ?? groups[0]?.[0];
   const activeRows = groups.find(([k]) => k === active)?.[1] ?? [];
@@ -56,7 +52,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     setSaving(true);
     setError(null);
     try {
-      const payload = toAcceptItems(rows, tts && canGenerateAudio);
+      const payload = toAcceptItems(rows);
       const sent = payload.items.length + (payload.elements?.length ?? 0);
       if (sent < counts.selected) {   // a confirmed card with a required field emptied is never dropped silently
         setError(t("incompleteConfirmed", { count: counts.selected - sent }));
@@ -88,7 +84,6 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     );
     const common = {
       row, footer, onPatch: (change: Partial<Row>) => patch(c.id, change),
-      media: <MediaFields row={row} jobId={jobId} ttsAvailable={canGenerateAudio} onPatch={(change) => patch(c.id, change)} />,
       onFocus: () => setFocusedPage(c.page + 1), mergeFields: MERGE_FIELDS[kind],
     };
 
@@ -223,15 +218,6 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 
         <ul className="m-0 flex list-none flex-col gap-2 p-0" role="tabpanel">{visible.map((r) => <Fragment key={r.candidate.id}>{renderRow(r)}</Fragment>)}</ul>
 
-        {clips > 0 && (
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" checked={tts && canGenerateAudio} disabled={!canGenerateAudio} onChange={(e) => setTts(e.target.checked)} />
-            <span>
-              {t("audioClips", { count: clips })}
-              {!canGenerateAudio && <span className="block opacity-70">{t("audioClipsDisabled")}</span>}
-            </span>
-          </label>
-        )}
         {counts.undecided > 0 && <p role="status" className="text-sm">{t("undecidedNotice", { count: counts.undecided })}</p>}
         {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
         <div className="btn-row flex-wrap">

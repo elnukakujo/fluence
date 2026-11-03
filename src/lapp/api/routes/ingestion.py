@@ -14,11 +14,10 @@ from ...models.containers import Language
 from ...services import LessonService, VocabularyService
 from ...services.components import PassageService, CharacterService
 from ...services.features import GrammarService, ExerciseService, CalligraphyService
-from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, job_dir, paused_path,
+from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, document_path, job_dir, paused_path,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
 from ...services.ingestion.structure import lesson_ranges, normalize_ranges, validate_structure
-from ...services.ingestion.attach import attach_audio, attach_image, save_upload, with_audio_indexes
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
@@ -447,32 +446,6 @@ def confirm_pages(job_id: str):
     return jsonify({"status": "extracting"})
 
 
-@bp.route("/<job_id>/media", methods=["POST"])
-@login_required
-def upload_media(job_id: str):
-    """Keep an image or audio file the user chose to replace a suggested one; it is attached when the item is added.
-    ---
-    tags:
-        - Ingestion
-    consumes:
-        - multipart/form-data
-    parameters:
-        - {name: job_id, in: path, type: string, required: true}
-        - {name: file, in: formData, type: file, required: true}
-    responses:
-        200: {description: "id and kind (image or audio)"}
-        400: {description: Missing or unsupported file}
-    """
-    job, err = _owned_job_or_404(job_id)
-    if err:
-        return err
-    file = request.files.get("file")
-    if file is None:
-        return jsonify({"error": "Choose a file"}), 400
-    saved = save_upload(current_app.config["MEDIA_ROOT"], job_id, file)
-    return (jsonify(saved), 400) if "error" in saved else jsonify(saved)
-
-
 @bp.route("/<job_id>/stop", methods=["POST"])
 @login_required
 def stop_job(job_id: str):
@@ -553,7 +526,11 @@ def step_back(job_id: str):
     job, err = _owned_job_or_404(job_id)
     if err:
         return err
-    if job["status"] != "ready":
+    # A failed extraction (model errors, Stop) can go back too, as long as the parse was saved: otherwise
+    # the user lands on the page step while the job stays `failed` and every confirm is refused.
+    failed_after_parse = (job["status"] == "failed" and document_path(current_app.config["MEDIA_ROOT"], job_id).is_file()
+                          and bool(job["page_kinds"] if job["lesson_id"] else (job["structure"] or {}).get("lessons")))
+    if job["status"] != "ready" and not failed_after_parse:
         return jsonify({"error": "Only a finished import can go back"}), 409
     if _finished(job):
         return jsonify({"error": "Everything was already added from this import, so it cannot go back"}), 409
@@ -705,20 +682,6 @@ def _invalid_items(items) -> str | None:
     return None
 
 
-def _speaker(job: dict):
-    """speak(text) -> stored audio path through the user's TTS endpoint, or None when they have none (or switched it off)."""
-    from ...services import TTSService
-    from ...utils.detect_language import get_language_by_iso2t
-    prefs = UserPreferencesService().get_by_user_id(current_user_id())
-    api = resolve_api(prefs, "tts") if prefs and prefs.ai_tts_enabled is not False else None
-    if not api or not api.get("base_url"):
-        return None
-    language = db_manager.find_by_attr(model_class=Language, attr_values={"id": job["language_id"]})
-    code = get_language_by_iso2t(language.target_iso639_2t).iso1 if language else None
-    tts = TTSService()
-    return lambda text: tts.generate_audio(text=text, language_code=code, api=api)
-
-
 def _add_all(session, job: dict, lesson_id: str, items: list, elements: list, notes: list) -> tuple[int, int]:
     """(vocabulary added, elements added). Calligraphy goes first: adding a word also creates its characters with a
     generated (romaji) phonetic, and the reviewed calligraphy item would then be answered by that row under "keep"."""
@@ -741,8 +704,7 @@ def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
             phonetic=item.get("phonetic") or None,
             word_type=item["word_type"] if item.get("word_type") in WORD_TYPES else None,
         )
-        picture = attach_image(current_app.config["MEDIA_ROOT"], job, item.get("media"))
-        vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word, image_files=[picture] if picture else []), session=session,
+        vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
                                                on_conflict=item.get("on_conflict", "keep"))
         if vocabulary:
             source_service.add_source_to_element(source.id, vocabulary.id, session=session)
@@ -822,8 +784,6 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
     if not isinstance(elements, list):
         return 0
     notes_out = notes_out if notes_out is not None else []
-    media_root = current_app.config["MEDIA_ROOT"]
-    speak = _speaker(job) if any((e.get("media") or {}).get("audio", {}).get("tts") for e in elements if isinstance(e, dict)) else None
 
     grammar_service = GrammarService()
     exercise_service = ExerciseService()
@@ -852,13 +812,11 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     if sent_text:
                         example_sentences.append(PassageDict(text=sent_text, language_id=language_id))
 
-                picture = attach_image(media_root, job, elem.get("media"))
                 grammar_dict = GrammarDict(
                     lesson_id=lesson_id,
                     title=title,
                     explanation=str(fields.get("explanation", "")).strip(),
                     example_sentences=example_sentences if example_sentences else None,
-                    image_files=[picture] if picture else [],
                 )
                 grammar = grammar_service.create(grammar_dict, session=session)
                 if grammar:
@@ -905,11 +863,6 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
             ).first()
             if not existing:
                 answer = fields.get("answer") or ""
-                picture = attach_image(media_root, job, elem.get("media"))
-                audio_files, line_index, notes = attach_audio(media_root, job, elem.get("media"), speak)
-                notes_out.extend(notes)
-                if fields.get("exercise_type") == "conversation" and line_index:
-                    question, answer = with_audio_indexes(question, answer, line_index)
                 exercise_dict = ExerciseDict(
                     lesson_id=lesson_id,
                     exercise_type=fields.get("exercise_type") or "",
@@ -917,8 +870,6 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     answer=answer,
                     text_support=fields.get("text_support") or None,
                     content=fields.get("content") or None,
-                    image_files=[picture] if picture else [],
-                    audio_files=audio_files,
                 )
                 created_exercise = exercise_service.create(exercise_dict, session=session)
                 if created_exercise:

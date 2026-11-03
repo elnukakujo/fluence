@@ -43,7 +43,6 @@ class Candidate(BaseModel):
     flags: list[Flag] = []
     min_conf: float | None = None
     existing: dict | None = None  # what the app already holds for this item, shown beside it in review
-    image_crop: dict | None = None  # {page, bbox, page_size, has_picture}: the picture next to the item, cropped at accept
 
 
 class ElementCandidate(BaseModel):
@@ -58,5 +57,3 @@ class ElementCandidate(BaseModel):
     flags: list[Flag] = []
     min_conf: float | None = None
     existing: dict | None = None  # what the app already holds for this item, shown beside it in review
-    image_crop: dict | None = None
-    audio_lines: list[str] = []  # texts that would be spoken (one clip each): generated with TTS or replaced by uploads

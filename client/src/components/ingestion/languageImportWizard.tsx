@@ -3,12 +3,13 @@
 import JobControls from "./jobControls";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useDeleteWhenFinished } from "./useDeleteWhenFinished";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ProgressBar from "@/components/ui/progressBar";
 import {
   ACTIVE_STATUSES, type Job, type LessonProgress, type Structure, acceptLesson, confirmStructure, deleteJob, getJob,
-  flattenElements, getCapabilities, getLanguageCandidates, getStructure, stepBack,
+  flattenElements, getLanguageCandidates, getStructure, stepBack,
 } from "@/api/ingestion";
 import {
   type Draft, addDraft, draftRanges, draftsFromProposal, estimateCalls, removeDraft, toConfirmPayload, validateDrafts,
@@ -93,7 +94,10 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
         <h2>{t("importFailed")}</h2>
         <p>{job.error}</p>
         {/endpoint/i.test(job.error ?? "") && <Link href={settingsHref} className="link">{t("goToSettings")}</Link>}
-        <div className="btn-row"><button className="btn btn-primary" onClick={startOver}>{t("tryAnotherDocument")}</button></div>
+        <div className="btn-row">
+          <button className="btn btn-secondary" onClick={() => stepBack(jobId).then(() => { setJob({ ...job, status: "structure" }); setNonce((n) => n + 1); }).catch(() => {})}>{t("backToTheLessons")}</button>
+          <button className="btn btn-primary" onClick={startOver}>{t("tryAnotherDocument")}</button>
+        </div>
       </div>
     );
   }
@@ -228,8 +232,10 @@ function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { j
   const [notes, setNotes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<Record<number, { lessonId: string; count: number; notes?: string[] }>>({});
-  const [canAudio, setCanAudio] = useState(false);
-  useEffect(() => { Promise.resolve(getCapabilities(languageId)).then((c) => setCanAudio(!!c?.can_generate_audio)).catch(() => undefined); }, [languageId]);
+
+  const everyLessonAdded = status !== "extracting" && !!lessons && lessons.some((l) => l.status === "done")
+    && lessons.every((l) => l.status !== "done" || added[l.index] || l.created_lesson_id);
+  useDeleteWhenFinished(job.id, everyLessonAdded);
 
   const load = useCallback(async () => {
     const r = await getLanguageCandidates(job.id);
@@ -285,7 +291,7 @@ function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { j
       </header>
 
       {lessons.map((l, i) => (
-        <LessonSection key={l.index} job={job} lesson={l} languageId={languageId} canAudio={canAudio} defaultOpen={i === firstOpen}
+        <LessonSection key={l.index} job={job} lesson={l} languageId={languageId} defaultOpen={i === firstOpen}
           added={added[l.index]} onAdded={(r) => setAdded((a) => ({ ...a, [l.index]: r }))} />
       ))}
     </section>
@@ -294,8 +300,8 @@ function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { j
 
 // Each lesson owns its open/closed state: adding one must not collapse it (its confirmation is inside) or
 // shift which section is open.
-function LessonSection({ job, lesson: l, languageId, canAudio, defaultOpen, added, onAdded }: {
-  job: Job; lesson: LessonProgress; languageId: string; canAudio: boolean; defaultOpen: boolean;
+function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded }: {
+  job: Job; lesson: LessonProgress; languageId: string; defaultOpen: boolean;
   added?: { lessonId: string; count: number; notes?: string[] }; onAdded: (r: { lessonId: string; count: number; notes?: string[] }) => void;
 }) {
   const t = useTranslations("ingestion");
@@ -319,7 +325,7 @@ function LessonSection({ job, lesson: l, languageId, canAudio, defaultOpen, adde
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} pages={expandRanges(lessonRanges(l))} canGenerateAudio={canAudio}
+          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} pages={expandRanges(lessonRanges(l))}
             addLabel={(n) => t("addToNewLesson", { count: n, title: l.title })}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);
