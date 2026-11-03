@@ -11,7 +11,7 @@ from .types import Chunk
 
 logger = logging.getLogger(__name__)
 
-MAX_TOKENS = 2048
+MAX_TOKENS = 4096  # exercise JSON on a full page overran 2048 and was cut off mid-array
 
 
 class ExtractionError(Exception):
@@ -73,6 +73,7 @@ def _ask(chunk: Chunk, api: dict, system: str):
     messages = [{"role": "system", "content": system}, {"role": "user", "content": chunk.text}]
     for attempt in (1, 2):
         reply = chat_completion(
+            retries=3,
             base_url=api["base_url"], api_key=api.get("api_key", ""), model=api["model"],
             api_format=api.get("api_format", "openai"), auth_type=api.get("auth_type", "bearer"),
             messages=messages, max_tokens=MAX_TOKENS, temperature=0, disable_thinking=True,

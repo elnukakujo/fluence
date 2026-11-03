@@ -73,6 +73,7 @@ def _ask_batch(batch: list[int], texts: dict[int, str], api: dict, target_name: 
     for _ in range(2):
         try:
             reply = chat_completion(
+                retries=3,
                 base_url=api["base_url"], api_key=api.get("api_key", ""), model=api["model"],
                 api_format=api.get("api_format", "openai"), auth_type=api.get("auth_type", "bearer"),
                 messages=messages, max_tokens=1024, temperature=0, disable_thinking=True,

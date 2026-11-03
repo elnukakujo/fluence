@@ -9,6 +9,7 @@ A task is skipped when a user hasn't configured one.
 """
 import base64
 import logging
+import time
 import os
 import struct
 
@@ -267,7 +268,20 @@ def _chat_completion_gemini(
 
 # ── Public dispatch ───────────────────────────────────────────────────────────
 
-def chat_completion(
+def chat_completion(*args, retries: int = 0, **kwargs) -> str:
+    """`_chat_completion_once` plus up to `retries` retries (2s, 4s, ...) on 5xx, 429 and timeouts."""
+    for attempt in range(retries + 1):
+        try:
+            return _chat_completion_once(*args, **kwargs)
+        except ModelAPIError as e:
+            transient = e.kind == e.KIND_SERVER or e.status == 429 or (e.kind == e.KIND_CONNECT and "timed out" in e.message)
+            if not transient or attempt == retries:
+                raise
+            logger.warning("Transient model error (%s), retry %s/%s", e.message, attempt + 1, retries)
+            time.sleep(2 * 2 ** attempt)
+
+
+def _chat_completion_once(
     base_url: str,
     api_key: str,
     model: str,
