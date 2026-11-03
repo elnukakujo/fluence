@@ -54,7 +54,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
           {existing.in_lesson === false && <p className="text-sm opacity-70">{t("savedInNoLesson")}</p>}
           <div className="btn-row flex-wrap" role="group" aria-label={t("alreadySaved")}>
             <button type="button" className={pick(row.on_conflict === "keep")} aria-pressed={row.on_conflict === "keep"}
-              onClick={() => onPatch({ deleted: true, selected: false, merged: false, on_conflict: "keep" })}>{t("keepExisting")}</button>
+              onClick={() => onPatch({ selected: true, deleted: false, merged: false, on_conflict: "keep" })}>{t("keepExisting")}</button>
             <button type="button" className={pick(row.on_conflict === "overwrite" && !row.merged)} aria-pressed={row.on_conflict === "overwrite" && !row.merged}
               onClick={() => onPatch({ selected: true, deleted: false, merged: false, on_conflict: "overwrite" })}>{t("overwrite")}</button>
             <button type="button" className={pick(!!row.merged)} aria-pressed={!!row.merged} onClick={() => setMerging(true)}>{t("mergeButton")}</button>
