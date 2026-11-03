@@ -65,3 +65,8 @@ export async function removeSourceFromElement(sourceId: string, elementId: strin
   if (!res.ok) throw new Error(`Failed to remove source ${sourceId} from element ${elementId}`);
   return res.json();
 }
+export async function mergeSources(data: { keep_id: string; merge_id: string; title?: string; date?: string; source_type?: string; description?: string }): Promise<Source> {
+  const res = await fetch(`${BASE_URL}/api/sources/merge`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(data) });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Failed to merge the sources");
+  return res.json();
+}

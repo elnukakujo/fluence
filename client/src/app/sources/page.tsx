@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAllUserSources } from "@/api/source";
+import MergeableList from "@/components/labels/mergeableList";
 import NavButton from "@/components/layout/navButton";
 import Source from "@/interface/systemData/Source";
 import { getCurrentUserId } from "@/utils/user_cookie";
@@ -18,23 +19,8 @@ export default async function SourcesPage() {
                 <NavButton path="/sources/new">{t("newSource")}</NavButton>
             </div>
 
-            {sources.length === 0 ? (
-                <p className="text-muted">{t("noSourcesYet")}</p>
-            ) : (
-                <ul className="card list-none flex flex-col gap-1">
-                    {sources.map((source) => (
-                    <li key={source.id}>
-                        <NavButton path={`/sources/${source.id}`} className="flex items-center gap-2.5 px-2 py-1.5 w-full rounded-md cursor-pointer transition-colors hover:bg-accent-soft">
-                        <span className="badge shrink-0" />
-                        <span className="text-sm">{source.title}</span>
-                        {source.description && (
-                            <span className="text-xs text-muted ml-auto truncate">{source.description}</span>
-                        )}
-                        </NavButton>
-                    </li>
-                    ))}
-                </ul>
-            )}
+            <MergeableList kind="source" empty={<p className="text-muted">{t("noSourcesYet")}</p>}
+                items={sources.map((x) => ({ id: x.id, label: x.title, description: x.description }))} />
         </div>
     );
 }

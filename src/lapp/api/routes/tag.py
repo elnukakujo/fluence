@@ -351,3 +351,42 @@ def remove_tag_from_element():
             
     except Exception as e:
         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+
+@bp.route('/merge', methods=['POST'])
+@login_required
+def merge_tags():
+    """Merge tag `merge_id` into `keep_id`; every element keeps its tag, the other tag is deleted.
+    ---
+    tags:
+      - Tags
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+            type: object
+            properties:
+                keep_id: {type: string}
+                merge_id: {type: string}
+                name: {type: string, description: "optional new name of the survivor"}
+                color: {type: string}
+                description: {type: string}
+    responses:
+        200: {description: The merged tag}
+        400: {description: Invalid request (same tag, name already used)}
+        403: {description: Not the owner of both tags}
+        404: {description: A tag was not found}
+    """
+    from ...services.bulk import merge_labels
+    body = request.get_json(silent=True) or {}
+    keep_id, merge_id = body.get('keep_id'), body.get('merge_id')
+    if not isinstance(keep_id, str) or not isinstance(merge_id, str):
+        return jsonify({'error': 'keep_id and merge_id are required'}), 400
+    require_owns(keep_id)
+    require_owns(merge_id)
+    try:
+        return jsonify(merge_labels('tag', keep_id, merge_id, {k: body.get(k) for k in ('name', 'color', 'description')}))
+    except LookupError:
+        return jsonify({'error': 'Tag not found'}), 404
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400

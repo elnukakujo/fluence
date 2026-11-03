@@ -77,3 +77,8 @@ export async function removeTagFromElement(tagId: string, elementId: string) {
   }
   return res.json();
 }
+export async function mergeTags(data: { keep_id: string; merge_id: string; name?: string; color?: string; description?: string }): Promise<Tag> {
+  const res = await fetch(`${BASE_URL}/api/tags/merge`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(data) });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Failed to merge the tags");
+  return res.json();
+}

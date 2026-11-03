@@ -384,3 +384,43 @@ def remove_source_from_element():
             
     except Exception as e:
         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+
+@bp.route('/merge', methods=['POST'])
+@login_required
+def merge_sources():
+    """Merge source `merge_id` into `keep_id`; every element keeps its source, the other source is deleted.
+    ---
+    tags:
+      - Sources
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+            type: object
+            properties:
+                keep_id: {type: string}
+                merge_id: {type: string}
+                title: {type: string, description: "optional new title of the survivor"}
+                date: {type: string}
+                source_type: {type: string}
+                description: {type: string}
+    responses:
+        200: {description: The merged source}
+        400: {description: Invalid request (same source, bad type or date)}
+        403: {description: Not the owner of both sources}
+        404: {description: A source was not found}
+    """
+    from ...services.bulk import merge_labels
+    body = request.get_json(silent=True) or {}
+    keep_id, merge_id = body.get('keep_id'), body.get('merge_id')
+    if not isinstance(keep_id, str) or not isinstance(merge_id, str):
+        return jsonify({'error': 'keep_id and merge_id are required'}), 400
+    require_owns(keep_id)
+    require_owns(merge_id)
+    try:
+        return jsonify(merge_labels('source', keep_id, merge_id, {k: body.get(k) for k in ('title', 'date', 'source_type', 'description')}))
+    except LookupError:
+        return jsonify({'error': 'Source not found'}), 404
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
