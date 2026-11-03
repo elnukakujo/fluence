@@ -32,7 +32,7 @@ Run `/graphify --update <changed paths>` before ending the turn — every turn, 
 
 ## Non-Negotiable Rules
 
-- Never push directly to `main` or `test` — work on `dev` or a feature branch (see `docs/rules/git-workflow.md`).
+- Never push directly to `main` — work on `dev` or a feature branch. `test` only receives `dev` (see `docs/rules/git-workflow.md`).
 - All DB access goes through `db_manager`; service methods use `@transactional` and pass `commit=False`.
 - IDs come from `db_manager.generate_new_id()` — never hand-rolled.
 - Score/difficulty updates go through `update_score` / `update_difficulty` in `src/lapp/utils/helpers.py`.
