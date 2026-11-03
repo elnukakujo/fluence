@@ -266,5 +266,8 @@
   "rangeToLabel": "结束页",
   "addRange": "添加页码范围",
   "removeRangeAria": "移除第 {n} 个范围",
-  "rangesSummary": "{ranges} 个范围，{pages} 页"
+  "rangesSummary": "{ranges} 个范围，{pages} 页",
+  "chooseFirst": "请先选择保留、覆盖或合并",
+  "undecidedNotice": "{count, plural, other {# 张卡片已存在 - 请选择保留、覆盖或合并}}",
+  "savedInNoLesson": "该汉字已保存，但不在任何课程中。"
 }

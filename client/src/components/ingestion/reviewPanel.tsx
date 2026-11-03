@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
-  type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, infoNotes,
+  type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, infoNotes, needsDecision,
   dialogueLines, initialRows, rowsByKind, toAcceptItems, ttsClipCount, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
@@ -48,9 +48,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const visible = filterRows(activeRows, filter);
   const patch = (id: string, change: Partial<Row>) => setRows((rs) => rs.map((r) => (r.candidate.id === id ? { ...r, ...change } : r)));
   const confirmVerified = () => setRows((rs) => rs.map((r) =>
-    ((r.candidate.kind ?? "vocabulary") === active && r.candidate.status === "verified" && !r.deleted ? { ...r, selected: true } : r)));
+    ((r.candidate.kind ?? "vocabulary") === active && r.candidate.status === "verified" && !r.deleted && !needsDecision(r) ? { ...r, selected: true } : r)));
 
-  const setActive = (change: Partial<Row>) => setRows((rs) => rs.map((r) => ((r.candidate.kind ?? "vocabulary") === active && !r.deleted ? { ...r, ...change } : r)));
+  const setActive = (change: Partial<Row>) => setRows((rs) => rs.map((r) => ((r.candidate.kind ?? "vocabulary") === active && !r.deleted && !(change.selected && needsDecision(r)) ? { ...r, ...change } : r)));
 
   const add = async () => {
     setSaving(true);
@@ -132,7 +132,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             ))}
             <label className="flex min-w-20 flex-col gap-1">
               <span className="field-label">{t("strokes")}</span>
-              <input className="input" type="number" value={row.strokes ?? ""} onChange={(e) => patch(c.id, { strokes: e.target.value || null })} />
+              <input className="input" type="number" min={1} step={1} value={row.strokes ?? ""} onChange={(e) => patch(c.id, { strokes: e.target.value || null })} />
             </label>
           </div>
         </ReviewCard>
@@ -232,6 +232,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             </span>
           </label>
         )}
+        {counts.undecided > 0 && <p role="status" className="text-sm">{t("undecidedNotice", { count: counts.undecided })}</p>}
         {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
         <div className="btn-row flex-wrap">
           <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>

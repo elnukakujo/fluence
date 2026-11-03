@@ -266,5 +266,8 @@
   "rangeToLabel": "À la page",
   "addRange": "Ajouter une plage",
   "removeRangeAria": "Supprimer la plage {n}",
-  "rangesSummary": "{ranges, plural, one {# plage} other {# plages}}, {pages, plural, one {# page} other {# pages}}"
+  "rangesSummary": "{ranges, plural, one {# plage} other {# plages}}, {pages, plural, one {# page} other {# pages}}",
+  "chooseFirst": "Choisissez d'abord garder, écraser ou fusionner",
+  "undecidedNotice": "{count, plural, one {# carte existe déjà - choisissez garder, écraser ou fusionner} other {# cartes existent déjà - choisissez garder, écraser ou fusionner}}",
+  "savedInNoLesson": "Ce caractère est enregistré mais n'est dans aucune leçon."
 }

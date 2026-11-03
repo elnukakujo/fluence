@@ -11,7 +11,7 @@ from flask import Flask, current_app
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
-from ...models.features import Vocabulary
+from ...models.features import Calligraphy, Vocabulary
 from ...models.system_data import IngestionJob
 from ...utils.llm_providers import resolve_api
 from ...utils.model_api import ModelAPIError
@@ -265,6 +265,10 @@ def _attach_existing(job: dict, result) -> None:
             if ch:
                 e.existing = {"character": ch.character, "meaning": ch.meaning, "phonetic": ch.phonetic,
                               "radical": ch.radical, "strokes": ch.strokes}
+                if job.get("lesson_id"):   # a character left behind by a deleted calligraphy is saved but in no lesson
+                    with db_manager.session_scope() as s:
+                        e.existing["in_lesson"] = s.query(Calligraphy).filter(
+                            Calligraphy.character_id == ch.id, Calligraphy.lesson_id == job["lesson_id"]).first() is not None
 
 
 def _classify(ctx: _Ctx, doc: Document, target_name: str) -> dict[str, list]:

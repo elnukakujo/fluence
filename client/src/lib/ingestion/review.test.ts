@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, initialRows, dialogueLines, mediaFor, pageSpan, ttsClipCount, rowsByKind, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, hasConflict, needsDecision, initialRows, dialogueLines, mediaFor, pageSpan, ttsClipCount, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -35,12 +35,12 @@ describe("filterRows / countRows", () => {
     expect(filterRows(rows, "flagged").map((r) => r.candidate.id)).toEqual(["word_not_in_source"]);
   });
   it("counts totals and the current selection", () => {
-    expect(countRows(rows)).toEqual({ total: 3, verified: 2, flagged: 1, selected: 2, deleted: 0 });
+    expect(countRows(rows)).toEqual({ total: 3, verified: 2, flagged: 1, selected: 2, undecided: 0, deleted: 0 });
   });
   it("leaves deleted rows out of the total and the selection", () => {
     const r = initialRows([cand(), cand({ id: "c2" })]);
     r[1].deleted = true;
-    expect(countRows(r)).toEqual({ total: 1, verified: 1, flagged: 0, selected: 1, deleted: 1 });
+    expect(countRows(r)).toEqual({ total: 1, verified: 1, flagged: 0, selected: 1, undecided: 0, deleted: 1 });
   });
 });
 
@@ -122,5 +122,30 @@ describe("support media", () => {
     expect(ttsClipCount([row])).toBe(2);
     expect(ttsClipCount([{ ...row, deleted: true }])).toBe(0);
     expect(toAcceptItems([row], true).elements?.[0].media?.audio?.tts).toBe(true);
+  });
+});
+
+describe("conflict decisions", () => {
+  const callig = (over: Partial<Candidate> = {}) => cand({ kind: "calligraphy", character: "水", existing: { character: "水" }, ...over });
+  const vocab = (over: Partial<Candidate> = {}) => flagged("already_in_lesson", "warning") && cand({ flags: [{ code: "already_in_lesson", message: "m", severity: "warning" }], ...over });
+
+  it("flags a conflict only when the app holds the item", () => {
+    expect(hasConflict(callig())).toBe(true);
+    expect(hasConflict(callig({ existing: null }))).toBe(false);
+    expect(hasConflict(vocab({ existing: { word: "bonjour" } }))).toBe(true);
+    expect(hasConflict(vocab())).toBe(false);
+    expect(hasConflict(cand({ existing: { word: "bonjour" } }))).toBe(false);
+  });
+  it("starts a conflicting row undecided and unconfirmed, and never sends it", () => {
+    const [row] = initialRows([callig()]);
+    expect(row).toMatchObject({ selected: false, on_conflict: null });
+    expect(needsDecision(row)).toBe(true);
+    expect(countRows([row]).undecided).toBe(1);
+    expect(toAcceptItems([{ ...row, selected: true }]).elements).toBeUndefined();
+  });
+  it("sends the chosen mode once decided", () => {
+    const [row] = initialRows([callig()]);
+    const out = toAcceptItems([{ ...row, selected: true, on_conflict: "overwrite" }]);
+    expect(out.elements?.[0].fields.on_conflict).toBe("overwrite");
   });
 });

@@ -16,7 +16,7 @@ export type Candidate = {
   status: "verified" | "flagged";
   flags: Flag[];
   min_conf: number | null;
-  existing?: Record<string, string | number | null> | null; // what the app already holds for this item
+  existing?: Record<string, string | number | boolean | null> | null; // what the app already holds for this item
   image_crop?: ImageCrop | null; // a picture found beside the item on its page
   audio_lines?: string[]; // what would be spoken, one clip per line
   // For non-vocabulary elements
@@ -52,7 +52,8 @@ export type Row = {
   translation?: string;
   phonetic?: string;
   word_type?: string;
-  on_conflict: ConflictMode;
+  on_conflict: ConflictMode | null; // null = a conflicting card the user has not decided yet
+  merged?: boolean; // the result was chosen in the merge editor
   // support media: the detected crop is used unless switched off; an upload replaces it; audio clips can be replaced per line
   useCrop?: boolean;
   imageUpload?: { id: string; name: string };
@@ -74,6 +75,17 @@ export type Row = {
   content?: Record<string, unknown> | null;
 };
 
+/** True when the app already holds this item, so the user must choose keep / overwrite / merge. */
+export function hasConflict(c: Candidate): boolean {
+  if (!c.existing) return false;
+  return c.kind === "calligraphy" || c.flags.some((f) => f.code.startsWith("already_in_"));
+}
+
+/** A live conflicting card with no choice yet: it is never sent. */
+export function needsDecision(r: Row): boolean {
+  return !r.deleted && r.on_conflict === null && hasConflict(r.candidate);
+}
+
 export type Filter = "all" | "verified" | "flagged";
 
 /** Verified candidates start checked; anything the verifier could not confirm is opt-in. */
@@ -81,8 +93,8 @@ export function initialRows(candidates: Candidate[]): Row[] {
   return candidates.map((candidate) => {
     const row: Row = {
       candidate,
-      selected: candidate.status === "verified",
-      on_conflict: "keep",
+      selected: candidate.status === "verified" && !hasConflict(candidate),
+      on_conflict: hasConflict(candidate) ? null : "keep",
       useCrop: !!candidate.image_crop,
     };
     if (candidate.kind === "grammar") {
@@ -122,7 +134,8 @@ export function countRows(rows: Row[]) {
   const verified = live.filter((r) => r.candidate.status === "verified").length;
   return {
     total: live.length, verified, flagged: live.length - verified,
-    selected: live.filter((r) => r.selected).length, deleted: rows.length - live.length,
+    selected: live.filter((r) => r.selected).length,
+    undecided: live.filter(needsDecision).length, deleted: rows.length - live.length,
   };
 }
 
@@ -175,7 +188,7 @@ export function toAcceptItems(rows: Row[], tts = false): AcceptPayload {
   const elements: AcceptElement[] = [];
 
   for (const r of rows) {
-    if (!r.selected || r.deleted) continue;
+    if (!r.selected || r.deleted || needsDecision(r)) continue;
     const nItems = items.length, nElements = elements.length;
 
     if (r.candidate.kind === "grammar") {
@@ -202,7 +215,7 @@ export function toAcceptItems(rows: Row[], tts = false): AcceptPayload {
             meaning: (r.meaning ?? "").trim() || null,
             radical: (r.radical ?? "").trim() || null,
             strokes: r.strokes ? Number(r.strokes) : null,
-            on_conflict: r.on_conflict,
+            on_conflict: r.on_conflict ?? "keep",
           },
         });
       }
@@ -225,7 +238,7 @@ export function toAcceptItems(rows: Row[], tts = false): AcceptPayload {
       // vocabulary
       const word = (r.word ?? "").trim();
       if (!word) continue;
-      const item: AcceptItem = { word, on_conflict: r.on_conflict };
+      const item: AcceptItem = { word, on_conflict: r.on_conflict ?? "keep" };
       for (const key of ["translation", "phonetic", "word_type"] as const) {
         const value = (r[key] ?? "").trim();
         if (value) item[key] = value;

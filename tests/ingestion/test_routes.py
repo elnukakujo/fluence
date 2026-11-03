@@ -733,3 +733,44 @@ def test_a_reviewed_calligraphy_phonetic_beats_the_one_generated_for_the_same_im
     assert res.status_code == 200 and res.get_json()["created_elements"] == 1
     with db.session_scope() as s:
         assert [c.phonetic for c in s.query(Character).filter(Character.character == "中")] == ["ちゅう"]
+
+
+def _reimport_over_orphan_character(app, db, media_root, scheduled, monkeypatch, on_conflict):
+    """The lesson's calligraphy was deleted but its character stayed (characters belong to the language)."""
+    from lapp.models.components import Character
+    from lapp.models.features import Calligraphy
+    from lapp.services.components import character as character_module
+    monkeypatch.setattr(character_module, "enrich_character", lambda **kw: {"phonetic": "ai-made", "radical": "ai", "meaning": "ai"})
+    client = _setup(app, db, media_root)
+    first = client.post(f"/api/ingestion/{_ready_job(client)}/accept", json={"lesson_id": "lesson_L1", "items": [], "elements": [
+        {"kind": "calligraphy", "fields": {"character": "中", "phonetic": None, "meaning": None, "radical": None, "strokes": None}}]})
+    assert first.get_json()["created_elements"] == 1
+    with db.session_scope() as s:
+        s.query(Calligraphy).delete()
+    fields = {"character": "中", "phonetic": "ちゅう", "meaning": "middle", "radical": "丨", "strokes": 4}
+    if on_conflict:
+        fields["on_conflict"] = on_conflict
+    client.post(f"/api/ingestion/{_ready_job(client)}/accept", json={"lesson_id": "lesson_L1", "items": [], "elements": [
+        {"kind": "calligraphy", "fields": fields}]})
+    with db.session_scope() as s:
+        return [(c.phonetic, c.meaning) for c in s.query(Character).filter(Character.character == "中")]
+
+
+def test_overwrite_replaces_an_orphaned_character_with_the_reviewed_values(app, db, media_root, scheduled, monkeypatch):
+    assert _reimport_over_orphan_character(app, db, media_root, scheduled, monkeypatch, "overwrite") == [("ちゅう", "middle")]
+
+
+def test_default_keep_silently_discards_the_reviewed_values_of_an_orphaned_character(app, db, media_root, scheduled, monkeypatch):
+    assert _reimport_over_orphan_character(app, db, media_root, scheduled, monkeypatch, None) == [("ai-made", "ai")]
+
+
+def test_a_character_left_by_a_deleted_calligraphy_is_flagged_as_in_no_lesson(app, db, media_root, scheduled, monkeypatch):
+    from types import SimpleNamespace as NS
+    from lapp.services.ingestion import jobs
+    _reimport_over_orphan_character(app, db, media_root, scheduled, monkeypatch, "overwrite")
+    from lapp.models.features import Calligraphy
+    with db.session_scope() as s:
+        s.query(Calligraphy).delete()   # the helper's second import put it back in the lesson
+    result = NS(candidates=[], elements=[NS(kind="calligraphy", fields={"character": "中"}, existing=None)])
+    jobs._attach_existing({"language_id": "lang_L1", "lesson_id": "lesson_L1"}, result)
+    assert result.elements[0].existing["in_lesson"] is False

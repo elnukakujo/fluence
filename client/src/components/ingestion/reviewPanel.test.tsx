@@ -171,8 +171,27 @@ describe("ReviewPanel", () => {
     expect(screen.getByText(/Kept your existing one/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("button", { name: "Keep existing" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
     expect(onAdd.mock.calls[0][0].elements[0].fields.on_conflict).toBe("keep");
+  });
+
+  it("a conflicting card needs a visible choice before it can be confirmed or sent", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const cal: Candidate = {
+      id: "k1", kind: "calligraphy", character: "水", meaning: "water", quote: "水", page: 0, chunk_id: "c", status: "verified", flags: [],
+      min_conf: null, existing: { meaning: "liquid", strokes: 4, in_lesson: false },
+    };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[cal]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+    expect(screen.getByText(/saved but is in no lesson/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));
+    expect(screen.getByRole("button", { name: "Overwrite" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Keep existing" })).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
+    expect(onAdd.mock.calls[0][0].elements[0].fields).toMatchObject({ meaning: "water", on_conflict: "overwrite" });
   });
 
   it("Merge opens an editor and sends the user's own version as an overwrite", async () => {

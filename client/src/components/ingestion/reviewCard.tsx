@@ -2,10 +2,10 @@
 
 import { Fragment, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import type { Row } from "@/lib/ingestion/review";
+import { needsDecision, type Row } from "@/lib/ingestion/review";
 import MergeEditor, { fieldName } from "./mergeEditor";
 
-type Existing = Record<string, string | number | null>;
+type Existing = Record<string, string | number | boolean | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
 export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, children }: {
@@ -34,7 +34,9 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
     );
   }
 
-  const shown = existing ? Object.entries(existing).filter(([, v]) => v !== null && v !== "") : [];
+  const shown = existing ? Object.entries(existing).filter(([k, v]) => k !== "in_lesson" && v !== null && v !== "") : [];
+  const undecided = needsDecision(row);
+  const pick = (on: boolean) => `btn min-h-11 ${on ? "btn-primary" : "btn-secondary"}`;
   return (
     <li className="card review-card flex flex-col gap-2" data-state={row.selected ? "confirmed" : "pending"} onFocus={onFocus} onClick={onFocus}>
       <p className="review-state text-sm font-semibold">{row.selected ? t("confirmedState") : t("pendingState")}</p>
@@ -49,22 +51,26 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
             {shown.map(([k, v]) => (<Fragment key={k}><dt className="field-label">{fieldName(t, k)}</dt><dd>{String(v)}</dd></Fragment>))}
           </dl>
-          <div className="btn-row flex-wrap">
-            <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true })}>{t("keepExisting")}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => onPatch({ selected: true, on_conflict: "overwrite" })}>{t("overwrite")}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => setMerging(true)}>{t("mergeButton")}</button>
+          {existing.in_lesson === false && <p className="text-sm opacity-70">{t("savedInNoLesson")}</p>}
+          <div className="btn-row flex-wrap" role="group" aria-label={t("alreadySaved")}>
+            <button type="button" className={pick(row.on_conflict === "keep")} aria-pressed={row.on_conflict === "keep"}
+              onClick={() => onPatch({ deleted: true, selected: false, merged: false, on_conflict: "keep" })}>{t("keepExisting")}</button>
+            <button type="button" className={pick(row.on_conflict === "overwrite" && !row.merged)} aria-pressed={row.on_conflict === "overwrite" && !row.merged}
+              onClick={() => onPatch({ selected: true, deleted: false, merged: false, on_conflict: "overwrite" })}>{t("overwrite")}</button>
+            <button type="button" className={pick(!!row.merged)} aria-pressed={!!row.merged} onClick={() => setMerging(true)}>{t("mergeButton")}</button>
           </div>
           {merging && (
-            <MergeEditor existing={existing} incoming={row as unknown as Record<string, string>} fields={mergeFields ?? []}
+            <MergeEditor existing={Object.fromEntries(shown) as Record<string, string | number | null>} incoming={row as unknown as Record<string, string>} fields={mergeFields ?? []}
               onCancel={() => setMerging(false)}
-              onDone={(result) => { onPatch({ ...result, selected: true, on_conflict: "overwrite" } as Partial<Row>); setMerging(false); }} />
+              onDone={(result) => { onPatch({ ...result, selected: true, deleted: false, merged: true, on_conflict: "overwrite" } as Partial<Row>); setMerging(false); }} />
           )}
         </div>
       )}
       {media}
       {footer}
+      {undecided && <p className="text-sm">{t("chooseFirst")}</p>}
       <div className="btn-row flex-wrap">
-        <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`}
+        <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`} disabled={undecided}
           onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? t("undoConfirm") : t("confirm")}</button>
         <button type="button" className="btn btn-secondary" aria-expanded={editing} onClick={() => setEditing((e) => !e)}>{editing ? t("doneEditing") : t("edit")}</button>
         <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true, selected: false })}>{t("delete")}</button>
