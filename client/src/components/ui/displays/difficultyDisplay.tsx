@@ -20,6 +20,8 @@ const LEVELS_CONFIG: LevelConfig[] = [
 
 const PIPS = 5;
 
+import PipBar from "./pipBar";
+
 export default function DifficultyDisplay({ difficulty }: DifficultyScoreProps) {
   const clamped = Math.max(0, Math.min(1, difficulty));
   const levelConfig = LEVELS_CONFIG.find((l) => clamped <= l.max) ?? LEVELS_CONFIG[LEVELS_CONFIG.length - 1];
@@ -31,14 +33,7 @@ export default function DifficultyDisplay({ difficulty }: DifficultyScoreProps) 
     <div className="inline-flex items-center gap-2">
       <span className="text-sm text-muted">{t("difficulty")}</span>
 
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: PIPS }).map((_, i) => (
-          <span
-            key={i}
-            className={`block w-1 h-3 rounded-full ${i < filledPips ? levelConfig.pip : "bg-border"}`}
-          />
-        ))}
-      </div>
+      <PipBar filled={filledPips} pip={levelConfig.pip} label={t("difficulty")} value={`${Number(clamped.toFixed(2))} / 1`} />
 
       <span className={`text-xs font-medium ${levelConfig.text}`}>
         {label}

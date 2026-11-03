@@ -18,3 +18,11 @@ describe("shared displays render synchronously with translated labels", () => {
     expect(screen.getByText("Trivial")).toBeInTheDocument();
   });
 });
+
+describe("the gauges give the exact value", () => {
+  it("score and difficulty expose it as the accessible name and in the tooltip", () => {
+    render(<><ScoreDisplay score={42.46} /><DifficultyDisplay difficulty={0.4} /></>);
+    expect(screen.getByRole("img", { name: "Score: 42.5 / 100" })).toHaveTextContent("42.5 / 100");
+    expect(screen.getByRole("img", { name: "Difficulty: 0.4 / 1" })).toHaveTextContent("0.4 / 1");
+  });
+});

@@ -20,6 +20,8 @@ const LEVELS_CONFIG: LevelConfig[] = [
 
 const PIPS = 5;
 
+import PipBar from "./pipBar";
+
 export default function ScoreDisplay({ score }: ScoreDisplayProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const levelConfig = LEVELS_CONFIG.find((l) => l.test(clamped))!;
@@ -31,14 +33,7 @@ export default function ScoreDisplay({ score }: ScoreDisplayProps) {
     <div className="inline-flex items-center gap-2">
       <span className="text-sm text-muted">{t("score")}</span>
 
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: PIPS }).map((_, i) => (
-          <span
-            key={i}
-            className={`block w-1 h-3 rounded-full ${i < filledPips ? levelConfig.pip : "bg-border"}`}
-          />
-        ))}
-      </div>
+      <PipBar filled={filledPips} pip={levelConfig.pip} label={t("score")} value={`${Number(clamped.toFixed(1))} / 100`} />
 
       <span className={`text-xs font-medium ${levelConfig.text}`}>
         {label}
