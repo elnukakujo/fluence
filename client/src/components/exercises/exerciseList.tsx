@@ -2,49 +2,20 @@
 
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ChevronRight, Target } from "lucide-react";
 import NavButton from "@/components/layout/navButton";
-import Exercise from "@/interface/features/Exercise";
-import DifficultyDisplay from "@/components/ui/displays/difficultyDisplay";
-import ScoreDisplay from "@/components/ui/displays/scoreDisplay";
+import ListCard, { average } from "@/components/elements/listCard";
+import type Exercise from "@/interface/features/Exercise";
 
-export default function ExerciseList({ exProps}: { exProps: Exercise[]}) {
+export default function ExerciseList({ exProps }: { exProps: Exercise[] }) {
     const t = useTranslations("exercises");
     const { language_id, lesson_id } = useParams<{ language_id: string, lesson_id: string }>();
-
-    const averageScore = exProps.reduce((acc, item) => acc + item.score!, 0) / exProps.length;
-    const averageDifficulty = exProps.reduce((acc, item) => acc + item.difficulty!, 0) / exProps.length;
+    const base = `/languages/${language_id}/lesson/${lesson_id}/ex`;
 
     return (
-        <section className="card flex flex-col gap-4 w-[14rem] h-fit">
-            <header>
-                <h2>{t("exercises")}</h2>
-                {exProps.length > 0 ? (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-sm text-muted">{t("totalExercises")} {exProps.length}</span>
-                        <ScoreDisplay score={averageScore} />
-                        <DifficultyDisplay difficulty={averageDifficulty} />
-                    </div>
-                ) : (
-                    <p>{t("emptyState")}</p>
-                )}
-            </header>
-            <nav className="index-divider flex flex-col gap-2">
-                <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex`}>
-                    <span>{t("seeExercises")}</span>
-                </NavButton>
-                <NavButton
-                    path = {`/languages/${language_id}/lesson/${lesson_id}/ex/new`}
-                >
-                    <span>{t("addNewExercise")}</span>
-                </NavButton>
-                {exProps.length > 0 && (
-                    <NavButton
-                        path={`/languages/${language_id}/lesson/${lesson_id}/ex/practice`}
-                    >
-                        <p>{t("exercisePractice")}</p>
-                    </NavButton>)}
-
-            </nav>
-        </section>
+        <ListCard icon={Target} title={t("exercises")} count={exProps.length} score={average(exProps, (e) => e.score)} difficulty={average(exProps, (e) => e.difficulty)}
+            addPath={`${base}/new`} practicePath={`${base}/practice`}>
+            <NavButton path={base} className="pick-row"><span className="pick-main flex-1 text-left">{t("seeExercises")}</span><ChevronRight size={16} className="shrink-0 text-muted" aria-hidden /></NavButton>
+        </ListCard>
     );
 }

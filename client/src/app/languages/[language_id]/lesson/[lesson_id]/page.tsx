@@ -62,7 +62,7 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                     )}
                 </nav>
             </header>
-            <LessonItems isOwner={isOwner} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-row flex-wrap gap-8 justify-around">
+            <LessonItems isOwner={isOwner} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <VocabularyList vocProps={vocabularies} />
                 <GrammarList gramProps={grammars} />
                 <CalligraphyList callProps={calligraphies} />

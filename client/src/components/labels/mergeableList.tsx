@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import Tick from "@/components/elements/tick";
 
 type Entry = { id: string; label: string; color?: string; description?: string };
 
@@ -34,8 +35,8 @@ export default function MergeableList({ kind, items, empty }: { kind: "tag" | "s
         {items.map((it) => (
           <li key={it.id}>
             {selecting ? (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2.5 px-2">
-                <input type="checkbox" className="h-5 w-5" checked={picked.includes(it.id)} onChange={() => toggle(it.id)} />
+              <label className="pick-row" data-selected={picked.includes(it.id)}>
+                <input type="checkbox" className="tick-input" checked={picked.includes(it.id)} onChange={() => toggle(it.id)} /><Tick />
                 <span className="text-sm">{it.label}</span>
               </label>
             ) : (

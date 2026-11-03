@@ -4,7 +4,7 @@ import DeleteButton from "@/components/ui/buttons/deleteButton";
 import Exercise from "@/interface/features/Exercise";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import LessonItems, { SelectBox, SelectToggle } from "@/components/elements/itemSelection";
+import LessonItems, { SelectAllRow, SelectBox, SelectToggle } from "@/components/elements/itemSelection";
 import { getLessonById } from "@/api/lesson";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { getTranslations } from "next-intl/server";
@@ -29,14 +29,14 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
         <main className="flex flex-col space-y-5">
             <h1>{t("exercises")}</h1>
             <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
-                {exercises.length > 0 && <div><SelectToggle /></div>}
+                {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><SelectToggle kind="ex" /><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={exercises.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
                 {Object.entries(exercisesByType).map(([type, exercises]) => (
                     <section key={type}>
                         <h3>{type.charAt(0).toUpperCase() + type.slice(1)}</h3>
                         <ul className="list-none">
                             {exercises.map((exercise, index) => (
                                 <li key={index} className="card flex flex-col gap-2">
-                                    <SelectBox id={exercise.id!} onlyWhenActive>{exercise.exercise_type}</SelectBox>
+                                    <SelectBox kind="ex" id={exercise.id!} label={exercise.exercise_type ?? "exercise"}>{exercise.exercise_type}</SelectBox>
                                     {!['type_in_the_blank', 'select_in_the_blank', 'conversation'].includes(exercise.exercise_type!) && (
                                         <Markdown remarkPlugins={[remarkGfm]}>{exercise.question}</Markdown>
                                     )}
