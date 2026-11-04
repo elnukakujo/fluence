@@ -19,6 +19,7 @@ import type Vocabulary from "@/interface/features/Vocabulary";
 import type Exercise from "@/interface/features/Exercise";
 import type { ExerciseContent } from "@/interface/features/Exercise";
 import SourceSelector from "@/components/sources/sourceSelector";
+import { type ReadingRow, type DictationRow, readingContent, readingRows, dictationContent, dictationRows } from "./readingDictationRows";
 
 const STRUCTURED_TYPES: NonNullable<Exercise["exercise_type"]>[] = [
     "type_in_the_blank", "select_in_the_blank", "matching", "organize", "true_false", "quizz",
@@ -171,6 +172,41 @@ function MatchingContentEditor({ pairs, setPairs }: { pairs: [string, string][];
     );
 }
 
+function ReadingContentEditor({ rows, setRows }: { rows: ReadingRow[]; setRows: (v: ReadingRow[]) => void }) {
+    const t = useTranslations("exercises");
+    const set = (i: number, patch: Partial<ReadingRow>) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+    return (
+        <fieldset className="card flex flex-col gap-2 w-full">
+            <legend className="text-sm font-medium px-1 w-fit">{t("readingLines")}</legend>
+            {rows.map((r, i) => (
+                <div key={i} className="flex items-center gap-2">
+                    <input className="input w-32" placeholder={t("speakerOptional")} value={r.speaker} onChange={(e) => set(i, { speaker: e.target.value })} />
+                    <input className="input flex-1" placeholder={t("lineText")} value={r.text} onChange={(e) => set(i, { text: e.target.value })} required />
+                    <input className="input flex-1" placeholder={t("translationOptional")} value={r.translation} onChange={(e) => set(i, { translation: e.target.value })} />
+                    {rows.length > 1 && <button type="button" className="chip-remove" onClick={() => setRows(rows.filter((_, idx) => idx !== i))}>x</button>}
+                </div>
+            ))}
+            <button type="button" className="btn btn-secondary w-fit" onClick={() => setRows([...rows, { speaker: rows[rows.length - 1]?.speaker ?? "", text: "", translation: "", audioIndex: null }])}>{t("addLine")}</button>
+        </fieldset>
+    );
+}
+
+function DictationContentEditor({ rows, setRows }: { rows: DictationRow[]; setRows: (v: DictationRow[]) => void }) {
+    const t = useTranslations("exercises");
+    return (
+        <fieldset className="card flex flex-col gap-2 w-full">
+            <legend className="text-sm font-medium px-1 w-fit">{t("dictationLines")}</legend>
+            {rows.map((r, i) => (
+                <div key={i} className="flex items-center gap-2">
+                    <input className="input" placeholder={t("lineText")} value={r.text} onChange={(e) => setRows(rows.map((x, idx) => idx === i ? { ...x, text: e.target.value } : x))} required />
+                    {rows.length > 1 && <button type="button" className="chip-remove" onClick={() => setRows(rows.filter((_, idx) => idx !== i))}>x</button>}
+                </div>
+            ))}
+            <button type="button" className="btn btn-secondary w-fit" onClick={() => setRows([...rows, { text: "", audioIndex: null }])}>{t("addLine")}</button>
+        </fieldset>
+    );
+}
+
 function OrganizeContentEditor({ items, setItems }: { items: string[]; setItems: (v: string[]) => void }) {
     const t = useTranslations("exercises");
     return (
@@ -206,6 +242,8 @@ const EXERCISE_TYPE_OPTIONS: NonNullable<Exercise["exercise_type"]>[] = [
     "speaking",
     "conversation",
     "quizz",
+    "reading",
+    "dictation",
 ];
 
 export default function ExerciseForm({
@@ -282,6 +320,9 @@ export default function ExerciseForm({
     const [quizCorrect, setQuizCorrect] = useState<number[]>(
         existingContent && "correct" in existingContent ? existingContent.correct : []
     );
+
+    const [readingLines, setReadingLines] = useState<ReadingRow[]>(readingRows(existingContent));
+    const [dictationLines, setDictationLines] = useState<DictationRow[]>(dictationRows(existingContent));
 
     useEffect(() => {
         switch (exerciseType) {
@@ -395,6 +436,12 @@ export default function ExerciseForm({
         } else if (exerciseType === "quizz") {
             content = { options: quizOptions, correct: quizCorrect };
             normalizedAnswer = quizCorrect.map(i => quizOptions[i]).join(", ");
+        } else if (exerciseType === "reading") {
+            content = readingContent(readingLines);
+            normalizedAnswer = content.lines.map(l => l.text).join("\n");
+        } else if (exerciseType === "dictation") {
+            content = dictationContent(dictationLines);
+            normalizedAnswer = content.lines.map(l => l.text).join(" ");
         } else if (exerciseType === "speaking") {
             normalizedAnswer = normalizedQuestion;
         }
@@ -520,11 +567,15 @@ export default function ExerciseForm({
                         <OrganizeContentEditor items={organizeItems} setItems={setOrganizeItems} />
                     )}
 
+                    {exerciseType === "reading" && <ReadingContentEditor rows={readingLines} setRows={setReadingLines} />}
+
+                    {exerciseType === "dictation" && <DictationContentEditor rows={dictationLines} setRows={setDictationLines} />}
+
                     {exerciseType === "quizz" && (
                         <QuizzContentEditor options={quizOptions} setOptions={setQuizOptions} correct={quizCorrect} setCorrect={setQuizCorrect} />
                     )}
 
-                    {!["true_false", "matching", "organize", "speaking", "type_in_the_blank", "select_in_the_blank", "conversation", "quizz"].includes(exerciseType) && (
+                    {!["true_false", "matching", "organize", "speaking", "type_in_the_blank", "select_in_the_blank", "conversation", "quizz", "reading", "dictation"].includes(exerciseType) && (
                         <AutoSizeTextArea
                             value={answer}
                             onChange={(e) => setAnswer(e.target.value)}

@@ -103,5 +103,9 @@
   "noSpeechSupport": "Votre navigateur ne peut pas lire le texte à voix haute.",
   "lineOf": "Ligne {current} / {total}",
   "nextLine": "Ligne suivante",
-  "readingLinePlay": "Écouter la ligne {n}"
+  "readingLinePlay": "Écouter la ligne {n}",
+  "readingLines": "Lignes à lire",
+  "dictationLines": "Lignes à dicter",
+  "speakerOptional": "Locuteur (facultatif)",
+  "translationOptional": "Traduction (facultative)"
 }

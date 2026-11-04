@@ -103,5 +103,9 @@
   "noSpeechSupport": "你的浏览器不支持朗读文本。",
   "lineOf": "第 {current} / {total} 行",
   "nextLine": "下一行",
-  "readingLinePlay": "播放第 {n} 行"
+  "readingLinePlay": "播放第 {n} 行",
+  "readingLines": "要朗读的行",
+  "dictationLines": "要听写的行",
+  "speakerOptional": "说话人（可选）",
+  "translationOptional": "翻译（可选）"
 }

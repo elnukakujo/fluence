@@ -103,5 +103,9 @@
   "noSpeechSupport": "Your browser cannot read text aloud.",
   "lineOf": "Line {current} / {total}",
   "nextLine": "Next line",
-  "readingLinePlay": "Play line {n}"
+  "readingLinePlay": "Play line {n}",
+  "readingLines": "Lines to read",
+  "dictationLines": "Lines to dictate",
+  "speakerOptional": "Speaker (optional)",
+  "translationOptional": "Translation (optional)"
 }
