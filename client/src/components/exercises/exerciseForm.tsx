@@ -6,12 +6,16 @@ import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { useRouter } from "next/navigation";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
+import OpenCloseMenu from "@/components/ui/selectMenu/openCloseMenu";
 import TagSelector from "@/components/tags/tagSelector";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import TrueFalseInput from "@/components/exercises/trueFalseInput";
 import MediaLoader from "@/components/media/mediaLoader";
 import { createExercise, updateExercise } from "@/api/exercise";
 import ConversationInput from "@/components/exercises/conversationInput";
+import type Calligraphy from "@/interface/features/Calligraphy";
+import type Grammar from "@/interface/features/Grammar";
+import type Vocabulary from "@/interface/features/Vocabulary";
 import type Exercise from "@/interface/features/Exercise";
 import type { ExerciseContent } from "@/interface/features/Exercise";
 import SourceSelector from "@/components/sources/sourceSelector";
@@ -220,6 +224,12 @@ function OrganizeContentEditor({ items, setItems }: { items: string[]; setItems:
     );
 }
 
+export interface LessonElements {
+    vocabularies: Vocabulary[];
+    grammars: Grammar[];
+    calligraphies: Calligraphy[];
+}
+
 const EXERCISE_TYPE_OPTIONS: NonNullable<Exercise["exercise_type"]>[] = [
     "translate",
     "type_in_the_blank",
@@ -239,9 +249,11 @@ const EXERCISE_TYPE_OPTIONS: NonNullable<Exercise["exercise_type"]>[] = [
 export default function ExerciseForm({
     exercise,
     lesson_id,
+    lessonElements,
 }: {
     exercise?: Exercise | Partial<Exercise>;
     lesson_id: string;
+    lessonElements: LessonElements;
 }) {
     const t = useTranslations("exercises");
     const router = useRouter();
@@ -273,6 +285,9 @@ export default function ExerciseForm({
     const [imageUrl, setImageUrl] = useState<string[]>(exerciseData.image_files ?? []);
     const [audioUrl, setAudioUrl] = useState<string[]>(exerciseData.audio_files ?? []);
 
+    const [relatedVocabularies, setRelatedVocabularies] = useState<string[]>(exerciseData.related_vocabulary ?? []);
+    const [relatedCalligraphies, setRelatedCalligraphies] = useState<string[]>(exerciseData.related_calligraphy ?? []);
+    const [relatedGrammars, setRelatedGrammars] = useState<string[]>(exerciseData.related_grammar ?? []);
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>(exerciseData.tags ? exerciseData.tags.map(tag => tag.id!) : []);
     const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>(exerciseData.sources ? exerciseData.sources.map(source => source.id!) : []);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -444,9 +459,9 @@ export default function ExerciseForm({
             answer: normalizedAnswer,
             content,
             lesson_id,
-            related_vocabulary: exerciseData.related_vocabulary ?? [],
-            related_grammar: exerciseData.related_grammar ?? [],
-            related_calligraphy: exerciseData.related_calligraphy ?? [],
+            related_vocabulary: relatedVocabularies,
+            related_grammar: relatedGrammars,
+            related_calligraphy: relatedCalligraphies,
             tags: selectedTagIds.map(id => ({ id })),
             sources: selectedSourceIds.map(id => ({ id }))
         };
@@ -572,6 +587,33 @@ export default function ExerciseForm({
                             required
                         />
                     )}
+
+                    <section className="flex flex-col space-y-4 w-full items-baseline">
+                        <OpenCloseMenu
+                            elements={lessonElements.vocabularies.map((item) => ({
+                                id: item.id!,
+                                value: item.word.word + " - " + item.word.translation,
+                            }))}
+                            selectedElements={relatedVocabularies}
+                            setSelectedElements={setRelatedVocabularies}
+                            label={t("associatedVocabulary")}
+                        />
+                        <OpenCloseMenu
+                            elements={lessonElements.grammars.map((item) => ({ id: item.id!, value: item.title }))}
+                            selectedElements={relatedGrammars}
+                            setSelectedElements={setRelatedGrammars}
+                            label={t("associatedGrammar")}
+                        />
+                        <OpenCloseMenu
+                            elements={lessonElements.calligraphies.map((item) => ({
+                                id: item.id!,
+                                value: item.character.character + " - " + item.character.phonetic,
+                            }))}
+                            selectedElements={relatedCalligraphies}
+                            setSelectedElements={setRelatedCalligraphies}
+                            label={t("associatedCalligraphies")}
+                        />
+                    </section>
 
                     <TagSelector
                         selectedTagIds={selectedTagIds}

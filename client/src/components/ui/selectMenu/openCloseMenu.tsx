@@ -24,7 +24,7 @@ export default function OpenCloseMenu({
     const t = useTranslations("ui");
 
     return (
-        <menu>
+        <menu className="list-none pl-0">
             {label && <label className="block text-sm font-medium text-foreground">
                 {label}
             </label>}
@@ -36,7 +36,7 @@ export default function OpenCloseMenu({
                 {isOpen ? t("hide") : t("show")}
             </button>
             {isOpen && (
-                <ul className="max-w-[40rem] flex flex-row flex-wrap gap-2 mt-2">
+                <ul className="max-w-[40rem] flex flex-row flex-wrap gap-2 mt-2 list-none pl-0">
                     {elements.map((item) => (
                         <li key={item.id}>
                         <button
