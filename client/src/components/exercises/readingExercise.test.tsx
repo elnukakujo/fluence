@@ -53,11 +53,12 @@ describe("reading exercise", () => {
     expect(played.urls).toHaveLength(2);
   });
 
-  it("warns with a toast, and plays nothing, when no TTS endpoint is configured", async () => {
+  it("does nothing, silently, when no TTS endpoint is configured", async () => {
     exApi.generateLineAudio.mockRejectedValue(new Error("tts_not_configured"));
     render(<ReadingExercise exercise={ex()} />);
     await userEvent.click(screen.getByRole("button", { name: "Play line 1" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/No text-to-speech endpoint/);
+    expect(exApi.generateLineAudio).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(played.urls).toEqual([]);
   });
 

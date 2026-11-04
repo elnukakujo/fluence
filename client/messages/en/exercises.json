@@ -108,7 +108,6 @@
   "instructionOptional": "Instruction (optional)",
   "readingDone": "I've read it",
   "readingDoneMessage": "✓ Done",
-  "ttsNotConfigured": "No text-to-speech endpoint is set up. Add one in Settings, or upload a clip to this exercise.",
   "ttsFailed": "The text-to-speech endpoint failed. Check it in Settings, or upload a clip.",
   "audioPlayFailed": "The audio could not be played."
 }

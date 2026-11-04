@@ -108,7 +108,6 @@
   "instructionOptional": "Consigne (facultative)",
   "readingDone": "J'ai lu",
   "readingDoneMessage": "✓ Terminé",
-  "ttsNotConfigured": "Aucun service de synthèse vocale n'est configuré. Ajoutez-en un dans les paramètres, ou téléversez un clip pour cet exercice.",
   "ttsFailed": "Le service de synthèse vocale a échoué. Vérifiez-le dans les paramètres, ou téléversez un clip.",
   "audioPlayFailed": "Impossible de lire l'audio."
 }
