@@ -281,5 +281,8 @@
   "selectOne": "Sélectionner {label}",
   "reject": "Rejeter",
   "filtersLabel": "Filtre",
-  "pageRangeQuote": "Pages {from}–{to} · « {quote} »"
+  "pageRangeQuote": "Pages {from}–{to} · « {quote} »",
+  "reload": "Refaire",
+  "reloading": "Nouvelle passe…",
+  "reloadFailed": "Impossible de refaire : {message}"
 }

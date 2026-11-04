@@ -52,3 +52,17 @@ def test_merge_needs_two_items_and_own_job(app, db, scheduled):
     client, job_id = _client(app, db)
     assert client.post(f"/api/ingestion/{job_id}/merge", json={"items": ITEMS[:1]}).status_code == 400
     assert client.post("/api/ingestion/ing_nope/merge", json={"items": ITEMS}).status_code == 404
+
+
+def test_regenerate_redoes_one_candidate_from_its_original_text(app, db, scheduled, monkeypatch):
+    client, job_id = _client(app, db)
+    _text_api(monkeypatch)
+    seen = {}
+
+    def fake(**kw):
+        seen["user"] = kw["messages"][-1]["content"]
+        return '{"title": "A", "explanation": "Full text. 例1。", "example_sentences": ["例1。"]}'
+    monkeypatch.setattr(grammar_module, "chat_completion", fake)
+    r = client.post(f"/api/ingestion/{job_id}/regenerate", json={"items": ITEMS[:1]})
+    assert r.status_code == 200 and r.get_json()["explanation"] == "Full text. 例1。" and "ORIG-ONE" in seen["user"]
+    assert client.post(f"/api/ingestion/{job_id}/regenerate", json={"items": ITEMS}).status_code == 400

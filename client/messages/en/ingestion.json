@@ -281,5 +281,8 @@
   "selectOne": "Select {label}",
   "reject": "Reject",
   "filtersLabel": "Filter",
-  "pageRangeQuote": "Pages {from}–{to} · \"{quote}\""
+  "pageRangeQuote": "Pages {from}–{to} · \"{quote}\"",
+  "reload": "Redo",
+  "reloading": "Redoing…",
+  "reloadFailed": "Could not redo: {message}"
 }

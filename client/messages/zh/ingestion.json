@@ -281,5 +281,8 @@
   "selectOne": "选择 {label}",
   "reject": "拒绝",
   "filtersLabel": "筛选",
-  "pageRangeQuote": "第 {from}–{to} 页 · “{quote}”"
+  "pageRangeQuote": "第 {from}–{to} 页 · “{quote}”",
+  "reload": "重做",
+  "reloading": "重做中…",
+  "reloadFailed": "无法重做：{message}"
 }

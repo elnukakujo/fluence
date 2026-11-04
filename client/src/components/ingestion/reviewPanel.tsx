@@ -9,7 +9,7 @@ import Modal from "@/components/ui/dialogs/modal";
 import ItemActionBar from "@/components/elements/itemActionBar";
 import { SelectAllRow, SelectionScope, SelectToggle, useItemSelection, type BarProps, type Kind } from "@/components/elements/itemSelection";
 import Tick from "@/components/elements/tick";
-import { mergeGrammar, pageImageUrl } from "@/api/ingestion";
+import { mergeGrammar, pageImageUrl, regenerateGrammar } from "@/api/ingestion";
 import {
   type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeRows, needsDecision,
   dialogueLines, initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
@@ -70,6 +70,19 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     ((r.candidate.kind ?? "vocabulary") === active && r.candidate.status === "verified" && !r.deleted && !needsDecision(r) ? { ...r, selected: true } : r)));
 
   const [merging, setMerging] = useState(false);
+  const [reloadingId, setReloadingId] = useState<string | null>(null);
+  const reload = async (row: Row) => {
+    setReloadingId(row.candidate.id);
+    setError(null);
+    try {
+      const fresh = await regenerateGrammar(jobId, { title: row.title, explanation: row.explanation, original_text: row.original_text });
+      patch(row.candidate.id, { ...fresh, selected: false });   // back to pending: the user checks the new pass
+    } catch (e) {
+      setError(t("reloadFailed", { message: e instanceof Error ? e.message : "" }));
+    } finally {
+      setReloadingId(null);
+    }
+  };
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -163,7 +176,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     if (kind === "grammar") {
       const generated = has("grammar_generated");
       return (
-        <ReviewCard {...common} summary={<strong>{row.title}</strong>}
+        <ReviewCard {...common} summary={<strong>{row.title}</strong>} onReload={row.original_text ? () => reload(row) : undefined} reloading={reloadingId === c.id}
           preview={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>

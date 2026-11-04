@@ -2,13 +2,14 @@
 
 import { Fragment, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import { RefreshCw } from "lucide-react";
 import { needsDecision, type Row } from "@/lib/ingestion/review";
 import MergeEditor, { fieldName } from "./mergeEditor";
 
 type Existing = Record<string, string | number | boolean | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
-export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, children }: {
+export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, onReload, reloading, children }: {
   row: Row;
   summary: ReactNode;
   badge: string;
@@ -20,6 +21,8 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   footer?: ReactNode;
   media?: ReactNode;
   preview?: ReactNode; // shown only while not editing (the textarea replaces it)
+  onReload?: () => void; // asks the model for a fresh pass over this item
+  reloading?: boolean;
   lead?: ReactNode;    // the select-mode tick, above the state line
   children: ReactNode;
 }) {
@@ -77,6 +80,11 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
         <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`} disabled={undecided}
           onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? t("undoConfirm") : t("confirm")}</button>
         <button type="button" className="btn btn-secondary" aria-expanded={editing} onClick={() => setEditing((e) => !e)}>{editing ? t("doneEditing") : t("edit")}</button>
+        {onReload && (
+          <button type="button" className="btn btn-secondary" disabled={reloading} onClick={onReload}>
+            <RefreshCw size={16} aria-hidden className={reloading ? "animate-spin" : ""} />{reloading ? t("reloading") : t("reload")}
+          </button>
+        )}
         <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true, selected: false })}>{t("delete")}</button>
       </div>
     </li>

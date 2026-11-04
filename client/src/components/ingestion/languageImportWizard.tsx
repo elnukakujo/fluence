@@ -272,23 +272,27 @@ function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { j
     <section className="flex flex-col gap-4">
       <header className="card step-header flex flex-col">
         <StepProgress step={3} second={t("chooseTheLessons")} />
-        <h2>{job.filename}</h2>
+        <div className="step-header-top">
+          <h2>{job.filename}</h2>
+          <div className="btn-row">
+            {status !== "extracting" && addedCount === 0 && (
+              <button type="button" className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotGoBack")))}>{t("backToTheLessons")}</button>
+            )}
+            <Link href={`/languages/${languageId}`} className="btn btn-secondary">{t("backToTheLanguage")}</Link>
+          </div>
+        </div>
         <p aria-live="polite">
           {t("lessonsProgress", { ready, total: lessons.length, added: addedCount, languageName, reading: status === "extracting" ? "yes" : "no" })}
         </p>
         {status === "extracting" && <ProgressBar current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
         {status === "extracting" && <div className="btn-row"><JobControls jobId={job.id} paused={job.paused} onStopped={onStopped} /></div>}
         <p className="text-xs opacity-60">{t("reviewEachLesson")}</p>
-        {status !== "extracting" && addedCount === 0 && (
-          <div className="btn-row"><button type="button" className="btn btn-secondary" onClick={() => onBack().catch((e) => setError(e instanceof Error ? e.message : t("couldNotGoBack")))}>{t("backToTheLessons")}</button></div>
-        )}
         {notes.length > 0 && (
           <details>
             <summary className="cursor-pointer text-sm">{t("notesFromImport", { count: notes.length })}</summary>
             <ul className="list-disc pl-5 text-sm">{notes.map((w) => <li key={w}>{w}</li>)}</ul>
           </details>
         )}
-        <div className="btn-row"><Link href={`/languages/${languageId}`} className="btn btn-secondary">{t("backToTheLanguage")}</Link></div>
       </header>
 
       {lessons.map((l, i) => (

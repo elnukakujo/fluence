@@ -279,6 +279,38 @@ def merge_candidates(job_id: str):
         return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
 
 
+@bp.route("/<job_id>/regenerate", methods=["POST"])
+@login_required
+def regenerate_candidate(job_id: str):
+    """Redo one grammar candidate from its original page text with the user's text-generation model.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - in: body
+          name: body
+          schema: {type: object, properties: {items: {type: array}}}
+    responses:
+        200: {description: "{title, explanation, example_sentences}"}
+        400: {description: No item, or no text endpoint}
+        502: {description: The model call failed}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    items = [i for i in (request.get_json(silent=True) or {}).get("items") or [] if isinstance(i, dict)]
+    if len(items) != 1:
+        return jsonify({"error": "Send exactly one grammar point"}), 400
+    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
+    if not api:
+        return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
+    try:
+        return jsonify(merge_grammar(items, api))
+    except (ModelAPIError, ExtractionError) as e:
+        return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
+
+
 @bp.route("/<job_id>/candidates", methods=["GET"])
 @login_required
 def get_candidates(job_id: str):

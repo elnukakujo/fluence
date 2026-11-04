@@ -8,7 +8,8 @@ import type { Candidate } from "@/lib/ingestion/review";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const mergeGrammar = vi.hoisted(() => vi.fn());
-vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", mergeGrammar }));
+const regenerateGrammar = vi.hoisted(() => vi.fn());
+vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", mergeGrammar, regenerateGrammar }));
 
 const grammar: Candidate = {
   id: "g1", kind: "grammar", title: "Te-form", explanation: "Connects verbs", example_sentences: ["Tabete iru."], original_text: "This is the original OCR text from the page.",
@@ -302,6 +303,16 @@ describe("ReviewPanel", () => {
     const sent = onAdd.mock.calls[0][0];
     expect(sent.items.map((i: { word: string }) => i.word)).toEqual(["beta"]);
     expect(sent.elements.map((e: { kind: string }) => e.kind)).toEqual(["calligraphy"]);
+  });
+
+  it("Redo asks the model for a fresh pass from the original text and puts the card back to pending", async () => {
+    regenerateGrammar.mockResolvedValue({ title: "Te-form", explanation: "Redone text", example_sentences: [] });
+    render(<ReviewPanel jobId="j" filename="b" candidates={[{ ...grammar, status: "verified" }]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Add 1" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(regenerateGrammar).toHaveBeenCalledWith("j", { title: "Te-form", explanation: "Connects verbs", original_text: grammar.original_text });
+    expect(await screen.findByText("Redone text")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
   });
 
   describe("bulk selection", () => {
