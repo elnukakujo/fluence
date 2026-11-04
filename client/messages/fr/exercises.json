@@ -116,5 +116,10 @@
   "statusReady": "Prêt",
   "statusNotReady": "Pas prêt",
   "statusMissing": "Manque : {what}",
-  "need_audio": "audio"
+  "need_audio": "audio",
+  "filters": "Filtres",
+  "filterStatus": "Statut",
+  "filterType": "Type",
+  "filterClear": "Effacer les filtres",
+  "filterNoMatch": "Aucun exercice ne correspond à ces filtres."
 }

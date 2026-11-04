@@ -1,6 +1,7 @@
 import { getExercisesByLesson } from "@/api/exercise";
 import NavButton from "@/components/layout/navButton";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
+import ExerciseFilter from "@/components/exercises/exerciseFilter";
 import ExerciseStatus from "@/components/exercises/exerciseStatus";
 import Exercise from "@/interface/features/Exercise";
 import Markdown from "react-markdown";
@@ -11,14 +12,21 @@ import { getCurrentUserId } from "@/utils/user_cookie";
 import { Play, Pencil } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-export default async function ExercisesPage({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }){
+export default async function ExercisesPage({ params, searchParams }: { params: Promise<{ language_id: string, lesson_id: string }>, searchParams: Promise<{ type?: string, status?: string }> }){
     const t = await getTranslations("languages");
+    const tEx = await getTranslations("exercises");
     const { language_id, lesson_id } = await params;
+    const { type: typeParam, status } = await searchParams;
 
     const lesson = await getLessonById(lesson_id);
     const userId = await getCurrentUserId();
     const exercises: Exercise[] = await getExercisesByLesson(lesson_id)
-    const exercisesByType = exercises.reduce((group, exercise) => {
+    const allTypes = [...new Set(exercises.map((e) => e.exercise_type || "unknown"))].sort();
+    const wanted = (typeParam ?? "").split(",").filter(Boolean);
+    const shown = exercises.filter((e) =>
+        (!wanted.length || wanted.includes(e.exercise_type || "unknown")) &&
+        (!status || (status === "ready") === !e.needs?.length));
+    const exercisesByType = shown.reduce((group, exercise) => {
         const key = exercise.exercise_type || "unknown";
         if (!group[key]) {
             group[key] = [];
@@ -31,7 +39,8 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
         <main className="flex flex-col space-y-5">
             <h1>{t("exercises")}</h1>
             <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
-                {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><SelectToggle kind="ex" /><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={exercises.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
+                {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><div className="flex flex-wrap items-center gap-2"><SelectToggle kind="ex" /><ExerciseFilter types={allTypes} /></div><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={shown.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
+                {exercises.length > 0 && shown.length === 0 && <p className="text-muted">{tEx("filterNoMatch")}</p>}
                 {Object.entries(exercisesByType).map(([type, exercises]) => (
                     <section key={type}>
                         <h3>{type.charAt(0).toUpperCase() + type.slice(1)}</h3>

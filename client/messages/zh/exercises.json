@@ -116,5 +116,10 @@
   "statusReady": "就绪",
   "statusNotReady": "未就绪",
   "statusMissing": "缺少：{what}",
-  "need_audio": "音频"
+  "need_audio": "音频",
+  "filters": "筛选",
+  "filterStatus": "状态",
+  "filterType": "类型",
+  "filterClear": "清除筛选",
+  "filterNoMatch": "没有符合筛选条件的练习。"
 }
