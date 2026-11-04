@@ -21,4 +21,12 @@ describe("speech", () => {
     expect(synth.speak).toHaveBeenCalledTimes(1);
     expect(synth.speak.mock.calls[0][0]).toMatchObject({ text: "こんにちは", lang: "ja" });
   });
+  it("uses an installed voice of the language when there is one", () => {
+    const ja = { lang: "ja-JP", name: "Kyoko" }, en = { lang: "en-US", name: "Alex" };
+    const synth = { speak: vi.fn(), cancel: vi.fn(), getVoices: () => [en, ja] };
+    vi.stubGlobal("SpeechSynthesisUtterance", class { lang = ""; voice: unknown = null; constructor(public text: string) {} });
+    (window as unknown as Record<string, unknown>).speechSynthesis = synth;
+    speak("犬", "ja");
+    expect(synth.speak.mock.calls[0][0].voice).toBe(ja);
+  });
 });

@@ -10,7 +10,12 @@ export function speak(text: string, lang?: string): boolean {
   if (typeof window === "undefined" || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return false;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  if (lang) u.lang = lang;
+  if (lang) {
+    u.lang = lang;
+    // an installed voice for the language beats the browser default, which would read the characters out one by one
+    const voice = window.speechSynthesis.getVoices?.().find((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase()));
+    if (voice) u.voice = voice;
+  }
   window.speechSynthesis.speak(u);
   return true;
 }

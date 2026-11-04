@@ -16,7 +16,7 @@ import ConversationExercise from "@/components/exercises/conversationExercise";
 import QuizzExercise from "@/components/exercises/quizzExercise";
 import ReadingExercise from "@/components/exercises/readingExercise";
 import DictationExercise from "@/components/exercises/dictationExercise";
-import { getLessonById } from "@/api/lesson";
+import { getLanguageById } from "@/api/language";
 import { bcp47 } from "@/utils/speech";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
@@ -30,7 +30,7 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
 
     const exercise: Exercise = await getExerciseById(ex_id);
     const lang = exercise.exercise_type === 'reading' || exercise.exercise_type === 'dictation'
-        ? bcp47((await getLessonById(lesson_id)).target_iso639_2t) : undefined;
+        ? bcp47((await getLanguageById(language_id)).target_iso639_2t) : undefined;
 
     return(
         <main className="flex flex-col space-y-4">
