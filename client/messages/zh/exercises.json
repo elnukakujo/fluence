@@ -98,7 +98,6 @@
   "hideTranslation": "隐藏翻译",
   "play": "播放",
   "dictationPlaceholder": "写下你听到的内容……",
-  "noSpeechSupport": "你的浏览器不支持朗读文本。",
   "lineOf": "第 {current} / {total} 行",
   "nextLine": "下一行",
   "readingLinePlay": "播放第 {n} 行",
@@ -108,5 +107,8 @@
   "translationOptional": "翻译（可选）",
   "instructionOptional": "说明（可选）",
   "readingDone": "我读完了",
-  "readingDoneMessage": "✓ 完成"
+  "readingDoneMessage": "✓ 完成",
+  "ttsNotConfigured": "尚未设置语音合成端点。请在设置中添加，或为此练习上传音频。",
+  "ttsFailed": "语音合成端点出错。请在设置中检查，或上传音频。",
+  "audioPlayFailed": "无法播放音频。"
 }

@@ -6,9 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
 
 const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
-const speech = vi.hoisted(() => ({ speak: vi.fn().mockReturnValue(true) }));
+const exApi = vi.hoisted(() => ({ generateLineAudio: vi.fn() }));
+const played = vi.hoisted(() => ({ urls: [] as string[] }));
 vi.mock("@/api/process", () => api);
-vi.mock("@/utils/speech", () => speech);
+vi.mock("@/api/exercise", () => exApi);
 
 import DictationExercise from "./dictationExercise";
 
@@ -16,13 +17,28 @@ const ex = () => ({
   id: "ex_2", exercise_type: "dictation", question: "Write what you hear", answer: "犬がいます 猫もいます", audio_files: [],
   content: { lines: [{ text: "犬がいます", audioIndex: null }, { text: "猫もいます", audioIndex: null }] } }) as unknown as Exercise;
 
-beforeEach(() => { vi.clearAllMocks(); api.evaluateText.mockResolvedValue({ correct: true, score: 0.9, feedback: "Good" }); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  played.urls = [];
+  vi.stubGlobal("Audio", class { constructor(url: string) { played.urls.push(url); } play() { return Promise.resolve(); } });
+  api.evaluateText.mockResolvedValue({ correct: true, score: 0.9, feedback: "Good" });
+});
 
 describe("dictation exercise", () => {
-  it("plays the line with the browser voice when there is no clip", async () => {
-    render(<DictationExercise exercise={ex()} lang="ja" />);
+  it("generates the line's clip with the user's TTS endpoint and plays it", async () => {
+    exApi.generateLineAudio.mockResolvedValue({ audio_files: ["/media/audio/d.wav"], content: { lines: [{ audioIndex: 0 }, { audioIndex: null }] } });
+    render(<DictationExercise exercise={ex()} />);
     await userEvent.click(screen.getByRole("button", { name: "Play" }));
-    expect(speech.speak).toHaveBeenCalledWith("犬がいます", "ja");
+    expect(exApi.generateLineAudio).toHaveBeenCalledWith("ex_2", 0);
+    expect(played.urls).toEqual(["/media/audio/d.wav"]);
+  });
+
+  it("shows a warning toast instead of a fallback voice when TTS is not configured", async () => {
+    exApi.generateLineAudio.mockRejectedValue(new Error("tts_not_configured"));
+    render(<DictationExercise exercise={ex()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Play" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/No text-to-speech endpoint/);
+    expect(played.urls).toEqual([]);
   });
 
   it("evaluates once, after the last line, with the lines joined", async () => {

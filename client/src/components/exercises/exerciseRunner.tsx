@@ -16,8 +16,7 @@ import ReadingExercise from "./readingExercise";
 import DictationExercise from "./dictationExercise";
 
 /** Renders a single exercise with its interactive component, by type. */
-/** `lang` is the BCP-47 code of the practiced language, for the browser voice. */
-export default function ExerciseRunner({ exercise, lang }: { exercise: Exercise; lang?: string }) {
+export default function ExerciseRunner({ exercise }: { exercise: Exercise }) {
     switch (exercise.exercise_type) {
         case "essay": return <EssayExercise exercise={exercise} />;
         case "answering": return <AnsweringExercise exercise={exercise} />;
@@ -30,8 +29,8 @@ export default function ExerciseRunner({ exercise, lang }: { exercise: Exercise;
         case "speaking": return <SpeakingExercise exercise={exercise} />;
         case "conversation": return <ConversationExercise exercise={exercise} />;
         case "quizz": return <QuizzExercise exercise={exercise} />;
-        case "reading": return <ReadingExercise exercise={exercise} lang={lang} />;
-        case "dictation": return <DictationExercise exercise={exercise} lang={lang} />;
+        case "reading": return <ReadingExercise exercise={exercise} />;
+        case "dictation": return <DictationExercise exercise={exercise} />;
         default: return null;
     }
 }

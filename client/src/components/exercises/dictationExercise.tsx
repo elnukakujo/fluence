@@ -9,11 +9,12 @@ import { evaluateText, updateScoreById } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import { getLevelForScore } from "@/utils/speech_levels";
-import { playLine } from "./lineAudio";
+import { Loader2, Volume2 } from "lucide-react";
+import { useLineAudio } from "./lineAudio";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
 
-export default function DictationExercise({ exercise, lang }: { exercise: Exercise; lang?: string }) {
+export default function DictationExercise({ exercise }: { exercise: Exercise }) {
     const t = useTranslations("exercises");
     const lines = (exercise.content as DictationContent | undefined)?.lines ?? [];
     const [index, setIndex] = useState(0);
@@ -22,6 +23,7 @@ export default function DictationExercise({ exercise, lang }: { exercise: Exerci
     const [loading, setLoading] = useState(false);
     const [feedback, setFeedback] = useState<{ message: string | null; level: string; correct: boolean } | null>(null);
     const startTimeRef = useRef<number>(performance.now());
+    const audio = useLineAudio(exercise);
 
     useEffect(() => { setIndex(0); setTyped([]); setDone(false); setFeedback(null); startTimeRef.current = performance.now(); }, [exercise]);
 
@@ -55,8 +57,11 @@ export default function DictationExercise({ exercise, lang }: { exercise: Exerci
             {!done ? (
                 <section className="flex flex-col gap-3">
                     <p className="text-xs">{t("lineOf", { current: index + 1, total: lines.length })}</p>
-                    <button type="button" className="btn btn-secondary self-start"
-                        onClick={() => playLine(exercise.audio_files, lines[index].audioIndex, lines[index].text, lang)}>{t("play")}</button>
+                    <button type="button" className="btn btn-secondary self-start inline-flex items-center gap-2" disabled={audio.busy !== null}
+                        onClick={() => audio.play(index, lines[index])}>
+                        {audio.busy === index ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Volume2 size={16} aria-hidden />}
+                        {t("play")}
+                    </button>
                     <AutoSizeTextArea value={typed[index] ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("dictationPlaceholder")} />
                     {last ? (
                         <button type="button" className="btn btn-primary" disabled={loading} onClick={submit}>
@@ -73,6 +78,7 @@ export default function DictationExercise({ exercise, lang }: { exercise: Exerci
                     <p>{t("correctAnswer")} {exercise.answer}</p>
                 </div>
             )}
+            {audio.toast}
         </div>
     );
 }

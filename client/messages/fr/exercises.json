@@ -98,7 +98,6 @@
   "hideTranslation": "Masquer la traduction",
   "play": "Écouter",
   "dictationPlaceholder": "Écrivez ce que vous entendez…",
-  "noSpeechSupport": "Votre navigateur ne peut pas lire le texte à voix haute.",
   "lineOf": "Ligne {current} / {total}",
   "nextLine": "Ligne suivante",
   "readingLinePlay": "Écouter la ligne {n}",
@@ -108,5 +107,8 @@
   "translationOptional": "Traduction (facultative)",
   "instructionOptional": "Consigne (facultative)",
   "readingDone": "J'ai lu",
-  "readingDoneMessage": "✓ Terminé"
+  "readingDoneMessage": "✓ Terminé",
+  "ttsNotConfigured": "Aucun service de synthèse vocale n'est configuré. Ajoutez-en un dans les paramètres, ou téléversez un clip pour cet exercice.",
+  "ttsFailed": "Le service de synthèse vocale a échoué. Vérifiez-le dans les paramètres, ou téléversez un clip.",
+  "audioPlayFailed": "Impossible de lire l'audio."
 }

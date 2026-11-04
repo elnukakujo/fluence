@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
@@ -5,7 +6,10 @@ from ...services import ExerciseService
 from ...services.system_data import ScoreService
 from ...schemas import ExerciseDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...services.system_data import UserPreferencesService
+from ...utils.llm_providers import resolve_api
 
+logger = logging.getLogger(__name__)
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
 
@@ -397,3 +401,33 @@ def score_exercise():
         return jsonify({'success': True})
     else:
         return jsonify({'error': 'exercise not found'}), 404
+
+@bp.route('/<exercise_id>/line-audio', methods=['POST'])
+@login_required
+def generate_line_audio(exercise_id: str):
+    """Generate (user's TTS endpoint) and store the clip of one line of a reading / dictation exercise.
+    ---
+    tags:
+        - Exercise
+    responses:
+        200: {description: "audio_files and content with the line's audioIndex"}
+        409: {description: "tts_not_configured: no active TTS endpoint, or AI TTS is turned off"}
+        502: {description: "tts_failed: the TTS endpoint returned an error"}
+    """
+    require_write(exercise_id)
+    line = (request.json or {}).get('line')
+    if not isinstance(line, int) or isinstance(line, bool):
+        return jsonify({'error': 'line must be an integer'}), 400
+    prefs = UserPreferencesService().get_by_user_id(current_user_id())
+    api = resolve_api(prefs, "tts") if prefs and prefs.ai_tts_enabled is not False else None
+    if not api or not api.get("base_url"):
+        return jsonify({'error': 'tts_not_configured'}), 409
+    try:
+        return jsonify(exercise_service.add_line_audio(exercise_id, line, api))
+    except FileNotFoundError:
+        return jsonify({'error': 'exercise not found'}), 404
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception:   # the endpoint is the user's: a bad key, a down server, an unsupported language
+        logger.exception("line audio failed for %s", exercise_id)
+        return jsonify({'error': 'tts_failed'}), 502

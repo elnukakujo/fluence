@@ -24,7 +24,7 @@ const EXERCISE_TYPE_LABELS: Record<string, string> = {
     dictation: "dictation",
 };
 
-export default function ExercisePractice( { exercise_lists, lang } : { exercise_lists: Exercise[]; lang?: string }) {
+export default function ExercisePractice( { exercise_lists } : { exercise_lists: Exercise[] }) {
     const t = useTranslations("exercises");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [currentExercise, setCurrentExercise] = useState<Exercise>(exercise_lists[currentIndex]);
@@ -44,7 +44,7 @@ export default function ExercisePractice( { exercise_lists, lang } : { exercise_
                 <span className="badge">{EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""] ? t(EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""]) : currentExercise.exercise_type}</span>
             </div>
             <div key={currentExercise.id ?? currentIndex} className="animate-fade-in">
-                <ExerciseRunner exercise={currentExercise} lang={lang} />
+                <ExerciseRunner exercise={currentExercise} />
             </div>
             {!isLastExercise ? (
                 <button

@@ -48,3 +48,14 @@ export async function deleteExercise(exerciseId: string) {
   });
   if (!res.ok) throw new Error("Failed to delete exercise");
 }
+/** Asks the server to generate (with the user's TTS endpoint) and store the clip of one reading / dictation line.
+ *  Throws an Error whose message is the server's code: "tts_not_configured" or "tts_failed". */
+export async function generateLineAudio(exerciseId: string, line: number): Promise<{ audio_files: string[]; content: Exercise["content"] }> {
+  const res = await fetch(`${BASE_URL}/api/exercise/${exerciseId}/line-audio`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ line }),
+  });
+  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "tts_failed");
+  return res.json();
+}

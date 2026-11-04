@@ -230,6 +230,36 @@ class ExerciseService:
             return False
         return db_manager.delete(existing, session=session, commit=False)
 
+    def add_line_audio(self, ex_id: str, line_index: int, api: dict, tts=None) -> dict:
+        """Generate, with the user's TTS endpoint, the clip of one line of a reading / dictation and store it
+        (appended to audio_files, `audioIndex` set on the line). A line that already has a clip is returned as is.
+        Raises FileNotFoundError (no such exercise), ValueError (wrong type / line). TTS failures propagate."""
+        from ...utils import get_language_by_iso2t
+        from ..containers import LanguageService
+        from ..tts import TTSService
+
+        ex = self.get_by_id(ex_id, as_dict=True)
+        if not ex:
+            raise FileNotFoundError(ex_id)
+        content = ex.get("content") or {}
+        lines = content.get("lines") if ex.get("exercise_type") in ("reading", "dictation") else None
+        if not lines or not (0 <= line_index < len(lines)):
+            raise ValueError("not a reading / dictation line")
+        files = list(ex.get("audio_files") or [])
+        line = lines[line_index]
+        if isinstance(line.get("audioIndex"), int) and line["audioIndex"] < len(files):
+            return {"audio_files": files, "content": content}
+
+        lesson = lesson_service.get_by_id(ex["lesson_id"], as_dict=True)
+        language = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
+        iso = get_language_by_iso2t(language["target_iso639_2t"]).iso1 if language.get("target_iso639_2t") else None
+        path = (tts or TTSService()).generate_audio(text=line["text"], language_code=iso, api=api)
+        files.append(path)
+        line["audioIndex"] = len(files) - 1
+        self.update(ex_id, ExerciseDict(exercise_type=ex["exercise_type"], question=ex["question"], answer=ex["answer"],
+                                        content=content, audio_files=files))
+        return {"audio_files": files, "content": content}
+
     @transactional
     def update_score(
         self,
