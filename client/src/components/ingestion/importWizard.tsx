@@ -73,7 +73,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
     if (source.source_title) form.append("source_title", source.source_title);
     if (source.source_type) form.append("source_type", source.source_type);
     if (source.source_description) form.append("source_description", source.source_description);
-    if (source.level) form.append("level", String(source.level));
+    if (source.level !== undefined) form.append("level", String(source.level));   // 0 is the first level
     setBusy(true);
     setError(null);
     try {

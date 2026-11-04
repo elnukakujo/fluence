@@ -278,3 +278,10 @@ def test_background_accept_allows_adding_again_after_the_lesson_was_deleted(app,
     assert first["state"] == "done"
     LessonService().delete(first["result"]["lesson_id"])
     assert add()["state"] == "done"
+
+
+def test_level_zero_is_the_first_level_and_is_kept(app, db, media_root, scheduled):
+    client = _setup(app, db)
+    res = _upload(client, level="0")
+    assert res.status_code == 202 and svc.get(res.get_json()["job_id"])["level"] == 0
+    assert _upload(client, level="10").status_code == 400

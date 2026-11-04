@@ -24,7 +24,7 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
   const [title, setTitle] = useState("");
   const [sourceType, setSourceType] = useState("textbook");
   const [description, setDescription] = useState("");
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(0);   // 0-based index into the proficiency levels, as lessons store it
 
   // Prefill title from filename (without extension) on mount
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
   const system = languageProficiencySystems[languageCode];
   const levelOptions = system?.levels.map((_, idx) => ({
     label: getLevelLabel(system, idx),
-    value: String(idx + 1),
+    value: String(idx),
   })) ?? [];
 
   return (

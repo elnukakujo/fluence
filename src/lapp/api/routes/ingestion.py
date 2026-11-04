@@ -171,7 +171,7 @@ def upload():
         - {name: source_title, in: formData, type: string, required: false}
         - {name: source_type, in: formData, type: string, required: false}
         - {name: source_description, in: formData, type: string, required: false}
-        - {name: level, in: formData, type: integer, required: false}
+        - {name: level, in: formData, type: integer, required: false, description: 0-based index into the proficiency levels}
     responses:
         202: {description: Job queued}
         400: {description: Invalid upload or no text-generation endpoint configured}
@@ -199,8 +199,8 @@ def upload():
     if level_str:
         try:
             level = int(level_str)
-            if level < 1 or level > 9:
-                return jsonify({"error": "level must be between 1 and 9"}), 400
+            if level < 0 or level > 9:   # 0-based index into the language's proficiency levels (0 = first, e.g. N5 / A1 / HSK 1)
+                return jsonify({"error": "level must be between 0 and 9"}), 400
         except ValueError:
             return jsonify({"error": "level must be an integer"}), 400
     if source_type and source_type not in _ALLOWED_SOURCE_TYPES:
