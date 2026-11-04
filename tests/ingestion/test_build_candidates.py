@@ -214,3 +214,36 @@ def test_grammar_kind_uses_generate_grammar(monkeypatch):
     monkeypatch.setattr(pipeline_module, "extract_kind", fake_extract)
     _build(_doc("Le passé Le passé composé"), None, page_kinds={1: ["grammar"]})
     assert ("generate_grammar", 0) in calls
+
+
+def test_exercise_split_over_two_pages_gives_merged_items_with_support(monkeypatch):
+    from lapp.services.ingestion import elements as elements_module
+    seen = []
+
+    def fake_ask(chunk, api, system, windowed=False):
+        seen.append(chunk.page)
+        if "THIS PAGE" in system or "split" in system:   # step A: page 0 sees page 1's head, page 1 returns nothing (it continues page 0)
+            if chunk.page == 0:
+                assert "Where did it sit?" in chunk.next
+                return [{"instruction": "Answer", "support_text": "The cat sat on the mat.",
+                         "items": ["Who sat?", "Where did it sit?"], "answer_key": ["the cat", "on the mat"], "type_hint": "answering"}]
+            return []
+        raise AssertionError("free-text items need no build call")
+
+    monkeypatch.setattr(elements_module, "_ask", fake_ask)
+    doc = _doc("The cat sat on the mat. 1. Who sat?", "2. Where did it sit?")
+    result = _build(doc, None, page_kinds={1: ["exercise"], 2: ["exercise"]})
+    assert [e.fields["question"] for e in result.elements] == ["Who sat?", "Where did it sit?"]
+    assert {e.fields["text_support"] for e in result.elements} == {"The cat sat on the mat."}
+
+
+def test_grammar_point_split_over_two_pages_is_one_element(monkeypatch):
+    def fake_ask(chunk, api, system, windowed=False):
+        if chunk.page == 1:
+            return []
+        assert "second half of the rule" in chunk.next
+        return [{"title": "Le", "explanation": "first half of the rule and second half of the rule", "example_sentences": [], "quote": "first half"}]
+
+    monkeypatch.setattr(grammar_module, "_ask", fake_ask)
+    result = _build(_doc("Le: first half of the rule", "and second half of the rule"), None, page_kinds={1: ["grammar"], 2: ["grammar"]})
+    assert len(result.elements) == 1 and "second half" in result.elements[0].fields["explanation"]
