@@ -315,12 +315,12 @@ def test_grammar_whose_explanation_only_repeats_the_title_is_dropped():
     assert el.verify_element("grammar", raw, _chunk("祈使句的句调 Intonation of an Imperative Sentence"), "zh") is None
 
 
-def test_exercise_prompt_lists_the_valid_types_and_content_shapes():
-    from lapp.services.ingestion import elements as el
-    p = el._system_prompt("exercise", "English", "Chinese")
-    for t in ("essay", "answering", "translate", "quizz", "true_false", "organize", "type_in_the_blank", "matching"):
-        assert t in p
-    assert "answer_order" in p and "segments" in p and "never null" in p and '"correct": [' in p and '{"answer": str' in p
+def test_exercise_prompts_list_the_valid_types_and_one_content_shape():
+    p = el._split_prompt("English")
+    for ty in el.EXERCISE_TYPES:
+        assert ty in p
+    organize = el._build_prompt("organize", "English")
+    assert "answer_order" in organize and "never null" in organize and '"correct"' not in organize
 
 
 def test_structured_exercises_are_stored_the_way_the_apps_form_stores_them():
@@ -400,7 +400,7 @@ def test_windowed_message_labels_parts(monkeypatch):
 def test_element_prompts_carry_the_window_rule():
     from lapp.services.ingestion.extract import WINDOW_RULE
     assert WINDOW_RULE in el._system_prompt("grammar", "French", "English")
-    assert WINDOW_RULE in el._system_prompt("exercise", "French", "English")
+    assert WINDOW_RULE in el._split_prompt("French")
     assert WINDOW_RULE in grammar_module._system_prompt("French", "English")
 
 
