@@ -257,3 +257,24 @@ def test_background_accept_reports_progress_and_blocks_a_second_add(app, db, med
     assert state["state"] == "done" and state["done"] == 1 and state["result"]["created"] == 1
     assert client.get(url).status_code == 404                      # read once
     assert client.post(url + "?background=1", json={"items": [{"word": "bonjour"}]}).status_code == 409   # already added
+
+
+def test_background_accept_allows_adding_again_after_the_lesson_was_deleted(app, db, media_root, scheduled):
+    import time
+    from lapp.services import LessonService
+    client = _setup(app, db)
+    job_id = _finished(client, media_root)
+    url = f"/api/ingestion/{job_id}/lessons/0/accept?background=1"
+
+    def add():
+        assert client.post(url, json={"items": [{"word": "bonjour"}]}).status_code == 202
+        for _ in range(100):
+            state = client.get(url.split("?")[0]).get_json()
+            if state["state"] != "running":
+                return state
+            time.sleep(0.05)
+
+    first = add()
+    assert first["state"] == "done"
+    LessonService().delete(first["result"]["lesson_id"])
+    assert add()["state"] == "done"

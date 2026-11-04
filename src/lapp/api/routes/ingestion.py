@@ -668,7 +668,7 @@ def accept_lesson(job_id: str, index: int):
     with _accepts_lock:
         if _accepts.get(key, {}).get("state") == "running":
             return jsonify({"error": "This lesson is already being added"}), 409
-        if request.args.get("background") and created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index).is_file():
+        if request.args.get("background") and _created_id(job_id, index):   # the lesson still exists (a deleted one may be added again)
             return jsonify({"error": "This lesson was already added"}), 409
         state = {"state": "running", "done": 0, "total": len(items) + len(elements)}
         _accepts[key] = state
