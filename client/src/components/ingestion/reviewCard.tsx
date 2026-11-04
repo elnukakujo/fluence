@@ -8,7 +8,7 @@ import MergeEditor, { fieldName } from "./mergeEditor";
 type Existing = Record<string, string | number | boolean | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
-export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, children }: {
+export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, children }: {
   row: Row;
   summary: ReactNode;
   badge: string;
@@ -19,6 +19,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   onFocus: () => void;
   footer?: ReactNode;
   media?: ReactNode;
+  preview?: ReactNode; // shown only while not editing (the textarea replaces it)
   children: ReactNode;
 }) {
   const t = useTranslations("ingestion");
@@ -66,6 +67,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
           )}
         </div>
       )}
+      {!editing && preview}
       {media}
       {footer}
       {undecided && <p className="text-sm">{t("chooseFirst")}</p>}

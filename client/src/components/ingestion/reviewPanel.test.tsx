@@ -58,9 +58,11 @@ describe("ReviewPanel", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     const box = screen.getByDisplayValue(/- one/);
+    expect(screen.queryByRole("table")).toBeNull();           // preview hidden while editing
     await userEvent.clear(box);
     await userEvent.type(box, "**bold**");
-    expect(screen.getByText("bold").tagName).toBe("STRONG");
+    await userEvent.click(screen.getByRole("button", { name: "Done editing" }));
+    expect(screen.getByText("bold").tagName).toBe("STRONG");  // back after editing
   });
 
   it("sends edits the user made to the grammar fields", async () => {

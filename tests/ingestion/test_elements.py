@@ -469,3 +469,9 @@ def test_grammar_full_explanation_not_flagged_incomplete():
     src = "Le rule. " + "我吃了 " * 10
     raw = {"title": "Le", "explanation": src, "example_sentences": ["我吃了"], "quote": "Le", "source_chars": len(src)}
     assert "explanation_incomplete" not in _codes(el.verify_element("grammar", raw, _chunk(src), "zh"))
+
+
+def test_grammar_prompt_boxes_furigana_and_single_point_rules():
+    prompt = grammar_module._system_prompt("Japanese", "English")
+    assert "ONE grammar point" in prompt
+    assert "blockquote" in prompt and "furigana" in prompt

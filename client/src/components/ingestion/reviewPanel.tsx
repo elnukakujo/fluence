@@ -93,7 +93,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("grammar_generated");
       return (
         <ReviewCard {...common} summary={<strong>{row.title}</strong>}
-          media={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
+          preview={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>
           <label className="flex flex-col gap-1">
