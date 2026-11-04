@@ -376,12 +376,14 @@ def _run_language_extraction(app: Flask, svc: IngestionJobService, job_id: str) 
                                       progress=lambda *_: check_alive(svc, job_id))
             _attach_existing(job, result)
             candidates = [c.model_dump() for c in result.candidates]
-            verified = sum(c["status"] == "verified" for c in candidates)
+            elements = [e.model_dump() for e in result.elements]
+            shown = candidates + elements   # the counts cover vocabulary AND grammar / calligraphy / exercises
+            verified = sum(c["status"] == "verified" for c in shown)
             out = candidates_path(ctx.media_root, job_id, lesson["index"])
-            out.write_text(json.dumps({"candidates": candidates, "elements": [e.model_dump() for e in result.elements],
+            out.write_text(json.dumps({"candidates": candidates, "elements": elements,
                                        "warnings": result.warnings}))
-            lesson.update(status="done", counts={"total": len(candidates), "verified": verified,
-                                                 "flagged": len(candidates) - verified,
+            lesson.update(status="done", counts={"total": len(shown), "verified": verified,
+                                                 "flagged": len(shown) - verified,
                                                  "elements": len(result.elements)})
         except ExtractionError as e:
             lesson.update(status="failed", error=str(e))

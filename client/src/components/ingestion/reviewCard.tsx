@@ -49,6 +49,12 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1 break-words">{summary}</div>
         <span className="badge" title={badgeTitle}>{badge}</span>
+        {onReload && (
+          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
+            aria-label={reloading ? t("reloading") : t("reload")} title={t("reload")} onClick={onReload}>
+            <RefreshCw size={16} aria-hidden className={reloading ? "animate-spin" : ""} />
+          </button>
+        )}
       </div>
       {editing && <div className="flex flex-col gap-2">{children}</div>}
       {existing && (
@@ -80,11 +86,6 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
         <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`} disabled={undecided}
           onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? t("undoConfirm") : t("confirm")}</button>
         <button type="button" className="btn btn-secondary" aria-expanded={editing} onClick={() => setEditing((e) => !e)}>{editing ? t("doneEditing") : t("edit")}</button>
-        {onReload && (
-          <button type="button" className="btn btn-secondary" disabled={reloading} onClick={onReload}>
-            <RefreshCw size={16} aria-hidden className={reloading ? "animate-spin" : ""} />{reloading ? t("reloading") : t("reload")}
-          </button>
-        )}
         <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true, selected: false })}>{t("delete")}</button>
       </div>
     </li>

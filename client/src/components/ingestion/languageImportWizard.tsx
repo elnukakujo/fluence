@@ -312,6 +312,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
   const t = useTranslations("ingestion");
   const [open, setOpen] = useState(defaultOpen);
   const createdId = added?.lessonId ?? l.created_lesson_id;
+  const shown = [...(l.candidates ?? []), ...flattenElements(l.elements)];   // stored counts predate grammar / exercises
   return (
     <details className="card" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
@@ -320,7 +321,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         <span className="text-sm text-muted">{t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })}</span>
         <span className="badge">
           {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
-            : t("lessonCounts", { total: l.counts?.total ?? 0, flagged: l.counts?.flagged ?? 0 })}
+            : t("lessonCounts", { total: shown.length || (l.counts?.total ?? 0), flagged: shown.length ? shown.filter((c) => c.status !== "verified").length : (l.counts?.flagged ?? 0) })}
         </span>
       </summary>
       <div className="mt-4 border-t border-border pt-4">

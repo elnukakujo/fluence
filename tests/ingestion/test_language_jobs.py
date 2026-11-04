@@ -151,7 +151,7 @@ def test_extraction_uses_the_stored_kinds_and_writes_elements(app, job, media_ro
     run_language_extraction(app, job["id"])
     j = _status(job["id"])
     assert [l["counts"] for l in j["structure"]["lessons"]] == [
-        {"total": 0, "verified": 0, "flagged": 0, "elements": 0}, {"total": 0, "verified": 0, "flagged": 0, "elements": 1}]
+        {"total": 0, "verified": 0, "flagged": 0, "elements": 0}, {"total": 1, "verified": 0, "flagged": 1, "elements": 1}]
     second = json.loads(candidates_path(media_root, job["id"], 1).read_text())
     assert [e["kind"] for e in second["elements"]] == ["grammar"]
 
