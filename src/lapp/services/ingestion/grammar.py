@@ -74,5 +74,8 @@ def generate_grammar(chunk: Chunk, api: dict, target_name: str, source_name: str
     order = sorted(s for s in starts if s >= 0)
     for item, s in zip(items, starts):
         item["source_chars"] = None if s < 0 else len(text[s:next((o for o in order if o > s), len(text))])
+        if item["source_chars"]:  # feeds the GRAMMAR_COVERAGE_MIN calibration (plan Task 0)
+            logger.info("grammar coverage page=%s title=%r ratio=%.2f (explanation %d / section %d chars)",
+                        chunk.page + 1, item["title"], len(item["explanation"]) / item["source_chars"], len(item["explanation"]), item["source_chars"])
 
     return items

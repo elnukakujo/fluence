@@ -2,6 +2,8 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Modal from "@/components/ui/dialogs/modal";
 import { pageImageUrl } from "@/api/ingestion";
 import {
@@ -90,7 +92,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     if (kind === "grammar") {
       const generated = has("grammar_generated");
       return (
-        <ReviewCard {...common} summary={<><strong>{row.title}</strong> <span className="opacity-70">{clip(row.explanation ?? "")}</span></>}
+        <ReviewCard {...common} summary={<strong>{row.title}</strong>}
+          media={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>
           <label className="flex flex-col gap-1">

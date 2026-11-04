@@ -247,3 +247,27 @@ def test_grammar_point_split_over_two_pages_is_one_element(monkeypatch):
     monkeypatch.setattr(grammar_module, "_ask", fake_ask)
     result = _build(_doc("Le: first half of the rule", "and second half of the rule"), None, page_kinds={1: ["grammar"], 2: ["grammar"]})
     assert len(result.elements) == 1 and "second half" in result.elements[0].fields["explanation"]
+
+
+def _ten_examples():
+    return [f"例句{i}。" for i in range(10)]
+
+
+def test_grammar_section_with_ten_examples_keeps_them_all_in_explanation(monkeypatch):
+    section = "Le rule. " + " ".join(_ten_examples())
+    monkeypatch.setattr(grammar_module, "_ask", lambda *a, **k: [
+        {"title": "Le", "explanation": section, "example_sentences": _ten_examples()[:5], "quote": "Le rule"}])
+    result = _build(_doc(section), None, page_kinds={1: ["grammar"]})
+    f = result.elements[0].fields
+    assert all(s in f["explanation"] for s in _ten_examples())
+    assert len(f["example_sentences"]) == 3
+    assert "explanation_incomplete" not in {x.code for x in result.elements[0].flags}
+
+
+def test_grammar_explanation_with_examples_stripped_is_flagged(monkeypatch):
+    section = "Le rule. " + " ".join(_ten_examples())
+    monkeypatch.setattr(grammar_module, "_ask", lambda *a, **k: [
+        {"title": "Le", "explanation": "Le rule.", "example_sentences": _ten_examples()[:3], "quote": "Le rule"}])
+    result = _build(_doc(section), None, page_kinds={1: ["grammar"]})
+    e = result.elements[0]
+    assert "explanation_incomplete" in {x.code for x in e.flags} and e.fields["example_sentences"] == []

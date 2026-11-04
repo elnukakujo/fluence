@@ -51,6 +51,18 @@ describe("ReviewPanel", () => {
     });
   });
 
+  it("shows the whole explanation as rendered markdown without clicking Edit", async () => {
+    const md = { ...grammar, explanation: "- one\n- two\n\n| a | b |\n|---|---|\n| 1 | 2 |" };
+    render(<ReviewPanel jobId="j" filename="b" candidates={[md]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getAllByRole("listitem").map((l) => l.textContent)).toEqual(expect.arrayContaining(["one", "two"]));
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const box = screen.getByDisplayValue(/- one/);
+    await userEvent.clear(box);
+    await userEvent.type(box, "**bold**");
+    expect(screen.getByText("bold").tagName).toBe("STRONG");
+  });
+
   it("sends edits the user made to the grammar fields", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="b" candidates={[{ ...grammar, status: "verified" }]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
