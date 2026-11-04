@@ -270,5 +270,15 @@
   "rangesSummary": "{ranges, plural, one {# plage} other {# plages}}, {pages, plural, one {# page} other {# pages}}",
   "chooseFirst": "Choisissez d'abord garder, écraser ou fusionner",
   "undecidedNotice": "{count, plural, one {# carte existe déjà - choisissez garder, écraser ou fusionner} other {# cartes existent déjà - choisissez garder, écraser ou fusionner}}",
-  "savedInNoLesson": "Ce caractère est enregistré mais n'est dans aucune leçon."
+  "savedInNoLesson": "Ce caractère est enregistré mais n'est dans aucune leçon.",
+  "mergeFailed": "Fusion impossible : {message}",
+  "mergeNeedsTwoGrammar": "Sélectionnez au moins deux points de grammaire",
+  "merging": "Fusion…",
+  "bulkApplied": "Appliqué à {count} éléments",
+  "bulkMergedDone": "{count} points fusionnés en un seul - vérifiez-le ci-dessous",
+  "deleteRowsTitle": "Supprimer {count} candidats ?",
+  "deleteRowsBody": "Ils quittent cet import. Vous pourrez annuler chacun ensuite.",
+  "deleteRowsConfirm": "Supprimer {count}",
+  "deleteRowsDone": "{count} candidats supprimés",
+  "selectOne": "Sélectionner {label}"
 }

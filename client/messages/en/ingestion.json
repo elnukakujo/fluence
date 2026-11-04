@@ -270,5 +270,15 @@
   "rangesSummary": "{ranges, plural, one {# range} other {# ranges}}, {pages, plural, one {# page} other {# pages}}",
   "chooseFirst": "Choose keep, overwrite or merge first",
   "undecidedNotice": "{count, plural, one {# card already exists - choose keep, overwrite or merge} other {# cards already exist - choose keep, overwrite or merge}}",
-  "savedInNoLesson": "This character is saved but is in no lesson."
+  "savedInNoLesson": "This character is saved but is in no lesson.",
+  "mergeFailed": "Could not merge: {message}",
+  "mergeNeedsTwoGrammar": "Select two or more grammar points",
+  "merging": "Merging…",
+  "bulkApplied": "Applied to {count} items",
+  "bulkMergedDone": "Merged {count} points into one - check it below",
+  "deleteRowsTitle": "Delete {count} candidates?",
+  "deleteRowsBody": "They leave this import. You can undo each one afterwards.",
+  "deleteRowsConfirm": "Delete {count}",
+  "deleteRowsDone": "{count} candidates deleted",
+  "selectOne": "Select {label}"
 }

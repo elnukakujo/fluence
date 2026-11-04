@@ -97,6 +97,17 @@ export async function getCandidates(jobId: string): Promise<{ candidates: Candid
   return { ...body, candidates: [...body.candidates, ...flattenElements(body.elements)] };
 }
 
+export type MergedGrammar = { title: string; explanation: string; example_sentences: string[] };
+
+/** The user's text-generation model joins grammar candidates the parser split (no summarising); throws with the server's reason. */
+export async function mergeGrammar(jobId: string, items: { title?: string; explanation?: string; original_text?: string }[]): Promise<MergedGrammar> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/merge`, {
+    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify({ items }),
+  });
+  if (!res.ok) return fail(res, "Could not merge the grammar points");
+  return res.json();
+}
+
 export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[], elements?: AcceptElement[]): Promise<{ created: number; created_elements: number; notes?: string[] }> {
   const body: { lesson_id: string; items: AcceptItem[]; elements?: AcceptElement[] } = { lesson_id: lessonId, items };
   if (elements && elements.length > 0) body.elements = elements;

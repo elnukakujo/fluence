@@ -4,10 +4,14 @@ import { Fragment, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Check, Combine, Library as KeepIcon, PenLine } from "lucide-react";
 import Modal from "@/components/ui/dialogs/modal";
-import { pageImageUrl } from "@/api/ingestion";
+import ItemActionBar from "@/components/elements/itemActionBar";
+import { SelectAllRow, SelectionScope, SelectToggle, useItemSelection, type BarProps, type Kind } from "@/components/elements/itemSelection";
+import Tick from "@/components/elements/tick";
+import { mergeGrammar, pageImageUrl } from "@/api/ingestion";
 import {
-  type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, infoNotes, needsDecision,
+  type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeRows, needsDecision,
   dialogueLines, initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
@@ -17,7 +21,23 @@ const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "g
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
   vocabulary: ["translation", "phonetic", "word_type"], calligraphy: ["meaning", "phonetic", "radical", "strokes"],
 };
+const SELECT_KIND: Record<RowKind, Kind> = { vocabulary: "voc", grammar: "gram", calligraphy: "call", exercise: "ex" };
+const rowLabel = (r: Row) => r.title || r.word || r.character || r.question?.slice(0, 40) || r.candidate.quote;
 const clip = (t: string, n = 140) => (t.length > n ? `${t.slice(0, n)}…` : t);
+
+// Select-mode checkbox at the top of a card (the shared selection scope holds the ticks).
+function RowTick({ kind, row }: { kind: Kind; row: Row }) {
+  const t = useTranslations("ingestion");
+  const { isActive, selected, toggle } = useItemSelection();
+  if (!isActive(kind) || row.deleted) return null;
+  const id = row.candidate.id;
+  return (
+    <label className="pick-row" data-selected={selected.has(id)}>
+      <input type="checkbox" className="tick-input" aria-label={t("selectOne", { label: rowLabel(row) })} checked={selected.has(id)} onChange={() => toggle(id, rowLabel(row))} />
+      <Tick />
+    </label>
+  );
+}
 
 // The candidate list shared by lesson-level and language-level imports: one tab per kind, each item a compact card
 // the user confirms, edits or deletes. Only confirmed items are added; verified ones start confirmed.
@@ -31,6 +51,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   pages?: number[];   // the lesson's own pages when it is made of separate ranges
 }) {
   const t = useTranslations("ingestion");
+  const tEl = useTranslations("elements");
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");
   const [tab, setTab] = useState<RowKind | null>(null);
@@ -49,6 +70,47 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     ((r.candidate.kind ?? "vocabulary") === active && r.candidate.status === "verified" && !r.deleted && !needsDecision(r) ? { ...r, selected: true } : r)));
 
   const setActive = (change: Partial<Row>) => setRows((rs) => rs.map((r) => ((r.candidate.kind ?? "vocabulary") === active && !r.deleted && !(change.selected && needsDecision(r)) ? { ...r, ...change } : r)));
+
+  const [merging, setMerging] = useState(false);
+  const patchMany = (ids: string[], change: (r: Row) => Partial<Row>) => setRows((rs) => rs.map((r) => (ids.includes(r.candidate.id) && !r.deleted ? { ...r, ...change(r) } : r)));
+  const merge = async (b: BarProps) => {
+    setMerging(true);
+    setError(null);
+    try {
+      const picked = rows.filter((r) => b.ids.includes(r.candidate.id) && !r.deleted);
+      const joined = await mergeGrammar(jobId, picked.map((r) => ({ title: r.title, explanation: r.explanation, original_text: r.original_text })));
+      setRows((rs) => mergeRows(rs, b.ids, joined));
+      b.onDone(t("bulkMergedDone", { count: picked.length }));
+    } catch (e) {
+      setError(t("mergeFailed", { message: e instanceof Error ? e.message : "" }));
+    } finally {
+      setMerging(false);
+    }
+  };
+  const reviewBar = (b: BarProps) => {
+    const picked = rows.filter((r) => b.ids.includes(r.candidate.id) && !r.deleted);
+    const conflicts = picked.filter((r) => hasConflict(r.candidate)).map((r) => r.candidate.id);
+    const decide = (on_conflict: "keep" | "overwrite") => {
+      patchMany(conflicts, () => ({ selected: true, merged: false, on_conflict }));
+      b.onDone(t("bulkApplied", { count: conflicts.length }));
+    };
+    const canMerge = active === "grammar" && picked.length >= 2 && !merging;
+    return (
+      <ItemActionBar {...b} userId="" links={false}
+        onDelete={async (ids) => patchMany(ids, () => ({ deleted: true, selected: false }))}
+        deleteCopy={{ title: t("deleteRowsTitle", { count: b.ids.length }), body: t("deleteRowsBody"), confirm: t("deleteRowsConfirm", { count: b.ids.length }), done: t("deleteRowsDone", { count: b.ids.length }) }}
+        extra={<>
+          <button type="button" className="bulk-action" onClick={() => { patchMany(b.ids.filter((id) => !needsDecision(rows.find((r) => r.candidate.id === id)!)), () => ({ selected: true })); b.onDone(t("bulkApplied", { count: picked.length })); }}>
+            <Check size={20} aria-hidden />{t("confirm")}
+          </button>
+          <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("keep")}><KeepIcon size={20} aria-hidden />{t("keepExisting")}</button>
+          <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("overwrite")}><PenLine size={20} aria-hidden />{t("overwrite")}</button>
+          <button type="button" className="bulk-action" disabled={!canMerge} title={canMerge ? undefined : t("mergeNeedsTwoGrammar")} onClick={() => merge(b)}>
+            <Combine size={20} aria-hidden />{merging ? t("merging") : tEl("bulkMerge")}
+          </button>
+        </>} />
+    );
+  };
 
   const add = async () => {
     setSaving(true);
@@ -86,7 +148,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     );
     const common = {
       row, footer, onPatch: (change: Partial<Row>) => patch(c.id, change),
-      onFocus: () => setFocusedPage(c.page + 1), mergeFields: MERGE_FIELDS[kind],
+      onFocus: () => setFocusedPage(c.page + 1), mergeFields: MERGE_FIELDS[kind], lead: <RowTick kind={SELECT_KIND[kind]} row={row} />,
     };
 
     if (kind === "grammar") {
@@ -207,6 +269,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 
         {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
 
+        <SelectionScope key={active} canSelect={groups.length > 0} bar={reviewBar} className="flex flex-col gap-3">
         {groups.length > 0 && (
           <div className="btn-row flex-wrap">
             {(["all", "verified", "flagged"] as Filter[]).map((f) => (
@@ -217,10 +280,13 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             <button type="button" className="btn btn-secondary" onClick={confirmVerified}>{t("confirmAllVerified")}</button>
             <button type="button" className="btn btn-secondary" onClick={() => setActive({ selected: true })}>{t("confirmAll")}</button>
             <button type="button" className="btn btn-secondary" onClick={() => setActive({ deleted: true, selected: false })}>{t("rejectAll")}</button>
+            {active && <SelectToggle kind={SELECT_KIND[active]} />}
           </div>
         )}
 
+        {active && <SelectAllRow kind={SELECT_KIND[active]} entries={visible.filter((r) => !r.deleted).map((r): [string, string] => [r.candidate.id, rowLabel(r)])} />}
         <ul className="m-0 flex list-none flex-col gap-2 p-0" role="tabpanel">{visible.map((r) => <Fragment key={r.candidate.id}>{renderRow(r)}</Fragment>)}</ul>
+        </SelectionScope>
 
         {counts.undecided > 0 && <p role="status" className="text-sm">{t("undecidedNotice", { count: counts.undecided })}</p>}
         {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}

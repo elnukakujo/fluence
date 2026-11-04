@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ReviewPanel from "./reviewPanel";
 import type { Candidate } from "@/lib/ingestion/review";
 
-vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png" }));
+const mergeGrammar = vi.hoisted(() => vi.fn());
+vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", mergeGrammar }));
 
 const grammar: Candidate = {
   id: "g1", kind: "grammar", title: "Te-form", explanation: "Connects verbs", example_sentences: ["Tabete iru."], original_text: "This is the original OCR text from the page.",
@@ -294,5 +295,45 @@ describe("ReviewPanel", () => {
     const sent = onAdd.mock.calls[0][0];
     expect(sent.items.map((i: { word: string }) => i.word)).toEqual(["beta"]);
     expect(sent.elements.map((e: { kind: string }) => e.kind)).toEqual(["calligraphy"]);
+  });
+
+  describe("bulk selection", () => {
+    const g = (id: string, title: string, page: number): Candidate => ({ ...grammar, id, title, explanation: `${title} text`, original_text: `orig ${title}`, page });
+    const three = [g("g1", "One", 1), g("g2", "Two", 2), g("g3", "Three", 3)];
+    const open = async () => {
+      render(<ReviewPanel jobId="j" filename="b" candidates={three} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+      await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    };
+
+    it("select all shows the bar; Confirm confirms the ticked cards", async () => {
+      await open();
+      await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+      expect(screen.getByRole("region", { name: "Actions for the selected items" })).toBeInTheDocument();
+      await userEvent.click(within(screen.getByRole("region", { name: "Actions for the selected items" })).getByRole("button", { name: "Confirm" }));
+      expect(screen.getByRole("button", { name: "Add 3" })).toBeInTheDocument();
+    });
+
+    it("Merge is disabled with one ticked card and joins two through the model", async () => {
+      mergeGrammar.mockResolvedValue({ title: "Joined", explanation: "Joined text", example_sentences: [] });
+      await open();
+      await userEvent.click(screen.getByRole("checkbox", { name: "Select One" }));
+      const bar = () => screen.getByRole("region", { name: "Actions for the selected items" });
+      expect(within(bar()).getByRole("button", { name: "Merge" })).toBeDisabled();
+      await userEvent.click(screen.getByRole("checkbox", { name: "Select Two" }));
+      await userEvent.click(within(bar()).getByRole("button", { name: "Merge" }));
+      expect(mergeGrammar).toHaveBeenCalledWith("j", [
+        { title: "One", explanation: "One text", original_text: "orig One" }, { title: "Two", explanation: "Two text", original_text: "orig Two" }]);
+      expect(await screen.findByText("Joined")).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2);   // the two sources, undoable
+    });
+
+    it("a failed merge leaves the rows untouched and says why", async () => {
+      mergeGrammar.mockRejectedValue(new Error("model down"));
+      await open();
+      await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+      await userEvent.click(within(screen.getByRole("region", { name: "Actions for the selected items" })).getByRole("button", { name: "Merge" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("model down");
+      expect(screen.getByText("Three")).toBeInTheDocument();
+    });
   });
 });

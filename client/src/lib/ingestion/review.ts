@@ -234,3 +234,23 @@ export function dialogueLines(question: string): string[] {
     return [question];
   }
 }
+
+/** Replace the ticked grammar rows by one pending row holding the merged text; the sources stay as deleted rows (undoable). */
+export function mergeRows(rows: Row[], ids: string[], merged: { title: string; explanation: string; example_sentences: string[] }): Row[] {
+  const picked = rows.filter((r) => ids.includes(r.candidate.id) && !r.deleted);
+  if (picked.length < 2) return rows;
+  const first = picked[0].candidate;
+  const original_text = picked.map((r) => r.original_text).filter(Boolean).join("\n\n");
+  const candidate: Candidate = {
+    id: `merged_${picked.map((r) => r.candidate.id).join("+")}`, kind: "grammar", ...merged, original_text, quote: first.quote,
+    page: Math.min(...picked.map((r) => r.candidate.page)), chunk_id: first.chunk_id, status: "flagged", min_conf: null,
+    flags: [{ code: "grammar_generated", message: "Joined by the model from the selected points - check it", severity: "warning" }],
+  };
+  const out: Row[] = [];
+  for (const r of rows) {
+    if (!picked.includes(r)) { out.push(r); continue; }
+    if (out.every((o) => o.candidate.id !== candidate.id)) out.push({ candidate, selected: false, on_conflict: "keep", ...merged, original_text });
+    out.push({ ...r, deleted: true, selected: false });
+  }
+  return out;
+}

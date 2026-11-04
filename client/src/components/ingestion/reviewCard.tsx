@@ -8,7 +8,7 @@ import MergeEditor, { fieldName } from "./mergeEditor";
 type Existing = Record<string, string | number | boolean | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
-export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, children }: {
+export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, children }: {
   row: Row;
   summary: ReactNode;
   badge: string;
@@ -20,6 +20,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   footer?: ReactNode;
   media?: ReactNode;
   preview?: ReactNode; // shown only while not editing (the textarea replaces it)
+  lead?: ReactNode;    // the select-mode tick, above the state line
   children: ReactNode;
 }) {
   const t = useTranslations("ingestion");
@@ -40,6 +41,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   const pick = (on: boolean) => `btn min-h-11 ${on ? "btn-primary" : "btn-secondary"}`;
   return (
     <li className="card review-card flex flex-col gap-2" data-state={row.selected ? "confirmed" : "pending"} onFocus={onFocus} onClick={onFocus}>
+      {lead}
       <p className="review-state text-sm font-semibold">{row.selected ? t("confirmedState") : t("pendingState")}</p>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1 break-words">{summary}</div>

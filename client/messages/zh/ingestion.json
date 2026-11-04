@@ -270,5 +270,15 @@
   "rangesSummary": "{ranges} 个范围，{pages} 页",
   "chooseFirst": "请先选择保留、覆盖或合并",
   "undecidedNotice": "{count, plural, other {# 张卡片已存在 - 请选择保留、覆盖或合并}}",
-  "savedInNoLesson": "该汉字已保存，但不在任何课程中。"
+  "savedInNoLesson": "该汉字已保存，但不在任何课程中。",
+  "mergeFailed": "无法合并：{message}",
+  "mergeNeedsTwoGrammar": "请选择两个或更多语法点",
+  "merging": "合并中…",
+  "bulkApplied": "已应用于 {count} 项",
+  "bulkMergedDone": "已将 {count} 个语法点合并为一个，请在下方检查",
+  "deleteRowsTitle": "删除 {count} 个候选项？",
+  "deleteRowsBody": "它们将从本次导入中移除，之后可逐个撤销。",
+  "deleteRowsConfirm": "删除 {count} 项",
+  "deleteRowsDone": "已删除 {count} 个候选项",
+  "selectOne": "选择 {label}"
 }
