@@ -312,6 +312,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
   const t = useTranslations("ingestion");
   const [open, setOpen] = useState(defaultOpen);
   const createdId = added?.lessonId ?? l.created_lesson_id;
+  const [live, setLive] = useState<{ total: number; flagged: number } | null>(null);   // follows the user's rejects / merges in the review
   const shown = [...(l.candidates ?? []), ...flattenElements(l.elements)];   // stored counts predate grammar / exercises
   return (
     <details className="card" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
@@ -321,7 +322,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         <span className="text-sm text-muted">{t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })}</span>
         <span className="badge">
           {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
-            : t("lessonCounts", { total: shown.length || (l.counts?.total ?? 0), flagged: shown.length ? shown.filter((c) => c.status !== "verified").length : (l.counts?.flagged ?? 0) })}
+            : t("lessonCounts", live ?? { total: shown.length || (l.counts?.total ?? 0), flagged: shown.length ? shown.filter((c) => c.status !== "verified").length : (l.counts?.flagged ?? 0) })}
         </span>
       </summary>
       <div className="mt-4 border-t border-border pt-4">
@@ -335,7 +336,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
           </p>
         )}
         {l.status === "done" && !createdId && (
-          <ReviewPanel jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} pages={expandRanges(lessonRanges(l))}
+          <ReviewPanel onCounts={setLive} jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} pages={expandRanges(lessonRanges(l))}
             addLabel={(n) => t("addToNewLesson", { count: n, title: l.title })}
             onAdd={async (payload) => {
               const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);

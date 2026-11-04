@@ -41,7 +41,7 @@ function RowTick({ kind, row }: { kind: Kind; row: Row }) {
 
 // The candidate list shared by lesson-level and language-level imports: one tab per kind, each item a compact card
 // the user confirms, edits or deletes. Only confirmed items are added; verified ones start confirmed.
-export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range, pages }: {
+export default function ReviewPanel({ jobId, filename, candidates, addLabel, onAdd, range, pages, onCounts }: {
   jobId: string;
   filename: string;
   candidates: Candidate[];
@@ -49,6 +49,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   onAdd: (payload: AcceptPayload) => Promise<void>;
   range?: [number, number];
   pages?: number[];   // the lesson's own pages when it is made of separate ranges
+  onCounts?: (counts: { total: number; flagged: number }) => void;   // live numbers, for the lesson header
 }) {
   const t = useTranslations("ingestion");
   const tEl = useTranslations("elements");
@@ -62,6 +63,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 
   const counts = useMemo(() => countRows(rows), [rows]);
   const groups = useMemo(() => rowsByKind(rows), [rows]);
+  useEffect(() => { onCounts?.({ total: counts.total, flagged: counts.flagged }); }, [counts.total, counts.flagged, onCounts]);
   const active = groups.find(([k]) => k === tab)?.[0] ?? groups[0]?.[0];
   const activeRows = groups.find(([k]) => k === active)?.[1] ?? [];
   const visible = filterRows(activeRows, filter);
