@@ -98,3 +98,62 @@ def test_empty_answer_gets_one_follow_up(model):
 def test_empty_follow_up_or_error_keeps_the_item_with_empty_answer(model):
     model.replies = [[_block("answering", ["Q1", "Q2"])], {"answer": ""}, el.ExtractionError("x")]
     assert [o["answer"] for o in el.extract_exercises(CHUNK, API, "English", None)] == ["", ""]
+
+
+READING = {"question": "Read the dialogue", "answer": "", "quote": "A: こんにちは",
+           "content": {"speakers": [{"name": "A"}, {"name": "B"}],
+                       "lines": [{"speaker": "A", "text": "こんにちは", "translation": "Hello"},
+                                 {"speaker": "B", "text": "やあ", "translation": None}]}}
+DICTATION = {"question": "Write what you hear", "answer": "", "quote": "Write what you hear",
+             "content": {"lines": [{"text": "犬がいます"}, {"text": "猫もいます"}]}}
+
+
+def test_content_ok_for_reading_and_dictation():
+    ok = el.exercise_content_ok
+    assert ok("reading", READING["content"])
+    assert ok("reading", {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": "x"}]})   # one speaker is fine
+    assert not ok("reading", {"speakers": [{"name": "A"}], "lines": [{"speaker": "Z", "text": "x"}]})
+    assert not ok("reading", {"speakers": [{"name": "A"}], "lines": []})
+    assert not ok("reading", {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": " "}]})
+    assert ok("dictation", DICTATION["content"])
+    assert not ok("dictation", {"lines": []})
+
+
+def test_reading_block_is_one_candidate(model):
+    model.replies = [[_block("reading", ["A: こんにちは", "B: やあ"])], READING]
+    out = el.extract_exercises(CHUNK, API, "Japanese", None)
+    assert len(out) == 1 and out[0]["exercise_type"] == "reading" and len(model.calls) == 2
+    assert "A: こんにちは" in model.calls[1][1] and "B: やあ" in model.calls[1][1]
+
+
+def test_dictation_block_is_one_candidate(model):
+    model.replies = [[_block("dictation", ["犬がいます", "猫もいます"])], DICTATION]
+    out = el.extract_exercises(CHUNK, API, "Japanese", None)
+    assert len(out) == 1 and out[0]["exercise_type"] == "dictation" and len(model.calls) == 2
+    assert "犬がいます" in model.calls[1][1] and "猫もいます" in model.calls[1][1]
+
+
+def _verify(raw, page_text):
+    chunk = Chunk(id="p0c0", page=0, text=page_text, trust="native")
+    return el.verify_element("exercise", {**raw, "exercise_type": raw["exercise_type"], "text_support": None}, chunk, "ja")
+
+
+def test_reading_answer_is_joined_lines_and_not_generated():
+    cand = _verify({**READING, "exercise_type": "reading"}, "Read the dialogue A: こんにちは B: やあ")
+    assert cand.fields["answer"] == "こんにちは\nやあ"
+    assert "answer_generated" not in {f.code for f in cand.flags}
+
+
+def test_reading_stored_content_has_ids_and_null_audio():
+    cand = _verify({**READING, "exercise_type": "reading"}, "Read the dialogue A: こんにちは B: やあ")
+    c = cand.fields["content"]
+    ids = [s["id"] for s in c["speakers"]]
+    assert all(ids) and len(set(ids)) == 2
+    assert all(l["audioIndex"] is None and l["speakerId"] in ids for l in c["lines"])
+    assert [l["translation"] for l in c["lines"]] == ["Hello", None]
+
+
+def test_dictation_answer_is_joined_lines_and_content_has_null_audio():
+    cand = _verify({**DICTATION, "exercise_type": "dictation"}, "Write what you hear 犬がいます 猫もいます")
+    assert cand.fields["answer"] == "犬がいます 猫もいます"
+    assert cand.fields["content"]["lines"] == [{"text": "犬がいます", "audioIndex": None}, {"text": "猫もいます", "audioIndex": None}]

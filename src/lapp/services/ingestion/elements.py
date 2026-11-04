@@ -61,7 +61,8 @@ def _clean(kind: Kind, raw) -> dict | None:
 
 
 EXERCISE_TYPES = ("essay", "answering", "translate", "speaking", "conversation", "organize", "type_in_the_blank",
-                  "select_in_the_blank", "matching", "true_false", "quizz")
+                  "select_in_the_blank", "matching", "true_false", "quizz", "reading", "dictation")
+WHOLE_BLOCK = ("reading", "dictation")  # one candidate per block: a passage is not split per line
 FREE_TEXT = {"essay", "answering", "translate", "speaking"}  # no content: only question / answer
 _TYPE_CONTENT = {
     "quizz": 'exactly {"options": [str, ...], "correct": [indexes of every right option, e.g. [1]]}',
@@ -73,6 +74,10 @@ _TYPE_CONTENT = {
     "matching": 'exactly {"pairs": [[str, str], ...]}',
     "conversation": 'exactly {"speakers": [{"name": str, "is_learner": true|false}, ...], "lines": [{"speaker": a speaker name, "text": str}, ...]} '
                     "(one learner speaker, at least one other, lines in page order; `question` is the instruction line and `answer` may be empty)",
+    "reading": 'exactly {"speakers": [{"name": str}, ...], "lines": [{"speaker": a speaker name, "text": str, "translation": str|null}, ...]} '
+               "(a text or dialogue to read and study, speaker names as printed, one speaker for a plain passage, lines in page order; "
+               "`translation` only when the page prints one next to the line; `question` is the instruction or title)",
+    "dictation": 'exactly {"lines": [{"text": str}, ...]} (the sentences to be dictated, one per line, in page order; `question` is the instruction)',
 }
 
 
@@ -86,7 +91,8 @@ def _split_prompt(target: str) -> str:
         "- `support_text` is the passage, table or dialogue the items refer to (it can sit above or beside them), copied verbatim, else null.\n"
         "- `items` are the numbered tasks or questions, copied verbatim, one string each. `answer_key` is the answers the page gives, in item order, else null.\n"
         f"- `type_hint` MUST be exactly one of: {', '.join(EXERCISE_TYPES)} "
-        "(short free answers = answering; translating a sentence = translate; reading aloud / pair or group talk = speaking or conversation; writing a text = essay).\n"
+        "(short free answers = answering; translating a sentence = translate; reading aloud / pair or group talk = speaking or conversation; writing a text = essay; "
+        "a passage or dialogue to read and study with no questions = reading; a listen-and-write exercise = dictation).\n"
         "- Invent no exercises that are not on the page.\n"
         '- Reply with ONLY a JSON array of {"instruction": str, "support_text": str|null, "items": [str], "answer_key": [str]|null, "type_hint": str}. '
         "If there are none, reply []."
@@ -133,6 +139,32 @@ def extract_exercises(chunk: Chunk, api: dict, target: str, source: str | None) 
         etype = hint if hint in EXERCISE_TYPES else "answering"
         support, instruction = s(block.get("support_text")), s(block.get("instruction")) or ""
         keys = block.get("answer_key") if isinstance(block.get("answer_key"), list) else []
+        def build(user: str, fallback: str, answer: str | None) -> dict | None:
+            ask = lambda u: _first_object(_ask(chunk.model_copy(update={"text": u, "prev": "", "next": ""}), api, _build_prompt(etype, target)))
+            raw = ask(user)
+            if raw is None:
+                return None
+            err = exercise_content_error(etype, raw.get("content"))
+            if err:  # one retry with the reason; a failed retry keeps the first reply (flagged content_invalid later)
+                try:
+                    raw = ask(f"{user}\nYour previous reply was rejected: {err}") or raw
+                except ExtractionError:
+                    pass
+                if exercise_content_error(etype, raw.get("content")):
+                    raw = {**raw, "content": None}
+            return {"question": s(raw.get("question")) or fallback, "answer": s(raw.get("answer")) or answer or "",
+                    "content": raw.get("content") if isinstance(raw.get("content"), dict) else None,
+                    "quote": s(raw.get("quote")) or fallback}
+
+        items = [i.strip() for i in block["items"] if s(i)]
+        if etype in WHOLE_BLOCK:
+            if items:
+                passage = "\n".join(items)
+                raw = build("\n".join(p for p in (f"Instruction: {instruction}", support and f"Support text: {support}", f"Passage:\n{passage}") if p),
+                            instruction or items[0], None)
+                if raw:
+                    out.append({**raw, "exercise_type": etype, "text_support": support})
+            continue
         for i, item in enumerate(block["items"]):
             if not s(item):
                 continue
@@ -142,21 +174,9 @@ def extract_exercises(chunk: Chunk, api: dict, target: str, source: str | None) 
             else:
                 user = "\n".join(p for p in (f"Instruction: {instruction}", support and f"Support text: {support}",
                                              f"Item: {item.strip()}", answer and f"Answer given: {answer}") if p)
-                ask = lambda u: _first_object(_ask(chunk.model_copy(update={"text": u, "prev": "", "next": ""}), api, _build_prompt(etype, target)))
-                raw = ask(user)
+                raw = build(user, item.strip(), answer)
                 if raw is None:
                     continue
-                err = exercise_content_error(etype, raw.get("content"))
-                if err:  # one retry with the reason; a failed retry keeps the first reply (flagged content_invalid later)
-                    try:
-                        raw = ask(f"{user}\nYour previous reply was rejected: {err}") or raw
-                    except ExtractionError:
-                        pass
-                    if exercise_content_error(etype, raw.get("content")):
-                        raw = {**raw, "content": None}
-                raw = {"question": s(raw.get("question")) or item.strip(), "answer": s(raw.get("answer")) or answer or "",
-                       "content": raw.get("content") if isinstance(raw.get("content"), dict) else None,
-                       "quote": s(raw.get("quote")) or item.strip()}
             if not raw["answer"] and etype in ("essay", "answering", "translate"):
                 raw["answer"] = _follow_up_answer(chunk, api, raw["question"], support)
             out.append({**raw, "exercise_type": etype, "text_support": support})
@@ -184,9 +204,7 @@ def exercise_content_error(exercise_type: str, content) -> str | None:
 
 def exercise_content_ok(exercise_type: str, content) -> bool:
     """Check if content shape matches the exercise_type requirements."""
-    VALID_TYPES = {"essay", "answering", "translate", "speaking", "conversation",
-                   "organize", "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "quizz"}
-    if exercise_type not in VALID_TYPES:
+    if exercise_type not in EXERCISE_TYPES:
         return False
 
     # Structured types require the shape the app's own exercise form/runners use (client ExerciseContent)
@@ -232,6 +250,17 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
             return False
         return len(lines) >= 2 and all(isinstance(l, dict) and l.get("speaker") in names and isinstance(l.get("text"), str) and l["text"].strip()
                                        for l in lines)
+    elif exercise_type == "reading":
+        if not (isinstance(content, dict) and isinstance(content.get("speakers"), list) and isinstance(content.get("lines"), list)):
+            return False
+        names = [sp["name"].strip() if isinstance(sp, dict) and isinstance(sp.get("name"), str) else "" for sp in content["speakers"]]
+        if not names or "" in names or len(set(names)) != len(names) or not content["lines"]:
+            return False
+        return all(isinstance(l, dict) and l.get("speaker") in names and isinstance(l.get("text"), str) and l["text"].strip()
+                   and (l.get("translation") is None or isinstance(l["translation"], str)) for l in content["lines"])
+    elif exercise_type == "dictation":
+        lines = content.get("lines") if isinstance(content, dict) else None
+        return isinstance(lines, list) and len(lines) >= 1 and all(isinstance(l, dict) and isinstance(l.get("text"), str) and l["text"].strip() for l in lines)
     elif exercise_type == "matching":
         return (isinstance(content, dict) and not isinstance(content, bool) and "pairs" in content and
                 isinstance(content.get("pairs"), list) and
@@ -263,6 +292,19 @@ def conversation_json_ok(question: str, answer: str) -> bool:
     return bool(users) and len(users) < len(q["speakers"]) and len(q["lines"]) >= 2
 
 
+def reading_content(content: dict) -> dict:
+    """The stored `reading` content (spec shape) from the model's shape: generated speaker ids, no clips yet."""
+    speakers = [{"id": f"s{i + 1}", "name": sp["name"].strip()} for i, sp in enumerate(content["speakers"])]
+    ids = {sp["name"]: sp["id"] for sp in speakers}
+    tr = lambda v: v.strip() if isinstance(v, str) and v.strip() else None
+    return {"speakers": speakers, "lines": [{"speakerId": ids[l["speaker"].strip()], "text": l["text"].strip(),
+                                             "translation": tr(l.get("translation")), "audioIndex": None} for l in content["lines"]]}
+
+
+def dictation_content(content: dict) -> dict:
+    return {"lines": [{"text": l["text"].strip(), "audioIndex": None} for l in content["lines"]]}
+
+
 def app_form(exercise_type: str, content) -> tuple[str | None, str, list[str]] | None:
     """(question, answer, pieces of the answer that should occur in the page) the way the app's own exercise form builds
     them for the structured types; None for the free-text types, whose question/answer stay as the page gives them."""
@@ -285,6 +327,12 @@ def app_form(exercise_type: str, content) -> tuple[str | None, str, list[str]] |
         return (json.dumps({"speakers": speakers, "lines": lines}, ensure_ascii=False),
                 json.dumps({"speakers": [sp for sp in speakers if sp["isUser"]], "lines": mine}, ensure_ascii=False),
                 [l["text"] for l in mine])
+    if exercise_type == "reading":
+        texts = [l["text"].strip() for l in content["lines"]]
+        return None, "\n".join(texts), texts
+    if exercise_type == "dictation":
+        texts = [l["text"].strip() for l in content["lines"]]
+        return None, " ".join(texts), texts
     if exercise_type == "quizz":
         return None, ", ".join(content["options"][i] for i in content["correct"]), [content["options"][i] for i in content["correct"]]
     return None
@@ -336,9 +384,7 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         content = raw.get("content")
 
         # Validate exercise_type
-        VALID_TYPES = {"essay", "answering", "translate", "speaking", "conversation",
-                       "organize", "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "quizz"}
-        if exercise_type not in VALID_TYPES:
+        if exercise_type not in EXERCISE_TYPES:
             return None
 
         # bad content is kept, not dropped: the user fixes it in review (confirm refuses it until then)
@@ -377,7 +423,8 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
             "question": question,
             "answer": answer,
             "text_support": raw.get("text_support"),
-            "content": None if exercise_type == "conversation" else content,
+            "content": (None if exercise_type == "conversation" else reading_content(content) if exercise_type == "reading" and content
+                        else dictation_content(content) if exercise_type == "dictation" and content else content),
         }
 
     if normalise(raw["quote"]) not in text and not any(f.code == "quote_not_in_source" for f in flags):
