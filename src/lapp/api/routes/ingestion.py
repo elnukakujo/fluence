@@ -23,6 +23,9 @@ from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
 from ...services.system_data import SourceService, UserPreferencesService
 from ...utils.llm_providers import resolve_api
+from ...utils.model_api import ModelAPIError
+from ...services.ingestion.extract import ExtractionError
+from ...services.ingestion.grammar import merge_grammar
 from ...schemas.components import PassageDict, CharacterDict
 from ...schemas.features import GrammarDict
 from ...services.ingestion.elements import conversation_json_ok, exercise_content_ok
@@ -242,6 +245,38 @@ def get_job(job_id: str):
     """
     job, err = _owned_job_or_404(job_id)
     return err if err else jsonify(_public(job))
+
+
+@bp.route("/<job_id>/merge", methods=["POST"])
+@login_required
+def merge_candidates(job_id: str):
+    """Join grammar candidates that are one point split by the parser, using the user's text-generation model.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - in: body
+          name: body
+          schema: {type: object, properties: {items: {type: array}}}
+    responses:
+        200: {description: "{title, explanation, example_sentences}"}
+        400: {description: Fewer than two items, or no text endpoint}
+        502: {description: The model call failed}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    items = [i for i in (request.get_json(silent=True) or {}).get("items") or [] if isinstance(i, dict)]
+    if len(items) < 2:
+        return jsonify({"error": "Pick at least two grammar points to merge"}), 400
+    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
+    if not api:
+        return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
+    try:
+        return jsonify(merge_grammar(items, api))
+    except (ModelAPIError, ExtractionError) as e:
+        return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
 
 
 @bp.route("/<job_id>/candidates", methods=["GET"])
