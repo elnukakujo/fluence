@@ -240,3 +240,20 @@ def test_a_lesson_can_be_added_with_only_elements_and_the_job_then_reports_finis
     client.post(f"/api/ingestion/{job_id}/lessons/1/accept", json={"items": [{"word": "merci"}]})
     assert client.get(f"/api/ingestion/{job_id}").get_json()["finished"] is True
     assert client.post(f"/api/ingestion/{job_id}/back").status_code == 409
+
+
+def test_background_accept_reports_progress_and_blocks_a_second_add(app, db, media_root, scheduled):
+    import time
+    client = _setup(app, db)
+    job_id = _finished(client, media_root)
+    url = f"/api/ingestion/{job_id}/lessons/0/accept"
+    res = client.post(url + "?background=1", json={"items": [{"word": "bonjour"}]})
+    assert res.status_code == 202 and res.get_json()["total"] == 1
+    for _ in range(100):
+        state = client.get(url).get_json()
+        if state["state"] != "running":
+            break
+        time.sleep(0.05)
+    assert state["state"] == "done" and state["done"] == 1 and state["result"]["created"] == 1
+    assert client.get(url).status_code == 404                      # read once
+    assert client.post(url + "?background=1", json={"items": [{"word": "bonjour"}]}).status_code == 409   # already added

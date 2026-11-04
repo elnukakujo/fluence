@@ -312,6 +312,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
   const t = useTranslations("ingestion");
   const [open, setOpen] = useState(defaultOpen);
   const createdId = added?.lessonId ?? l.created_lesson_id;
+  const [adding, setAdding] = useState<{ done: number; total: number } | null>(null);   // n / total while the server creates the lesson
   const [live, setLive] = useState<{ total: number; flagged: number } | null>(null);   // follows the user's rejects / merges in the review
   const shown = [...(l.candidates ?? []), ...flattenElements(l.elements)];   // stored counts predate grammar / exercises
   return (
@@ -320,6 +321,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         <ChevronRight size={18} aria-hidden className={`shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
         <strong className="min-w-0 flex-1 break-words">{l.title}</strong>
         <span className="text-sm text-muted">{t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })}</span>
+        {adding && <div className="w-full"><ProgressBar current={adding.done} total={adding.total} label={t("addingProgress", { done: adding.done, total: adding.total })} /></div>}
         <span className="badge">
           {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
             : t("lessonCounts", live ?? { total: shown.length || (l.counts?.total ?? 0), flagged: shown.length ? shown.filter((c) => c.status !== "verified").length : (l.counts?.flagged ?? 0) })}
@@ -339,7 +341,17 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
           <ReviewPanel onCounts={setLive} jobId={job.id} filename={job.filename} candidates={[...(l.candidates ?? []), ...flattenElements(l.elements)]} range={[l.start_page, l.end_page]} pages={expandRanges(lessonRanges(l))}
             addLabel={(n) => t("addToNewLesson", { count: n, title: l.title })}
             onAdd={async (payload) => {
-              const r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements);
+              setOpen(false);   // the review closes; the header shows the progress
+              setAdding({ done: 0, total: payload.items.length + (payload.elements?.length ?? 0) });
+              let r;
+              try {
+                r = await acceptLesson(job.id, l.index, payload.items, undefined, payload.elements, (done, total) => setAdding({ done, total }));
+              } catch (e) {
+                setOpen(true);   // back to the review, which shows the error
+                throw e;
+              } finally {
+                setAdding(null);
+              }
               onAdded({ lessonId: r.lesson_id, count: r.created + (r.created_elements ?? 0), notes: r.notes });
             }} />
         )}

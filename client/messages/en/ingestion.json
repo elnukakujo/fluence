@@ -284,5 +284,6 @@
   "pageRangeQuote": "Pages {from}–{to} · \"{quote}\"",
   "reload": "Redo",
   "reloading": "Redoing…",
-  "reloadFailed": "Could not redo: {message}"
+  "reloadFailed": "Could not redo: {message}",
+  "addingProgress": "Adding… {done} / {total}"
 }

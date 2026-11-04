@@ -1,7 +1,9 @@
 import json
+import logging
+import threading
 from pathlib import Path
 
-from flask import Blueprint, Response, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from ...core.auth import current_user_id, login_required, owner_user_id, require_write
 from ...core.database import db_manager
@@ -30,7 +32,10 @@ from ...schemas.components import PassageDict, CharacterDict
 from ...schemas.features import GrammarDict
 from ...services.ingestion.elements import conversation_json_ok, exercise_content_ok
 
+logger = logging.getLogger(__name__)
 bp = Blueprint("ingestion", __name__, url_prefix="/api/ingestion")
+_accepts: dict[tuple[str, int], dict] = {}   # (job, lesson index) -> progress of an accept in flight
+_accepts_lock = threading.Lock()
 job_service = IngestionJobService()
 
 _ALLOWED_SUFFIXES = _IMAGE_SUFFIXES | {".pdf"}
@@ -659,19 +664,80 @@ def accept_lesson(job_id: str, index: int):
         return jsonify({"error": error}), 400
     require_write(job["language_id"])
 
-    created_file = created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index)
+    key = (job_id, index)
+    with _accepts_lock:
+        if _accepts.get(key, {}).get("state") == "running":
+            return jsonify({"error": "This lesson is already being added"}), 409
+        if request.args.get("background") and created_lesson_path(current_app.config["MEDIA_ROOT"], job_id, index).is_file():
+            return jsonify({"error": "This lesson was already added"}), 409
+        state = {"state": "running", "done": 0, "total": len(items) + len(elements)}
+        _accepts[key] = state
+    media_root, title = current_app.config["MEDIA_ROOT"], body.get("title")
+
+    def tick():
+        state["done"] += 1
+
+    if not request.args.get("background"):   # inline: the caller waits for the result
+        try:
+            return jsonify(_accept_work(job, index, lesson, title, items, elements, media_root, tick))
+        finally:
+            _accepts.pop(key, None)
+
+    app, uid = current_app._get_current_object(), current_user_id()
+
+    def run():
+        with app.app_context():
+            g.current_user_id = uid
+            try:
+                state.update(result=_accept_work(job, index, lesson, title, items, elements, media_root, tick), state="done", done=state["total"])
+            except Exception as e:   # reported to the poller; the transaction rolled back, so nothing half-added
+                logger.exception("Adding lesson %s of %s failed", index, job_id)
+                state.update(state="failed", error=getattr(e, "description", None) or str(e) or "Could not add this lesson")
+
+    threading.Thread(target=run, daemon=True).start()   # ponytail: in-process state, a multi-worker deployment needs a shared store
+    return jsonify({k: state[k] for k in ("state", "done", "total")}), 202
+
+
+@bp.route("/<job_id>/lessons/<int:index>/accept", methods=["GET"])
+@login_required
+def accept_lesson_progress(job_id: str, index: int):
+    """Progress of a background lesson accept: {state: running|done|failed, done, total[, result, error]}; read once when finished.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - {name: index, in: path, type: integer, required: true}
+    responses:
+        200: {description: The progress}
+        404: {description: Nothing is being added}
+    """
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    with _accepts_lock:
+        state = _accepts.get((job_id, index))
+        if state is None:
+            return jsonify({"error": "Nothing is being added"}), 404
+        if state["state"] != "running":
+            _accepts.pop((job_id, index), None)
+    return jsonify(state)
+
+
+def _accept_work(job: dict, index: int, lesson: dict, title: str | None, items: list, elements: list, media_root: str, progress) -> dict:
+    created_file = created_lesson_path(media_root, job["id"], index)
     notes: list[str] = []
     with db_manager.session_scope() as session:   # lesson + vocabulary in one transaction
         lesson_id = created_file.read_text().strip() if created_file.is_file() else None
         if not lesson_id or not LessonService().get_by_id(lesson_id, session=session):
             created = LessonService().create(LessonDict(
-                title=(body.get("title") or lesson["title"]).strip(), language_id=job["language_id"],
+                title=(title or lesson["title"]).strip(), language_id=job["language_id"],
                 user_id=owner_user_id(job["language_id"]), level=job.get("level")), session=session)
             lesson_id = created.id
-        added, added_elements = _add_all(session, job, lesson_id, items, elements, notes)
+        added, added_elements = _add_all(session, job, lesson_id, items, elements, notes, progress)
     created_file.parent.mkdir(parents=True, exist_ok=True)
     created_file.write_text(lesson_id)
-    return jsonify({"lesson_id": lesson_id, "created": added, "created_elements": added_elements, "notes": notes})
+    return {"lesson_id": lesson_id, "created": added, "created_elements": added_elements, "notes": notes}
 
 
 @bp.route("/<job_id>/accept", methods=["POST"])
@@ -749,18 +815,18 @@ def _invalid_items(items) -> str | None:
     return None
 
 
-def _add_all(session, job: dict, lesson_id: str, items: list, elements: list, notes: list) -> tuple[int, int]:
+def _add_all(session, job: dict, lesson_id: str, items: list, elements: list, notes: list, progress=None) -> tuple[int, int]:
     """(vocabulary added, elements added). Calligraphy goes first: adding a word also creates its characters with a
     generated (romaji) phonetic, and the reviewed calligraphy item would then be answered by that row under "keep"."""
     is_calligraphy = [isinstance(e, dict) and e.get("kind") == "calligraphy" for e in elements]
     first = [e for e, c in zip(elements, is_calligraphy) if c]
     rest = [e for e, c in zip(elements, is_calligraphy) if not c]
-    added_elements = _add_elements(session, job, lesson_id, job["language_id"], first, notes)
-    added = _add_vocabulary(session, job, lesson_id, items)
-    return added, added_elements + _add_elements(session, job, lesson_id, job["language_id"], rest, notes)
+    added_elements = _add_elements(session, job, lesson_id, job["language_id"], first, notes, progress)
+    added = _add_vocabulary(session, job, lesson_id, items, progress)
+    return added, added_elements + _add_elements(session, job, lesson_id, job["language_id"], rest, notes, progress)
 
 
-def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
+def _add_vocabulary(session, job: dict, lesson_id: str, items: list, progress=None) -> int:
     """Create Word + Vocabulary for each item in `lesson_id`, tagged with the import's Source."""
     vocabulary_service, source_service = VocabularyService(), SourceService()
     source = _import_source(session, current_user_id(), job)
@@ -776,6 +842,8 @@ def _add_vocabulary(session, job: dict, lesson_id: str, items: list) -> int:
         if vocabulary:
             source_service.add_source_to_element(source.id, vocabulary.id, session=session)
             created += 1
+        if progress:
+            progress()
     return created
 
 
@@ -846,7 +914,7 @@ def _normalize_text(text: str) -> str:
     return " ".join(str(text).split()).lower()
 
 
-def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list, notes_out: list | None = None) -> int:
+def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements: list, notes_out: list | None = None, progress=None) -> int:
     """Create grammar (with nested passages), calligraphy (with nested character) and exercises for each element, tagged with import source."""
     if not isinstance(elements, list):
         return 0
@@ -944,6 +1012,9 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     created += 1
             else:
                 notes_out.append(f"The exercise “{question[:40]}” is already in this lesson, so it was not added again.")
+
+        if progress:
+            progress()
 
     return created
 

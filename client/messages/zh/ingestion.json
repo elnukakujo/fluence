@@ -284,5 +284,6 @@
   "pageRangeQuote": "第 {from}–{to} 页 · “{quote}”",
   "reload": "重做",
   "reloading": "重做中…",
-  "reloadFailed": "无法重做：{message}"
+  "reloadFailed": "无法重做：{message}",
+  "addingProgress": "添加中… {done} / {total}"
 }

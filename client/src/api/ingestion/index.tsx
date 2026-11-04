@@ -203,14 +203,31 @@ export async function getLanguageCandidates(jobId: string): Promise<{ status: Jo
   return res.json();
 }
 
-export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string, elements?: AcceptElement[]): Promise<{ lesson_id: string; created: number; created_elements: number; notes?: string[] }> {
+/** Adds one lesson in the background (a big one takes minutes): polls the server and reports n / total until it is done. */
+export async function acceptLesson(jobId: string, index: number, items: AcceptItem[], title?: string, elements?: AcceptElement[],
+  onProgress?: (done: number, total: number) => void): Promise<{ lesson_id: string; created: number; created_elements: number; notes?: string[] }> {
   const body: { items: AcceptItem[]; title?: string; elements?: AcceptElement[] } = { items };
   if (title) body.title = title;
   if (elements && elements.length > 0) body.elements = elements;
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/lessons/${index}/accept`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),
-  });
+  const url = `${BASE_URL}/api/ingestion/${jobId}/lessons/${index}/accept`;
+  const res = await fetch(`${url}?background=1`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body) });
   if (!res.ok) return fail(res, "Could not add this lesson");
-  notifyChanged();
-  return res.json();
+  const first = await res.json();
+  onProgress?.(first.done, first.total);
+  for (let misses = 0; ;) {
+    await new Promise((r) => setTimeout(r, 700));
+    let state;
+    try {
+      const poll = await fetch(url, { headers: await getAuthHeaders() });
+      if (!poll.ok) throw new Error(String(poll.status));
+      state = await poll.json();
+      misses = 0;
+    } catch {
+      if (++misses > 20) throw new Error("Lost contact with the server - check the lesson list before adding it again");
+      continue;
+    }
+    onProgress?.(state.done, state.total);
+    if (state.state === "failed") throw new Error(state.error || "Could not add this lesson");
+    if (state.state === "done") { notifyChanged(); return state.result; }
+  }
 }

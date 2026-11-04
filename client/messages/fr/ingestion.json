@@ -284,5 +284,6 @@
   "pageRangeQuote": "Pages {from}–{to} · « {quote} »",
   "reload": "Refaire",
   "reloading": "Nouvelle passe…",
-  "reloadFailed": "Impossible de refaire : {message}"
+  "reloadFailed": "Impossible de refaire : {message}",
+  "addingProgress": "Ajout… {done} / {total}"
 }
