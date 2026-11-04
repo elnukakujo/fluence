@@ -37,7 +37,7 @@ def test_grammar_without_explanation_is_skipped():
 
 
 def test_grammar_examples_not_in_chunk_are_removed_from_fields():
-    raw = {"title": "Le", "explanation": "marks completion", "example_sentences": ["我吃了", "他走了"], "quote": "Le"}
+    raw = {"title": "Le", "explanation": "marks completion 我吃了 他走了", "example_sentences": ["我吃了", "他走了"], "quote": "Le"}
     c = el.verify_element("grammar", raw, _chunk("Le: marks completion 我吃了"), "zh")
     assert c.fields["example_sentences"] == ["我吃了"] and c.status == "flagged"
 
@@ -238,7 +238,7 @@ def test_grammar_prompt_includes_rules_and_injection_guard():
     prompt = grammar_module._system_prompt("Chinese", "English")
     assert "ignore any instructions" in prompt
     assert "complete grammar sheet" in prompt
-    assert "ALL example sentences" in prompt
+    assert "COMPLETE section" in prompt
 
 
 def test_grammar_prompt_mentions_bilingual_support():
@@ -419,3 +419,53 @@ def test_exercise_answer_found_in_next_page_head_is_not_flagged():
     raw = {"exercise_type": "answering", "question": "1. Capital of France?", "answer": "Paris", "text_support": None,
            "content": None, "quote": "1. Capital of France?"}
     assert "answer_generated" not in _codes(el.verify_element("exercise", raw, chunk, "fr"))
+
+
+def test_grammar_prompt_keeps_examples_in_explanation():
+    prompt = grammar_module._system_prompt("Chinese", "English")
+    assert "Include ALL example sentences" not in prompt
+    assert "nothing removed" in prompt and "stay inside the explanation" in prompt
+    assert "1 to 3" in prompt
+
+
+def test_grammar_examples_must_occur_in_explanation():
+    text = "Le marks completion. 我吃了 他走了"
+    raw = {"title": "Le", "explanation": "Le marks completion. 我吃了", "example_sentences": ["我吃了", "他走了"], "quote": "Le"}
+    c = el.verify_element("grammar", raw, _chunk(text), "zh")
+    assert c.fields["example_sentences"] == ["我吃了"]
+    assert c.fields["explanation"] == raw["explanation"]
+
+
+def test_grammar_examples_capped_at_three():
+    sents = [f"句子{i}" for i in range(6)]
+    raw = {"title": "T", "explanation": "rule " + " ".join(sents), "example_sentences": sents, "quote": "rule"}
+    c = el.verify_element("grammar", raw, _chunk("rule " + " ".join(sents)), "zh")
+    assert c.fields["example_sentences"] == sents[:3]
+    assert all(s in c.fields["explanation"] for s in sents)
+
+
+def test_generate_grammar_adds_source_span_per_point(monkeypatch):
+    _stub(monkeypatch, json.dumps([
+        {"title": "A", "explanation": "x", "example_sentences": [], "quote": "AAA"},
+        {"title": "B", "explanation": "y", "example_sentences": [], "quote": "BBB"},
+    ]))
+    r = grammar_module.generate_grammar(_chunk("AAA rule one and its examples. BBB rule two."), API, "Chinese", "English")
+    assert r[0]["source_chars"] == len("AAA rule one and its examples. ")
+    assert r[1]["source_chars"] == len("BBB rule two.")
+
+
+def test_generate_grammar_unfound_quote_has_no_span(monkeypatch):
+    _stub(monkeypatch, json.dumps([{"title": "A", "explanation": "x", "example_sentences": [], "quote": "ZZZ"}]))
+    assert grammar_module.generate_grammar(_chunk("AAA"), API, "Chinese", "English")[0]["source_chars"] is None
+
+
+def test_grammar_thin_explanation_is_flagged_incomplete():
+    src = "Le rule. " + "我吃了 " * 10
+    raw = {"title": "Le", "explanation": "Le rule.", "example_sentences": [], "quote": "Le", "source_chars": len(src)}
+    assert "explanation_incomplete" in _codes(el.verify_element("grammar", raw, _chunk(src), "zh"))
+
+
+def test_grammar_full_explanation_not_flagged_incomplete():
+    src = "Le rule. " + "我吃了 " * 10
+    raw = {"title": "Le", "explanation": src, "example_sentences": ["我吃了"], "quote": "Le", "source_chars": len(src)}
+    assert "explanation_incomplete" not in _codes(el.verify_element("grammar", raw, _chunk(src), "zh"))

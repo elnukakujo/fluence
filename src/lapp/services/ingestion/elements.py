@@ -4,6 +4,7 @@ import re
 import uuid
 
 from .extract import WINDOW_RULE, ExtractionError, _ask
+from .grammar import GRAMMAR_COVERAGE_MIN, MAX_EXAMPLES
 from .types import Chunk, ElementCandidate, Flag, Kind
 from .verify import _phonetic_flag, _source_flags, _words_present, normalise
 
@@ -305,8 +306,13 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         if normalise(raw["explanation"]).replace("/", "") == normalise(raw["title"]).replace("/", ""):
             return None
         flag("grammar_generated", "Written by the model from the page text - check it")
+        src = raw.get("source_chars")
+        if src and len(raw["explanation"]) < GRAMMAR_COVERAGE_MIN * src:
+            flag("explanation_incomplete", "The explanation is much shorter than the section in the document - check nothing was removed")
+        in_expl = normalise(raw["explanation"])
+        examples = [e for e in raw.get("example_sentences", []) if normalise(e) in text and normalise(e) in in_expl]
         fields = {"title": raw["title"], "explanation": raw["explanation"],
-                  "example_sentences": [e for e in raw.get("example_sentences", []) if normalise(e) in text],
+                  "example_sentences": examples[:MAX_EXAMPLES],
                   "original_text": chunk.text}
     elif kind == "calligraphy":
         if normalise(key) not in text:
