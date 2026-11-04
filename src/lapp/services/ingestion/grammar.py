@@ -7,7 +7,7 @@ from .types import Chunk
 logger = logging.getLogger(__name__)
 
 MAX_EXAMPLES = 3
-GRAMMAR_COVERAGE_MIN = 0.6  # TODO(calibrate): measure on the Genki / HSK / Spektrum samples (plan Task 0)
+GRAMMAR_COVERAGE_MIN = 0.5  # calibrated 2026-11-04 on Genki II only (lowest complete point 0.58, furigana-inflated); recheck on HSK 2 / Spektrum
 
 
 def _system_prompt(target: str, source: str | None) -> str:
