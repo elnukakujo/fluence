@@ -77,3 +77,27 @@ def test_source_merge_rejects_bad_type_date_and_foreign_source(app, db):
     assert c.post("/api/sources/merge", json={"keep_id": "src_S1", "merge_id": "src_S2", "source_type": "nope"}).status_code == 400
     assert c.post("/api/sources/merge", json={"keep_id": "src_S1", "merge_id": "src_S2", "date": "x"}).status_code == 400
     assert c.post("/api/sources/merge", json={"keep_id": "src_S1", "merge_id": "src_S4"}).status_code == 403
+
+
+def test_bulk_delete_tags_removes_links_but_keeps_elements(app, db):
+    c = _setup(app, db)
+    res = c.post("/api/tags/bulk-delete", json={"ids": ["tag_T1", "tag_T2"]})
+    assert res.get_json() == {"deleted": 2}
+    with db.session_scope() as s:
+        assert s.get(Tag, "tag_T1") is None and s.get(Vocabulary, "voc_V1").tags == []
+
+
+def test_bulk_delete_sources_is_all_or_nothing_on_ownership(app, db):
+    c = _setup(app, db)
+    assert c.post("/api/sources/bulk-delete", json={"ids": ["src_S1", "src_S4"]}).status_code == 403
+    with db.session_scope() as s:
+        assert s.get(Source, "src_S1") is not None
+    assert c.post("/api/sources/bulk-delete", json={"ids": ["src_S1"]}).get_json() == {"deleted": 1}
+
+
+def test_reorder_tags_and_sources(app, db):
+    c = _setup(app, db)
+    assert c.post("/api/tags/reorder", json={"ids": ["tag_T3", "tag_T1", "tag_T2"]}).status_code == 200
+    assert [t["id"] for t in c.get("/api/tags/user/user_U1").get_json()] == ["tag_T3", "tag_T1", "tag_T2"]
+    assert c.post("/api/sources/reorder", json={"ids": ["src_S1"]}).status_code == 400   # must be all of the user's sources
+

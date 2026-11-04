@@ -6,7 +6,7 @@ import { Check, CheckCircle2, ChevronRight, ListChecks } from "lucide-react";
 import ItemActionBar from "./itemActionBar";
 import Tick from "./tick";
 
-export type Kind = "voc" | "gram" | "call" | "ex";   // = the id prefix of the list's items
+export type Kind = "voc" | "gram" | "call" | "ex" | "lesson" | "lang" | "tag" | "src";   // = the id prefix of the list's items
 
 type Selection = {
   canSelect: boolean; isActive: (kind: Kind) => boolean; selected: Map<string, string>; // id -> label
@@ -20,17 +20,32 @@ const OFF: Selection = {
 const Ctx = createContext<Selection>(OFF);
 export const useItemSelection = () => useContext(Ctx);
 
-// Shares one selection between the lesson's lists (vocabulary / grammar / calligraphy / exercises), shows the one action bar
-// and a short confirmation once an action went through. Escape leaves select mode.
+// What a page's action bar receives from the scope.
+export type BarProps = { ids: string[]; labels: string[]; onDone: (message: string) => void; onClear: () => void; onExit: () => void };
+
+// Lesson page: one selection shared by the lesson's lists (vocabulary / grammar / calligraphy / exercises) and the one action bar.
 export default function LessonItems({ isOwner, userId, lessonId, languageId, className, children }: {
   isOwner: boolean; userId: string; lessonId: string; languageId: string; className?: string; children: ReactNode;
+}) {
+  return (
+    <SelectionScope canSelect={isOwner} className={className}
+      bar={(b) => <ItemActionBar {...b} userId={userId} move={{ lessonId, languageId }} />}>
+      {children}
+    </SelectionScope>
+  );
+}
+
+// The reusable part: shares one selection between the lists of a page (any Kind), shows the page's action bar (`bar`)
+// and a short confirmation once an action went through. Escape leaves select mode.
+export function SelectionScope({ canSelect, className, bar, children }: {
+  canSelect: boolean; className?: string; bar: (props: BarProps) => ReactNode; children: ReactNode;
 }) {
   const [activeKinds, setActiveKinds] = useState<Set<Kind>>(new Set());
   const [selected, setSelected] = useState<Map<string, string>>(new Map());
   const [notice, setNotice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const value = useMemo<Selection>(() => ({
-    canSelect: isOwner, isActive: (kind) => activeKinds.has(kind), selected,
+    canSelect, isActive: (kind) => activeKinds.has(kind), selected,
     // leaving a list's select mode drops only that list's ticks
     setActive: (kind, on) => {
       setActiveKinds((a) => { const n = new Set(a); if (on) n.add(kind); else n.delete(kind); return n; });
@@ -41,7 +56,7 @@ export default function LessonItems({ isOwner, userId, lessonId, languageId, cla
     setMany: (entries, on) => setSelected((s) => { const n = new Map(s); for (const [id, label] of entries) { if (on) n.set(id, label); else n.delete(id); } return n; }),
     clear: () => setSelected(new Map()),
     notify: (message) => { setNotice(message); clearTimeout(timer.current); timer.current = setTimeout(() => setNotice(""), 4000); },
-  }), [isOwner, activeKinds, selected]);
+  }), [canSelect, activeKinds, selected]);
 
   useEffect(() => {
     if (activeKinds.size === 0) return;
@@ -54,12 +69,14 @@ export default function LessonItems({ isOwner, userId, lessonId, languageId, cla
   return (
     <Ctx.Provider value={value}>
       <article className={className}>{children}</article>
-      <div className="pointer-events-none sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex flex-col items-center gap-2 md:bottom-4">
+      {selected.size > 0 && <div aria-hidden className="h-24" />}   {/* room, so the fixed bar never hides the last row */}
+      {/* fixed (not sticky): identical on every page whatever wraps the scope, and out of the page flow */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex flex-col items-center gap-2 px-4 md:bottom-4">
         {notice && <p role="status" className="bulk-toast pointer-events-auto"><CheckCircle2 size={18} aria-hidden /> {notice}</p>}
         {selected.size > 0 && (
           <div className="pointer-events-auto w-full max-w-2xl">
-            <ItemActionBar ids={[...selected.keys()]} labels={[...selected.values()]} userId={userId} lessonId={lessonId} languageId={languageId}
-              onDone={(message) => { value.exitAll(); value.notify(message); }} onClear={value.clear} onExit={value.exitAll} />
+            {bar({ ids: [...selected.keys()], labels: [...selected.values()],
+              onDone: (message) => { value.exitAll(); value.notify(message); }, onClear: value.clear, onExit: value.exitAll })}
           </div>
         )}
       </div>

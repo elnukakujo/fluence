@@ -7,9 +7,9 @@ bp = Blueprint('element', __name__, url_prefix='/api/elements')
 service = BulkElementService()
 
 
-def _ids(body: dict):
+def _ids(body: dict, containers: bool = False):
     ids = body.get('ids')
-    if not isinstance(ids, list) or not ids or not all(model_of(i) for i in ids):
+    if not isinstance(ids, list) or not ids or not all(model_of(i, containers) for i in ids):
         return None
     return list(dict.fromkeys(ids))
 
@@ -53,7 +53,7 @@ def bulk_delete():
 
 def _links(attr: str):
     body = request.get_json(silent=True) or {}
-    ids, add, remove = _ids(body), _ids_list(body, 'add'), _ids_list(body, 'remove')
+    ids, add, remove = _ids(body, containers=True), _ids_list(body, 'add'), _ids_list(body, 'remove')
     if ids is None or add is None or remove is None or not (add or remove):
         return jsonify({'error': 'ids and add / remove lists are required'}), 400
     for i in [*ids, *add, *remove]:

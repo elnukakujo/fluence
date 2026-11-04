@@ -20,5 +20,9 @@
   "mergeFailed": "La fusion a échoué.",
   "invalid": "Choisissez deux éléments différents à fusionner.",
   "back": "Retour",
-  "elementsCount": "{count, plural, one {# élément} other {# éléments}}"
+  "elementsCount": "{count, plural, one {# élément} other {# éléments}}",
+  "deleteTitle": "Supprimer {count, plural, one {# {kind, select, tag {tag} other {source}}} other {# {kind, select, tag {tags} other {sources}}}} ?",
+  "deleteBody": "Leurs liens avec les éléments sont retirés ; les éléments eux-mêmes sont conservés.",
+  "deleteConfirm": "Supprimer {count}",
+  "deleted": "{count, plural, one {# supprimé} other {# supprimés}}"
 }

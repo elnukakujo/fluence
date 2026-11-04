@@ -68,5 +68,6 @@
   "listEmpty": "Rien pour l'instant",
   "listAdd": "Ajouter",
   "listPractice": "Pratiquer",
-  "listSelectHint": "Cochez des éléments, puis choisissez une action ci-dessous."
+  "listSelectHint": "Cochez des éléments, puis choisissez une action ci-dessous.",
+  "bulkMerge": "Fusionner"
 }

@@ -55,19 +55,22 @@ function Footer({ busy, disabled, danger, label, onClose, onConfirm, cancelRef }
 
 const Error_ = ({ error }: { error: string | null }) => error ? <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p> : null;
 
-export function DeleteDialog({ ids, labels, onClose, onDone }: Common) {
+export type DeleteCopy = { title: string; body: string; confirm: string; done: string };
+
+// Deletes items by default; lessons / languages pass their own `remove` and wording.
+export function DeleteDialog({ ids, labels, remove = bulkDeleteElements, copy, onClose, onDone }: Common & { remove?: (ids: string[]) => Promise<unknown>; copy?: DeleteCopy }) {
   const t = useTranslations("elements");
   const { busy, error, run } = useRun(onDone);
   const cancel = useRef<HTMLButtonElement>(null);
   useEffect(() => { const id = setTimeout(() => cancel.current?.focus(), 0); return () => clearTimeout(id); }, []);   // Enter never deletes by accident
   return (
-    <Modal title={t("bulkTitle_delete", { count: ids.length })} onClose={() => !busy && onClose()}
-      footer={<Footer busy={busy} danger cancelRef={cancel} label={t("bulkConfirm_delete", { count: ids.length })} onClose={onClose}
-        onConfirm={() => run(async () => { await bulkDeleteElements(ids); return t("bulkDeleted", { count: ids.length }); })} />}>
+    <Modal title={copy?.title ?? t("bulkTitle_delete", { count: ids.length })} onClose={() => !busy && onClose()}
+      footer={<Footer busy={busy} danger cancelRef={cancel} label={copy?.confirm ?? t("bulkConfirm_delete", { count: ids.length })} onClose={onClose}
+        onConfirm={() => run(async () => { await remove(ids); return copy?.done ?? t("bulkDeleted", { count: ids.length }); })} />}>
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: "rgb(181 64 46 / 0.12)", color: "var(--color-danger)" }}><AlertTriangle size={20} aria-hidden /></span>
         <div className="flex flex-col gap-1">
-          <p className="text-sm">{t("bulkDeleteBody", { count: ids.length })}</p>
+          <p className="text-sm">{copy?.body ?? t("bulkDeleteBody", { count: ids.length })}</p>
           <Affected labels={labels} />
         </div>
       </div>

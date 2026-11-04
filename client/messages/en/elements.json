@@ -68,5 +68,6 @@
   "listEmpty": "Nothing here yet",
   "listAdd": "Add",
   "listPractice": "Practice",
-  "listSelectHint": "Tick items, then pick an action below."
+  "listSelectHint": "Tick items, then pick an action below.",
+  "bulkMerge": "Merge"
 }

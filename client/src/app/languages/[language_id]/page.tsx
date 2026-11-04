@@ -59,6 +59,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                         language_code={language.target_iso639_2t ?? ""}
                         languageId={language_id}
                         canManage={isOwner}
+                        userId={userId ?? ""}
                     />
                 )}
 

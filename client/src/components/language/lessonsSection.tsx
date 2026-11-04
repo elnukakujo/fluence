@@ -5,7 +5,13 @@ import { useTranslations } from "next-intl";
 import type Lesson from "@/interface/containers/Lesson";
 import LessonOverviewCard from "@/components/lesson/lessonOverviewCard";
 import { languageProficiencySystems } from "@/utils/language_iso639";
-import ManageLessons from "./manageLessons";
+import { Combine } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { bulkDeleteLessons, reorderLessons } from "@/api/lesson";
+import { itemCount } from "@/lib/lessonOrder";
+import ItemActionBar from "@/components/elements/itemActionBar";
+import ManageList from "@/components/elements/manageList";
+import { SelectionScope, SelectToggle, useItemSelection } from "@/components/elements/itemSelection";
 
 type FilterState = {
     tags: string[];
@@ -57,7 +63,40 @@ function lessonMatchesFilter(lesson: Lesson, filters: FilterState, levelCodes: s
     return true;
 }
 
-export default function LessonsSection({
+// The lessons of a language: the plain grid, or (owner, select mode) the shared select / reorder list and its action bar.
+export default function LessonsSection({ userId = "", canManage = false, ...props }: {
+    lessons: Lesson[];
+    language_code: string;
+    languageId?: string;
+    canManage?: boolean;
+    userId?: string;
+}) {
+    const t = useTranslations("language");
+    const tEl = useTranslations("elements");
+    const router = useRouter();
+    const order = props.lessons.map(l => l.id);
+    return (
+        <SelectionScope canSelect={canManage && !!props.languageId}
+            bar={(b) => {
+                const ids = order.filter(id => b.ids.includes(id));   // list order, whatever the click order
+                const n = ids.length;
+                return (
+                    <ItemActionBar {...b} userId={userId} onDelete={bulkDeleteLessons}
+                        deleteCopy={{ title: t("deleteLessonsTitle", { count: n }), body: t("deleteLessonsBody"), confirm: t("deleteNLessons", { count: n }), done: t("deletedN", { count: n }) }}
+                        extra={
+                            <button type="button" className="bulk-action" disabled={n !== 2} title={n === 2 ? undefined : t("mergeNeedsTwo")}
+                                onClick={() => router.push(`/languages/${props.languageId}/merge?a=${ids[0]}&b=${ids[1]}`)}>
+                                <Combine size={20} aria-hidden />{tEl("bulkMerge")}
+                            </button>
+                        } />
+                );
+            }}>
+            <LessonsContent canManage={canManage} {...props} />
+        </SelectionScope>
+    );
+}
+
+function LessonsContent({
     lessons,
     language_code,
     languageId,
@@ -72,7 +111,8 @@ export default function LessonsSection({
     const [query, setQuery]     = useState("");
     const [filters, setFilters] = useState<FilterState>({ tags: [], sources: [], levelCodes: [] });
     const [open, setOpen]       = useState(false);
-    const [manage, setManage]   = useState(false);
+    const { isActive } = useItemSelection();
+    const manage = isActive("lesson");
     const dropdownRef           = useRef<HTMLDivElement>(null);
 
     const proficiencySystem = languageProficiencySystems[language_code];
@@ -121,9 +161,7 @@ export default function LessonsSection({
                 </div>
 
                 {canManage && languageId && (
-                    <button type="button" className={`btn ${manage ? "btn-primary" : "btn-secondary"}`} aria-pressed={manage} onClick={() => setManage(m => !m)}>
-                        {manage ? t("doneManaging") : t("manageLessons")}
-                    </button>
+                    <SelectToggle kind="lesson" />
                 )}
 
                 {/* Filter trigger */}
@@ -221,8 +259,11 @@ export default function LessonsSection({
 
             {/* Results */}
             {manage && canManage && languageId ? (
-                <ManageLessons lessons={lessons} languageId={languageId} visibleIds={new Set(filtered.map(l => l.id))}
-                    reorderLocked={query !== "" || activeFilterCount > 0} />
+                <ManageList kind="lesson" reorderLocked={query !== "" || activeFilterCount > 0}
+                    items={lessons.filter(l => l.shared || filtered.includes(l)).map(l => ({
+                        id: l.id, title: l.title, owned: !l.shared, subtitle: t("lessonItems", { n: itemCount(l) }),
+                    }))}
+                    onReorder={ids => reorderLessons(languageId, ids)} />
             ) : filtered.length > 0 ? (
                 <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 list-none">
                     {filtered.map(lesson => (

@@ -54,3 +54,13 @@ export async function deleteLanguage(languageId: string) {
   });
   if (!res.ok) throw new Error("Failed to delete language");
 }
+async function postJson(path: string, body: unknown, fallback: string) {
+  const res = await fetch(`${BASE_URL}/api/languages/${path}`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? fallback);
+  return res.json();
+}
+
+/** `ids`: every language the user owns, in the new order. */
+export const reorderLanguages = (ids: string[]) => postJson("reorder", { ids }, "Failed to reorder languages");
+
+export const bulkDeleteLanguages = (ids: string[]): Promise<{ deleted: number }> => postJson("bulk-delete", { ids }, "Failed to delete languages");

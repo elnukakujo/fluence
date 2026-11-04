@@ -72,5 +72,9 @@
   "deleteNLessons": "Supprimer {count, plural, one {# leçon} other {# leçons}}",
   "deleting": "Suppression…",
   "deleteFailed": "Impossible de supprimer les leçons",
-  "deletedN": "{count, plural, one {# leçon supprimée} other {# leçons supprimées}}"
+  "deletedN": "{count, plural, one {# leçon supprimée} other {# leçons supprimées}}",
+  "deleteLanguagesTitle": "Supprimer {count, plural, one {# langue} other {# langues}} ?",
+  "deleteLanguagesBody": "Les langues ci-dessous sont supprimées définitivement avec toutes leurs leçons et leurs éléments.",
+  "deleteNLanguages": "Supprimer {count, plural, one {# langue} other {# langues}}",
+  "deletedLanguages": "{count, plural, one {# langue supprimée} other {# langues supprimées}}"
 }

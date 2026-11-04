@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.sql import select, func
 from collections import defaultdict
 
@@ -15,6 +15,7 @@ class Tag(Base):
     name = Column(String, nullable=False)
     color = Column(String)
     description = Column(String)
+    position = Column(Integer, nullable=False, default=0, server_default="0")  # order in the user's list, 0-based
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=True)
 
@@ -52,6 +53,7 @@ class Tag(Base):
             "name": self.name,
             "color": self.color,
             "description": self.description,
+            "position": self.position,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

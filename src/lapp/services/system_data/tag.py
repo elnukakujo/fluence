@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -49,7 +50,7 @@ class TagService:
 
         Returns an empty list when no tags are found.
         """
-        objs = db_manager.find_all(Tag, filters={"user_id": user_id}, session=session)
+        objs = sorted(db_manager.find_all(Tag, filters={"user_id": user_id}, session=session), key=lambda o: (o.position, o.created_at or 0))
         return [self._serialize(obj, as_dict, include_relations) for obj in objs]
 
     @transactional
@@ -67,7 +68,9 @@ class TagService:
         `TagDict` on success or `None` on failure.
         """
         tag_id = getattr(tag_data, "id", None) or db_manager.generate_new_id(Tag, session=session)
+        last = session.query(func.max(Tag.position)).filter(Tag.user_id == getattr(tag_data, "user_id")).scalar()
         tag_obj = Tag(
+            position=0 if last is None else last + 1,
             id=tag_id,
             user_id=tag_data.user_id,
             name=tag_data.name,

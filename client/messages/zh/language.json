@@ -72,5 +72,9 @@
   "deleteNLessons": "删除 {count} 门课程",
   "deleting": "正在删除…",
   "deleteFailed": "无法删除课程",
-  "deletedN": "已删除 {count} 门课程"
+  "deletedN": "已删除 {count} 门课程",
+  "deleteLanguagesTitle": "删除 {count} 种语言？",
+  "deleteLanguagesBody": "下列语言及其所有课程和内容将被永久删除。",
+  "deleteNLanguages": "删除 {count} 种语言",
+  "deletedLanguages": "已删除 {count} 种语言"
 }

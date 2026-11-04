@@ -68,5 +68,6 @@
   "listEmpty": "暂无内容",
   "listAdd": "添加",
   "listPractice": "练习",
-  "listSelectHint": "勾选项目，然后在下方选择操作。"
+  "listSelectHint": "勾选项目，然后在下方选择操作。",
+  "bulkMerge": "合并"
 }

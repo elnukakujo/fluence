@@ -5,13 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Tag from "@/interface/systemData/Tag";
 
-const api = vi.hoisted(() => ({ mergeTags: vi.fn(), getAllUserTags: vi.fn() }));
+const api = vi.hoisted(() => ({ mergeTags: vi.fn(), getAllUserTags: vi.fn(), bulkDeleteTags: vi.fn(), reorderTags: vi.fn() }));
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }));
 vi.mock("@/api/tag", () => api);
-vi.mock("@/api/source", () => ({ mergeSources: vi.fn() }));
+vi.mock("@/api/lesson", () => ({ getAllLessons: vi.fn() }));
+vi.mock("@/api/source", () => ({ mergeSources: vi.fn(), bulkDeleteSources: vi.fn(), reorderSources: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
 
-import MergeableList from "./mergeableList";
+import LabelList from "./labelList";
 import MergeLabels from "./mergeLabels";
 
 const tag = (id: string, name: string, els: string[] = [], extra = {}) =>
@@ -19,16 +20,36 @@ const tag = (id: string, name: string, els: string[] = [], extra = {}) =>
 
 beforeEach(() => { vi.clearAllMocks(); api.mergeTags.mockResolvedValue({}); });
 
-describe("MergeableList", () => {
+describe("LabelList", () => {
   const items = [{ id: "tag_1", label: "one" }, { id: "tag_2", label: "two" }, { id: "tag_3", label: "three" }];
-  it("enables Merge only with exactly two selected and opens the merge page", async () => {
-    render(<MergeableList kind="tag" items={items} empty={null} />);
-    await userEvent.click(screen.getByRole("button", { name: "Select to merge" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "one" }));
+  it("keeps Merge in the bar, enabled only with exactly two selected, and opens the merge page", async () => {
+    render(<LabelList kind="tag" items={items} empty={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select one" }));
     expect(screen.getByRole("button", { name: "Merge" })).toBeDisabled();
-    await userEvent.click(screen.getByRole("checkbox", { name: "three" }));
+    expect(screen.queryByRole("button", { name: "Tags" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select three" }));
     await userEvent.click(screen.getByRole("button", { name: "Merge" }));
     expect(nav.push).toHaveBeenCalledWith("/tags/merge?a=tag_1&b=tag_3");
+  });
+
+  it("reorders the tags with the arrows and saves the order", async () => {
+    api.reorderTags.mockResolvedValue(undefined);
+    render(<LabelList kind="tag" items={items} empty={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move one down" }));
+    expect(api.reorderTags).toHaveBeenCalledWith(["tag_2", "tag_1", "tag_3"]);
+  });
+
+  it("deletes the selected tags after confirming", async () => {
+    api.bulkDeleteTags.mockResolvedValue({ deleted: 3 });
+    render(<LabelList kind="tag" items={items} empty={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(api.bulkDeleteTags).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Delete 3" }));
+    expect(api.bulkDeleteTags).toHaveBeenCalledWith(["tag_1", "tag_2", "tag_3"]);
   });
 });
 

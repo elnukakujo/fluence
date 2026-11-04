@@ -4,21 +4,25 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from ..core.database import transactional
-from ..models.containers import Lesson
+from ..models.containers import Language, Lesson
 from ..models.features import Calligraphy, Exercise, Grammar, Vocabulary
 
 _MODELS = {"voc_": Vocabulary, "gram_": Grammar, "call_": Calligraphy, "ex_": Exercise}
 
 
-def model_of(element_id: str):
-    return next((m for p, m in _MODELS.items() if isinstance(element_id, str) and element_id.startswith(p)), None)
+_CONTAINERS = {"lesson_": Lesson, "lang_": Language}   # only tags / sources apply to these
+
+
+def model_of(element_id: str, containers: bool = False):
+    models = {**_MODELS, **_CONTAINERS} if containers else _MODELS
+    return next((m for p, m in models.items() if isinstance(element_id, str) and element_id.startswith(p)), None)
 
 
 class BulkElementService:
-    def _rows(self, ids: list[str], session: Session) -> list:
+    def _rows(self, ids: list[str], session: Session, containers: bool = False) -> list:
         rows = []
         for i in ids:
-            model = model_of(i)
+            model = model_of(i, containers)
             row = session.get(model, i) if model else None
             if row is None:
                 raise LookupError(i)
@@ -50,7 +54,7 @@ class BulkElementService:
         to_add = [session.get(target, i) for i in add]
         if None in to_add:
             raise LookupError("link")
-        rows = self._rows(ids, session)
+        rows = self._rows(ids, session, containers=True)
         for r in rows:
             current = list(getattr(r, attr))
             kept = [x for x in current if x.id not in set(remove)]
@@ -80,6 +84,37 @@ class BulkElementService:
 
 
 _SOURCE_TYPES = ("original", "textbook", "class", "online", "media", "social", "other", "ai")
+
+
+@transactional
+def delete_labels(kind: str, ids: list[str], session: Optional[Session] = None) -> int:
+    """Delete tags (`kind="tag"`) or sources: their element links go with them, the elements stay. LookupError if one is missing."""
+    from sqlalchemy import delete
+    from ..models.base import source_element_link, tag_element_link
+    from ..models.system_data import Source, Tag
+
+    model, link, fk = (Tag, tag_element_link, "tag_id") if kind == "tag" else (Source, source_element_link, "source_id")
+    rows = [session.get(model, i) for i in ids]
+    if None in rows:
+        raise LookupError(ids[rows.index(None)])
+    session.execute(delete(link).where(link.c[fk].in_(ids)))
+    for r in rows:
+        session.delete(r)
+    session.flush()
+    return len(rows)
+
+
+@transactional
+def reorder_labels(kind: str, user_id: str, ids: list[str], session: Optional[Session] = None) -> bool:
+    """Give the user's tags (`kind="tag"`) or sources the order of `ids`, which must be exactly their own ids (once each)."""
+    from ..models.system_data import Source, Tag
+    model = Tag if kind == "tag" else Source
+    rows = {r.id: r for r in session.query(model).filter(model.user_id == user_id).all()}
+    if not ids or len(ids) != len(set(ids)) or set(ids) != set(rows):
+        return False
+    for position, i in enumerate(ids):
+        rows[i].position = position
+    return True
 
 
 @transactional

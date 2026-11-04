@@ -70,3 +70,16 @@ export async function mergeSources(data: { keep_id: string; merge_id: string; ti
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Failed to merge the sources");
   return res.json();
 }
+
+export async function bulkDeleteSources(ids: string[]): Promise<{ deleted: number }> {
+  const { getAuthHeaders } = await import("..");
+  const res = await fetch(`${BASE_URL}/api/sources/bulk-delete`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ ids }) });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Failed to delete");
+  return res.json();
+}
+
+/** `ids`: every source the user owns, in the new order. */
+export async function reorderSources(ids: string[]): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/sources/reorder`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ ids }) });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Failed to reorder");
+}

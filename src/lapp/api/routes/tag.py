@@ -390,3 +390,52 @@ def merge_tags():
         return jsonify({'error': 'Tag not found'}), 404
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+
+
+@bp.route('/bulk-delete', methods=['POST'])
+@login_required
+def bulk_delete_tags():
+    """Delete several tags at once (all or nothing); the elements keep existing, only the links go.
+    ---
+    tags:
+      - Tags
+    parameters:
+      - {name: body, in: body, required: true, schema: {type: object, properties: {ids: {type: array, items: {type: string}}}}}
+    responses:
+        200: {description: "{deleted: n}"}
+        400: {description: Empty or invalid ids}
+        403: {description: Not the owner of every one (nothing is deleted)}
+        404: {description: One was not found}
+    """
+    from ...services.bulk import delete_labels
+    ids = (request.get_json(silent=True) or {}).get('ids')
+    if not isinstance(ids, list) or not ids or not all(isinstance(i, str) for i in ids):
+        return jsonify({'error': 'ids must be a non-empty list'}), 400
+    ids = list(dict.fromkeys(ids))
+    for i in ids:
+        require_owns(i)
+    try:
+        return jsonify({'deleted': delete_labels('tag', ids)})
+    except LookupError:
+        return jsonify({'error': 'Not found'}), 404
+
+
+@bp.route('/reorder', methods=['POST'])
+@login_required
+def reorder_tags():
+    """Set the order of the current user's tags.
+    ---
+    tags:
+      - Tags
+    parameters:
+      - {name: body, in: body, required: true, schema: {type: object, properties: {ids: {type: array, items: {type: string}, description: "every tag id the user owns, in the new order"}}}}
+    responses:
+        200: {description: Order saved}
+        400: {description: ids are not exactly the user's tags}
+    """
+    from ...services.bulk import reorder_labels
+    ids = (request.get_json(silent=True) or {}).get('ids')
+    if not isinstance(ids, list) or not reorder_labels('tag', current_user_id(), ids):
+        return jsonify({'error': "ids must be exactly your tags, once each"}), 400
+    return jsonify({'success': True})
+

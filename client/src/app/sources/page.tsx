@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAllUserSources } from "@/api/source";
-import MergeableList from "@/components/labels/mergeableList";
+import LabelList from "@/components/labels/labelList";
 import NavButton from "@/components/layout/navButton";
 import Source from "@/interface/systemData/Source";
 import { getCurrentUserId } from "@/utils/user_cookie";
@@ -19,7 +19,7 @@ export default async function SourcesPage() {
                 <NavButton path="/sources/new">{t("newSource")}</NavButton>
             </div>
 
-            <MergeableList kind="source" empty={<p className="text-muted">{t("noSourcesYet")}</p>}
+            <LabelList kind="source" empty={<p className="text-muted">{t("noSourcesYet")}</p>}
                 items={sources.map((x) => ({ id: x.id, label: x.title, description: x.description }))} />
         </div>
     );

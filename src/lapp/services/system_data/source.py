@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from typing import Optional, Type
 from sqlalchemy.orm import Session
 
@@ -56,7 +57,7 @@ class SourceService:
 
         Returns an empty list when no sources are found.
         """
-        objs = db_manager.find_all(Source, filters={"user_id": user_id}, session=session)
+        objs = sorted(db_manager.find_all(Source, filters={"user_id": user_id}, session=session), key=lambda o: (o.position, o.created_at or 0))
         return [self._serialize(obj, as_dict, include_relations) for obj in objs]
 
     @transactional
@@ -74,7 +75,9 @@ class SourceService:
         `SourceDict` on success or `None` on failure.
         """
         source_id = getattr(source_data, "id", None) or db_manager.generate_new_id(Source, session=session)
+        last = session.query(func.max(Source.position)).filter(Source.user_id == getattr(source_data, "user_id")).scalar()
         source_obj = Source(
+            position=0 if last is None else last + 1,
             id=source_id,
             user_id=source_data.user_id,
             title=source_data.title,

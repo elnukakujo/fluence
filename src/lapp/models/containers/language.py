@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped
 
 from ..base import BaseContainerModel
@@ -12,6 +12,7 @@ class Language(BaseContainerModel):
     name = Column(String, nullable=False, index=True)
     alias = Column(String)
     flag = Column(String, default="")
+    position = Column(Integer, nullable=False, default=0, server_default="0")  # order on the home page, 0-based
 
     source_iso639_2t = Column(String, nullable=True, default="eng")
     target_iso639_2t = Column(String, nullable=True)
@@ -45,6 +46,7 @@ class Language(BaseContainerModel):
             "flag": self.flag,
             "source_iso639_2t": self.source_iso639_2t,
             "target_iso639_2t": self.target_iso639_2t,
+            "position": self.position,
         }
 
         if include_relations:

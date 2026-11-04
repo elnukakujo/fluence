@@ -20,5 +20,9 @@
   "mergeFailed": "The merge failed.",
   "invalid": "Pick two different items to merge.",
   "back": "Back",
-  "elementsCount": "{count, plural, one {# element} other {# elements}}"
+  "elementsCount": "{count, plural, one {# element} other {# elements}}",
+  "deleteTitle": "Delete {count, plural, one {# {kind, select, tag {tag} other {source}}} other {# {kind, select, tag {tags} other {sources}}}}?",
+  "deleteBody": "Their links to elements are removed; the elements themselves are kept.",
+  "deleteConfirm": "Delete {count}",
+  "deleted": "{count} deleted"
 }

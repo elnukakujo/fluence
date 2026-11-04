@@ -456,6 +456,7 @@
     transition: background-color 0.15s ease, color 0.15s ease;
   }
   .bulk-action:hover:not(:disabled) { background: var(--color-accent-soft); }
+  .bulk-action:disabled { opacity: 0.4; cursor: not-allowed; }
   .bulk-action[data-danger="true"] { color: var(--color-danger); }
   .bulk-action[data-danger="true"]:hover:not(:disabled) { background: rgb(181 64 46 / 0.12); }
   @media (min-width: 640px) { .bulk-action { flex-direction: row; gap: 0.375rem; font-size: 0.875rem; padding: 0.25rem 0.875rem; } }

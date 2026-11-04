@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Lesson from "@/interface/containers/Lesson";
 
-const api = vi.hoisted(() => ({ reorderLessons: vi.fn(), bulkDeleteLessons: vi.fn() }));
+const api = vi.hoisted(() => ({ reorderLessons: vi.fn(), bulkDeleteLessons: vi.fn(), getAllLessons: vi.fn() }));
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/api/lesson", () => api);
 vi.mock("next/navigation", () => ({
@@ -20,14 +20,14 @@ const lesson = (id: string, title: string, extra: Record<string, unknown> = {}) 
 const lessons = [lesson("lesson_1", "Alpha"), lesson("lesson_2", "Beta"), lesson("lesson_3", "Gamma"), lesson("lesson_s", "Shared one", { shared: true })];
 
 const renderIt = (canManage = true) => render(<LessonsSection lessons={lessons} language_code="jpn" languageId="lang1" canManage={canManage} />);
-const manage = async () => userEvent.click(screen.getByRole("button", { name: "Manage lessons" }));
+const manage = async () => userEvent.click(screen.getByRole("button", { name: "Select" }));
 
 beforeEach(() => { vi.clearAllMocks(); api.reorderLessons.mockResolvedValue(undefined); api.bulkDeleteLessons.mockResolvedValue({ deleted: 1 }); });
 
 describe("manage mode", () => {
   it("is not offered to someone who cannot manage the language", () => {
     renderIt(false);
-    expect(screen.queryByRole("button", { name: "Manage lessons" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Select" })).not.toBeInTheDocument();
   });
 
   it("shows a checkbox and up/down buttons per owned lesson, disabled at the ends, and nothing for shared lessons", async () => {
@@ -78,7 +78,7 @@ describe("manage mode", () => {
     expect(rows.slice(0, 3)).toEqual(["Select Alpha", "Select Beta", "Select Gamma"]);
   });
 
-  it("shows the action bar once something is selected; Merge needs exactly two", async () => {
+  it("shows the action bar once something is selected; Merge is enabled for exactly two", async () => {
     renderIt();
     await manage();
     expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
@@ -98,8 +98,7 @@ describe("manage mode", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: "Select Beta" }));
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText(/Alpha/)).toBeInTheDocument();
-    expect(within(dialog).getAllByText(/2 items/)).toHaveLength(2);
+    expect(within(dialog).getByText(/Alpha · Beta/)).toBeInTheDocument();
     expect(api.bulkDeleteLessons).not.toHaveBeenCalled();
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete 2 lessons" }));
     expect(api.bulkDeleteLessons).toHaveBeenCalledWith(["lesson_1", "lesson_2"]);

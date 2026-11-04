@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from datetime import datetime
 from os import name
 from typing import Optional
@@ -82,8 +83,7 @@ class LanguageService:
             session=session
         )
 
-        # Stable creation order: oldest first.
-        languages.sort(key=lambda language: language.created_at)
+        languages.sort(key=lambda language: (language.position, language.created_at))
 
         if not as_dict:
             return languages
@@ -155,7 +155,9 @@ class LanguageService:
         Returns:
             Created Language object if successful, else None
         """
+        last = session.query(func.max(Language.position)).filter(Language.user_id == data.user_id).scalar()
         language = Language(
+            position=0 if last is None else last + 1,
             id=db_manager.generate_new_id(model_class=Language, session=session),
             user_id=data.user_id,
             name=data.name,
@@ -186,6 +188,26 @@ class LanguageService:
             logger.error(f"Failed to create new language: {language.name}")
 
         return self._serialize(result, as_dict, include_relations)
+
+    @transactional
+    def reorder(self, user_id: str, ids: list[str], session: Optional[Session] = None) -> bool:
+        """Give the user's languages the order of `ids`, which must be exactly their own language ids (once each)."""
+        languages = {l.id: l for l in session.query(Language).filter(Language.user_id == user_id).all()}
+        if not ids or len(ids) != len(set(ids)) or set(ids) != set(languages):
+            return False
+        for position, language_id in enumerate(ids):
+            languages[language_id].position = position
+        return True
+
+    @transactional
+    def bulk_delete(self, ids: list[str], session: Optional[Session] = None) -> int:
+        """Delete several languages (and their collaborations) in the caller's transaction; returns how many were deleted."""
+        from ..system_data import CollaborationService
+        deleted = 0
+        for language_id in ids:
+            CollaborationService().purge_target("language", language_id, session=session)
+            deleted += bool(self.delete(language_id, session=session))
+        return deleted
 
     @transactional
     def update(

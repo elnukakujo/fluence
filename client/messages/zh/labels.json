@@ -20,5 +20,9 @@
   "mergeFailed": "合并失败。",
   "invalid": "请选择两个不同的项目进行合并。",
   "back": "返回",
-  "elementsCount": "{count} 个元素"
+  "elementsCount": "{count} 个元素",
+  "deleteTitle": "删除 {count} 个{kind, select, tag {标签} other {来源}}？",
+  "deleteBody": "它们与内容的关联将被移除，内容本身会保留。",
+  "deleteConfirm": "删除 {count} 个",
+  "deleted": "已删除 {count} 个"
 }

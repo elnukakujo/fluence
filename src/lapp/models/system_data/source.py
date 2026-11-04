@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Enum, String, Date, DateTime, ForeignKey, select
+from sqlalchemy import Column, Enum, Integer, String, Date, DateTime, ForeignKey, select
 from sqlalchemy.sql import func
 from sqlalchemy.util import defaultdict
 
@@ -13,6 +13,7 @@ class Source(Base):
     title = Column(String, nullable=False)
     date = Column(Date)
     description = Column(String)
+    position = Column(Integer, nullable=False, default=0, server_default="0")  # order in the user's list, 0-based
     source_type = Column(Enum("original", "textbook", "class", "online", "media", "social", "other", "ai", name="source_type_enum"), nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=True)
@@ -51,6 +52,7 @@ class Source(Base):
             "title": self.title,
             "date": self.date.isoformat() if self.date else None,
             "description": self.description,
+            "position": self.position,
             "source_type": self.source_type,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
