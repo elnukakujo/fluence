@@ -10,7 +10,7 @@ vi.mock("@/api/exercise", () => api);
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/components/tags/tagSelector", () => ({ default: () => null }));
 vi.mock("@/components/sources/sourceSelector", () => ({ default: () => null }));
-vi.mock("@/components/media/mediaLoader", () => ({ default: () => null }));
+vi.mock("@/components/media/mediaLoader", () => ({ default: () => <div data-testid="media" /> }));
 vi.mock("@/components/ui/selectMenu/openCloseMenu", () => ({ default: () => null }));
 
 import ExerciseForm from "./exerciseForm";
@@ -43,5 +43,24 @@ describe("exercise form: reading and dictation", () => {
     const sent = api.updateExercise.mock.calls[0][1];
     expect(sent.answer).toBe("x y");
     expect(sent.content).toEqual({ lines: [{ text: "x", audioIndex: null }, { text: "y", audioIndex: 1 }] });
+  });
+
+  it("saves with no instruction: the question falls back to the first line, and the field is not required", async () => {
+    form({ id: "ex_3", exercise_type: "dictation", question: "x", answer: "x", lesson_id: "lesson_1", content: { lines: [{ text: "犬がいます", audioIndex: null }] } });
+    const instruction = screen.getByLabelText("Instruction (optional)");
+    expect(instruction).not.toBeRequired();
+    await userEvent.clear(instruction);
+    await userEvent.click(screen.getByRole("button", { name: "Update Exercise" }));
+    expect(api.updateExercise.mock.calls[0][1].question).toBe("犬がいます");
+  });
+
+  it("puts the lines card between the instruction/support and the media loader", () => {
+    form({ id: "ex_4", exercise_type: "reading", question: "Read", answer: "a", lesson_id: "lesson_1",
+      content: { speakers: [{ id: "s1", name: "A" }], lines: [{ speakerId: "s1", text: "a", translation: null, audioIndex: null }] } });
+    const support = screen.getByLabelText("Support");
+    const lines = screen.getByText("Lines to read");
+    const media = screen.getByTestId("media");
+    expect(support.compareDocumentPosition(lines) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(lines.compareDocumentPosition(media) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

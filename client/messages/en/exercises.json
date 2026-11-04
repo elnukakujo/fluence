@@ -107,5 +107,6 @@
   "readingLines": "Lines to read",
   "dictationLines": "Lines to dictate",
   "speakerOptional": "Speaker (optional)",
-  "translationOptional": "Translation (optional)"
+  "translationOptional": "Translation (optional)",
+  "instructionOptional": "Instruction (optional)"
 }

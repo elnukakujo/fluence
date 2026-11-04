@@ -107,5 +107,6 @@
   "readingLines": "Lignes à lire",
   "dictationLines": "Lignes à dicter",
   "speakerOptional": "Locuteur (facultatif)",
-  "translationOptional": "Traduction (facultative)"
+  "translationOptional": "Traduction (facultative)",
+  "instructionOptional": "Consigne (facultative)"
 }

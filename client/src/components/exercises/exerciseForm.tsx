@@ -400,6 +400,8 @@ export default function ExerciseForm({
         }
     }, [exerciseType, isUpdate]);
 
+    const isLines = exerciseType === "reading" || exerciseType === "dictation";   // the lines are the content; the question is an optional instruction
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -439,9 +441,11 @@ export default function ExerciseForm({
         } else if (exerciseType === "reading") {
             content = readingContent(readingLines);
             normalizedAnswer = content.lines.map(l => l.text).join("\n");
+            if (!normalizedQuestion.trim()) normalizedQuestion = content.lines[0].text.slice(0, 60);   // the question column is required
         } else if (exerciseType === "dictation") {
             content = dictationContent(dictationLines);
             normalizedAnswer = content.lines.map(l => l.text).join(" ");
+            if (!normalizedQuestion.trim()) normalizedQuestion = content.lines[0].text.slice(0, 60);
         } else if (exerciseType === "speaking") {
             normalizedAnswer = normalizedQuestion;
         }
@@ -507,8 +511,8 @@ export default function ExerciseForm({
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             className="card flex w-full overflow-hidden p-2"
-                            label={t("questionLabel")}
-                            required
+                            label={t(isLines ? "instructionOptional" : "questionLabel")}
+                            required={!isLines}
                         />
                     )}
 
@@ -518,6 +522,10 @@ export default function ExerciseForm({
                         className="card flex w-full overflow-hidden p-2"
                         label={t("support")}
                     />
+
+                    {exerciseType === "reading" && <ReadingContentEditor rows={readingLines} setRows={setReadingLines} />}
+
+                    {exerciseType === "dictation" && <DictationContentEditor rows={dictationLines} setRows={setDictationLines} />}
 
                     <MediaLoader imageUrl={imageUrl} setImageUrl={setImageUrl} audioUrl={audioUrl} setAudioUrl={setAudioUrl} />
 
@@ -566,10 +574,6 @@ export default function ExerciseForm({
                     {exerciseType === "organize" && (
                         <OrganizeContentEditor items={organizeItems} setItems={setOrganizeItems} />
                     )}
-
-                    {exerciseType === "reading" && <ReadingContentEditor rows={readingLines} setRows={setReadingLines} />}
-
-                    {exerciseType === "dictation" && <DictationContentEditor rows={dictationLines} setRows={setDictationLines} />}
 
                     {exerciseType === "quizz" && (
                         <QuizzContentEditor options={quizOptions} setOptions={setQuizOptions} correct={quizCorrect} setCorrect={setQuizCorrect} />
