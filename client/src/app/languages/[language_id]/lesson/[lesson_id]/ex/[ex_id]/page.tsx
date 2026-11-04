@@ -19,7 +19,7 @@ import DictationExercise from "@/components/exercises/dictationExercise";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
-import NeedsBadge from "@/components/exercises/needsBadge";
+import ExerciseStatus from "@/components/exercises/exerciseStatus";
 import GenerateAudioButton from "@/components/exercises/generateAudioButton";
 import { getExerciseById } from "@/api/exercise";
 import { getTranslations } from "next-intl/server";
@@ -32,6 +32,10 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
 
     return(
         <main className="flex flex-col space-y-4">
+            <header className="ex-card-head">
+                <span className="badge">{exercise.exercise_type}</span>
+                <ExerciseStatus exercise={exercise} />
+            </header>
             {exercise.exercise_type === 'type_in_the_blank' && (
                 <TypeInTheBlankExercise exercise={exercise} />
             )}
@@ -61,7 +65,6 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             )}
             {exercise.exercise_type === 'conversation' && <ConversationExercise exercise={exercise} />}
             {exercise.exercise_type === 'quizz' && <QuizzExercise exercise={exercise} />}
-            <NeedsBadge exercise={exercise} />
             {exercise.exercise_type === 'reading' && <ReadingExercise exercise={exercise} />}
             {exercise.exercise_type === 'reading' && <GenerateAudioButton exercise={exercise} />}
             {exercise.exercise_type === 'dictation' && <DictationExercise exercise={exercise} />}
@@ -70,7 +73,7 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             <ElementSourcesCard element={exercise} />
             <ElementPerformanceCard element={exercise}/>
 
-            <nav className="flex flex-row space-x-4">
+            <nav className="ex-actions">
                 <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}/update`}>
                     <p>{t("updateExerciseButton")}</p>
                 </NavButton>

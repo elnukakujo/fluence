@@ -110,8 +110,11 @@
   "readingDoneMessage": "✓ Terminé",
   "ttsFailed": "Le service de synthèse vocale a échoué. Vérifiez-le dans les paramètres, ou téléversez un clip.",
   "audioPlayFailed": "Impossible de lire l'audio.",
-  "needsAudio": "Audio requis",
   "generateAudio": "Générer l'audio",
   "generatingAudio": "Génération…",
-  "dictationNeedsAudio": "Cette dictée a besoin d'un clip pour chaque ligne avant de pouvoir être pratiquée."
+  "dictationNeedsAudio": "Cette dictée a besoin d'un clip pour chaque ligne avant de pouvoir être pratiquée.",
+  "statusReady": "Prêt",
+  "statusNotReady": "Pas prêt",
+  "statusMissing": "Manque : {what}",
+  "need_audio": "audio"
 }

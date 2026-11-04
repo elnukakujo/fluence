@@ -1,13 +1,14 @@
 import { getExercisesByLesson } from "@/api/exercise";
 import NavButton from "@/components/layout/navButton";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
-import NeedsBadge from "@/components/exercises/needsBadge";
+import ExerciseStatus from "@/components/exercises/exerciseStatus";
 import Exercise from "@/interface/features/Exercise";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import LessonItems, { SelectAllRow, SelectBox, SelectToggle } from "@/components/elements/itemSelection";
 import { getLessonById } from "@/api/lesson";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { Play, Pencil } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 export default async function ExercisesPage({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }){
@@ -36,9 +37,11 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                         <h3>{type.charAt(0).toUpperCase() + type.slice(1)}</h3>
                         <ul className="list-none">
                             {exercises.map((exercise, index) => (
-                                <li key={index} className="card flex flex-col gap-2">
-                                    <SelectBox kind="ex" id={exercise.id!} label={exercise.exercise_type ?? "exercise"}>{exercise.exercise_type}</SelectBox>
-                                    <NeedsBadge exercise={exercise} />
+                                <li key={index} className="card ex-card">
+                                    <div className="ex-card-head">
+                                        <SelectBox kind="ex" id={exercise.id!} label={exercise.exercise_type ?? "exercise"}>{exercise.exercise_type}</SelectBox>
+                                        <ExerciseStatus exercise={exercise} />
+                                    </div>
                                     {!['type_in_the_blank', 'select_in_the_blank', 'conversation'].includes(exercise.exercise_type!) && (
                                         <Markdown remarkPlugins={[remarkGfm]}>{exercise.question}</Markdown>
                                     )}
@@ -69,14 +72,16 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                                             </span>
                                         );
                                     })()}
-                                    <p>{t("score", { score: exercise.score?.toFixed(2) })}</p>
-                                    <p>{t("difficulty", { difficulty: exercise.difficulty?.toFixed(1) })}</p>
-                                    <nav className="flex flex-row space-x-2">
+                                    <div className="ex-stats">
+                                        <span>{t("score", { score: exercise.score?.toFixed(2) })}</span>
+                                        <span>{t("difficulty", { difficulty: exercise.difficulty?.toFixed(1) })}</span>
+                                    </div>
+                                    <nav className="ex-actions">
                                         <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}`}>
-                                            <p>{t("practiceThisExercise")}</p>
+                                            <span className="inline-flex items-center gap-2"><Play size={14} aria-hidden />{t("practiceThisExercise")}</span>
                                         </NavButton>
                                         <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}/update`}>
-                                            <p>{t("updateExerciseButton")}</p>
+                                            <span className="inline-flex items-center gap-2"><Pencil size={14} aria-hidden />{t("updateExerciseButton")}</span>
                                         </NavButton>
                                         <DeleteButton element_id={exercise.id!}>
                                             <p>{t("deleteExerciseButton")}</p>

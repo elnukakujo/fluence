@@ -110,8 +110,11 @@
   "readingDoneMessage": "✓ Done",
   "ttsFailed": "The text-to-speech endpoint failed. Check it in Settings, or upload a clip.",
   "audioPlayFailed": "The audio could not be played.",
-  "needsAudio": "Needs audio",
   "generateAudio": "Generate audio",
   "generatingAudio": "Generating…",
-  "dictationNeedsAudio": "This dictation needs a clip for every line before it can be practised."
+  "dictationNeedsAudio": "This dictation needs a clip for every line before it can be practised.",
+  "statusReady": "Ready",
+  "statusNotReady": "Not ready",
+  "statusMissing": "Missing: {what}",
+  "need_audio": "audio"
 }

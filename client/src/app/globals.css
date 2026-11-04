@@ -282,6 +282,16 @@
     color: var(--color-accent);
   }
 
+  /* Status badges: icon + text, never colour alone */
+  .badge-ok   { gap: 0.25rem; background: color-mix(in srgb, var(--color-success) 16%, transparent); color: var(--color-success); }
+  .badge-warn { gap: 0.25rem; background: color-mix(in srgb, var(--color-warning) 18%, transparent); color: var(--color-warning); }
+
+  /* Exercise card: header (badges) / body / stats / actions */
+  .ex-card { display: flex; flex-direction: column; gap: 0.75rem; }
+  .ex-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .ex-stats { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-size: 0.85rem; color: var(--color-muted); }
+  .ex-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border); }
+
   /* People list (collaborator menu): avatar, row, search field, segmented choice */
   .avatar {
     display: flex;

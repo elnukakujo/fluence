@@ -110,8 +110,11 @@
   "readingDoneMessage": "✓ 完成",
   "ttsFailed": "语音合成端点出错。请在设置中检查，或上传音频。",
   "audioPlayFailed": "无法播放音频。",
-  "needsAudio": "需要音频",
   "generateAudio": "生成音频",
   "generatingAudio": "生成中…",
-  "dictationNeedsAudio": "听写需要每一行都有音频才能练习。"
+  "dictationNeedsAudio": "听写需要每一行都有音频才能练习。",
+  "statusReady": "就绪",
+  "statusNotReady": "未就绪",
+  "statusMissing": "缺少：{what}",
+  "need_audio": "音频"
 }
