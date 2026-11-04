@@ -7,7 +7,7 @@ export default async function PracticeExercisePage({ params }: { params: Promise
     const t = await getTranslations("languages");
     const { lesson_id } = await params;
 
-    const exercises: Exercise[] = await getExercisesByLesson(lesson_id);
+    const exercises: Exercise[] = (await getExercisesByLesson(lesson_id)).filter((e: Exercise) => !e.needs?.length);   // not-ready ones are not practicable
     exercises.sort(() => Math.random() - 0.5); // Shuffle the array randomly
 
     return (

@@ -19,6 +19,8 @@ import DictationExercise from "@/components/exercises/dictationExercise";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
+import NeedsBadge from "@/components/exercises/needsBadge";
+import GenerateAudioButton from "@/components/exercises/generateAudioButton";
 import { getExerciseById } from "@/api/exercise";
 import { getTranslations } from "next-intl/server";
 
@@ -59,7 +61,9 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             )}
             {exercise.exercise_type === 'conversation' && <ConversationExercise exercise={exercise} />}
             {exercise.exercise_type === 'quizz' && <QuizzExercise exercise={exercise} />}
+            <NeedsBadge exercise={exercise} />
             {exercise.exercise_type === 'reading' && <ReadingExercise exercise={exercise} />}
+            {exercise.exercise_type === 'reading' && <GenerateAudioButton exercise={exercise} />}
             {exercise.exercise_type === 'dictation' && <DictationExercise exercise={exercise} />}
 
             <ElementTagsCard element={exercise} />

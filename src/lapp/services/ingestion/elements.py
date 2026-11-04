@@ -405,6 +405,8 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         if not question:
             return None
 
+        if exercise_type == "dictation":
+            flag("needs_audio", "A dictation needs a clip for every line: generate or upload them after adding it", "info")
         flag("exercise_unreliable", "Exercises are rebuilt by the model from the page - always check this one before adding it")
 
         # Check if question is in the chunk

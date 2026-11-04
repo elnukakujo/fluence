@@ -17,6 +17,17 @@ class Exercise(BaseFeatureModel):
     related_calligraphy = relationship('Calligraphy', secondary=exercise_calligraphy_link)
     related_grammar = relationship('Grammar', secondary=exercise_grammar_link)
     
+    @property
+    def needs(self) -> list[str]:
+        """What the user still has to provide before this exercise can be practised ([] = ready).
+        A dictation needs a clip for every line; other types need nothing."""
+        if self.exercise_type != "dictation":
+            return []
+        files = self.audio_files or []
+        lines = (self.content or {}).get("lines") or []
+        ok = all(isinstance(l.get("audioIndex"), int) and 0 <= l["audioIndex"] < len(files) for l in lines)
+        return [] if lines and ok else ["audio"]
+
     def to_dict(self, include_relations: bool = True) -> dict:
         base_dict = {
             **super().to_dict(include_relations=include_relations),
@@ -25,6 +36,7 @@ class Exercise(BaseFeatureModel):
             "text_support": self.text_support,
             "answer": self.answer,
             "content": self.content,
+            "needs": self.needs,
             "related_vocabulary": [v.id for v in self.related_vocabulary],
             "related_calligraphy": [c.id for c in self.related_calligraphy],
             "related_grammar": [g.id for g in self.related_grammar],

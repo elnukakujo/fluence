@@ -9,8 +9,9 @@ import { evaluateText, updateScoreById } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import { getLevelForScore } from "@/utils/speech_levels";
-import { Loader2, Volume2 } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { useLineAudio } from "./lineAudio";
+import GenerateAudioButton from "./generateAudioButton";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
 
@@ -28,6 +29,7 @@ export default function DictationExercise({ exercise }: { exercise: Exercise }) 
     useEffect(() => { setIndex(0); setTyped([]); setDone(false); setFeedback(null); startTimeRef.current = performance.now(); }, [exercise]);
 
     if (!lines.length) return null;
+    if (exercise.needs?.length) return <div className="card"><h3>{exercise.question}</h3><p>{t("dictationNeedsAudio")}</p><GenerateAudioButton exercise={exercise} /></div>;
     const last = index === lines.length - 1;
     const set = (v: string) => setTyped((a) => { const n = [...a]; n[index] = v; return n; });
 
@@ -57,9 +59,9 @@ export default function DictationExercise({ exercise }: { exercise: Exercise }) 
             {!done ? (
                 <section className="flex flex-col gap-3">
                     <p className="text-xs">{t("lineOf", { current: index + 1, total: lines.length })}</p>
-                    <button type="button" className="btn btn-secondary self-start inline-flex items-center gap-2" disabled={audio.busy !== null}
-                        onClick={() => audio.play(index, lines[index])}>
-                        {audio.busy === index ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Volume2 size={16} aria-hidden />}
+                    <button type="button" className="btn btn-secondary self-start inline-flex items-center gap-2"
+                        onClick={() => audio.play(lines[index])}>
+                        <Volume2 size={16} aria-hidden />
                         {t("play")}
                     </button>
                     <AutoSizeTextArea value={typed[index] ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("dictationPlaceholder")} />

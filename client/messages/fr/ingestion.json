@@ -285,5 +285,6 @@
   "reload": "Refaire",
   "reloading": "Nouvelle passe…",
   "reloadFailed": "Impossible de refaire : {message}",
-  "addingProgress": "Ajout… {done} / {total}"
+  "addingProgress": "Ajout… {done} / {total}",
+  "needsAudio": "Audio requis"
 }

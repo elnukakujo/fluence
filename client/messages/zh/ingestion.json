@@ -285,5 +285,6 @@
   "reload": "重做",
   "reloading": "重做中…",
   "reloadFailed": "无法重做：{message}",
-  "addingProgress": "添加中… {done} / {total}"
+  "addingProgress": "添加中… {done} / {total}",
+  "needsAudio": "需要音频"
 }

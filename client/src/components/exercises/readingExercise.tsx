@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Languages, Loader2, Volume2 } from "lucide-react";
+import { Languages, Volume2 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Exercise from "@/interface/features/Exercise";
@@ -46,10 +46,12 @@ export default function ReadingExercise({ exercise }: { exercise: Exercise }) {
                         <div className="flex flex-row items-start gap-2">
                             {multi && <strong className="shrink-0 whitespace-nowrap">{names[line.speakerId]}</strong>}
                             <span className="flex-1">{line.text}</span>
-                            <button type="button" className={ICON_BTN} title={t("play")} aria-label={t("readingLinePlay", { n: i + 1 })}
-                                disabled={audio.busy !== null} onClick={() => audio.play(i, line)}>
-                                {audio.busy === i ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
-                            </button>
+                            {audio.hasAudio(line) && (
+                                <button type="button" className={ICON_BTN} title={t("play")} aria-label={t("readingLinePlay", { n: i + 1 })}
+                                    onClick={() => audio.play(line)}>
+                                    <Volume2 size={16} />
+                                </button>
+                            )}
                             {line.translation && (
                                 <button type="button" className={`${ICON_BTN} ${shown[i] ? "bg-accent text-primary-foreground" : ""}`} aria-pressed={!!shown[i]}
                                     title={shown[i] ? t("hideTranslation") : t("showTranslation")}

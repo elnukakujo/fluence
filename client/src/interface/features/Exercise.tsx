@@ -16,6 +16,7 @@ export default interface Exercise extends BaseFeature {
     answer: string;
     text_support?: string;
     content?: ExerciseContent;
+    needs?: string[];   // what the user must still provide before practising (e.g. "audio"); empty = ready
 
     related_vocabulary?: string[];
     related_calligraphy?: string[];

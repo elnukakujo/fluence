@@ -157,3 +157,4 @@ def test_dictation_answer_is_joined_lines_and_content_has_null_audio():
     cand = _verify({**DICTATION, "exercise_type": "dictation"}, "Write what you hear 犬がいます 猫もいます")
     assert cand.fields["answer"] == "犬がいます 猫もいます"
     assert cand.fields["content"]["lines"] == [{"text": "犬がいます", "audioIndex": None}, {"text": "猫もいます", "audioIndex": None}]
+    assert "needs_audio" in {f.code for f in cand.flags}   # info flag: clips are generated or uploaded after adding

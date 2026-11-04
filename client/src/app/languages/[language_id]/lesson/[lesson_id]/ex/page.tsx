@@ -1,6 +1,7 @@
 import { getExercisesByLesson } from "@/api/exercise";
 import NavButton from "@/components/layout/navButton";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
+import NeedsBadge from "@/components/exercises/needsBadge";
 import Exercise from "@/interface/features/Exercise";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -37,6 +38,7 @@ export default async function ExercisesPage({ params }: { params: Promise<{ lang
                             {exercises.map((exercise, index) => (
                                 <li key={index} className="card flex flex-col gap-2">
                                     <SelectBox kind="ex" id={exercise.id!} label={exercise.exercise_type ?? "exercise"}>{exercise.exercise_type}</SelectBox>
+                                    <NeedsBadge exercise={exercise} />
                                     {!['type_in_the_blank', 'select_in_the_blank', 'conversation'].includes(exercise.exercise_type!) && (
                                         <Markdown remarkPlugins={[remarkGfm]}>{exercise.question}</Markdown>
                                     )}

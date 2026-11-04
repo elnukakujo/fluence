@@ -10,12 +10,13 @@ const exApi = vi.hoisted(() => ({ generateLineAudio: vi.fn() }));
 const played = vi.hoisted(() => ({ urls: [] as string[] }));
 vi.mock("@/api/process", () => api);
 vi.mock("@/api/exercise", () => exApi);
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 import DictationExercise from "./dictationExercise";
 
 const ex = () => ({
-  id: "ex_2", exercise_type: "dictation", question: "Write what you hear", answer: "犬がいます 猫もいます", audio_files: [],
-  content: { lines: [{ text: "犬がいます", audioIndex: null }, { text: "猫もいます", audioIndex: null }] } }) as unknown as Exercise;
+  id: "ex_2", exercise_type: "dictation", question: "Write what you hear", answer: "犬がいます 猫もいます", audio_files: ["/media/audio/d.wav", "/media/audio/e.wav"], needs: [],
+  content: { lines: [{ text: "犬がいます", audioIndex: 0 }, { text: "猫もいます", audioIndex: 1 }] } }) as unknown as Exercise;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -25,21 +26,16 @@ beforeEach(() => {
 });
 
 describe("dictation exercise", () => {
-  it("generates the line's clip with the user's TTS endpoint and plays it", async () => {
-    exApi.generateLineAudio.mockResolvedValue({ audio_files: ["/media/audio/d.wav"], content: { lines: [{ audioIndex: 0 }, { audioIndex: null }] } });
+  it("plays the line's stored clip", async () => {
     render(<DictationExercise exercise={ex()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Play" }));
-    expect(exApi.generateLineAudio).toHaveBeenCalledWith("ex_2", 0);
-    expect(played.urls).toEqual(["/media/audio/d.wav"]);
+    await userEvent.click(screen.getAllByRole("button", { name: "Play" }).at(-1)!);   // the media card has its own play buttons
+    expect(played.urls).toContain("/media/audio/d.wav");
   });
 
-  it("does nothing, silently, when no TTS endpoint is configured", async () => {
-    exApi.generateLineAudio.mockRejectedValue(new Error("tts_not_configured"));
-    render(<DictationExercise exercise={ex()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Play" }));
-    expect(exApi.generateLineAudio).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(played.urls).toEqual([]);
+  it("is not practicable while a line has no clip", () => {
+    render(<DictationExercise exercise={{ ...ex(), needs: ["audio"], audio_files: [] } as Exercise} />);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/needs a clip for every line/)).toBeInTheDocument();
   });
 
   it("evaluates once, after the last line, with the lines joined", async () => {

@@ -285,5 +285,6 @@
   "reload": "Redo",
   "reloading": "Redoing…",
   "reloadFailed": "Could not redo: {message}",
-  "addingProgress": "Adding… {done} / {total}"
+  "addingProgress": "Adding… {done} / {total}",
+  "needsAudio": "Needs audio"
 }

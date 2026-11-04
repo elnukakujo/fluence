@@ -42,31 +42,10 @@ describe("reading exercise", () => {
     expect(exApi.generateLineAudio).not.toHaveBeenCalled();
   });
 
-  it("generates a missing clip with the user's TTS endpoint once, then replays it without asking again", async () => {
-    exApi.generateLineAudio.mockResolvedValue({ audio_files: ["/media/audio/new.wav"], content: { lines: [{ audioIndex: 0 }, { audioIndex: null }] } });
+  it("shows no play button for a line without a clip, and never calls the TTS endpoint", () => {
     render(<ReadingExercise exercise={ex()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Play line 1" }));
-    expect(exApi.generateLineAudio).toHaveBeenCalledWith("ex_1", 0);
-    expect(played.urls).toEqual(["/media/audio/new.wav"]);
-    await userEvent.click(screen.getByRole("button", { name: "Play line 1" }));
-    expect(exApi.generateLineAudio).toHaveBeenCalledTimes(1);
-    expect(played.urls).toHaveLength(2);
-  });
-
-  it("does nothing, silently, when no TTS endpoint is configured", async () => {
-    exApi.generateLineAudio.mockRejectedValue(new Error("tts_not_configured"));
-    render(<ReadingExercise exercise={ex()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Play line 1" }));
-    expect(exApi.generateLineAudio).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(played.urls).toEqual([]);
-  });
-
-  it("warns that the endpoint failed on any other error", async () => {
-    exApi.generateLineAudio.mockRejectedValue(new Error("tts_failed"));
-    render(<ReadingExercise exercise={ex()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Play line 2" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/endpoint failed/);
+    expect(screen.queryByRole("button", { name: "Play line 1" })).not.toBeInTheDocument();
+    expect(exApi.generateLineAudio).not.toHaveBeenCalled();
   });
 
   it("gives the point when the learner finishes, once, and offers no recording or self-grade", async () => {
