@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
+import { submitCalligraphyDrawing } from "@/api/calligraphy";
+import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
@@ -35,6 +37,9 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
+    const [showPractice, setShowPractice] = useState<boolean>(false);
+    const [practiceResult, setPracticeResult] = useState<{ similarity: number; strokeOrderErrors: number } | null>(null);
+    const tCal = useTranslations("calligraphy");
 
     const card = cards[currentIndex];
 
@@ -43,6 +48,8 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
         setHintUsed(false);
         setHiddenTranslation(true);
         setGraded(false);
+        setShowPractice(false);
+        setPracticeResult(null);
     }, [currentIndex]);
 
     if (!card) {
@@ -58,6 +65,18 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
         setGraded(true);
         const duration_ms = Math.round(performance.now() - startTimeRef.current);
         updateScoreById(card.id, score, duration_ms, hintUsed);
+    };
+
+    const handleDrawingResult = async (r: { similarity: number; strokeOrderErrors: number }) => {
+        const duration_ms = Math.round(performance.now() - startTimeRef.current);
+        try {
+            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms);
+            setPracticeResult(r);
+            setGraded(true);
+            setShowPractice(false);
+        } catch (e) {
+            console.error("Failed to submit drawing", e);
+        }
     };
 
     const reveal = () => {
@@ -99,7 +118,28 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                 </>
             ) : (
                 <>
-                    {/* ── Flip card ────────────────────────────────── */}
+                    {/* ── Calligraphy: draw the character (stroke order + similarity) ── */}
+                    {isCalligraphy(card) && !showPractice && (
+                        <button className="btn self-end" onClick={() => setShowPractice(true)}>{tCal("practiceButton")}</button>
+                    )}
+                    {isCalligraphy(card) && practiceResult && (
+                        <section className="card flex flex-col gap-2.5">
+                            <h3 className="font-serif">{tCal("practiceResult")}</h3>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted">{tCal("shapeSimilarity")}</span>
+                                <span className="stat-value">{Math.round(practiceResult.similarity * 100)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted">{tCal("strokeOrder")}</span>
+                                <span className="text-sm font-medium">
+                                    {practiceResult.strokeOrderErrors === 0 ? tCal("strokeOrderCorrect") : tCal("strokeOrderErrors", { n: practiceResult.strokeOrderErrors })}
+                                </span>
+                            </div>
+                        </section>
+                    )}
+                    {isCalligraphy(card) && showPractice ? (
+                        <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
+                    ) : (
                     <div className="flashcard">
                         <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
                             <div
@@ -141,6 +181,8 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                             </div>
                         </div>
                     </div>
+
+                    )}
 
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
