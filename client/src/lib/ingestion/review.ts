@@ -10,6 +10,7 @@ export type Candidate = {
   word_type?: string | null;
   quote: string;
   page: number; // 0-based document page
+  page_end?: number; // last page, when a merged point spans several
   chunk_id: string;
   status: "verified" | "flagged";
   flags: Flag[];
@@ -243,7 +244,7 @@ export function mergeRows(rows: Row[], ids: string[], merged: { title: string; e
   const original_text = picked.map((r) => r.original_text).filter(Boolean).join("\n\n");
   const candidate: Candidate = {
     id: `merged_${picked.map((r) => r.candidate.id).join("+")}`, kind: "grammar", ...merged, original_text, quote: first.quote,
-    page: Math.min(...picked.map((r) => r.candidate.page)), chunk_id: first.chunk_id, status: "flagged", min_conf: null,
+    page: Math.min(...picked.map((r) => r.candidate.page)), page_end: Math.max(...picked.map((r) => r.candidate.page_end ?? r.candidate.page)), chunk_id: first.chunk_id, status: "flagged", min_conf: null,
     flags: [{ code: "grammar_generated", message: "Joined by the model from the selected points - check it", severity: "warning" }],
   };
   const out: Row[] = [];

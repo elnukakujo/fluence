@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import ReviewPanel from "./reviewPanel";
 import type { Candidate } from "@/lib/ingestion/review";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const mergeGrammar = vi.hoisted(() => vi.fn());
 vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", mergeGrammar }));
 
@@ -255,12 +256,18 @@ describe("ReviewPanel", () => {
     expect(screen.getByRole("button", { name: "Add 1" })).toBeInTheDocument();
   });
 
-  it("Confirm all and Reject all act on every item of the open tab only", async () => {
+  it("select all + Confirm / Reject in the toolbar act on the open tab only", async () => {
     const a: Candidate = { id: "a", word: "a", translation: "x", quote: "a", page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null };
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[a, { ...a, id: "b", word: "b" }, grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Confirm all" }));
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+    const bar = () => within(screen.getByRole("region", { name: "Actions for the selected items" }));
+    await userEvent.click(bar().getByRole("button", { name: "Confirm" }));
     expect(screen.getByRole("button", { name: "Add 2" })).toBeInTheDocument();   // the grammar card is in another tab
-    await userEvent.click(screen.getByRole("button", { name: "Reject all" }));
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+    await userEvent.click(bar().getByRole("button", { name: "Reject" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reject 2" }));   // the confirmation dialog
     expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
   });
 

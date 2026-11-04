@@ -9,10 +9,11 @@ type Dialog = "delete" | "move" | "tags" | "sources" | null;
 
 // Floating toolbar for the ticked items: count + exit on the left, actions on the right (delete set apart, in red).
 // Shared by the lesson page (items: move, tags, sources, delete) and the language / home pages (lessons, languages: tags, sources,
-// delete, no move): `move` turns the Move action on, `onDelete` + `deleteCopy` replace the item delete, `extra` adds page actions.
-export default function ItemActionBar({ ids, labels, userId, links = true, move, onDelete, deleteCopy, extra, onDone, onClear, onExit }: {
+// delete, no move): `move` turns the Move action on, `onDelete` + `deleteCopy` replace the item delete (`deleteAction` renames it, e.g. Reject),
+// `extra` adds page actions.
+export default function ItemActionBar({ ids, labels, userId, links = true, move, onDelete, deleteCopy, deleteAction, extra, onDone, onClear, onExit }: {
   ids: string[]; labels: string[]; userId: string; links?: boolean; move?: { lessonId: string; languageId: string };
-  onDelete?: (ids: string[]) => Promise<unknown>; deleteCopy?: DeleteCopy; extra?: ReactNode;
+  onDelete?: (ids: string[]) => Promise<unknown>; deleteCopy?: DeleteCopy; deleteAction?: { label: string; icon?: ReactNode }; extra?: ReactNode;
   onDone: (message: string) => void; onClear: () => void; onExit: () => void;
 }) {
   const t = useTranslations("elements");
@@ -34,7 +35,7 @@ export default function ItemActionBar({ ids, labels, userId, links = true, move,
         </>}
         {extra}
         <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />
-        <button type="button" className="bulk-action" data-danger="true" onClick={() => setDialog("delete")}><Trash2 size={20} aria-hidden />{t("bulkDelete")}</button>
+        <button type="button" className="bulk-action" data-danger="true" onClick={() => setDialog("delete")}>{deleteAction?.icon ?? <Trash2 size={20} aria-hidden />}{deleteAction?.label ?? t("bulkDelete")}</button>
       </div>
       {dialog === "delete" && <DeleteDialog ids={ids} labels={labels} remove={onDelete} copy={deleteCopy} onClose={close} onDone={done} />}
       {dialog === "move" && move && <MoveDialog ids={ids} labels={labels} lessonId={move.lessonId} languageId={move.languageId} onClose={close} onDone={done} />}

@@ -63,8 +63,6 @@
   "filterAll": "All",
   "filterVerified": "Found in the text",
   "filterFlagged": "Need checking",
-  "confirmAll": "Confirm all",
-  "rejectAll": "Reject all",
   "confirmAllVerified": "Confirm all verified",
   "audioClips": "Make the {count, plural, one {# missing audio clip} other {# missing audio clips}} with my text-to-speech endpoint (one call per clip)",
   "audioClipsDisabled": "Add a text-to-speech endpoint in Settings to turn this on.",
@@ -276,9 +274,12 @@
   "merging": "Merging…",
   "bulkApplied": "Applied to {count} items",
   "bulkMergedDone": "Merged {count} points into one - check it below",
-  "deleteRowsTitle": "Delete {count} candidates?",
+  "deleteRowsTitle": "Reject {count} candidates?",
   "deleteRowsBody": "They leave this import. You can undo each one afterwards.",
-  "deleteRowsConfirm": "Delete {count}",
-  "deleteRowsDone": "{count} candidates deleted",
-  "selectOne": "Select {label}"
+  "deleteRowsConfirm": "Reject {count}",
+  "deleteRowsDone": "{count} candidates rejected",
+  "selectOne": "Select {label}",
+  "reject": "Reject",
+  "filtersLabel": "Filter",
+  "pageRangeQuote": "Pages {from}–{to} · \"{quote}\""
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import JobControls from "./jobControls";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -309,12 +310,16 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
   const createdId = added?.lessonId ?? l.created_lesson_id;
   return (
     <details className="card" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary className="cursor-pointer">
-        <strong>{l.title}</strong> · {t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })} ·{" "}
-        {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
-          : t("lessonCounts", { total: l.counts?.total ?? 0, flagged: l.counts?.flagged ?? 0 })}
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
+        <ChevronRight size={18} aria-hidden className={`shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+        <strong className="min-w-0 flex-1 break-words">{l.title}</strong>
+        <span className="text-sm text-muted">{t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })}</span>
+        <span className="badge">
+          {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
+            : t("lessonCounts", { total: l.counts?.total ?? 0, flagged: l.counts?.flagged ?? 0 })}
+        </span>
       </summary>
-      <div className="mt-3">
+      <div className="mt-4 border-t border-border pt-4">
         {l.status === "failed" && <p role="alert">✗ {l.error ?? t("lessonCouldNotBeRead")}</p>}
         {l.status === "pending" && <p className="opacity-70">{t("lessonNotReadYet")}</p>}
         {createdId && (

@@ -37,8 +37,9 @@ export default function LessonItems({ isOwner, userId, lessonId, languageId, cla
 
 // The reusable part: shares one selection between the lists of a page (any Kind), shows the page's action bar (`bar`)
 // and a short confirmation once an action went through. Escape leaves select mode.
-export function SelectionScope({ canSelect, className, bar, children }: {
-  canSelect: boolean; className?: string; bar: (props: BarProps) => ReactNode; children: ReactNode;
+// `barWidth` is a max-w class: wider for pages with many actions.
+export function SelectionScope({ canSelect, className, barWidth = "max-w-2xl", bar, children }: {
+  canSelect: boolean; className?: string; barWidth?: string; bar: (props: BarProps) => ReactNode; children: ReactNode;
 }) {
   const [activeKinds, setActiveKinds] = useState<Set<Kind>>(new Set());
   const [selected, setSelected] = useState<Map<string, string>>(new Map());
@@ -74,7 +75,7 @@ export function SelectionScope({ canSelect, className, bar, children }: {
       <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex flex-col items-center gap-2 px-4 md:bottom-4">
         {notice && <p role="status" className="bulk-toast pointer-events-auto"><CheckCircle2 size={18} aria-hidden /> {notice}</p>}
         {selected.size > 0 && (
-          <div className="pointer-events-auto w-full max-w-2xl">
+          <div className={`pointer-events-auto w-full ${barWidth}`}>
             {bar({ ids: [...selected.keys()], labels: [...selected.values()],
               onDone: (message) => { value.exitAll(); value.notify(message); }, onClear: value.clear, onExit: value.exitAll })}
           </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Combine, Library as KeepIcon, PenLine } from "lucide-react";
+import { Ban, Check, Combine, Library as KeepIcon, ListFilter, PenLine } from "lucide-react";
 import Modal from "@/components/ui/dialogs/modal";
 import ItemActionBar from "@/components/elements/itemActionBar";
 import { SelectAllRow, SelectionScope, SelectToggle, useItemSelection, type BarProps, type Kind } from "@/components/elements/itemSelection";
@@ -69,9 +69,16 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const confirmVerified = () => setRows((rs) => rs.map((r) =>
     ((r.candidate.kind ?? "vocabulary") === active && r.candidate.status === "verified" && !r.deleted && !needsDecision(r) ? { ...r, selected: true } : r)));
 
-  const setActive = (change: Partial<Row>) => setRows((rs) => rs.map((r) => ((r.candidate.kind ?? "vocabulary") === active && !r.deleted && !(change.selected && needsDecision(r)) ? { ...r, ...change } : r)));
-
   const [merging, setMerging] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const away = (e: MouseEvent) => { if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false); };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, []);
+  const FILTER_LABEL: Record<Filter, string> = { all: t("filterAll"), verified: t("filterVerified"), flagged: t("filterFlagged") };
+  const hasConflicts = activeRows.some((r) => !r.deleted && hasConflict(r.candidate));
   const patchMany = (ids: string[], change: (r: Row) => Partial<Row>) => setRows((rs) => rs.map((r) => (ids.includes(r.candidate.id) && !r.deleted ? { ...r, ...change(r) } : r)));
   const merge = async (b: BarProps) => {
     setMerging(true);
@@ -96,15 +103,17 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     };
     const canMerge = active === "grammar" && picked.length >= 2 && !merging;
     return (
-      <ItemActionBar {...b} userId="" links={false}
+      <ItemActionBar {...b} userId="" links={false} deleteAction={{ label: t("reject"), icon: <Ban size={20} aria-hidden /> }}
         onDelete={async (ids) => patchMany(ids, () => ({ deleted: true, selected: false }))}
         deleteCopy={{ title: t("deleteRowsTitle", { count: b.ids.length }), body: t("deleteRowsBody"), confirm: t("deleteRowsConfirm", { count: b.ids.length }), done: t("deleteRowsDone", { count: b.ids.length }) }}
         extra={<>
           <button type="button" className="bulk-action" onClick={() => { patchMany(b.ids.filter((id) => !needsDecision(rows.find((r) => r.candidate.id === id)!)), () => ({ selected: true })); b.onDone(t("bulkApplied", { count: picked.length })); }}>
             <Check size={20} aria-hidden />{t("confirm")}
           </button>
-          <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("keep")}><KeepIcon size={20} aria-hidden />{t("keepExisting")}</button>
-          <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("overwrite")}><PenLine size={20} aria-hidden />{t("overwrite")}</button>
+          {hasConflicts && <>
+            <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("keep")}><KeepIcon size={20} aria-hidden />{t("keepExisting")}</button>
+            <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("overwrite")}><PenLine size={20} aria-hidden />{t("overwrite")}</button>
+          </>}
           <button type="button" className="bulk-action" disabled={!canMerge} title={canMerge ? undefined : t("mergeNeedsTwoGrammar")} onClick={() => merge(b)}>
             <Combine size={20} aria-hidden />{merging ? t("merging") : tEl("bulkMerge")}
           </button>
@@ -143,7 +152,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       <>
         {reasons.length > 0 && <ul className="list-disc pl-5 text-sm">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
         {info.length > 0 && <p className="text-sm opacity-70">ℹ {info.join(" ")}</p>}
-        <p className="text-sm opacity-70">{t("pageQuote", { page: c.page + 1, quote: c.quote })} <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>{t("viewPage")}</button></p>
+        <p className="text-sm opacity-70">{c.page_end !== undefined && c.page_end > c.page ? t("pageRangeQuote", { from: c.page + 1, to: c.page_end + 1, quote: c.quote }) : t("pageQuote", { page: c.page + 1, quote: c.quote })} <button type="button" className="link underline" onClick={() => setPreview(c.page + 1)}>{t("viewPage")}</button></p>
       </>
     );
     const common = {
@@ -269,18 +278,28 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 
         {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
 
-        <SelectionScope key={active} canSelect={groups.length > 0} bar={reviewBar} className="flex flex-col gap-3">
+        <SelectionScope key={active} canSelect={groups.length > 0} bar={reviewBar} barWidth="max-w-3xl" className="flex flex-col gap-3">
         {groups.length > 0 && (
-          <div className="btn-row flex-wrap">
-            {(["all", "verified", "flagged"] as Filter[]).map((f) => (
-              <button key={f} type="button" className={`btn ${filter === f ? "btn-primary" : "btn-secondary"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-                {f === "all" ? t("filterAll") : f === "verified" ? t("filterVerified") : t("filterFlagged")}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="filter-dropdown" ref={filterRef}>
+              <button type="button" className={`btn min-h-11 ${filter === "all" ? "btn-secondary" : "btn-primary"}`} aria-expanded={filterOpen} aria-label={t("filtersLabel")}
+                title={t("filtersLabel")} onClick={() => setFilterOpen((o) => !o)}>
+                <ListFilter size={18} aria-hidden />
+                {filter !== "all" && <span>{FILTER_LABEL[filter]}</span>}
               </button>
-            ))}
-            <button type="button" className="btn btn-secondary" onClick={confirmVerified}>{t("confirmAllVerified")}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => setActive({ selected: true })}>{t("confirmAll")}</button>
-            <button type="button" className="btn btn-secondary" onClick={() => setActive({ deleted: true, selected: false })}>{t("rejectAll")}</button>
-            {active && <SelectToggle kind={SELECT_KIND[active]} />}
+              {filterOpen && (
+                <div className="filter-panel" role="group" aria-label={t("filtersLabel")}>
+                  <div className="filter-chips">
+                    {(["all", "verified", "flagged"] as Filter[]).map((f) => (
+                      <button key={f} type="button" className={`filter-chip ${filter === f ? "active" : ""}`} aria-pressed={filter === f}
+                        onClick={() => { setFilter(f); setFilterOpen(false); }}>{FILTER_LABEL[f]}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button type="button" className="btn btn-secondary min-h-11" onClick={confirmVerified}>{t("confirmAllVerified")}</button>
+            <span className="ml-auto">{active && <SelectToggle kind={SELECT_KIND[active]} />}</span>
           </div>
         )}
 
