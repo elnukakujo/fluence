@@ -28,6 +28,8 @@ class ExerciseDict(BaseFeatureDict):
             "speaking",
             "conversation",
             "quizz",
+            "reading",
+            "dictation",
         ]
         if self.exercise_type not in valid_exercise_types:
             raise ValueError(f"Invalid exercise_type: {self.exercise_type}. Must be one of {valid_exercise_types}.")
@@ -39,6 +41,8 @@ class ExerciseDict(BaseFeatureDict):
             "organize": {"items", "answer_order"},
             "true_false": {"statement", "answer"},
             "quizz": {"options", "correct"},
+            "reading": {"speakers", "lines"},
+            "dictation": {"lines"},
         }
         required_keys = structured_required_keys.get(self.exercise_type)
         if required_keys:

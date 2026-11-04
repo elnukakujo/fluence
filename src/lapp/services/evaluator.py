@@ -52,7 +52,8 @@ class EvaluatorService:
         "essay": (0.4, 0.4, 0.2),
         "answering": (0.6, 0.3, 0.1),
         "speaking": (0.3, 0.1, 0.6),
-        "conversation": (0.3, 0.1, 0.6)
+        "conversation": (0.3, 0.1, 0.6),
+        "dictation": (0.0, 0.0, 1.0),   # token overlap only (spec)
     }
 
     exercises_thresholds = {
@@ -62,7 +63,8 @@ class EvaluatorService:
         "translate":0.80,
         "answering":0.55,
         "conversation":0.50,
-        "essay":0.45
+        "essay":0.45,
+        "dictation":0.80,   # TODO(user): dictation pass threshold; 0.80 mirrors translate until the user sets it
     }
 
     grammar_fallback_score = 1.0
@@ -88,7 +90,7 @@ class EvaluatorService:
             logger.warning(f"Exercise item not found: {ex_id}")
             return False, None
 
-        if not exercise.exercise_type in ['translate', 'essay', 'organize', 'answering', 'type_in_the_blank']:
+        if not exercise.exercise_type in ['translate', 'essay', 'organize', 'answering', 'type_in_the_blank', 'dictation']:
             logger.warning(f"Exercise item {ex_id} is not a translation exercise")
             return False, None
 
