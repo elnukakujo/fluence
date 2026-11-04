@@ -97,8 +97,6 @@
   "showTranslation": "Show translation",
   "hideTranslation": "Hide translation",
   "play": "Play",
-  "record": "Record",
-  "replayRecording": "Your recording",
   "dictationPlaceholder": "Type what you hear…",
   "noSpeechSupport": "Your browser cannot read text aloud.",
   "lineOf": "Line {current} / {total}",
@@ -108,5 +106,7 @@
   "dictationLines": "Lines to dictate",
   "speakerOptional": "Speaker (optional)",
   "translationOptional": "Translation (optional)",
-  "instructionOptional": "Instruction (optional)"
+  "instructionOptional": "Instruction (optional)",
+  "readingDone": "I've read it",
+  "readingDoneMessage": "✓ Done"
 }

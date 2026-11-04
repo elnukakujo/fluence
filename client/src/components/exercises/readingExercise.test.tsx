@@ -9,7 +9,6 @@ const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), 
 const speech = vi.hoisted(() => ({ speak: vi.fn().mockReturnValue(true) }));
 vi.mock("@/api/process", () => api);
 vi.mock("@/utils/speech", () => speech);
-vi.mock("next/dynamic", () => ({ default: () => () => <button>rec</button> }));
 
 import ReadingExercise from "./readingExercise";
 
@@ -39,10 +38,14 @@ describe("reading exercise", () => {
     expect(speech.speak).toHaveBeenLastCalledWith("やあ", "ja");
   });
 
-  it("posts the self-grade as the score", async () => {
+  it("gives the point when the learner finishes, once, and offers no recording or self-grade", async () => {
     render(<ReadingExercise exercise={ex()} />);
-    await userEvent.click(screen.getByRole("button", { name: /Easy/ }));
+    expect(screen.queryByText("rec")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Easy/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "I've read it" }));
     expect(api.updateScoreById).toHaveBeenCalledWith("ex_1", 1, expect.any(Number), false, 1);
+    expect(screen.queryByRole("button", { name: "I've read it" })).not.toBeInTheDocument();
+    expect(api.updateScoreById).toHaveBeenCalledTimes(1);
   });
 
   it("renders a single-speaker passage", () => {
