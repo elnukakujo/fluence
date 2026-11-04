@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Ring } from "ldrs/react";
 import { useTranslations } from "next-intl";
-//@ts-ignore
 import "ldrs/react/Ring.css";
 import Exercise from "@/interface/features/Exercise";
 import { evaluateText, updateScoreById } from "@/api/process";
