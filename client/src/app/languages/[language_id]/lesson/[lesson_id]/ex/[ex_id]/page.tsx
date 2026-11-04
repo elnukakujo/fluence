@@ -14,6 +14,10 @@ import SpeakingExercise from "@/components/exercises/speakingExercise";
 import BackButton from "@/components/ui/buttons/backButton";
 import ConversationExercise from "@/components/exercises/conversationExercise";
 import QuizzExercise from "@/components/exercises/quizzExercise";
+import ReadingExercise from "@/components/exercises/readingExercise";
+import DictationExercise from "@/components/exercises/dictationExercise";
+import { getLessonById } from "@/api/lesson";
+import { bcp47 } from "@/utils/speech";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
@@ -25,6 +29,8 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
     const { language_id, lesson_id, ex_id } = await params;
 
     const exercise: Exercise = await getExerciseById(ex_id);
+    const lang = exercise.exercise_type === 'reading' || exercise.exercise_type === 'dictation'
+        ? bcp47((await getLessonById(lesson_id)).target_iso639_2t) : undefined;
 
     return(
         <main className="flex flex-col space-y-4">
@@ -57,6 +63,8 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             )}
             {exercise.exercise_type === 'conversation' && <ConversationExercise exercise={exercise} />}
             {exercise.exercise_type === 'quizz' && <QuizzExercise exercise={exercise} />}
+            {exercise.exercise_type === 'reading' && <ReadingExercise exercise={exercise} lang={lang} />}
+            {exercise.exercise_type === 'dictation' && <DictationExercise exercise={exercise} lang={lang} />}
 
             <ElementTagsCard element={exercise} />
             <ElementSourcesCard element={exercise} />

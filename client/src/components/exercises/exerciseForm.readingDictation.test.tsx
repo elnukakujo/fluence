@@ -11,12 +11,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 vi.mock("@/components/tags/tagSelector", () => ({ default: () => null }));
 vi.mock("@/components/sources/sourceSelector", () => ({ default: () => null }));
 vi.mock("@/components/media/mediaLoader", () => ({ default: () => <div data-testid="media" /> }));
-vi.mock("@/components/ui/selectMenu/openCloseMenu", () => ({ default: () => null }));
 
 import ExerciseForm from "./exerciseForm";
 
-const elements = { vocabularies: [], grammars: [], calligraphies: [] } as never;
-const form = (exercise: Partial<Exercise>) => render(<ExerciseForm exercise={exercise} lesson_id="lesson_1" lessonElements={elements} />);
+const form = (exercise: Partial<Exercise>) => render(<ExerciseForm exercise={exercise} lesson_id="lesson_1" />);
 
 beforeEach(() => vi.clearAllMocks());
 
