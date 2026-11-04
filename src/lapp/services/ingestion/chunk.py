@@ -4,6 +4,8 @@ from ..parsing.types import Block, Document, Page, Word
 from .types import Chunk
 
 MAX_CHUNK_CHARS = 3000  # TODO(calibrate): needs real sample files
+TAIL_CHARS = 800  # TODO(calibrate): needs real sample files
+HEAD_CHARS = 800  # TODO(calibrate): needs real sample files
 
 
 def chunk_document(doc: Document) -> list[Chunk]:
@@ -11,6 +13,9 @@ def chunk_document(doc: Document) -> list[Chunk]:
     for page in doc.pages:
         for i, (text, words) in enumerate(_page_pieces(page)):
             chunks.append(Chunk(id=f"p{page.index}c{i}", page=page.index, text=text, trust=page.trust, words=words))
+    for i, c in enumerate(chunks):
+        c.prev = chunks[i - 1].text[-TAIL_CHARS:] if i else ""
+        c.next = chunks[i + 1].text[:HEAD_CHARS] if i + 1 < len(chunks) else ""
     return chunks
 
 

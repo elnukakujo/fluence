@@ -14,6 +14,13 @@ logger = logging.getLogger(__name__)
 MAX_TOKENS = 4096  # exercise JSON on a full page overran 2048 and was cut off mid-array
 
 
+WINDOW_RULE = (
+    "The message may hold PREVIOUS PAGE (tail), THIS PAGE and NEXT PAGE (head). Return only items that START on THIS PAGE; "
+    "complete them from the NEXT PAGE head if they continue; ignore material at the top of THIS PAGE that continues an item "
+    "from the previous page (that item was returned by the previous call)."
+)
+
+
 class ExtractionError(Exception):
     """The model never produced parseable JSON for this chunk."""
 
@@ -68,9 +75,13 @@ def _system_prompt(target: str, source: str | None) -> str:
     )
 
 
-def _ask(chunk: Chunk, api: dict, system: str):
+def _ask(chunk: Chunk, api: dict, system: str, windowed: bool = False):
     """Call the model, retry once on unparseable JSON; return the parsed data or raise ExtractionError."""
-    messages = [{"role": "system", "content": system}, {"role": "user", "content": chunk.text}]
+    user = chunk.text
+    if windowed and (chunk.prev or chunk.next):
+        user = "\n\n".join(f"{label}:\n{t}" for label, t in (("PREVIOUS PAGE (tail)", chunk.prev), ("THIS PAGE", chunk.text),
+                                                              ("NEXT PAGE (head)", chunk.next)) if t)
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     for attempt in (1, 2):
         reply = chat_completion(
             retries=3,

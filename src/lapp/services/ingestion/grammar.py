@@ -1,7 +1,7 @@
 """Grammar point extraction from document text using the user's LLM."""
 import logging
 
-from .extract import ExtractionError, _ask, _parse_json
+from .extract import WINDOW_RULE, ExtractionError, _ask, _parse_json
 from .types import Chunk
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ def _system_prompt(target: str, source: str | None) -> str:
         f"- Write the complete grammar sheet from the page text {languages}.\n"
         "- Write the grammar explanation as GitHub-flavoured markdown: pattern lines kept, lists as `-` or `1.` lists, tables as a pipe table, **bold** where the book emphasises; no headings (the title is a separate field).\n"
         "- Include ALL example sentences present on the page.\n"
+        f"- {WINDOW_RULE}\n"
         "- Invent nothing: only material actually on the page, no extra entries, no corrections.\n"
         "- SKIP: pronunciation notes (e.g. 重轻格式), exercise instructions (e.g. 'Read the verbs'), section headers, contents-page lines.\n"
         "- For every grammar point give a `quote`: a short span copied verbatim from the text.\n"
@@ -36,7 +37,7 @@ def generate_grammar(chunk: Chunk, api: dict, target_name: str, source_name: str
     Raises ExtractionError if the model fails to produce valid JSON.
     """
     system = _system_prompt(target_name, source_name)
-    data = _ask(chunk, api, system)
+    data = _ask(chunk, api, system, windowed=True)
 
     items = []
     for raw in (data if isinstance(data, list) else [data]):

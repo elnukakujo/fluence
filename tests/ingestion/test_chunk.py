@@ -74,3 +74,10 @@ def test_remote_page_chunk_is_llm_transcribed():
     blocks = [Block(text="bonjour", bbox=(0, 0, 600, 800))]
     chunk = chunk_document(_doc(_ocr_page(0, blocks, source="ocr_remote")))[0]
     assert chunk.trust == "llm_transcribed" and chunk.text == "bonjour" and chunk.words == []
+
+
+def test_neighbouring_chunks_get_tail_and_head():
+    doc = _doc(_native_page(0, [_native_block("a" * 2000, 10)]), _native_page(1, [_native_block("b" * 2000, 10)]))
+    first, second = chunk_document(doc)
+    assert second.prev == first.text[-chunk_module.TAIL_CHARS:] and first.next == second.text[:chunk_module.HEAD_CHARS]
+    assert first.prev == "" and second.next == ""

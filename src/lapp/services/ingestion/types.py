@@ -9,7 +9,7 @@ FlagCode = Literal[
     "word_not_in_source", "quote_not_in_source", "translation_generated",
     "low_ocr_confidence", "llm_transcribed_source", "phonetic_mismatch",
     "already_in_language", "already_in_lesson",
-    "explanation_not_in_source", "answer_generated", "grammar_generated", "exercise_unreliable", "listening_inferred",
+    "explanation_not_in_source", "answer_generated", "grammar_generated", "exercise_unreliable", "listening_inferred", "content_invalid",
 ]
 Kind = Literal["vocabulary", "grammar", "calligraphy", "exercise"]
 ALL_KINDS: list[Kind] = ["vocabulary", "grammar", "calligraphy", "exercise"]
@@ -21,6 +21,12 @@ class Chunk(BaseModel):
     text: str
     trust: Literal["native", "ocr", "llm_transcribed"]
     words: list[Word] = []   # the parser's words, so per-character confidence survives
+    prev: str = ""           # tail of the previous chunk / head of the next, so items cut by a page break can be completed
+    next: str = ""
+
+    @property
+    def window_text(self) -> str:
+        return "\n".join(t for t in (self.prev, self.text, self.next) if t)
 
 
 class Flag(BaseModel):

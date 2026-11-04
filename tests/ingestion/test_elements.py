@@ -382,3 +382,30 @@ def test_markdown_table_explanation_is_kept_and_not_flagged_as_missing():
     raw = {"title": "Forms", "explanation": table, "example_sentences": [], "quote": "Forms"}
     c = el.verify_element("grammar", raw, _chunk("Forms a b x y rule one"), "zh")
     assert c.fields["explanation"] == table and "explanation_not_in_source" not in _codes(c)
+
+
+def test_windowed_message_labels_parts(monkeypatch):
+    from lapp.services.ingestion import extract
+    sent = []
+    monkeypatch.setattr(extract, "chat_completion", lambda **kw: sent.append(kw["messages"][1]["content"]) or "[]")
+    full = Chunk(id="c", page=0, text="MID", trust="native", prev="BEFORE", next="AFTER")
+    extract._ask(full, API, "sys", windowed=True)
+    extract._ask(Chunk(id="c", page=0, text="MID", trust="native"), API, "sys", windowed=True)
+    extract._ask(full, API, "sys")
+    assert all(label in sent[0] for label in ("PREVIOUS PAGE (tail)", "THIS PAGE", "NEXT PAGE (head)"))
+    assert "PREVIOUS PAGE" not in sent[1] and "NEXT PAGE" not in sent[1] and "MID" in sent[1]
+    assert sent[2] == "MID"
+
+
+def test_element_prompts_carry_the_window_rule():
+    from lapp.services.ingestion.extract import WINDOW_RULE
+    assert WINDOW_RULE in el._system_prompt("grammar", "French", "English")
+    assert WINDOW_RULE in el._system_prompt("exercise", "French", "English")
+    assert WINDOW_RULE in grammar_module._system_prompt("French", "English")
+
+
+def test_exercise_answer_found_in_next_page_head_is_not_flagged():
+    chunk = Chunk(id="c", page=0, text="1. Capital of France?", trust="native", next="Answers: 1. Paris")
+    raw = {"exercise_type": "answering", "question": "1. Capital of France?", "answer": "Paris", "text_support": None,
+           "content": None, "quote": "1. Capital of France?"}
+    assert "answer_generated" not in _codes(el.verify_element("exercise", raw, chunk, "fr"))
