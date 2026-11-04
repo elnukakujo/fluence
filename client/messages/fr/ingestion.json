@@ -82,6 +82,7 @@
   "viewPage": "Voir la page",
   "generatedTranslation": "✎ Traduction générée",
   "generatedAnswer": "✎ Réponse générée",
+  "contentInvalid": "⚠ Contenu à corriger",
   "generatedBadge": "✎ Généré",
   "generatedBadgeTitle": "Écrit par le modèle à partir du texte de la page - vérifiez-le",
   "verifiedBadge": "✓ Trouvé dans le texte",

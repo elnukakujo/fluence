@@ -82,6 +82,7 @@
   "viewPage": "View page",
   "generatedTranslation": "✎ Generated translation",
   "generatedAnswer": "✎ Generated answer",
+  "contentInvalid": "⚠ Content needs fixing",
   "generatedBadge": "✎ Generated",
   "generatedBadgeTitle": "Written by the model from the page text - check it",
   "verifiedBadge": "✓ Found in text",

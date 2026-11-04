@@ -135,12 +135,13 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     }
     if (kind === "exercise") {
       const generated = has("answer_generated");
+      const invalid = has("content_invalid");
       return (
         <ReviewCard {...common} summary={row.exercise_type === "conversation"
           ? <><span className="badge mr-2">{t("conversation")}</span><span className="block whitespace-pre-line">{dialogueLines(row.question ?? "").join("\n")}</span></>
           : <><span className="badge mr-2">{row.exercise_type || t("exerciseFallback")}</span>{clip(row.question ?? "")}</>}
-          badge={generated ? t("generatedAnswer") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
-          badgeTitle={generated ? t("generatedAnswerTitle") : confirmedTitle}>
+          badge={invalid ? t("contentInvalid") : generated ? t("generatedAnswer") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
+          badgeTitle={invalid ? c.flags.find((f) => f.code === "content_invalid")?.message ?? "" : generated ? t("generatedAnswerTitle") : confirmedTitle}>
           <label className="flex flex-col gap-1">
             <span className="field-label">{t("question")}</span>
             <textarea className="input input-grow" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />

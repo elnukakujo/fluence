@@ -82,6 +82,7 @@
   "viewPage": "查看页面",
   "generatedTranslation": "✎ 生成的翻译",
   "generatedAnswer": "✎ 生成的答案",
+  "contentInvalid": "⚠ 内容需要修正",
   "generatedBadge": "✎ 已生成",
   "generatedBadgeTitle": "由模型从页面文本生成 - 检查它",
   "verifiedBadge": "✓ 在文本中找到",

@@ -88,6 +88,13 @@ describe("ReviewPanel", () => {
     expect(screen.getByText("✎ Generated answer")).toBeInTheDocument();
   });
 
+  it("renders a content-needs-fixing badge for content_invalid", async () => {
+    const bad: Candidate = { ...exerciseGenerated, id: "e3", exercise_type: "quizz", content: null,
+      flags: [{ code: "content_invalid", message: "content for quizz must be ...", severity: "warning" }] };
+    render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[bad]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getByText("⚠ Content needs fixing")).toBeInTheDocument();
+  });
+
   it("renders grammar row with Generated badge and original text details", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<ReviewPanel jobId="j" filename="book.pdf" candidates={[grammarGenerated]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} range={[1, 5]} />);

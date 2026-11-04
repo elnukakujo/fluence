@@ -200,14 +200,24 @@ def test_exercise_empty_question_is_dropped():
     assert el.verify_element("exercise", raw, _chunk("A"), "en") is None
 
 
-def test_exercise_empty_answer_is_dropped():
+def test_exercise_empty_answer_is_kept_and_flagged():
     raw = {"exercise_type": "answering", "question": "Q", "answer": "", "text_support": None, "content": None, "quote": "Q"}
-    assert el.verify_element("exercise", raw, _chunk("Q"), "en") is None
+    c = el.verify_element("exercise", raw, _chunk("Q"), "en")
+    assert c.status == "flagged" and "exercise_unreliable" in _codes(c) and c.fields["answer"] == ""
 
 
-def test_exercise_bad_content_shape_is_dropped():
+def test_exercise_bad_content_shape_is_kept_flagged_content_invalid():
     raw = {"exercise_type": "quizz", "question": "Q", "answer": "A", "text_support": None, "content": {"options": ["a"], "correct": [0]}, "quote": "Q"}
-    assert el.verify_element("exercise", raw, _chunk("Q A"), "en") is None
+    c = el.verify_element("exercise", raw, _chunk("Q A"), "en")
+    assert c.status == "flagged" and "content_invalid" in _codes(c)
+    assert c.fields["content"] is None and c.fields["exercise_type"] == "quizz" and c.fields["question"] == "Q"
+
+
+def test_exercise_content_error_messages():
+    assert el.exercise_content_error("quizz", {"options": ["a", "b"], "correct": [1]}) is None
+    msg = el.exercise_content_error("quizz", {"options": ["a"], "correct": [0]})
+    assert "quizz" in msg and "options" in msg
+
 
 
 def test_exercise_dedupe_key():

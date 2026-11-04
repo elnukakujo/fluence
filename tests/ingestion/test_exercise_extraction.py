@@ -54,7 +54,7 @@ def test_free_text_types_need_no_build_call(model):
 
 
 def test_unknown_type_hint_falls_back_to_answering(model):
-    model.replies = [[_block("poem", ["Q1"])]]
+    model.replies = [[_block("poem", ["Q1"])], {"answer": "A"}]
     assert el.extract_exercises(CHUNK, API, "English", None)[0]["exercise_type"] == "answering"
 
 
@@ -62,3 +62,39 @@ def test_unknown_type_hint_falls_back_to_answering(model):
 def test_split_replies_without_usable_items_give_nothing(model, reply):
     model.replies = [reply]
     assert el.extract_exercises(CHUNK, API, "English", None) == []
+
+
+BAD_QUIZ = {"question": "Pick", "answer": "b", "content": {"options": ["a"], "correct": [0]}, "quote": "Pick"}
+
+
+def test_invalid_content_is_retried_once_with_the_reason(model):
+    model.replies = [[_block("quizz", ["Pick"])], BAD_QUIZ, QUIZ]
+    out = el.extract_exercises(CHUNK, API, "English", None)
+    assert out[0]["content"] == QUIZ["content"] and len(model.calls) == 3
+    assert el.exercise_content_error("quizz", BAD_QUIZ["content"]) in model.calls[2][1]
+
+
+def test_still_invalid_after_retry_is_kept_and_flagged(model):
+    model.replies = [[_block("quizz", ["Pick"])], BAD_QUIZ, BAD_QUIZ]
+    out = el.extract_exercises(CHUNK, API, "English", None)
+    assert len(out) == 1 and out[0]["content"] is None and out[0]["exercise_type"] == "quizz"
+    chunk = Chunk(id="c", page=0, text="Pick a b", trust="native")
+    assert "content_invalid" in {f.code for f in el.verify_element("exercise", out[0], chunk, "en").flags}
+
+
+def test_error_on_the_retry_keeps_the_item(model):
+    model.replies = [[_block("quizz", ["Pick"])], BAD_QUIZ, el.ExtractionError("no json")]
+    assert el.extract_exercises(CHUNK, API, "English", None)[0]["content"] is None
+
+
+def test_empty_answer_gets_one_follow_up(model):
+    model.replies = [[_block("answering", ["Q1"])], {"answer": "Written"}]
+    out = el.extract_exercises(CHUNK, API, "English", None)
+    assert out[0]["answer"] == "Written" and len(model.calls) == 2
+    chunk = Chunk(id="c", page=0, text="Q1", trust="native")
+    assert "answer_generated" in {f.code for f in el.verify_element("exercise", out[0], chunk, "en").flags}
+
+
+def test_empty_follow_up_or_error_keeps_the_item_with_empty_answer(model):
+    model.replies = [[_block("answering", ["Q1", "Q2"])], {"answer": ""}, el.ExtractionError("x")]
+    assert [o["answer"] for o in el.extract_exercises(CHUNK, API, "English", None)] == ["", ""]
