@@ -91,5 +91,17 @@
   "addExercise": "添加练习",
   "lineText": "台词文本…",
   "correctAnswersLabel": "正确答案：",
-  "correctAnswerWas": "正确答案是："
+  "correctAnswerWas": "正确答案是：",
+  "reading": "阅读",
+  "dictation": "听写",
+  "showTranslation": "显示翻译",
+  "hideTranslation": "隐藏翻译",
+  "play": "播放",
+  "record": "录音",
+  "replayRecording": "你的录音",
+  "dictationPlaceholder": "写下你听到的内容……",
+  "noSpeechSupport": "你的浏览器不支持朗读文本。",
+  "lineOf": "第 {current} / {total} 行",
+  "nextLine": "下一行",
+  "readingLinePlay": "播放第 {n} 行"
 }

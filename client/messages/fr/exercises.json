@@ -91,5 +91,17 @@
   "addExercise": "Ajouter",
   "lineText": "Texte…",
   "correctAnswersLabel": "Bonnes réponses :",
-  "correctAnswerWas": "Bonne réponse :"
+  "correctAnswerWas": "Bonne réponse :",
+  "reading": "Lecture",
+  "dictation": "Dictée",
+  "showTranslation": "Afficher la traduction",
+  "hideTranslation": "Masquer la traduction",
+  "play": "Écouter",
+  "record": "Enregistrer",
+  "replayRecording": "Votre enregistrement",
+  "dictationPlaceholder": "Écrivez ce que vous entendez…",
+  "noSpeechSupport": "Votre navigateur ne peut pas lire le texte à voix haute.",
+  "lineOf": "Ligne {current} / {total}",
+  "nextLine": "Ligne suivante",
+  "readingLinePlay": "Écouter la ligne {n}"
 }

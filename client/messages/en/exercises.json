@@ -91,5 +91,17 @@
   "addExercise": "Add Exercise",
   "lineText": "Line text…",
   "correctAnswersLabel": "Correct answers:",
-  "correctAnswerWas": "Correct answer was:"
+  "correctAnswerWas": "Correct answer was:",
+  "reading": "Reading",
+  "dictation": "Dictation",
+  "showTranslation": "Show translation",
+  "hideTranslation": "Hide translation",
+  "play": "Play",
+  "record": "Record",
+  "replayRecording": "Your recording",
+  "dictationPlaceholder": "Type what you hear…",
+  "noSpeechSupport": "Your browser cannot read text aloud.",
+  "lineOf": "Line {current} / {total}",
+  "nextLine": "Next line",
+  "readingLinePlay": "Play line {n}"
 }

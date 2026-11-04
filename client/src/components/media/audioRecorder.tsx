@@ -24,11 +24,14 @@ type Status = "idle" | "recording" | "processing" | "uploading" | "done" | "erro
 interface AudioRecorderProps {
     onUploadSuccess?: (response: unknown) => void;
     onUploadError?:   (error: unknown)    => void;
+    /** Keep the take in the browser only (no upload); `onRecorded` gets the local preview URL. */
+    localOnly?: boolean;
+    onRecorded?: (previewUrl: string) => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioRecorderProps) {
+export default function AudioRecorder({ onUploadSuccess, onUploadError, localOnly, onRecorded }: AudioRecorderProps) {
     const t = useTranslations("media");
     const [status, setStatus] = useState<Status>("idle");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -85,6 +88,11 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
                 previewUrlRef.current = url;
                 setPreviewUrl(url);
 
+                if (localOnly) {
+                    setStatus("done");
+                    onRecorded?.(url);
+                    return;
+                }
                 const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
                 setStatus("uploading");
 

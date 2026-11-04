@@ -5,11 +5,13 @@ export type ExerciseContent =
     | { pairs: [string, string][] } // matching
     | { items: string[]; answer_order: number[] } // organize
     | { statement: string; answer: boolean } // true_false
-    | { options: string[]; correct: number[] }; // quizz
+    | { options: string[]; correct: number[] } // quizz
+    | { speakers: { id: string; name: string }[]; lines: { speakerId: string; text: string; translation?: string | null; audioIndex: number | null }[] } // reading
+    | { lines: { text: string; audioIndex: number | null }[] }; // dictation
 
 export default interface Exercise extends BaseFeature {
     exercise_type?: 'essay' | 'answering' | 'translate' | 'organize' | 'conversation' |
-                    'type_in_the_blank' | 'select_in_the_blank' | 'matching' | 'true_false' | 'speaking' | 'quizz';
+                    'type_in_the_blank' | 'select_in_the_blank' | 'matching' | 'true_false' | 'speaking' | 'quizz' | 'reading' | 'dictation';
     question: string;
     answer: string;
     text_support?: string;
