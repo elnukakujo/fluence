@@ -76,6 +76,17 @@ export interface ProficiencyLevel {
   incrementalHours: { min: number; max: number } | null;
 }
 
+/** One section of an official exam (Listening, Reading, ...). `slug` is shared across languages and stored on
+ *  `Exercise.category`; its label comes from the i18n `study`-style keys by slug, `nativeLabel` is the exam's own name. */
+export interface ExamCategory {
+  slug: string;
+  nativeLabel?: string;
+}
+
+export const DEFAULT_EXAM_CATEGORIES: ExamCategory[] = [
+  { slug: "listening" }, { slug: "reading" }, { slug: "writing" }, { slug: "speaking" },
+];
+
 export interface LanguageProficiencySystem {
   /** ISO 639-3 language code */
   isoCode: string;
@@ -89,6 +100,8 @@ export interface LanguageProficiencySystem {
   cefrBased: boolean;
   /** FSI difficulty category for English native speakers (I = easiest, V = hardest) */
   fsiDifficulty: FSIDifficulty;
+  /** Sections of the official exam, used to group exercises; absent -> DEFAULT_EXAM_CATEGORIES */
+  examCategories?: ExamCategory[];
   /** Ordered list of levels from easiest to hardest */
   levels: ProficiencyLevel[];
   /** Approximate total hours from zero to the highest level */
@@ -268,6 +281,8 @@ export const languageProficiencySystems: Record<string, LanguageProficiencySyste
     testAbbreviation: "DELF/DALF",
     cefrBased: true,
     fsiDifficulty: "I",
+    // TODO(user): confirm this section list
+    examCategories: [{ slug: "listening", nativeLabel: "compréhension de l'oral" }, { slug: "reading", nativeLabel: "compréhension des écrits" }, { slug: "writing", nativeLabel: "production écrite" }, { slug: "speaking", nativeLabel: "production orale" }],
     levels: [
       { code: "A1", cefrEquivalent: "A1", cumulativeHours: { min: 80,   max: 100  }, incrementalHours: null },
       { code: "A2", cefrEquivalent: "A2", cumulativeHours: { min: 180,  max: 220  }, incrementalHours: { min: 100, max: 120 } },
@@ -538,6 +553,8 @@ export const languageProficiencySystems: Record<string, LanguageProficiencySyste
     testAbbreviation: "JLPT",
     cefrBased: false,
     fsiDifficulty: "V",
+    // TODO(user): confirm this section list
+    examCategories: [{ slug: "language_knowledge", nativeLabel: "言語知識" }, { slug: "reading", nativeLabel: "読解" }, { slug: "listening", nativeLabel: "聴解" }],
     levels: [
       {
         code: "N5",
@@ -630,6 +647,8 @@ export const languageProficiencySystems: Record<string, LanguageProficiencySyste
     testAbbreviation: "HSK",
     cefrBased: false,
     fsiDifficulty: "V",
+    // TODO(user): confirm this section list
+    examCategories: [{ slug: "listening", nativeLabel: "听力" }, { slug: "reading", nativeLabel: "阅读" }, { slug: "writing", nativeLabel: "书写" }],
     levels: [
       // Using the widely-adopted old 6-level system (HSK 2.0).
       // HSK 3.0 (2021) introduced 9 levels; hours are noted below.
@@ -684,4 +703,19 @@ export function getLevelLabel(
   const idx = level ?? -1;
   const code = system?.levels?.[idx]?.code;
   return code ?? (idx >= 0 ? `Level ${idx + 1}` : "—");
+}
+
+/** Exam sections of a language (ISO 639-2T code); the four generic skills when it has none. */
+export function getExamCategories(iso: string | undefined): ExamCategory[] {
+  return (iso && languageProficiencySystems[iso]?.examCategories) || DEFAULT_EXAM_CATEGORIES;
+}
+
+const TYPE_SUGGESTION: Record<string, string> = {
+  dictation: "listening", reading: "reading", speaking: "speaking", conversation: "speaking", essay: "writing", translate: "writing",
+};
+
+/** The category slug a new exercise of this type should start with, when the language's exam has it. */
+export function suggestCategory(exerciseType: string, categories: ExamCategory[]): string | null {
+  const slug = TYPE_SUGGESTION[exerciseType];
+  return slug && categories.some((c) => c.slug === slug) ? slug : null;
 }
