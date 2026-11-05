@@ -123,6 +123,10 @@ def test_delete_user_cascades(db):
         db.insert(Word(id="word_W1", language_id="lang_L1", word="猫"), session=s, commit=False)
         db.insert(Vocabulary(id="voc_V1", lesson_id="lesson_L1", word_id="word_W1"), session=s, commit=False)
         db.insert(Tag(id="tag_T1", user_id="user_U1", name="N5"), session=s, commit=False)
+        from lapp.models.system_data import UserPreferences, StudyGoal, ExerciseUserPref
+        db.insert(UserPreferences(id="pref_P1", user_id="user_U1"), session=s, commit=False)
+        db.insert(StudyGoal(id="goal_G1", user_id="user_U1", language_id="lang_L1", period="week"), session=s, commit=False)
+        db.insert(ExerciseUserPref(id="eup_E1", user_id="user_U1", exercise_id="ex_E1", mode="ban"), session=s, commit=False)
     AuthService().create_session("user_U1", remember=False)
 
     assert UserService().delete("user_U1") is True
@@ -135,3 +139,6 @@ def test_delete_user_cascades(db):
         assert db_manager.find_all(Vocabulary, filters={"lesson_id": "lesson_L1"}, session=s) == []
         assert db_manager.find_all(Tag, filters={"user_id": "user_U1"}, session=s) == []
         assert db_manager.find_all(UserSession, filters={"user_id": "user_U1"}, session=s) == []
+        assert db_manager.find_all(UserPreferences, filters={"user_id": "user_U1"}, session=s) == []
+        assert db_manager.find_all(StudyGoal, filters={"user_id": "user_U1"}, session=s) == []
+        assert db_manager.find_all(ExerciseUserPref, filters={"user_id": "user_U1"}, session=s) == []

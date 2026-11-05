@@ -241,7 +241,7 @@ class UserService:
         # Cascade delete the user's whole content in FK-safe order:
         # sessions → preferences → data-collection → tags/sources →
         # languages (cascade lessons → features → components) → user.
-        from ...models.system_data import UserSession, Tag, Source
+        from ...models.system_data import UserSession, Tag, Source, StudyGoal, ExerciseUserPref
         from ...models.containers import Language
         from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking
 
@@ -249,9 +249,9 @@ class UserService:
             db_manager.delete(row, session=session, commit=False)
 
         if user.preferences:
-            user_preferences_service.delete(pref_id=user.preferences.id, session=session)
+            user_preferences_service.delete(id=user.preferences.id, session=session)
 
-        for model in (CommitmentLog, DailyStats, ProgressTracking):
+        for model in (CommitmentLog, DailyStats, ProgressTracking, StudyGoal, ExerciseUserPref):
             for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
                 db_manager.delete(row, session=session, commit=False)
 
