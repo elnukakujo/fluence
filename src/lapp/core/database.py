@@ -382,9 +382,10 @@ class DatabaseManager:
             return obj
         except IntegrityError as e:
             (nested or session).rollback()
-            logger.warning(f"Insert failed due to integrity error: {e}")
-            # Attempt to modify existing record
-            return self.modify(obj, session, load_relationships, commit=commit)
+            # Never fall back to modify(): a colliding id (stale id_counter) used to silently
+            # overwrite the existing row, e.g. a new signup replacing another user's account.
+            logger.error(f"Insert of {type(obj).__name__} {getattr(obj, 'id', None)} failed (integrity error, nothing overwritten): {e}")
+            return None
         except SQLAlchemyError as e:
             (nested or session).rollback()
             logger.error(f"Insert failed: {e}")
@@ -702,6 +703,9 @@ class DatabaseManager:
             prefix = ID_PREFIXES[entity_type]
 
             next_num = self._atomic_next_id(session, entity_type, model_class)
+            # A stale counter (rows inserted outside it, restored dumps) must never hand out a taken id.
+            while session.get(model_class, f"{prefix}{next_num}") is not None:
+                next_num = self._atomic_next_id(session, entity_type, model_class)
 
             if close_session:
                 session.commit()

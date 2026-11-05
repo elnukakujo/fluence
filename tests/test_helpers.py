@@ -100,3 +100,19 @@ def test_base_element_id():
     assert base_element_id("voc_V1#back") == "voc_V1"
     assert base_element_id("voc_V1#front") == "voc_V1"
     assert base_element_id("voc_V1") == "voc_V1"
+
+
+def test_generate_new_id_skips_taken_ids_and_insert_never_overwrites(app, db):
+    from lapp.models import User
+    from sqlalchemy import update
+    from lapp.core.database import id_counter_table
+    mk = lambda i, n: User(id=i, username=n, display_name=n, email=f"{n}@x.io", password_hash="x")
+    db.insert(mk("user_U1", "a"))
+    db.generate_new_id(User)                          # seeds the counter
+    with db.get_session() as s:                       # make it stale: points at the taken id
+        s.execute(update(id_counter_table).where(id_counter_table.c.entity_type == "User").values(next_value=1))
+        s.commit()
+    assert db.generate_new_id(User) != "user_U1"
+    assert db.insert(mk("user_U1", "b")) is None      # collision: refused, not merged
+    with db.get_session() as s:
+        assert s.get(User, "user_U1").username == "a"
