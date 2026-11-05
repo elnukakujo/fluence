@@ -1,5 +1,5 @@
 from .file_handler import MediaFileHandler
-from .helpers import update_score, update_difficulty, stack_lists, review_priority, status_for
+from .helpers import update_score, update_difficulty, stack_lists, review_priority, status_for, base_element_id
 from .detect_language import detect_text_language, get_language_by_iso2t, get_language_by_iso1
 from .spacy_model import load_spacy_model
 from .offline import is_offline

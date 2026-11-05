@@ -58,3 +58,19 @@ def test_fork_carries_score(db):
         voc = s.query(Vocabulary).filter(Vocabulary.lesson_id == lesson.id).one()
         carried = s.query(Score).filter(Score.user_id == "user_U2", Score.element_id == voc.id).first()
         assert carried is not None and carried.score == before
+
+
+def test_fork_carries_side_scores(db):
+    _seed(db)
+    c = _invite()
+    CollaborationService().accept(c.id)
+    ScoreService().record_side("user_U2", "voc_V1", "front", 0.9)
+    ScoreService().record_side("user_U2", "voc_V1", "back", 0.6)
+    CollaborationService().remove(c.id)
+    with db.session_scope() as s:
+        assert s.query(Score).filter(Score.user_id == "user_U2", Score.element_id.like("voc_V1%")).count() == 0
+        lang = s.query(Language).filter(Language.user_id == "user_U2").one()
+        lesson = s.query(Lesson).filter(Lesson.language_id == lang.id, Lesson.title == "L1").one()
+        voc = s.query(Vocabulary).filter(Vocabulary.lesson_id == lesson.id).one()
+        ids = {r.element_id for r in s.query(Score).filter(Score.user_id == "user_U2", Score.element_id.like(f"{voc.id}%"))}
+        assert ids == {voc.id, f"{voc.id}#front", f"{voc.id}#back"}

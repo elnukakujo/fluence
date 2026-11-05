@@ -93,3 +93,10 @@ if __name__ == "__main__":
             fn()
             print(f"ok  {name}")
     print("all helper checks passed")
+
+
+def test_base_element_id():
+    from lapp.utils.helpers import base_element_id
+    assert base_element_id("voc_V1#back") == "voc_V1"
+    assert base_element_id("voc_V1#front") == "voc_V1"
+    assert base_element_id("voc_V1") == "voc_V1"

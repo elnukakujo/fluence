@@ -363,7 +363,9 @@ class CollaborationService:
         for sc in scores:
             if sc.current_lesson_id in lesson_map:
                 sc.current_lesson_id = lesson_map[sc.current_lesson_id]
-            new_id = element_map.get(sc.element_id)
+            base, _, suffix = sc.element_id.partition("#")   # vocabulary #front/#back rows follow their vocabulary
+            new_base = element_map.get(base)
+            new_id = None if new_base is None else (f"{new_base}#{suffix}" if suffix else new_base)
             if new_id is None or new_id == sc.element_id:
                 continue
             if new_id in taken:

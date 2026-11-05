@@ -146,6 +146,11 @@ def score_drawing(similarity: float, stroke_order_errors: int) -> float:
     return round(similarity * max(0.0, 1.0 - 0.1 * stroke_order_errors), 4)
 
 
+def base_element_id(element_id: str) -> str:
+    """Strip a vocabulary side suffix (`voc_V1#front` -> `voc_V1`)."""
+    return element_id.split("#", 1)[0]
+
+
 def status_for(element_id: str, score: float) -> str:
     """Map an element id prefix + score to its status label.
 
