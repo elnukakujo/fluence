@@ -231,3 +231,25 @@ def test_changing_the_daily_minutes_through_the_api_updates_suggested_goals(app,
     c.set_cookie("session_token", AuthService().create_session("user_U1", remember=False))
     assert c.put(f"/api/pref/{pref['id']}", json={"daily_goal_minutes": 40}).status_code == 200
     assert StudyGoalService().get("user_U1", "lang_L1")["n_vocabulary"] == 40
+
+
+def test_reset_unlocks_the_running_menu_and_rebuilds_from_current_quantities(db):
+    _seed(db)
+    svc = StudyGoalService()
+    _goal(svc)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    _goal(svc, n_vocabulary=1)                                    # locked: still 2 until the next period
+    assert svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]["n"] == 2
+    svc.reset("user_U1", "lang_L1", today=D0)
+    p = svc.progress("user_U1", "lang_L1", today=D0)
+    assert p["types"]["vocabulary"]["n"] == 1 and p["types"]["vocabulary"]["picked"] == 1
+
+
+def test_first_own_save_replaces_the_suggested_menu_at_once(db):
+    _seed(db)
+    svc = StudyGoalService()
+    svc.upsert("user_U1", "lang_L1", "week", 0, 0, 0, auto=True, today=D0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)             # the suggested menu is now locked
+    _goal(svc, n_vocabulary=1, n_grammar=0, n_calligraphy=0)     # the user enters their own numbers
+    t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
+    assert (t["n"], t["picked"]) == (1, 1)

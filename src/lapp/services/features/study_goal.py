@@ -63,10 +63,30 @@ class StudyGoalService:
             goal = StudyGoal(id=db_manager.generate_new_id(StudyGoal, session=session), user_id=user_id,
                              language_id=language_id, start_date=today or date.today(), period=period)
             session.add(goal)
+        was_suggested = goal.auto and not auto and goal.locked is not None
         goal.period, goal.active, goal.auto = period, bool(active), bool(auto)
         goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy = counts
+        if was_suggested:            # first time the user sets their own numbers: replace the suggested menu at once
+            self._reset(goal, today or date.today(), session)
         session.flush()
         return self._dict(goal)
+
+    @transactional
+    def reset(self, user_id: str, language_id: str, today: Optional[date] = None,
+              session: Optional[Session] = None) -> Optional[dict]:
+        """Unlock the running period: drop its menu and the carried-over picks and start a new period today, built
+        from the goal's current quantities on the next read."""
+        goal = self._goal(user_id, language_id, session)
+        if goal is None:
+            return None
+        self._reset(goal, today or date.today(), session)
+        session.flush()
+        return self._dict(goal)
+
+    @staticmethod
+    def _reset(goal: StudyGoal, today: date, session) -> None:
+        session.query(StudyGoalItem).filter_by(goal_id=goal.id).delete()
+        goal.locked, goal.start_date = None, today
 
     @transactional
     def ensure_default(self, user_id: str, language_id: str, session: Optional[Session] = None) -> Optional[dict]:

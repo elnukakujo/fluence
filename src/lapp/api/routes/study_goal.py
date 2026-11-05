@@ -46,3 +46,21 @@ def put_study_goal(language_id: str):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id)})
+
+
+@bp.route('/<language_id>/reset', methods=['POST'])
+@login_required
+def reset_study_goal(language_id: str):
+    """Unlock the running period: the menu is dropped and rebuilt from the goal's current quantities.
+    ---
+    tags:
+        - StudyGoal
+    responses:
+        200: {description: "{goal, progress}"}
+        404: {description: No goal for this language}
+    """
+    require_write(language_id)
+    user_id = current_user_id()
+    if service.reset(user_id, language_id) is None:
+        return jsonify({'error': 'No study goal'}), 404
+    return jsonify({"goal": service.get(user_id, language_id), "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id)})

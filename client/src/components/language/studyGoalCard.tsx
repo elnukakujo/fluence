@@ -8,7 +8,7 @@ import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
 import NumberField from "@/components/ui/input/numberField";
 import { getAvailableLanguages } from "@/api/language";
-import { getStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
+import { getStudyGoal, resetStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
 import type Language from "@/interface/containers/Language";
 
 const PERIODS: StudyGoal["period"][] = ["week", "biweek", "month"];
@@ -48,6 +48,15 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
             .catch(() => ({ goal: null, progress: null }) as StudyGoalState)
             .then((s) => { setStates((x) => ({ ...x, [languageId]: s })); setDrafts((d) => ({ ...d, [languageId]: draftOf(s) })); });
     }, [languageId, states]);
+
+    const restart = async () => {
+        if (!window.confirm(t("goalResetConfirm"))) return;
+        setError("");
+        try {
+            const s = await resetStudyGoal(languageId);
+            setStates((x) => ({ ...x, [languageId]: s }));
+        } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    };
 
     const save = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -100,6 +109,10 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                 {KINDS.filter((k) => progress.types[k.kind].n + progress.types[k.kind].r > 0)
                                     .map((k) => `${t(k.label)}: ${progress.types[k.kind].n} ${t("goalColNew").toLowerCase()} + ${progress.types[k.kind].r} ${t("goalColReview").toLowerCase()}`).join(" · ")}
                             </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button type="button" className="btn btn-secondary min-h-11" disabled={dirty.has(languageId)} onClick={restart}>{t("goalReset")}</button>
+                                <span className="text-muted">{t("goalResetDesc")}</span>
+                            </div>
                             <p className="text-muted">{progress.next.pending || dirty.has(languageId) ? t("goalChangesFrom", { date: date(progress.next.start) }) : t("goalNoChanges")}</p>
                         </div>
                     </div>

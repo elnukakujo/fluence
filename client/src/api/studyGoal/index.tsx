@@ -25,3 +25,10 @@ export async function saveStudyGoal(languageId: string, goal: Pick<StudyGoal, "p
     if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Failed to save the study goal (${res.status})`);
     return res.json();
 }
+
+/** Unlock the running period: its menu is dropped and rebuilt from the saved quantities. */
+export async function resetStudyGoal(languageId: string): Promise<StudyGoalState> {
+    const res = await fetch(`${BASE_URL}/api/study-goal/${languageId}/reset`, { method: "POST", headers: await getAuthHeaders() });
+    if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Failed to reset the study goal (${res.status})`);
+    return res.json();
+}
