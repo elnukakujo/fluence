@@ -1,4 +1,6 @@
 """Review queue honoring layout sections, goals, boost/ban and the vocabulary side pattern."""
+import pytest
+
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
 from lapp.models.components import Word, Character
@@ -24,8 +26,10 @@ def test_section_budgets():
 def test_order_bucket_goal_then_priority_with_boost():
     items = [E("a"), E("b"), E("c"), E("d")]
     pri = {"a": 4.0, "b": 3.0, "c": 1.0, "d": 2.5}
-    out = order_bucket(items, lambda e: pri[e.id], goal_ids={"c"}, boosted_ids={"d"})
+    out = order_bucket(items, lambda e: pri[e.id], goal_rank={"c": 2}, boosted_ids={"d"})
     assert [e.id for e in out] == ["c", "a", "d", "b"]        # d: 2.5 * 1.5 = 3.75 beats b (3.0), not a (4.0)
+    ranked = order_bucket(items, lambda e: pri[e.id], goal_rank={"b": 1, "c": 2}, boosted_ids=set())
+    assert [e.id for e in ranked][:2] == ["c", "b"]            # new goal items, then review goal items, then the rest
 
 
 def _seed(db, vocs=0, grams=0, exs=(), calls=0):
@@ -86,12 +90,67 @@ def test_goal_items_are_served_first(db):
 
 def test_mastered_goal_item_not_forced(db):
     _seed(db, vocs=2)
-    StudyGoalService().upsert("user_U1", "lang_L1", "week", 1, 0, 0)
-    StudyGoalService().ensure_cycle("user_U1", "lang_L1")               # picks voc_V0
-    ScoreService().set("user_U1", "voc_V0", score=90.0, difficulty=0.5)
-    ScoreService().set("user_U1", "voc_V0#front", score=90.0, difficulty=0.5)
-    ScoreService().set("user_U1", "voc_V0#back", score=90.0, difficulty=0.5)
-    assert _cards()[0]["id"] != "voc_V0"
+    ScoreService().set("user_U1", "voc_V1", score=10.0, difficulty=0.5, touch=False)   # seen before: a review slot
+    StudyGoalService().upsert("user_U1", "lang_L1", "week", 1, 0, 0, r_vocabulary=1)  # menu: V0 new, V1 review
+    for sid in ("voc_V0", "voc_V0#front", "voc_V0#back"):
+        ScoreService().set("user_U1", sid, score=90.0, difficulty=0.5)               # V0 mastered
+    assert {c["id"] for c in _cards()} == {"voc_V1"}
+
+
+def test_menu_locks_the_type_to_new_then_review(db):
+    _seed(db, vocs=4)
+    ScoreService().set("user_U1", "voc_V3", score=30.0, difficulty=0.5, touch=False)  # seen earlier
+    StudyGoalService().upsert("user_U1", "lang_L1", "week", 1, 0, 0)                   # 1 new, no review
+    assert {c["id"] for c in _cards()} == {"voc_V0"}                                   # V1, V2 unseen, V3 not on the menu
+    StudyGoalService().upsert("user_U1", "lang_L1", "week", 1, 0, 0, r_vocabulary=1)   # applies next period only
+    assert {c["id"] for c in _cards()} == {"voc_V0"}
+
+
+def test_new_elements_come_before_review_ones(db):
+    _seed(db, vocs=3)
+    ScoreService().set("user_U1", "voc_V2", score=30.0, difficulty=0.5, touch=False)
+    StudyGoalService().upsert("user_U1", "lang_L1", "week", 1, 0, 0, r_vocabulary=1)
+    cards = _cards()
+    assert {c["id"] for c in cards} == {"voc_V0", "voc_V2"}
+    assert cards[0]["id"] == "voc_V0"                                      # the new element leads
+
+
+def test_no_goal_does_not_lock(db):
+    _seed(db, vocs=3)
+    assert {c["id"] for c in _cards()} == {"voc_V0", "voc_V1", "voc_V2"}
+
+
+def test_split_fills_the_budget_with_fronts_then_the_same_backs(db):
+    _seed(db, vocs=30)
+    _prefs(daily_goal_minutes=5, voc_side_pattern={"mode": "split"})   # 10 cards
+    cards = _cards()
+    assert [c["side"] for c in cards] == ["front"] * 5 + ["back"] * 5
+    assert [c["id"] for c in cards[:5]] == [c["id"] for c in cards[5:]]
+
+
+@pytest.mark.parametrize("pattern", [None, {"mode": "cycle", "cycle": ["F", "F", "B"]}, {"mode": "random", "front": 3, "back": 1}, {"mode": "split"}])
+def test_both_sides_of_a_vocabulary_are_always_reviewed_together(db, pattern):
+    _seed(db, vocs=30, grams=30)
+    _prefs(daily_goal_minutes=5, voc_side_pattern=pattern)               # 10 cards shared with grammar: a tight budget
+    sides = {}
+    for c in _cards():
+        if "side" in c:
+            sides.setdefault(c["id"], []).append(c["side"])
+    assert sides and all(sorted(v) == ["back", "front"] for v in sides.values())
+
+
+def test_exercises_only_from_lessons_of_reviewed_elements(db):
+    _seed(db, vocs=1, exs=("quizz",))
+    with db.session_scope() as s:
+        db.insert(Lesson(id="lesson_L2", user_id="user_U1", language_id="lang_L1", title="L2", position=1), session=s, commit=False)
+        db.insert(Exercise(id="ex_OTHER", lesson_id="lesson_L2", exercise_type="quizz", question="q", answer="a"), session=s, commit=False)
+    ids = {c["id"] for c in _cards()}
+    assert "ex_E0" in ids and "ex_OTHER" not in ids                     # L2 has no element under review
+
+
+def test_exercises_alone_still_review(db):
+    _seed(db, exs=("quizz",))
+    assert [c["id"] for c in _cards()] == ["ex_E0"]
 
 
 def test_null_prefs_keep_round_robin(db):

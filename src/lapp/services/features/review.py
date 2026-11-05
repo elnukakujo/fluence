@@ -32,23 +32,48 @@ VOC_SIDE_GAP = 3
 SECTION_MODELS = {"voc": Vocabulary, "gram": Grammar, "ex": Exercise, "call": Calligraphy}
 
 
-def model_pattern_active(pattern) -> bool:
-    return pattern is not None
-
-
 def section_budgets(layout: list[dict], daily_goal_minutes: int) -> dict[str, int]:
     """Cards per section: its own minutes, else an equal share of the daily goal (30 s per card, at least 1)."""
     share = daily_goal_minutes / max(len(layout), 1)
     return {sec["type"]: max(1, round((sec.get("minutes") or share) * 60 / SECONDS_PER_CARD)) for sec in layout}
 
 
-def order_bucket(items: list, priority_of, goal_ids: set, boosted_ids: set) -> list:
-    """Goal items first, then by review priority (boosted ones multiplied by BOOST_FACTOR), best first."""
+def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set) -> list:
+    """The goal's menu first (new elements, then review ones: `goal_rank` 2 / 1), then by review priority
+    (boosted ones multiplied by BOOST_FACTOR), best first."""
     def key(item):
         element = item[0] if isinstance(item, tuple) else item
         weight = BOOST_FACTOR if element.id in boosted_ids else 1.0
-        return (element.id in goal_ids, priority_of(item) * weight)
+        return (goal_rank.get(element.id, 0), priority_of(item) * weight)
     return sorted(items, key=key, reverse=True)
+
+
+def quotas(lengths: dict, cap: int) -> dict:
+    """How many cards each type contributes to a round-robin queue of at most `cap` cards."""
+    left, out, total = dict(lengths), {m: 0 for m in lengths}, 0
+    while total < cap and any(left.values()):
+        for m in FEATURE_MODELS:
+            if total >= cap:
+                break
+            if left.get(m, 0) > 0:
+                out[m] += 1
+                left[m] -= 1
+                total += 1
+    return out
+
+
+def pair_vocabulary(bucket: list, quota: int, split: bool = False) -> list:
+    """Both sides of a vocabulary are always reviewed together: keep the best quota // 2 vocabularies (fewer words
+    when the budget is tight, never half a word) with their two sides. `split` serves all fronts, then their backs;
+    otherwise the sides stay in priority order for the side mix to arrange."""
+    chosen, seen = [], set()
+    for v, _side in bucket:
+        if v.id not in seen and len(chosen) < quota // 2:
+            seen.add(v.id)
+            chosen.append(v)
+    if split:
+        return [(v, "front") for v in chosen] + [(v, "back") for v in chosen]
+    return [it for it in bucket if it[0].id in seen]
 
 
 class ReviewService:
@@ -91,36 +116,62 @@ class ReviewService:
         type_prefs = (preferences.exercise_type_prefs if preferences else None) or {}
         layout = preferences.review_layout if preferences else None
         pattern = preferences.voc_side_pattern if preferences else None
-        goal_ids = {i.element_id for i in StudyGoalService().ensure_cycle(user_id, language_id, session=session)}
+        goal_items = StudyGoalService().ensure_cycle(user_id, language_id, session=session)
+        goal_rank = {i.element_id: 2 if i.kind == "new" else 1 for i in goal_items}       # new before review
+        goal_ids = set(goal_rank)
+
+        # A type covered by the goal's menu serves only that menu (open new elements, then open review ones).
+        locked = {m for m, kind in ((Vocabulary, "vocabulary"), (Grammar, "grammar"), (Calligraphy, "calligraphy"))
+                  if kind in StudyGoalService().locked_kinds(user_id, language_id, session=session)}
 
         buckets = {}
-        for model in FEATURE_MODELS:
+        for model in (Vocabulary, Grammar, Calligraphy):
             cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all()
-            boosted: set[str] = set()
-            if model is Exercise:
-                own = ExerciseUserPrefService().modes_for(user_id, [c.id for c in cards], session=session)
-                modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in cards}
-                cards = [c for c in cards if modes[c.id] != "ban"]
-                boosted = {i for i, m in modes.items() if m == "boost"}
+            if model in locked:
+                cards = [c for c in cards if c.id in goal_ids]
+            scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
             if model is Vocabulary:
                 priority = self._vocabulary_priorities(cards, user_id, session)
                 items = [(v, sd) for v in cards for sd in SIDES]
-                key_of = lambda it: priority[(it[0].id, it[1])]
+                key_of = lambda it, priority=priority: priority[(it[0].id, it[1])]
             else:
-                scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
                 items = cards
                 key_of = lambda c, scores=scores: review_priority(*self._review_fields(c, scores.get(c.id)))
-            buckets[model] = order_bucket(items, key_of, goal_ids, boosted)
+            buckets[model] = order_bucket(items, key_of, goal_rank, set())
+
+        exercises = session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids)).all()
+        own = ExerciseUserPrefService().modes_for(user_id, [c.id for c in exercises], session=session)
+        modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in exercises}
+        exercises = [c for c in exercises if modes[c.id] != "ban"]
+
+        # Cards per type, to know which lessons are in play and how far "all front, then all back" can go.
+        budgets = section_budgets(layout, daily_goal_minutes) if layout else None
+        if budgets:
+            quota = {m: 0 for m in FEATURE_MODELS}
+            for sec, left in budgets.items():
+                m = SECTION_MODELS[sec]
+                quota[m] = min(len(exercises) if m is Exercise else len(buckets[m]), left)
+        else:
+            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}, max_cards)
+        buckets[Vocabulary] = pair_vocabulary(buckets[Vocabulary], quota[Vocabulary], split=bool(pattern and pattern.get("mode") == "split"))
+
+        # Exercises come from the lessons of the elements being reviewed (all of them when no element is).
+        in_play = {(i[0] if isinstance(i, tuple) else i).lesson_id
+                   for m in (Vocabulary, Grammar, Calligraphy) for i in buckets[m][:quota[m]]}
+        if in_play:
+            exercises = [c for c in exercises if c.lesson_id in in_play]
+        boosted = {i for i, m in modes.items() if m == "boost"}
+        ex_scores = ScoreService().get_many(user_id, [c.id for c in exercises], session=session)
+        buckets[Exercise] = order_bucket(exercises, lambda c: review_priority(*self._review_fields(c, ex_scores.get(c.id))), {}, boosted)
 
         picker = None
-        if model_pattern_active(pattern):
+        if pattern and pattern.get("mode") != "split":
             n = len(buckets[Vocabulary]) // len(SIDES)
             picker = make_side_picker(pattern, front_count=n, back_count=n)
 
         queue: list = []
         sections: list = []
         if layout:
-            budgets = section_budgets(layout, daily_goal_minutes)
             for sec in layout:
                 model, left = SECTION_MODELS[sec["type"]], budgets[sec["type"]]
                 while left > 0 and buckets[model]:
@@ -163,7 +214,7 @@ class ReviewService:
     def _vocabulary_candidates(vocabularies, user_id, session) -> list:
         """One (vocabulary, side) candidate per side, ranked by that side's own review priority."""
         priority = ReviewService._vocabulary_priorities(vocabularies, user_id, session)
-        return order_bucket([(v, sd) for v in vocabularies for sd in SIDES], lambda it: priority[(it[0].id, it[1])], set(), set())
+        return order_bucket([(v, sd) for v in vocabularies for sd in SIDES], lambda it: priority[(it[0].id, it[1])], {}, set())
 
     @staticmethod
     def _pop(bucket: list, queue: list, model, picker=None):
