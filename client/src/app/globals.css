@@ -629,6 +629,7 @@
     background: var(--color-border);
     overflow: hidden;
   }
+  .progress-bar-fill.is-accent { background: var(--color-accent); }
   .progress-bar-fill {
     height: 100%;
     border-radius: var(--radius-full);
@@ -832,6 +833,114 @@
     text-transform: uppercase;
     margin-bottom: 0.375rem;
   }
+
+  /* ── Number fields: no browser spinners anywhere; <NumberField> adds a −/+ stepper ── */
+  input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .stepper {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+  .stepper:focus-within { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+  .stepper input {
+    width: 3.25rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-foreground);
+    text-align: center;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stepper input:focus-visible { outline: none; }
+  .stepper button {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    min-height: 2.75rem;
+    color: var(--color-muted);
+    touch-action: manipulation;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .stepper button:hover:not(:disabled) { background: var(--color-accent-soft); color: var(--color-accent); }
+  .stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── Selects: one look app-wide. Native element (keeps mobile pickers + a11y), restyled. ── */
+  select {
+    appearance: none;
+    min-height: 2.75rem;
+    padding-right: 2.25rem;
+    cursor: pointer;
+    background-color: var(--color-surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a7a64' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+  @supports (appearance: base-select) {
+    select, ::picker(select) { appearance: base-select; }
+    select { background-image: none; padding-right: 0.75rem; display: inline-flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    select::picker-icon { color: var(--color-muted); transition: rotate 0.15s ease; }
+    select:open::picker-icon { rotate: 180deg; }
+    ::picker(select) {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.75rem;
+      padding: 0.25rem;
+      margin-top: 0.25rem;
+      box-shadow: var(--shadow-card);
+    }
+    select option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 2.5rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    select option:hover, select option:focus-visible { background: var(--color-accent-soft); outline: none; }
+    select option:checked { color: var(--color-accent); font-weight: 600; }
+    select option::checkmark { color: var(--color-accent); }
+  }
+
+  /* ── Boost / ban lists and the sortable review order ── */
+  .pref-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 2.25rem;
+    padding: 0 0.25rem 0 0.75rem;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-full);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-size: 0.85rem;
+  }
+  .pref-chip[data-mode="ban"] { border-color: var(--color-danger); color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface)); }
+  .pref-chip button { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--radius-full); touch-action: manipulation; }
+  .pref-chip button:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+  .goal-tile { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 0.75rem; background: var(--color-surface); }
+  .sort-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    background: var(--color-surface);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .sort-row[data-dragging="true"] { border-color: var(--color-accent); box-shadow: var(--shadow-card); }
+  .sort-handle { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; color: var(--color-muted); cursor: grab; touch-action: none; border-radius: 0.5rem; }
+  .sort-handle:hover { color: var(--color-accent); background: var(--color-accent-soft); }
+  .sort-row[data-dragging="true"] .sort-handle { cursor: grabbing; }
+
   .filter-chips {
     display: flex;
     flex-wrap: wrap;

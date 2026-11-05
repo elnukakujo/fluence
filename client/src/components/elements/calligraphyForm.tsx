@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import { useRouter } from "next/navigation";
+import NumberField from "@/components/ui/input/numberField";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import TagSelector from "@/components/tags/tagSelector";
 import SourceSelector from "@/components/sources/sourceSelector";
@@ -192,12 +193,10 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                     onChange={(e) => setRadical(e.target.value)}
                     label={t("radicalLabel")}
                 />
-                <AutoWidthInput
-                    type="number"
-                    value={strokes !== undefined ? strokes.toString() : ""}
-                    onChange={(e) => setStrokes(parseInt(e.target.value) || undefined)}
-                    label={t("strokesLabel")}
-                />
+                <span className="flex flex-col space-y-2">
+                    <span className="text-sm font-medium text-foreground">{t("strokesLabel")}</span>
+                    <NumberField min={0} ariaLabel={t("strokesLabel")} value={strokes ?? ""} onChange={(v) => setStrokes(v === "" || v === 0 ? undefined : v)} />
+                </span>
                 <MediaLoader imageUrl={imageUrl} setImageUrl={setImageUrl} audioUrl={audioUrl} setAudioUrl={setAudioUrl} />
             </article>
             <TagSelector

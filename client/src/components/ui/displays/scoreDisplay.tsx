@@ -2,6 +2,8 @@ import { useTranslations } from "next-intl";
 
 interface ScoreDisplayProps {
   score: number; // 0–100
+  /** Hide the leading "Score" word (when a table header already names the column). */
+  hideLabel?: boolean;
 }
 
 type LevelConfig = {
@@ -22,7 +24,7 @@ const PIPS = 5;
 
 import PipBar from "./pipBar";
 
-export default function ScoreDisplay({ score }: ScoreDisplayProps) {
+export default function ScoreDisplay({ score, hideLabel }: ScoreDisplayProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const levelConfig = LEVELS_CONFIG.find((l) => l.test(clamped))!;
   const t = useTranslations("ui");
@@ -31,7 +33,7 @@ export default function ScoreDisplay({ score }: ScoreDisplayProps) {
 
   return (
     <div className="inline-flex items-center gap-2">
-      <span className="text-sm text-muted">{t("score")}</span>
+      {!hideLabel && <span className="text-sm text-muted">{t("score")}</span>}
 
       <PipBar filled={filledPips} pip={levelConfig.pip} label={t("score")} value={`${Number(clamped.toFixed(1))} / 100`} />
 

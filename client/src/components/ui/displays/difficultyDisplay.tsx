@@ -2,6 +2,8 @@ import { useTranslations } from "next-intl";
 
 interface DifficultyScoreProps {
   difficulty: number; // 0 (easy) → 1 (hard)
+  /** Hide the leading "Difficulty" word (when a table header already names the column). */
+  hideLabel?: boolean;
 }
 
 type LevelConfig = {
@@ -22,7 +24,7 @@ const PIPS = 5;
 
 import PipBar from "./pipBar";
 
-export default function DifficultyDisplay({ difficulty }: DifficultyScoreProps) {
+export default function DifficultyDisplay({ difficulty, hideLabel }: DifficultyScoreProps) {
   const clamped = Math.max(0, Math.min(1, difficulty));
   const levelConfig = LEVELS_CONFIG.find((l) => clamped <= l.max) ?? LEVELS_CONFIG[LEVELS_CONFIG.length - 1];
   const t = useTranslations("ui");
@@ -31,7 +33,7 @@ export default function DifficultyDisplay({ difficulty }: DifficultyScoreProps) 
 
   return (
     <div className="inline-flex items-center gap-2">
-      <span className="text-sm text-muted">{t("difficulty")}</span>
+      {!hideLabel && <span className="text-sm text-muted">{t("difficulty")}</span>}
 
       <PipBar filled={filledPips} pip={levelConfig.pip} label={t("difficulty")} value={`${Number(clamped.toFixed(2))} / 1`} />
 
