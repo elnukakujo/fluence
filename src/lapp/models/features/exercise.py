@@ -11,6 +11,7 @@ class Exercise(BaseFeatureModel):
     question = Column(String, nullable=False, index=True)
     answer = Column(String, nullable=False)
     text_support = Column(String, default="")   # e.g., additional text information
+    category = Column(String, nullable=True)  # exam-section slug (listening, reading, ...); the client owns the per-language table, never validated here
     content = Column(JSON, nullable=True)  # structured data for type_in_the_blank/select_in_the_blank/matching/organize/true_false/quizz
     
     related_vocabulary = relationship('Vocabulary', secondary=exercise_vocabulary_link)
@@ -36,6 +37,7 @@ class Exercise(BaseFeatureModel):
             "text_support": self.text_support,
             "answer": self.answer,
             "content": self.content,
+            "category": self.category,
             "needs": self.needs,
             "related_vocabulary": [v.id for v in self.related_vocabulary],
             "related_calligraphy": [c.id for c in self.related_calligraphy],

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 
 from ..base import BaseFeatureDict
 
@@ -26,10 +26,17 @@ class ExerciseDict(BaseFeatureDict):
     answer: str
     text_support: Optional[str] = None          # e.g., additional text information
     content: Optional[dict] = None              # structured data for the structured types below
+    category: Optional[str] = None              # exam-section slug; free text on purpose (the client owns the table)
 
     related_vocabulary: Optional[list[str]] = None # e.g., ["voc_V1"]
     related_calligraphy: Optional[list[str]] = None  # e.g., ["call_C1"]
     related_grammar: Optional[list[str]] = None    # e.g., ["gram_G1"]
+
+    @field_validator('category')
+    @classmethod
+    def _blank_category_is_none(cls, v):
+        v = v.strip() if isinstance(v, str) else v
+        return v or None
 
     @model_validator(mode='after')
     def _validate(self):

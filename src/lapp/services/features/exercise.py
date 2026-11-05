@@ -169,6 +169,7 @@ class ExerciseService:
             answer=exercise_data.get("answer"),
             text_support=exercise_data.get("text_support", ""),
             content=exercise_data.get("content"),
+            category=exercise_data.get("category"),
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
             tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
@@ -206,6 +207,8 @@ class ExerciseService:
 
         for key, value in update_data.items():
             setattr(existing, key, value)
+        if "category" in data.model_fields_set and data.category is None:
+            existing.category = None     # exclude_none above would otherwise make a category impossible to clear
 
         if related_calligraphy is not None or related_vocabulary is not None or related_grammar is not None:
             existing.related_calligraphy, existing.related_vocabulary, existing.related_grammar = self._resolve_associations(

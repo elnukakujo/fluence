@@ -74,3 +74,17 @@ def test_fork_carries_side_scores(db):
         voc = s.query(Vocabulary).filter(Vocabulary.lesson_id == lesson.id).one()
         ids = {r.element_id for r in s.query(Score).filter(Score.user_id == "user_U2", Score.element_id.like(f"{voc.id}%"))}
         assert ids == {voc.id, f"{voc.id}#front", f"{voc.id}#back"}
+
+
+def test_fork_keeps_exercise_category(db):
+    from lapp.models.features import Exercise
+    _seed(db)
+    with db.session_scope() as s:
+        db.insert(Exercise(id="ex_E1", lesson_id="lesson_L1", exercise_type="essay", question="q", answer="a", category="listening"), session=s, commit=False)
+    c = _invite()
+    CollaborationService().accept(c.id)
+    CollaborationService().remove(c.id)
+    with db.session_scope() as s:
+        lang = s.query(Language).filter(Language.user_id == "user_U2").one()
+        ids = [l.id for l in s.query(Lesson).filter(Lesson.language_id == lang.id)]
+        assert [e.category for e in s.query(Exercise).filter(Exercise.lesson_id.in_(ids))] == ["listening"]

@@ -459,7 +459,7 @@ class CollaborationService:
                 feature_map[c.id] = nc.id
             for e in session.query(Exercise).filter(Exercise.lesson_id == lesson.id).all():
                 ne = clone(Exercise, lesson_id=new_lesson.id, exercise_type=e.exercise_type, question=e.question,
-                           answer=e.answer, text_support=e.text_support, content=e.content)
+                           answer=e.answer, text_support=e.text_support, content=e.content, category=e.category)
                 feature_map[e.id] = ne.id
 
         # map the collaborator's progress (old element id -> new element id)
@@ -528,7 +528,7 @@ class CollaborationService:
                 feature_map[c.id] = nc.id
             for e in session.query(Exercise).filter(Exercise.lesson_id == lesson.id).all():
                 ne = clone(Exercise, lesson_id=new_lesson.id, exercise_type=e.exercise_type, question=e.question,
-                           answer=e.answer, text_support=e.text_support, content=e.content)
+                           answer=e.answer, text_support=e.text_support, content=e.content, category=e.category)
                 feature_map[e.id] = ne.id
 
         element_map: dict[str, str] = {source_language_id: target_language_id}
