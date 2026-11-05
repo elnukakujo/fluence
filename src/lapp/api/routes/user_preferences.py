@@ -66,10 +66,6 @@ def create_user_preferences():
             learning_goals:
               type: string
               example: "Improve vocabulary"
-            preferred_exercise_types:
-              type: array
-              items:
-                type: string
                 example: "translate"
     responses:
         201:
@@ -128,10 +124,6 @@ def update_user_preferences(pref_id: str):
                 learning_goals:
                     type: string
                     example: "Improve vocabulary"
-                preferred_exercise_types:
-                    type: array
-                    items:
-                        type: string
                         example: "translate"
     responses:
       200:

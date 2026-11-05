@@ -6,7 +6,9 @@ export default interface UserPreferences {
     user?: User; 
     native_language_iso639_2: string[]; // Array of ISO 639-2 language codes
     learning_goals?: string;
-    preferred_exercise_types?: string[]; // e.g., ['essay', 'translate']
+    voc_side_pattern?: VocSidePattern | null;
+    exercise_type_prefs?: Record<string, "boost" | "ban">;
+    review_layout?: ReviewSection[] | null;
     daily_goal_minutes?: number;
     last_updated: string; // ISO date string
     ai_feedback_enabled?: boolean;
@@ -21,6 +23,16 @@ export default interface UserPreferences {
     ai_tts_api_key?: string;
     ai_tts_model?: string;
     ai_endpoints?: ApiEndpointConfig[];
+}
+
+export type VocSidePattern =
+    | { mode: "random"; front: number; back: number }
+    | { mode: "cycle"; cycle: ("F" | "B")[] }
+    | { mode: "split" };
+
+export interface ReviewSection {
+    type: "voc" | "gram" | "ex" | "call";
+    minutes: number | null;
 }
 
 export interface ApiEndpointConfig {

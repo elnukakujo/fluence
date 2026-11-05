@@ -11,7 +11,10 @@ class UserPreferences(Base):
     id = Column(String, primary_key=True, index=True)
     native_language_iso639_2 = Column(JSON, nullable=False, default=lambda: ["eng"])
     learning_goals = Column(String, default='')
-    preferred_exercise_types = Column(JSON, default=list)
+    # Study preferences (null = defaults): vocabulary side mix, per-exercise-type boost/ban, ordered daily-review sections
+    voc_side_pattern = Column(JSON, nullable=True)
+    exercise_type_prefs = Column(JSON, default=dict, nullable=False)
+    review_layout = Column(JSON, nullable=True)
     daily_goal_minutes = Column(Integer, default=20, nullable=False)
     last_updated = Column(Date, default=date.today)
     ai_feedback_enabled = Column(Boolean, default=True, nullable=False)
@@ -48,7 +51,9 @@ class UserPreferences(Base):
             "user_id": self.user_id,
             "native_language_iso639_2": self.native_language_iso639_2,
             "learning_goals": self.learning_goals,
-            "preferred_exercise_types": self.preferred_exercise_types,
+            "voc_side_pattern": self.voc_side_pattern,
+            "exercise_type_prefs": self.exercise_type_prefs or {},
+            "review_layout": self.review_layout,
             "last_updated": self.last_updated.isoformat() if self.last_updated else None,
             "ai_feedback_enabled": self.ai_feedback_enabled,
             "ai_learnable_sentence_enabled": self.ai_learnable_sentence_enabled,

@@ -7,6 +7,8 @@ from .collaboration import Collaboration
 from .score import Score
 from .lesson_share import LessonShare
 from .ingestion_job import IngestionJob
+from .exercise_user_pref import ExerciseUserPref
+from .study_goal import StudyGoal, StudyGoalItem
 
 __all__ = [
     "User",
@@ -18,4 +20,7 @@ __all__ = [
     "Score",
     "LessonShare",
     "IngestionJob",
+    "ExerciseUserPref",
+    "StudyGoal",
+    "StudyGoalItem",
 ]

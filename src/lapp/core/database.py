@@ -44,6 +44,9 @@ ID_PREFIXES = {
     "Score": "sc_S",
     "LessonShare": "ls_L",
     "IngestionJob": "ing_J",
+    "ExerciseUserPref": "xup_X",
+    "StudyGoal": "goal_G",
+    "StudyGoalItem": "goali_I",
 }
 
 # Backing store for generate_new_id()'s atomic counters. One row per entity

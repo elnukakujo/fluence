@@ -10,20 +10,12 @@ import { updateUserPreferences } from "@/api/userPreferences";
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
 import UserPreferences from "@/interface/systemData/UserPreferences";
 
-const EXERCISE_TYPES = [
-  "essay", "answering", "translate", "organize", "conversation",
-  "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "speaking",
-];
-
 export default function PreferencesSection({ preferences }: { preferences: Partial<UserPreferences> }) {
   const t = useTranslations("settings.preferences");
   const [nativeLanguages, setNativeLanguages] = useState<string[]>(
     preferences.native_language_iso639_2 ?? []
   );
   const [learningGoals, setLearningGoals] = useState(preferences.learning_goals ?? "");
-  const [exerciseTypes, setExerciseTypes] = useState<string[]>(
-    preferences.preferred_exercise_types ?? []
-  );
   const [dailyGoal, setDailyGoal] = useState(preferences.daily_goal_minutes ?? 20);
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +26,6 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
       await updateUserPreferences(preferences.id!, {
         native_language_iso639_2: nativeLanguages,
         learning_goals: learningGoals,
-        preferred_exercise_types: exerciseTypes,
         daily_goal_minutes: dailyGoal,
       });
     } finally {
@@ -90,15 +81,6 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
           value={learningGoals}
           onChange={(e) => setLearningGoals(e.target.value)}
           placeholder={t("learningGoalsPlaceholder")}
-        />
-
-        {/* Preferred Exercise Types */}
-        <ClassicSelectMenu
-          label={t("exerciseTypes")}
-          options={EXERCISE_TYPES}
-          selectedOption={exerciseTypes}
-          onChange={(v) => setExerciseTypes(v as string[])}
-          multiple
         />
 
         <div>

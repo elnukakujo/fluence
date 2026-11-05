@@ -5,7 +5,6 @@ import { Ring } from "ldrs/react";
 import "ldrs/react/Ring.css";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import { nativeFromLocale, isLocale } from "@/i18n/locales";
 import { createUser, updateUser } from "@/api/user";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
@@ -14,10 +13,6 @@ import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 
-const EXERCISE_TYPES = [
-    "essay", "answering", "translate", "organize", "conversation",
-    "type_in_the_blank", "select_in_the_blank", "matching", "true_false", "speaking",
-];
 const DAILY_GOAL_OPTIONS = ["5", "10", "15", "20", "30", "45", "60"];
 
 export default function UserForm({ user, navDisabled = false, onSuccess }: {
@@ -28,7 +23,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const isUpdate = Boolean(user?.id);
     const router = useRouter();
     const t = useTranslations("userForm");
-    const tEx = useTranslations("exercises");
     const locale = useLocale();
 
     const userData: Partial<User> = user ?? {
@@ -44,7 +38,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
         userData.preferences?.native_language_iso639_2 || (!isUpdate && isLocale(locale) ? nativeFromLocale(locale) : []),
     );
     const [learningGoals, setLearningGoals] = useState<string>(userData.preferences?.learning_goals || "");
-    const [exerciseTypes, setExerciseTypes] = useState<string[]>(userData.preferences?.preferred_exercise_types || []);
     const [dailyGoal, setDailyGoal] = useState<string>((userData.preferences?.daily_goal_minutes ?? 20).toString());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -84,7 +77,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                 user_id: userData.id!,
                 native_language_iso639_2: nativeLangs,
                 learning_goals: learningGoals,
-                preferred_exercise_types: exerciseTypes,
                 daily_goal_minutes: parseInt(dailyGoal),
             },
         };
@@ -204,14 +196,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             value={learningGoals}
                             onChange={(e) => setLearningGoals(e.target.value)}
                             placeholder={t("learningGoalsPlaceholder")}
-                        />
-                        <ClassicSelectMenu
-                            label={t("exerciseTypes")}
-                            options={EXERCISE_TYPES}
-                            optionLabel={(v) => (EXERCISE_TYPE_KEY[v] ? tEx(EXERCISE_TYPE_KEY[v]) : undefined)}
-                            selectedOption={exerciseTypes}
-                            onChange={(selected) => setExerciseTypes(selected as string[])}
-                            multiple
                         />
                         <ClassicSelectMenu
                             label={t("dailyGoal")}

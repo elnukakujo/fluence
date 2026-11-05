@@ -77,12 +77,18 @@ class ApiEndpoint(BaseModel):
         return _normalize_base_url(v)
 
 
+REVIEW_SECTION_TYPES = ("voc", "gram", "ex", "call")
+PREF_MODES = ("boost", "ban")
+
+
 class UserPreferencesDict(BaseModel):
     id: Optional[str] = None
     user_id: Optional[str] = None
     native_language_iso639_2: Optional[List[str]] = ['eng']
     learning_goals: Optional[str] = ''
-    preferred_exercise_types: Optional[List[str]] = []
+    voc_side_pattern: Optional[dict] = None
+    exercise_type_prefs: Optional[dict] = None
+    review_layout: Optional[list] = None
     daily_goal_minutes: Optional[int] = 20
     last_updated: Optional[datetime] = None
     ai_feedback_enabled: Optional[bool] = True
@@ -115,3 +121,55 @@ class UserPreferencesDict(BaseModel):
                 continue
             validated.append(ApiEndpoint(**ep).model_dump())
         return validated
+
+    @field_validator("voc_side_pattern")
+    @classmethod
+    def _validate_side_pattern(cls, v: Optional[dict]) -> Optional[dict]:
+        if v is None:
+            return None
+        mode = v.get("mode")
+        if mode == "random":
+            a, b = v.get("front"), v.get("back")
+            if not all(isinstance(x, int) and not isinstance(x, bool) and x >= 0 for x in (a, b)) or a + b == 0:
+                raise ValueError("random pattern needs non-negative integer front/back, not both 0")
+            return {"mode": "random", "front": a, "back": b}
+        if mode == "cycle":
+            cycle = v.get("cycle")
+            if not isinstance(cycle, list) or not cycle or any(c not in ("F", "B") for c in cycle):
+                raise ValueError("cycle pattern needs a non-empty list of 'F' / 'B'")
+            return {"mode": "cycle", "cycle": list(cycle)}
+        if mode == "split":
+            return {"mode": "split"}
+        raise ValueError("voc_side_pattern mode must be random, cycle or split")
+
+    @field_validator("exercise_type_prefs")
+    @classmethod
+    def _validate_type_prefs(cls, v: Optional[dict]) -> Optional[dict]:
+        from ..features.exercise import VALID_EXERCISE_TYPES
+        if v is None:
+            return None
+        for k, mode in v.items():
+            if k not in VALID_EXERCISE_TYPES:
+                raise ValueError(f"Unknown exercise type: {k}")
+            if mode not in PREF_MODES:
+                raise ValueError(f"Unknown mode for {k}: {mode}")
+        return v
+
+    @field_validator("review_layout")
+    @classmethod
+    def _validate_layout(cls, v: Optional[list]) -> Optional[list]:
+        if v is None:
+            return None
+        if not v:
+            raise ValueError("review_layout may not be empty (use null for the default)")
+        out, seen = [], set()
+        for sec in v:
+            t = sec.get("type") if isinstance(sec, dict) else None
+            minutes = sec.get("minutes") if isinstance(sec, dict) else None
+            if t not in REVIEW_SECTION_TYPES or t in seen:
+                raise ValueError(f"Unknown or repeated review section: {t}")
+            if minutes is not None and (not isinstance(minutes, int) or isinstance(minutes, bool) or minutes <= 0):
+                raise ValueError("section minutes must be a positive integer or null")
+            seen.add(t)
+            out.append({"type": t, "minutes": minutes})
+        return out

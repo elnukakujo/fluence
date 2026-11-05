@@ -24,4 +24,7 @@ __all__ = [
     "DailyStats",
     "CommitmentLog",
     "Score",
+    "ExerciseUserPref",
+    "StudyGoal",
+    "StudyGoalItem",
 ]
