@@ -121,5 +121,18 @@
   "filterStatus": "状态",
   "filterType": "类型",
   "filterClear": "清除筛选",
-  "filterNoMatch": "没有符合筛选条件的练习。"
+  "filterNoMatch": "没有符合筛选条件的练习。",
+  "categoryLabel": "考试部分",
+  "categoryNone": "无",
+  "uncategorized": "未分类",
+  "filterCategory": "考试部分",
+  "cat_listening": "听力",
+  "cat_reading": "阅读",
+  "cat_writing": "写作",
+  "cat_speaking": "口语",
+  "cat_language_knowledge": "语言知识",
+  "cantHear": "我现在听不了",
+  "cantSpeak": "我现在说不了",
+  "skippedCount": "已跳过 {count} 个练习",
+  "nothingLeft": "开启这些跳过后，没有可练习的内容了。"
 }

@@ -121,5 +121,18 @@
   "filterStatus": "Statut",
   "filterType": "Type",
   "filterClear": "Effacer les filtres",
-  "filterNoMatch": "Aucun exercice ne correspond à ces filtres."
+  "filterNoMatch": "Aucun exercice ne correspond à ces filtres.",
+  "categoryLabel": "Section d'examen",
+  "categoryNone": "Aucune",
+  "uncategorized": "Sans catégorie",
+  "filterCategory": "Section d'examen",
+  "cat_listening": "Compréhension de l'oral",
+  "cat_reading": "Compréhension des écrits",
+  "cat_writing": "Production écrite",
+  "cat_speaking": "Production orale",
+  "cat_language_knowledge": "Connaissances linguistiques",
+  "cantHear": "Je ne peux pas écouter",
+  "cantSpeak": "Je ne peux pas parler",
+  "skippedCount": "{count, plural, one {# exercice passé} other {# exercices passés}}",
+  "nothingLeft": "Il ne reste rien à pratiquer avec ces options."
 }

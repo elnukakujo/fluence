@@ -1,3 +1,4 @@
+import { getLanguageById } from "@/api/language";
 import type Exercise from "@/interface/features/Exercise";
 import ExerciseForm from "@/components/exercises/exerciseForm";
 import Calligraphy from "@/interface/features/Calligraphy";
@@ -23,7 +24,7 @@ interface LessonElements {
 
 export default async function UpdateExercisePage({ params }: { params: Promise<paramsType> }) {
     const t = await getTranslations("languages");
-    const { lesson_id, ex_id } = await params;
+    const { language_id, lesson_id, ex_id } = await params;
     const exercise: Exercise = await getExerciseById(ex_id);
 
     const calligraphies: Calligraphy[] = await getCalligraphyByLesson(lesson_id);
@@ -39,7 +40,7 @@ export default async function UpdateExercisePage({ params }: { params: Promise<p
     return (
         <main>
             <h1 className="mb-4">{t("updateExerciseInformations")}</h1>
-            <ExerciseForm exercise={exercise} lesson_id={lesson_id} lessonElements={lessonElements} />
+            <ExerciseForm languageIso={(await getLanguageById(language_id)).target_iso639_2t} exercise={exercise} lesson_id={lesson_id} lessonElements={lessonElements} />
         </main>
     );
 }

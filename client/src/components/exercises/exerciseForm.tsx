@@ -1,5 +1,7 @@
 "use client";
 
+import { getExamCategories, suggestCategory } from "@/utils/language_iso639";
+import { categoryLabel } from "@/utils/groupByCategory";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
@@ -250,10 +252,12 @@ export default function ExerciseForm({
     exercise,
     lesson_id,
     lessonElements,
+    languageIso,
 }: {
     exercise?: Exercise | Partial<Exercise>;
     lesson_id: string;
     lessonElements: LessonElements;
+    languageIso?: string;   // target language (ISO 639-2T): picks the exam sections offered as categories
 }) {
     const t = useTranslations("exercises");
     const router = useRouter();
@@ -278,6 +282,9 @@ export default function ExerciseForm({
     }
 
     const [exerciseType, setExerciseType] = useState<Exercise["exercise_type"]>(exerciseData.exercise_type);
+    const categories = getExamCategories(languageIso);
+    const [category, setCategory] = useState<string>(exerciseData.category || "");
+    const [categoryTouched, setCategoryTouched] = useState(false);
     const [question, setQuestion] = useState<string>(exerciseData.question || "");
     const [answer, setAnswer] = useState<string>(exerciseData.answer || "");
     const [supportText, setSupportText] = useState<string>(exerciseData.text_support || "");
@@ -458,6 +465,7 @@ export default function ExerciseForm({
             audio_files: audioUrl,
             answer: normalizedAnswer,
             content,
+            category: category || null,
             lesson_id,
             related_vocabulary: relatedVocabularies,
             related_grammar: relatedGrammars,
@@ -500,9 +508,21 @@ export default function ExerciseForm({
                 options={EXERCISE_TYPE_OPTIONS}
                 optionLabel={(v) => (EXERCISE_TYPE_KEY[v] ? t(EXERCISE_TYPE_KEY[v]) : undefined)}
                 selectedOption={exerciseType || ""}
-                onChange={(value) => setExerciseType(value as Exercise["exercise_type"])}
+                onChange={(value) => {
+                    setExerciseType(value as Exercise["exercise_type"]);
+                    // a new exercise starts with the exam section its type usually belongs to, until the user picks one
+                    if (!isUpdate && !categoryTouched) setCategory(suggestCategory(value as string, categories) ?? "");
+                }}
                 required
             />
+            <label className="flex w-full flex-col gap-1 text-sm">
+                {t("categoryLabel")}
+                <select className="input" value={category} onChange={(e) => { setCategory(e.target.value); setCategoryTouched(true); }}>
+                    <option value="">{t("categoryNone")}</option>
+                    {category && !categories.some((c) => c.slug === category) && <option value={category}>{category}</option>}
+                    {categories.map((c) => <option key={c.slug} value={c.slug}>{categoryLabel(t, c.slug)}{c.nativeLabel ? ` · ${c.nativeLabel}` : ""}</option>)}
+                </select>
+            </label>
 
             {exerciseType !== undefined && (
                 <>

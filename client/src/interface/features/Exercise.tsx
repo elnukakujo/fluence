@@ -16,6 +16,7 @@ export default interface Exercise extends BaseFeature {
     answer: string;
     text_support?: string;
     content?: ExerciseContent;
+    category?: string | null;   // exam-section slug (see getExamCategories); null = uncategorized
     user_mode?: "boost" | "ban" | null;   // this user's own mode on the exercise
     banned?: boolean;                      // effective ban (own or by type): never practised or reviewed
     boosted?: boolean;                     // effective boost

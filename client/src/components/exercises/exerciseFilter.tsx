@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { SlidersHorizontal } from "lucide-react";
+import { categoryLabel } from "@/utils/groupByCategory";
+import type { ExamCategory } from "@/utils/language_iso639";
 
 /** Filter popover for the exercise list. State lives in the URL (`?type=a,b&status=ready|notready`), so the server page filters. */
-export default function ExerciseFilter({ types }: { types: string[] }) {
+export default function ExerciseFilter({ types, categories = [] }: { types: string[]; categories?: ExamCategory[] }) {
     const t = useTranslations("exercises");
     const router = useRouter();
     const pathname = usePathname();
@@ -15,7 +17,8 @@ export default function ExerciseFilter({ types }: { types: string[] }) {
     const ref = useRef<HTMLDivElement>(null);
     const selectedTypes = (params.get("type") ?? "").split(",").filter(Boolean);
     const status = params.get("status") ?? "";
-    const count = selectedTypes.length + (status ? 1 : 0);
+    const category = params.get("category") ?? "";
+    const count = selectedTypes.length + (status ? 1 : 0) + (category ? 1 : 0);
 
     useEffect(() => {
         const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
@@ -52,6 +55,19 @@ export default function ExerciseFilter({ types }: { types: string[] }) {
                             ))}
                         </div>
                     </div>
+                    {categories.length > 0 && (
+                        <div>
+                            <p className="filter-group-label">{t("filterCategory")}</p>
+                            <div className="filter-chips">
+                                {categories.map((c) => (
+                                    <button key={c.slug} type="button" aria-pressed={category === c.slug} className={`filter-chip ${category === c.slug ? "active" : ""}`}
+                                        onClick={() => set("category", category === c.slug ? "" : c.slug)}>
+                                        {categoryLabel(t, c.slug)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div>
                         <p className="filter-group-label">{t("filterType")}</p>
                         <div className="filter-chips">
