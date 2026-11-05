@@ -69,5 +69,7 @@
   "listAdd": "Ajouter",
   "listPractice": "Pratiquer",
   "listSelectHint": "Cochez des éléments, puis choisissez une action ci-dessous.",
-  "bulkMerge": "Fusionner"
+  "bulkMerge": "Fusionner",
+  "front": "Recto",
+  "back": "Verso"
 }

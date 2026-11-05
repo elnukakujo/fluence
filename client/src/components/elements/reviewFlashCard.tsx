@@ -64,7 +64,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const handleGrade = (score: number) => {
         setGraded(true);
         const duration_ms = Math.round(performance.now() - startTimeRef.current);
-        updateScoreById(card.id, score, duration_ms, hintUsed);
+        updateScoreById(card.id, score, duration_ms, hintUsed, undefined, isVocabulary(card) ? card.side ?? "front" : undefined);
     };
 
     const handleDrawingResult = async (r: { similarity: number; strokeOrderErrors: number }) => {
@@ -155,7 +155,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                                 }}
                             >
                                 {isVocabulary(card) && (
-                                    <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} />
+                                    <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} />
                                 )}
                                 {isGrammar(card) && (
                                     <h3 className="font-serif">{card.title}</h3>

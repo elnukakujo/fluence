@@ -8,12 +8,17 @@ export default async function VocabularyFlashCardPage({ params }: { params: Prom
     const { lesson_id } = await params;
 
     const vocabularies: Vocabulary[] = await getVocabularyByLesson(lesson_id);
-    vocabularies.sort(() => Math.random() - 0.5); // Shuffle the array randomly
+    // every vocabulary on both sides: all fronts, then all backs (each shuffled)
+    const shuffled = () => [...vocabularies].sort(() => Math.random() - 0.5);
+    const items: Vocabulary[] = [
+        ...shuffled().map((v) => ({ ...v, side: "front" as const })),
+        ...shuffled().map((v) => ({ ...v, side: "back" as const })),
+    ];
 
     return (
         <main>
             <h1>{t("vocabularyFlashcard")}</h1>
-            <VocabularyFlashCard vocabularies={vocabularies} />
+            <VocabularyFlashCard vocabularies={items} />
         </main>
     );
 }

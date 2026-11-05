@@ -6,14 +6,17 @@ export default function WordCard({
   word,
   hiddenTranslation,
   hiddenAdditionalInformations,
+  reverse,
 }: {
   word: Word | Partial<Word>;
   hiddenTranslation?: boolean;
   hiddenAdditionalInformations?: boolean;
+  /** Back side of a vocabulary card: while hidden, show the translation instead of the word. */
+  reverse?: boolean;
 }) {
   const t = useTranslations("elements");
   const showExtras =
-    (hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation;
+    ((hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation) && !(reverse && hiddenTranslation);
   const hasMedia =
     (word.image_files && word.image_files.length > 0) ||
     (word.audio_files && word.audio_files.length > 0);
@@ -27,7 +30,7 @@ export default function WordCard({
         {/* ── Main word row ──────────────────────────────────────────── */}
         <div className="flex flex-wrap items-baseline gap-2">
           <span className="font-serif text-2xl font-semibold text-foreground">
-            {word.word}
+            {reverse && hiddenTranslation ? word.translation : word.word}
           </span>
           {showExtras && word.phonetic && (
             <span className="font-mono text-sm text-muted">
@@ -52,7 +55,7 @@ export default function WordCard({
         )}
 
         {/* ── Media ─────────────────────────────────────────────────── */}
-        {hasMedia && <ElementMediaCard element={word} />}
+        {hasMedia && !(reverse && hiddenTranslation) && <ElementMediaCard element={word} />}
 
       </div>
     </section>

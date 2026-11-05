@@ -13,10 +13,11 @@ import ElementTagsCard from "./elementTagsCard";
 import ProgressBar from "@/components/ui/progressBar";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 
-export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vocabulary[] }) {
+export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vocabulary[] }) {   // each item may carry a `side` (default front)
     const t = useTranslations("vocabulary");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const vocabulary: Vocabulary = vocabularies[currentIndex];
+    const side = vocabulary.side ?? "front";
     const startTimeRef = useRef<number>(performance.now());
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
@@ -32,7 +33,7 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
     const handleGrade = (score: number) => {
         setGraded(true);
         const duration_ms = Math.round(performance.now() - startTimeRef.current);
-        updateScoreById(vocabulary.id!, score, duration_ms, hintUsed);
+        updateScoreById(vocabulary.id!, score, duration_ms, hintUsed, undefined, side);
     };
 
     const reveal = () => {
@@ -68,7 +69,7 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
                             }
                         }}
                     >
-                        <WordCard word={vocabulary.word} hiddenTranslation={true} hiddenAdditionalInformations={false} />
+                        <WordCard word={vocabulary.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={side === "back"} />
                         <p className="text-sm text-muted text-center mt-3">{t("flashcardTitle")}</p>
                     </div>
                     <div className="flashcard-face flashcard-face-back card">

@@ -29,13 +29,14 @@ export async function updateScoreById(
   duration_ms: number,
   hint_used: boolean = false,
   attempt_number?: number,
+  side?: "front" | "back",
 ) {
   let endpoint = "";
   let payload: Record<string, string | number | boolean> = {};
 
   if (elementId.startsWith("voc_")) {
     endpoint = `${BASE_URL}/api/vocabulary/score`;
-    payload = { vocabulary_id: elementId, score, duration_ms, hint_used };
+    payload = { vocabulary_id: elementId, score, duration_ms, hint_used, ...(side ? { side } : {}) };
   } else if (elementId.startsWith("gram_")) {
     endpoint = `${BASE_URL}/api/grammar/score`;
     payload = { grammar_id: elementId, score, duration_ms, hint_used };

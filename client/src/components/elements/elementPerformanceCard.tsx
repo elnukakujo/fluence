@@ -38,6 +38,13 @@ export default function ElementPerformanceCard({ element }: { element: BaseEleme
                 {'difficulty' in element && (element as any).difficulty != null && (
                     <DifficultyDisplay difficulty={(element as any).difficulty} />
                 )}
+                {'front_score' in element && ['front', 'back'].map((s) => (
+                    <div key={s} className="flex flex-col space-y-1">
+                        <span className="text-sm text-muted">{t(s)}</span>
+                        <ScoreDisplay score={(element as any)[`${s}_score`]} />
+                        <DifficultyDisplay difficulty={(element as any)[`${s}_difficulty`]} />
+                    </div>
+                ))}
                 {'created_at' in element && (element as any).created_at != null && (
                     <DateDisplay date={(element as any).created_at} message={t("createdOn")} />
                 )}

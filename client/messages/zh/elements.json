@@ -69,5 +69,7 @@
   "listAdd": "添加",
   "listPractice": "练习",
   "listSelectHint": "勾选项目，然后在下方选择操作。",
-  "bulkMerge": "合并"
+  "bulkMerge": "合并",
+  "front": "正面",
+  "back": "背面"
 }
