@@ -8,6 +8,13 @@ from ...models.system_data import Score
 from ...utils.helpers import update_score, update_difficulty, status_for
 
 
+SIDES = ("front", "back")
+
+
+def side_id(voc_id: str, side: str) -> str:
+    return f"{voc_id}#{side}"
+
+
 class ScoreService:
     @transactional
     def record(self, user_id: str, element_id: str, similarity: float,
@@ -50,6 +57,38 @@ class ScoreService:
         row.last_seen_at = now
         session.flush()
         return row
+
+    @transactional
+    def record_side(self, user_id: str, voc_id: str, side: str, similarity: float,
+                    session: Optional[Session] = None) -> Score:
+        """Grade one side of a vocabulary. The side's step is doubled so the parent
+        (the average of both sides) moves by one old single-card step. Returns the parent row."""
+        if side not in SIDES:
+            raise ValueError(f"side must be one of {SIDES}, got {side!r}")
+        sid = side_id(voc_id, side)
+        before = self.get(user_id, sid, session=session)
+        old_score = before.score if before else 0.0
+        old_diff = before.difficulty if before else 0.5
+
+        row = self.record(user_id, sid, similarity, session=session)
+        row.score = round(min(max(old_score + 2 * (row.score - old_score), 0.0), 100.0), 4)
+        row.difficulty = round(min(max(old_diff + 2 * (row.difficulty - old_diff), 0.0), 1.0), 4)
+
+        sides = self.get_sides(user_id, voc_id, session=session)
+        pairs = [(s.score, s.difficulty) if s else (0.0, 0.5) for s in sides.values()]
+        parent = self.set(
+            user_id, voc_id,
+            score=round(sum(p[0] for p in pairs) / 2, 4),
+            difficulty=round(sum(p[1] for p in pairs) / 2, 4),
+            session=session,
+        )
+        return parent
+
+    @transactional
+    def get_sides(self, user_id: str, voc_id: str,
+                  session: Optional[Session] = None) -> dict[str, Optional[Score]]:
+        rows = self.get_many(user_id, [side_id(voc_id, s) for s in SIDES], session=session)
+        return {s: rows.get(side_id(voc_id, s)) for s in SIDES}
 
     @transactional
     def get(self, user_id: str, element_id: str,
