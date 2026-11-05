@@ -13,6 +13,7 @@ from ..containers import LessonService, LanguageService
 from ..components import WordService, PassageService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
+from ..system_data.score import SIDES
 from ...core.database import db_manager, transactional, resolve_related, stack_related
 from ...utils import update_score, update_difficulty, stack_lists, status_for
 
@@ -265,6 +266,8 @@ class VocabularyService:
             return False
 
         success = db_manager.delete(existing, session=session, commit=False)
+        if success:
+            score_service.delete_for([voc_id], session=session)
 
         if success:
             logger.info(f"Deleted VocabularyFeature item: {voc_id}")
@@ -281,8 +284,11 @@ class VocabularyService:
         duration_ms: float,
         hint_used: bool = False,
         user_id: Optional[str] = None,
+        side: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> Score | None:
+        if side is not None and side not in SIDES:
+            raise ValueError(f"side must be one of {SIDES}, got {side!r}")
         vocabulary = self.get_by_id(voc_id, session=session)
         if not vocabulary:
             logger.warning(f"VocabularyFeature item not found: {voc_id}")
@@ -290,7 +296,9 @@ class VocabularyService:
 
         previous = score_service.get(user_id, voc_id, session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, voc_id, score, session=session)
+        # no side (old clients): one old step on each side
+        for sd in ([side] if side else SIDES):
+            updated = score_service.record_side(user_id, voc_id, sd, score, step=1 if side is None else 2, session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from ..core.database import transactional
+from .system_data.score import ScoreService
 from ..models.containers import Language, Lesson
 from ..models.features import Calligraphy, Exercise, Grammar, Vocabulary
 
@@ -42,6 +43,7 @@ class BulkElementService:
         for r in rows:
             session.delete(r)
         session.flush()
+        ScoreService().delete_for([r.id for r in rows], session=session)
         self._rescore(lessons, user_id, session)
         return len(rows)
 

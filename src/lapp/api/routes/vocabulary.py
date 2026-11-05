@@ -433,6 +433,9 @@ def score_vocabulary():
     score = float(data['score'])
     duration_ms = float(data['duration_ms'])
     hint_used = bool(data.get('hint_used', False))
+    side = data.get('side')
+    if side is not None and side not in ('front', 'back'):
+        return jsonify({'error': 'side must be front or back'}), 400
 
     vocabulary = vocabulary_service.update_score(
         vocabulary_id,
@@ -440,6 +443,7 @@ def score_vocabulary():
         duration_ms=duration_ms,
         hint_used=hint_used,
         user_id=current_user_id(),
+        side=side,
     )
 
     if vocabulary:

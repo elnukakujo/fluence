@@ -59,10 +59,11 @@ class ScoreService:
         return row
 
     @transactional
-    def record_side(self, user_id: str, voc_id: str, side: str, similarity: float,
+    def record_side(self, user_id: str, voc_id: str, side: str, similarity: float, step: int = 2,
                     session: Optional[Session] = None) -> Score:
         """Grade one side of a vocabulary. The side's step is doubled so the parent
-        (the average of both sides) moves by one old single-card step. Returns the parent row."""
+        (the average of both sides) moves by one old single-card step. `step=1` is for
+        callers grading both sides at once. Returns the parent row."""
         if side not in SIDES:
             raise ValueError(f"side must be one of {SIDES}, got {side!r}")
         sid = side_id(voc_id, side)
@@ -71,8 +72,8 @@ class ScoreService:
         old_diff = before.difficulty if before else 0.5
 
         row = self.record(user_id, sid, similarity, session=session)
-        row.score = round(min(max(old_score + 2 * (row.score - old_score), 0.0), 100.0), 4)
-        row.difficulty = round(min(max(old_diff + 2 * (row.difficulty - old_diff), 0.0), 1.0), 4)
+        row.score = round(min(max(old_score + step * (row.score - old_score), 0.0), 100.0), 4)
+        row.difficulty = round(min(max(old_diff + step * (row.difficulty - old_diff), 0.0), 1.0), 4)
 
         sides = self.get_sides(user_id, voc_id, session=session)
         pairs = [(s.score, s.difficulty) if s else (0.0, 0.5) for s in sides.values()]
@@ -143,15 +144,27 @@ class ScoreService:
         return row
 
     @transactional
+    def delete_for(self, element_ids: list[str], session: Optional[Session] = None) -> None:
+        """Drop every user's Score rows for these elements (vocabulary: also the #front/#back rows)."""
+        ids = [*element_ids, *(side_id(i, s) for i in element_ids if i.startswith("voc_") for s in SIDES)]
+        session.query(Score).filter(Score.element_id.in_(ids)).delete(synchronize_session=False)
+
+    @transactional
     def merge(self, user_id: str, elements: list[dict],
               session: Optional[Session] = None) -> list[dict]:
         """Inject score/difficulty/status/last_seen_at into serialized element dicts."""
         ids = [e["id"] for e in elements if e.get("id")]
+        side_ids = [side_id(i, s) for i in ids if i.startswith("voc_") for s in SIDES]
         rows = {r.element_id: r for r in session.query(Score).filter(
-            Score.user_id == user_id, Score.element_id.in_(ids)).all()}
+            Score.user_id == user_id, Score.element_id.in_(ids + side_ids)).all()}
         for e in elements:
             eid = e.get("id")
             r = rows.get(eid)
+            if eid and eid.startswith("voc_"):
+                for sd in SIDES:
+                    sr = rows.get(side_id(eid, sd))
+                    e[f"{sd}_score"] = sr.score if sr else 0.0
+                    e[f"{sd}_difficulty"] = sr.difficulty if sr else 0.5
             if r is not None:
                 e["score"] = r.score
                 e["difficulty"] = r.difficulty
