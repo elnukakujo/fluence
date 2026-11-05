@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import ExerciseService
-from ...services.system_data import ScoreService
+from ...services.system_data import ScoreService, ExerciseUserPrefService
 from ...schemas import ExerciseDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...services.system_data import UserPreferencesService
@@ -38,7 +38,7 @@ def get_all_exercise_from_language(language_id: str):
     """
     require_write(language_id)
     exercise = exercise_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(ScoreService().merge(current_user_id(), exercise))
+    return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise)))
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
@@ -66,7 +66,7 @@ def get_all_exercise_from_lesson(lesson_id: str):
     """
     require_write(lesson_id)
     exercise = exercise_service.get_all(lesson_id=lesson_id, as_dict=True)
-    return jsonify(ScoreService().merge(current_user_id(), exercise))
+    return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise)))
 
 
 @bp.route('/<exercise_id>', methods=['GET'])
@@ -98,7 +98,7 @@ def get_exercise(exercise_id: str):
     if not exercise:
         return jsonify({'error': 'exercise not found'}), 404
     
-    return jsonify(ScoreService().merge(current_user_id(), [exercise])[0])
+    return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), [exercise]))[0])
 
 
 @bp.route('/', methods=['POST'])
@@ -431,3 +431,23 @@ def generate_line_audio(exercise_id: str):
     except Exception:   # the endpoint is the user's: a bad key, a down server, an unsupported language
         logger.exception("line audio failed for %s", exercise_id)
         return jsonify({'error': 'tts_failed'}), 502
+
+
+@bp.route('/<exercise_id>/user-pref', methods=['PUT'])
+@login_required
+def set_exercise_user_pref(exercise_id: str):
+    """Boost or ban an exercise for the current user only (null removes it).
+    ---
+    tags:
+        - Exercise
+    responses:
+        200: {description: "{mode}"}
+        400: {description: Unknown mode}
+    """
+    require_write(exercise_id)
+    mode = (request.json or {}).get('mode')
+    try:
+        ExerciseUserPrefService().set(current_user_id(), exercise_id, mode)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    return jsonify({'mode': mode})
