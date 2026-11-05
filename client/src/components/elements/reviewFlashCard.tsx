@@ -19,6 +19,8 @@ import ElementSourcesCard from "./elementSourcesCard";
 import ElementPerformanceCard from "./elementPerformanceCard";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
 import ProgressBar from "@/components/ui/progressBar";
+import SkipToggles from "@/components/exercises/skipToggles";
+import { isSkipped, type Skips } from "@/utils/exerciseSkills";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 
@@ -32,7 +34,8 @@ const typeLabel = (c: ReviewCard) =>
 
 export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const t = useTranslations("elements");
-    const [currentIndex, setCurrentIndex] = useState<number>(0);
+    const [done, setDone] = useState<string[]>([]);   // finished cards; the queue is derived so un-skipping restores the order
+    const [skips, setSkips] = useState<Skips>({ hear: false, speak: false });
     const startTimeRef = useRef<number>(performance.now());
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
@@ -42,7 +45,12 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const tCal = useTranslations("calligraphy");
     const tStudy = useTranslations("study");
 
-    const card = cards[currentIndex];
+    const keyOf = (c: ReviewCard) => ("card_id" in c && c.card_id ? String(c.card_id) : c.id!);   // a vocabulary appears once per side
+    const skippedNow = (c: ReviewCard) => isExercise(c) && isSkipped(c, skips);
+    const remaining = cards.filter((c) => !done.includes(keyOf(c)) && !skippedNow(c));
+    const skippedCount = cards.filter((c) => !done.includes(keyOf(c)) && skippedNow(c)).length;
+    const currentIndex = done.length;
+    const card = remaining[0];
 
     useEffect(() => {
         startTimeRef.current = performance.now();
@@ -56,6 +64,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     if (!card) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
+                {skippedCount > 0 && <SkipToggles value={skips} onChange={setSkips} skippedCount={skippedCount} />}
                 <p className="text-muted">{t("nothingToReview")}</p>
                 <BackButton>{t("backToLanguage")}</BackButton>
             </article>
@@ -87,15 +96,17 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     };
 
     const handleGoNext = () => {
-        setCurrentIndex(currentIndex + 1);
+        setDone([...done, keyOf(card)]);
     };
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
             <ProgressBar
                 current={currentIndex + (graded ? 1 : 0)}
-                total={cards.length}
+                total={done.length + remaining.length}
             />
+
+            {cards.some(isExercise) && <SkipToggles value={skips} onChange={setSkips} skippedCount={skippedCount} />}
 
             {card.section && (() => {
                 const inSection = cards.filter((c) => c.section === card.section);
@@ -116,7 +127,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                 // Exercises are interactive practice, not flip-cards.
                 <>
                     <ExerciseRunner key={card.id} exercise={card} />
-                    {currentIndex < cards.length - 1 ? (
+                    {remaining.length > 1 ? (
                         <button className="btn btn-primary self-end" onClick={handleGoNext}>
                             {t("nextButton")}
                         </button>
@@ -227,7 +238,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                             <ElementTagsCard element={card} />
                             <ElementSourcesCard element={card} />
                             <ElementPerformanceCard element={card} />
-                            {currentIndex < cards.length - 1 ? (
+                            {remaining.length > 1 ? (
                                 <button className="btn btn-primary" onClick={handleGoNext}>
                                     {t("nextButton")}
                                 </button>
