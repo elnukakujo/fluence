@@ -23,10 +23,11 @@
   "back": "返回",
   "preferences": "您的偏好",
   "nativeLanguages": "母语",
-  "learningGoals": "学习目标",
-  "learningGoalsPlaceholder": "输入学习目标",
   "exerciseTypes": "偏好的练习类型",
   "dailyGoal": "每日目标（分钟）",
   "saveChanges": "保存更改",
-  "createAccount": "创建账号"
+  "createAccount": "创建账号",
+  "optional": "可选",
+  "preferencesOptional": "跳过此步骤：我们会从每天 20 分钟和会随你的时间调整的每周学习目标开始。之后可在设置中修改。",
+  "skipPreferences": "跳过，使用默认设置"
 }

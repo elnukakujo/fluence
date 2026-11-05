@@ -23,10 +23,11 @@
   "back": "Retour",
   "preferences": "Vos préférences",
   "nativeLanguages": "Langues maternelles",
-  "learningGoals": "Objectifs",
-  "learningGoalsPlaceholder": "Saisissez vos objectifs",
   "exerciseTypes": "Types d'exercices préférés",
   "dailyGoal": "Objectif/jour (min)",
   "saveChanges": "Enregistrer",
-  "createAccount": "Créer le compte"
+  "createAccount": "Créer le compte",
+  "optional": "Facultatif",
+  "preferencesOptional": "Passez cette étape : vous commencerez avec 20 minutes par jour et un objectif hebdomadaire qui s'adapte à votre temps. Tout se change plus tard dans les réglages.",
+  "skipPreferences": "Passer, utiliser les valeurs par défaut"
 }

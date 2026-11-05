@@ -23,10 +23,11 @@
   "back": "Back",
   "preferences": "Your preferences",
   "nativeLanguages": "Native Languages",
-  "learningGoals": "Learning Goals",
-  "learningGoalsPlaceholder": "Enter learning goals",
   "exerciseTypes": "Preferred Exercise Types",
   "dailyGoal": "Daily Goal (minutes)",
   "saveChanges": "Save changes",
-  "createAccount": "Create account"
+  "createAccount": "Create account",
+  "optional": "Optional",
+  "preferencesOptional": "Skip this and we start you with 20 minutes a day and a weekly study goal that adapts to your time. You can change everything later in Settings.",
+  "skipPreferences": "Skip, use the defaults"
 }

@@ -71,5 +71,7 @@
   "listSelectHint": "Cochez des éléments, puis choisissez une action ci-dessous.",
   "bulkMerge": "Fusionner",
   "front": "Recto",
-  "back": "Verso"
+  "back": "Verso",
+  "average": "Global",
+  "reviewProgress": "Progression de la révision"
 }

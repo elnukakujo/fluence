@@ -5,7 +5,7 @@
     "learning": "Learning",
     "aiFeatures": "AI Features",
     "endpoints": "Endpoints",
-    "study": "Study"
+    "goals": "Study goals"
   },
   "profile": {
     "title": "Profile",
@@ -49,11 +49,10 @@
     "nativeLanguages": "Native Languages",
     "dailyGoal": "Daily Goal",
     "dailyGoalUnit": "min / day",
-    "learningGoals": "Learning Goals",
-    "learningGoalsPlaceholder": "What do you want to achieve? e.g. Read a novel, hold a conversation...",
     "exerciseTypes": "Preferred Exercise Types",
     "dailyGoalAria": "Daily goal in minutes",
-    "dailyGoalValueAria": "Daily goal minutes value"
+    "dailyGoalValueAria": "Daily goal minutes value",
+    "dailyHint": "How long you want to study each day. Your daily review and study goals adapt to it."
   },
   "aiFeatures": {
     "title": "AI Features",

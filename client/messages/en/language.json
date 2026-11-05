@@ -76,5 +76,6 @@
   "deleteLanguagesTitle": "Delete {count, plural, one {# language} other {# languages}}?",
   "deleteLanguagesBody": "This permanently deletes the languages below with all their lessons and items.",
   "deleteNLanguages": "Delete {count, plural, one {# language} other {# languages}}",
-  "deletedLanguages": "Deleted {count, plural, one {# language} other {# languages}}"
+  "deletedLanguages": "Deleted {count, plural, one {# language} other {# languages}}",
+  "goalTab": "Study goal"
 }

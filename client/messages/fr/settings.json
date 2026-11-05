@@ -5,7 +5,7 @@
     "learning": "Apprentissage",
     "aiFeatures": "IA",
     "endpoints": "Endpoints",
-    "study": "Étude"
+    "goals": "Objectifs d'étude"
   },
   "profile": {
     "title": "Profil",
@@ -49,11 +49,10 @@
     "nativeLanguages": "Langues maternelles",
     "dailyGoal": "Objectif quotidien",
     "dailyGoalUnit": "min / jour",
-    "learningGoals": "Objectifs",
-    "learningGoalsPlaceholder": "Qu'aimeriez-vous réaliser ? par ex. Lire un roman, avoir une conversation...",
     "exerciseTypes": "Types d'exercices préférés",
     "dailyGoalAria": "Objectif quotidien en minutes",
-    "dailyGoalValueAria": "Valeur de l'objectif quotidien en minutes"
+    "dailyGoalValueAria": "Valeur de l'objectif quotidien en minutes",
+    "dailyHint": "Combien de temps vous voulez étudier chaque jour. Votre révision quotidienne et vos objectifs s'y adaptent."
   },
   "aiFeatures": {
     "title": "Fonctions IA",

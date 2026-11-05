@@ -71,5 +71,7 @@
   "listSelectHint": "勾选项目，然后在下方选择操作。",
   "bulkMerge": "合并",
   "front": "正面",
-  "back": "背面"
+  "back": "背面",
+  "average": "总体",
+  "reviewProgress": "复习进度"
 }

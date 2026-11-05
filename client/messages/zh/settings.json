@@ -5,7 +5,7 @@
     "learning": "学习",
     "aiFeatures": "AI 功能",
     "endpoints": "端点",
-    "study": "学习"
+    "goals": "学习目标"
   },
   "profile": {
     "title": "个人资料",
@@ -49,11 +49,10 @@
     "nativeLanguages": "母语",
     "dailyGoal": "每日目标",
     "dailyGoalUnit": "分钟 / 天",
-    "learningGoals": "学习目标",
-    "learningGoalsPlaceholder": "您想实现什么？例如 读一部小说、进行对话...",
     "exerciseTypes": "偏好的练习类型",
     "dailyGoalAria": "每日目标（分钟）",
-    "dailyGoalValueAria": "每日目标分钟数"
+    "dailyGoalValueAria": "每日目标分钟数",
+    "dailyHint": "你希望每天学习多长时间。每日复习和学习目标会据此调整。"
   },
   "aiFeatures": {
     "title": "AI 功能",

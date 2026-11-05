@@ -71,5 +71,7 @@
   "listSelectHint": "Tick items, then pick an action below.",
   "bulkMerge": "Merge",
   "front": "Front",
-  "back": "Back"
+  "back": "Back",
+  "average": "Overall",
+  "reviewProgress": "Review progress"
 }

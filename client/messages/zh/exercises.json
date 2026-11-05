@@ -134,5 +134,5 @@
   "cantHear": "我现在听不了",
   "cantSpeak": "我现在说不了",
   "skippedCount": "已跳过 {count} 个练习",
-  "nothingLeft": "开启这些跳过后，没有可练习的内容了。"
+  "skipThisExercise": "跳过此练习（不计分）"
 }

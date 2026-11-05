@@ -134,5 +134,5 @@
   "cantHear": "Je ne peux pas écouter",
   "cantSpeak": "Je ne peux pas parler",
   "skippedCount": "{count, plural, one {# exercice passé} other {# exercices passés}}",
-  "nothingLeft": "Il ne reste rien à pratiquer avec ces options."
+  "skipThisExercise": "Passer cet exercice (il n'est pas noté)"
 }

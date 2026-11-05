@@ -48,5 +48,7 @@
   "trivial": "极简单",
   "today": "今天",
   "atLabel": "在",
-  "removeOption": "移除 {option}"
+  "removeOption": "移除 {option}",
+  "decrease": "减少",
+  "increase": "增加"
 }

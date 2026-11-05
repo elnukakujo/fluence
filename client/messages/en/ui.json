@@ -48,5 +48,7 @@
   "trivial": "Trivial",
   "today": "Today",
   "atLabel": "at",
-  "removeOption": "Remove {option}"
+  "removeOption": "Remove {option}",
+  "decrease": "Decrease",
+  "increase": "Increase"
 }

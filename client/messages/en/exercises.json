@@ -134,5 +134,5 @@
   "cantHear": "I can't hear",
   "cantSpeak": "I can't speak",
   "skippedCount": "{count, plural, one {# exercise skipped} other {# exercises skipped}}",
-  "nothingLeft": "Nothing left to practise with these skips on."
+  "skipThisExercise": "Skip this exercise (it is not scored)"
 }
