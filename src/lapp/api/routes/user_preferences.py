@@ -5,6 +5,7 @@ logger = logging.getLogger(__name__)
 
 from ...schemas.system_data import UserPreferencesDict
 from ...services.system_data import UserPreferencesService
+from ...services.features import StudyGoalService
 from ...core.auth import login_required, require_owns, current_user_id
 user_preferences_service = UserPreferencesService()
 
@@ -150,7 +151,10 @@ def update_user_preferences(pref_id: str):
         data = UserPreferencesDict(**request.json)
 
         pref = user_preferences_service.update(pref_id, data, as_dict=True)
-        
+
+        if pref and data.daily_goal_minutes is not None:
+            StudyGoalService().refresh_auto_goals(pref['user_id'])      # suggested goals follow the daily minutes
+
         if pref:
             return jsonify({
                 'success': True,
