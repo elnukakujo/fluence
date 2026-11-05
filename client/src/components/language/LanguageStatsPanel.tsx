@@ -5,10 +5,12 @@ import type DailyStats from "@/interface/dataCollection/DailyStats"
 import type CommitmentLog from "@/interface/dataCollection/CommitmentLog"
 import DailyStatsCard from "./dailyStatsCard"
 import CommitmentLogCard from "./CommitmentLogCard"
+import StudyGoalOverview from "./studyGoalOverview"
+import type { StudyGoalState } from "@/api/studyGoal"
 
-export default function LanguageStatsPanel({ dailyStats, commitmentLog }: { dailyStats: DailyStats | null, commitmentLog: CommitmentLog | null }) {
+export default function LanguageStatsPanel({ dailyStats, commitmentLog, studyGoal = null, settingsHref = "" }: { dailyStats: DailyStats | null, commitmentLog: CommitmentLog | null, studyGoal?: StudyGoalState | null, settingsHref?: string }) {
     const t = useTranslations("language")
-    const [view, setView] = useState<'daily' | 'commitment'>(dailyStats ? 'daily' : 'commitment')
+    const [view, setView] = useState<'daily' | 'commitment' | 'goal'>(dailyStats ? 'daily' : 'commitment')
 
     return (
         <div className="flex flex-col gap-3">
@@ -21,11 +23,16 @@ export default function LanguageStatsPanel({ dailyStats, commitmentLog }: { dail
                     className={`btn ${view === 'commitment' ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => setView('commitment')}
                 >{t("commitmentTab")}</button>
+                {studyGoal?.goal && <button
+                    className={`btn ${view === 'goal' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setView('goal')}
+                >{t("goalTab")}</button>}
             </div>
 
             <div>
                 {view === 'daily' && <DailyStatsCard dailyStats={dailyStats!} />}
                 {view === 'commitment' && <CommitmentLogCard commitmentLog={commitmentLog!} />}
+                {view === 'goal' && <StudyGoalOverview state={studyGoal} settingsHref={settingsHref} />}
             </div>
         </div>
     )

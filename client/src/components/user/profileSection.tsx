@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import SaveButton from "./saveButton";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { updateUser } from "@/api/user";
+import { updateUserPreferences } from "@/api/userPreferences";
+import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
+import type UserPreferences from "@/interface/systemData/UserPreferences";
 import User from "@/interface/systemData/User";
 
 function getInitials(user: User): string {
@@ -17,13 +21,15 @@ function getInitials(user: User): string {
     .join("") || "?";
 }
 
-export default function ProfileSection({ user }: { user: User }) {
+export default function ProfileSection({ user, preferences = {} }: { user: User; preferences?: Partial<UserPreferences> }) {
   const t = useTranslations("settings.profile");
+  const tp = useTranslations("settings.preferences");
   const [username, setUsername] = useState(user.username ?? "");
   const [displayName, setDisplayName] = useState(user.display_name ?? "");
   const [email, setEmail] = useState(user.email ?? "");
   const [emailConfirm, setEmailConfirm] = useState("");
   const [emailChanged, setEmailChanged] = useState(false);
+  const [nativeLanguages, setNativeLanguages] = useState<string[]>(preferences.native_language_iso639_2 ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,6 +55,7 @@ export default function ProfileSection({ user }: { user: User }) {
         display_name: displayName || undefined,
         email: email || undefined,
       });
+      if (preferences.id) await updateUserPreferences(preferences.id, { native_language_iso639_2: nativeLanguages });
       setEmailChanged(false);
       setEmailConfirm("");
     } catch (err) {
@@ -150,6 +157,14 @@ export default function ProfileSection({ user }: { user: User }) {
             }</span>
           </label>
         )}
+
+        <ClassicSelectMenu
+          label={tp("nativeLanguages")}
+          options={Object.values(LANGUAGE_to_ISO639_2T)}
+          selectedOption={nativeLanguages}
+          onChange={(v) => setNativeLanguages(v as string[])}
+          multiple
+        />
 
         <div>
           <SaveButton isLoading={saving} />

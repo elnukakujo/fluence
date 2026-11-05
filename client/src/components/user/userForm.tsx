@@ -11,7 +11,6 @@ import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import User from "@/interface/systemData/User";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
-import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 
 const DAILY_GOAL_OPTIONS = ["5", "10", "15", "20", "30", "45", "60"];
 
@@ -37,7 +36,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const [nativeLangs, setNativeLangs] = useState<string[]>(
         userData.preferences?.native_language_iso639_2 || (!isUpdate && isLocale(locale) ? nativeFromLocale(locale) : []),
     );
-    const [learningGoals, setLearningGoals] = useState<string>(userData.preferences?.learning_goals || "");
     const [dailyGoal, setDailyGoal] = useState<string>((userData.preferences?.daily_goal_minutes ?? 20).toString());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -62,8 +60,8 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
         setStep(1);
     };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    // `skip`: the preferences step is optional, so create the account with the defaults (20 min/day, natives from the UI language)
+    const submit = async (skip = false) => {
         setIsSubmitting(true);
         const element: Partial<User> = {
             id: userData.id,
@@ -75,9 +73,8 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             created_at: userData.created_at,
             preferences: {
                 user_id: userData.id!,
-                native_language_iso639_2: nativeLangs,
-                learning_goals: learningGoals,
-                daily_goal_minutes: parseInt(dailyGoal),
+                native_language_iso639_2: skip ? (isLocale(locale) ? nativeFromLocale(locale) : []) : nativeLangs,
+                daily_goal_minutes: skip ? 20 : parseInt(dailyGoal),
             },
         };
         try {
@@ -102,6 +99,8 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             if (onSuccess) onSuccess();
         }
     };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); return submit(false); };
 
     if (createdPending) {
         return (
@@ -182,7 +181,11 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                 </div>
             ) : (
                 <div key="step-2" className="animate-fade-in flex w-full flex-col gap-4 items-center">
-                    <h3 className="self-start">{t("preferences")}</h3>
+                    <div className="flex w-full flex-wrap items-center gap-2">
+                        <h3>{t("preferences")}</h3>
+                        {!isUpdate && <span className="badge">{t("optional")}</span>}
+                    </div>
+                    {!isUpdate && <p className="self-start text-sm text-muted">{t("preferencesOptional")}</p>}
                     <article className="flex flex-col space-y-2 items-center">
                         <ClassicSelectMenu
                             label={t("nativeLanguages")}
@@ -190,12 +193,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             selectedOption={nativeLangs.map((iso) => ISO639_2T_to_LANGUAGE[iso] ?? iso)}
                             onChange={(selected) => setNativeLangs((selected as string[]).map((name) => LANGUAGE_to_ISO639_2T[name] ?? name))}
                             multiple
-                        />
-                        <AutoSizeTextArea
-                            label={t("learningGoals")}
-                            value={learningGoals}
-                            onChange={(e) => setLearningGoals(e.target.value)}
-                            placeholder={t("learningGoalsPlaceholder")}
                         />
                         <ClassicSelectMenu
                             label={t("dailyGoal")}
@@ -212,6 +209,11 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             {isSubmitting ? <Ring size={16} color="#fff" /> : isUpdate ? t("saveChanges") : t("createAccount")}
                         </button>
                     </div>
+                    {!isUpdate && (
+                        <button type="button" className="btn btn-secondary w-full min-h-11" disabled={isSubmitting} onClick={() => submit(true)}>
+                            {t("skipPreferences")}
+                        </button>
+                    )}
                 </div>
             )}
         </form>

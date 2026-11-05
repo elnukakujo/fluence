@@ -6,54 +6,62 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ updateUserPreferences: vi.fn().mockResolvedValue({}) }));
 vi.mock("@/api/userPreferences", () => api);
+vi.mock("@/api/language", () => ({ getAvailableLanguages: vi.fn().mockResolvedValue([]) }));
+vi.mock("@/api/studyGoal", () => ({ getStudyGoal: vi.fn(), saveStudyGoal: vi.fn() }));
 
-import StudyPreferencesSection from "./studyPreferencesSection";
+import PreferencesSection from "./preferencesSection";
 
 const lastSaved = () => api.updateUserPreferences.mock.calls.at(-1)![1];
 // the save button is disabled briefly after a save, so submit the form itself
 const save = async () => { fireEvent.submit(document.querySelector("form")!); await Promise.resolve(); };
 beforeEach(() => vi.clearAllMocks());
 
-describe("study preferences", () => {
-    it("saves the 2 front then 1 back preset", async () => {
-        render(<StudyPreferencesSection preferences={{ id: "pref_1" }} />);
-        await userEvent.click(screen.getByRole("button", { name: "2 front, then 1 back" }));
+describe("learning preferences", () => {
+    it("saves ratio and order as two separate settings", async () => {
+        render(<PreferencesSection preferences={{ id: "pref_1" }} />);
+        const front = screen.getByRole("spinbutton", { name: "Front" });
+        await userEvent.clear(front); await userEvent.type(front, "2");
+        await save();
+        expect(lastSaved().voc_side_pattern).toEqual({ mode: "random", front: 2, back: 1 });
+        await userEvent.click(screen.getByRole("button", { name: "In turns" }));
         await save();
         expect(lastSaved().voc_side_pattern).toEqual({ mode: "cycle", cycle: ["F", "F", "B"] });
+        await userEvent.click(screen.getByRole("button", { name: "Front, then back" }));
+        await save();
+        expect(lastSaved().voc_side_pattern).toEqual({ mode: "split" });
     });
 
-    it("saves a custom 3:1 ratio and blocks 0:0", async () => {
-        render(<StudyPreferencesSection preferences={{ id: "pref_1" }} />);
-        await userEvent.click(screen.getByRole("button", { name: "Custom" }));
-        const [front, back] = screen.getAllByRole("spinbutton");
-        await userEvent.clear(front); await userEvent.type(front, "3");
-        await save();
-        expect(lastSaved().voc_side_pattern).toEqual({ mode: "random", front: 3, back: 1 });
+    it("blocks a 0:0 ratio", async () => {
+        render(<PreferencesSection preferences={{ id: "pref_1" }} />);
+        const front = screen.getByRole("spinbutton", { name: "Front" });
+        const back = screen.getByRole("spinbutton", { name: "Back" });
         await userEvent.clear(front); await userEvent.type(front, "0");
         await userEvent.clear(back); await userEvent.type(back, "0");
-        api.updateUserPreferences.mockClear();
         await save();
         expect(api.updateUserPreferences).not.toHaveBeenCalled();
         expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
-    it("toggles ban on an exercise type and back off", async () => {
-        render(<StudyPreferencesSection preferences={{ id: "pref_1" }} />);
-        const essayBan = screen.getAllByRole("button", { name: "Ban" })[0];
-        await userEvent.click(essayBan);
-        expect(essayBan).toHaveAttribute("aria-pressed", "true");
+    it("adds an exercise type to the boosted and banned lists and removes it", async () => {
+        render(<PreferencesSection preferences={{ id: "pref_1" }} />);
+        await userEvent.selectOptions(screen.getByRole("combobox", { name: "Add an exercise type to boost" }), "essay");
+        await userEvent.selectOptions(screen.getByRole("combobox", { name: "Add an exercise type to ban" }), "matching");
         await save();
-        expect(Object.values(lastSaved().exercise_type_prefs)).toEqual(["ban"]);
-        await userEvent.click(essayBan);
+        expect(lastSaved().exercise_type_prefs).toEqual({ essay: "boost", matching: "ban" });
+        await userEvent.click(screen.getByRole("button", { name: "Remove Essay" }));
         await save();
-        expect(lastSaved().exercise_type_prefs).toEqual({});
+        expect(lastSaved().exercise_type_prefs).toEqual({ matching: "ban" });
     });
 
-    it("reorders review sections", async () => {
-        render(<StudyPreferencesSection preferences={{ id: "pref_1" }} />);
-        await userEvent.click(screen.getByRole("button", { name: "Customize the order" }));
-        await userEvent.click(screen.getAllByRole("button", { name: "Move up" })[1]);   // grammar above vocabulary
+    it("plans the daily review: add sections, reorder with the arrow keys, remove", async () => {
+        render(<PreferencesSection preferences={{ id: "pref_1" }} />);
+        for (const name of ["Vocabulary", "Grammar", "Exercises"]) await userEvent.click(screen.getByRole("button", { name }));
+        screen.getByRole("button", { name: /Move Grammar/ }).focus();
+        await userEvent.keyboard("{ArrowUp}");
         await save();
-        expect(lastSaved().review_layout.map((s: { type: string }) => s.type)).toEqual(["gram", "voc", "ex", "call"]);
+        expect(lastSaved().review_layout.map((s: { type: string }) => s.type)).toEqual(["gram", "voc", "ex"]);
+        await userEvent.click(screen.getByRole("button", { name: "Remove Vocabulary" }));
+        await save();
+        expect(lastSaved().review_layout.map((s: { type: string }) => s.type)).toEqual(["gram", "ex"]);
     });
 });

@@ -1,73 +1,146 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
-import { Target } from "lucide-react";
-import ProgressBar from "@/components/ui/progressBar";
-import { getStudyGoal, pickStudyGoalNow, saveStudyGoal, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
+import { useLocale, useTranslations } from "next-intl";
+import { BookOpen, Brush, Lock, PenLine, Sparkles } from "lucide-react";
+import SectionCard from "@/components/user/sectionCard";
+import SaveButton from "@/components/user/saveButton";
+import ToggleRow from "@/components/user/toggleRow";
+import NumberField from "@/components/ui/input/numberField";
+import { getAvailableLanguages } from "@/api/language";
+import { getStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
+import type Language from "@/interface/containers/Language";
 
 const PERIODS: StudyGoal["period"][] = ["week", "biweek", "month"];
-const KINDS = [["vocabulary", "n_vocabulary", "goalVocabulary"], ["grammar", "n_grammar", "goalGrammar"], ["calligraphy", "n_calligraphy", "goalCalligraphy"]] as const;
+type Draft = Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "active" | "auto">;
+const KINDS: { kind: GoalKind; label: string; n: keyof Draft; r: keyof Draft; Icon: typeof BookOpen }[] = [
+    { kind: "vocabulary", label: "section_voc", n: "n_vocabulary", r: "r_vocabulary", Icon: BookOpen },
+    { kind: "grammar", label: "section_gram", n: "n_grammar", r: "r_grammar", Icon: PenLine },
+    { kind: "calligraphy", label: "section_call", n: "n_calligraphy", r: "r_calligraphy", Icon: Brush },
+];
+const BLANK: Draft = { period: "week", n_vocabulary: 0, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 0, r_grammar: 0, r_calligraphy: 0, active: true, auto: false };
+const draftOf = (s: StudyGoalState): Draft => s.goal ? {
+    period: s.goal.period, active: s.goal.active, auto: s.goal.auto,
+    n_vocabulary: s.goal.n_vocabulary, n_grammar: s.goal.n_grammar, n_calligraphy: s.goal.n_calligraphy,
+    r_vocabulary: s.goal.r_vocabulary, r_grammar: s.goal.r_grammar, r_calligraphy: s.goal.r_calligraphy,
+} : BLANK;
 
-/** Period study goal of a language: separate quantities per type, with this cycle's progress. */
-export default function StudyGoalCard({ languageId }: { languageId: string }) {
+/** Study goals: per language, how many new and how many review elements each period's menu holds. The running
+ *  period is locked; what is saved here starts with the next one. One Save writes every edited language. */
+export default function StudyGoalsCard({ userId }: { userId: string }) {
     const t = useTranslations("study");
-    const [state, setState] = useState<StudyGoalState | null>(null);
-    const [period, setPeriod] = useState<StudyGoal["period"]>("week");
-    const [counts, setCounts] = useState({ n_vocabulary: 0, n_grammar: 0, n_calligraphy: 0 });
-    const [active, setActive] = useState(true);
+    const locale = useLocale();
+    const [languages, setLanguages] = useState<Language[]>([]);
+    const [languageId, setLanguageId] = useState("");
+    const [states, setStates] = useState<Record<string, StudyGoalState>>({});
+    const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+    const [dirty, setDirty] = useState<Set<string>>(new Set());
     const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
 
-    const apply = (s: StudyGoalState) => {
-        setState(s);
-        if (s.goal) { setPeriod(s.goal.period); setActive(s.goal.active); setCounts({ n_vocabulary: s.goal.n_vocabulary, n_grammar: s.goal.n_grammar, n_calligraphy: s.goal.n_calligraphy }); }
-    };
-    useEffect(() => { getStudyGoal(languageId).then(apply).catch(() => setState({ goal: null, progress: null })); }, [languageId]);
+    useEffect(() => {
+        getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
+    }, [userId]);
 
-    const run = async (action: () => Promise<StudyGoalState>) => {
+    useEffect(() => {
+        if (!languageId || states[languageId]) return;
+        getStudyGoal(languageId)
+            .catch(() => ({ goal: null, progress: null }) as StudyGoalState)
+            .then((s) => { setStates((x) => ({ ...x, [languageId]: s })); setDrafts((d) => ({ ...d, [languageId]: draftOf(s) })); });
+    }, [languageId, states]);
+
+    const save = async (e: React.FormEvent) => {
+        e.preventDefault();
         setError("");
-        try { apply(await action()); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+        setSaving(true);
+        try {
+            for (const id of dirty) {
+                const s = await saveStudyGoal(id, drafts[id]);
+                setStates((x) => ({ ...x, [id]: s }));
+                setDrafts((d) => ({ ...d, [id]: draftOf(s) }));
+            }
+            setDirty(new Set());
+        } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+        finally { setSaving(false); }
     };
 
-    if (!state) return null;
-    const p = state.progress;
+    if (languages.length === 0) return null;
+    const draft = drafts[languageId];
+    const progress = states[languageId]?.progress;
+    // changing a quantity makes the goal the user's own (it stops following the daily minutes)
+    const edit = (patch: Partial<Draft>, own = false) => {
+        setDrafts((d) => ({ ...d, [languageId]: { ...d[languageId], ...patch, ...(own ? { auto: false } : {}) } }));
+        setDirty((s) => new Set(s).add(languageId));
+    };
+    const suggested = states[languageId]?.suggested;
+    const useSuggested = () => suggested && edit({
+        auto: true,
+        n_vocabulary: suggested.n.vocabulary, n_grammar: suggested.n.grammar, n_calligraphy: suggested.n.calligraphy,
+        r_vocabulary: suggested.r.vocabulary, r_grammar: suggested.r.grammar, r_calligraphy: suggested.r.calligraphy,
+    });
+    const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
+
     return (
-        <section className="card flex flex-col gap-3" aria-labelledby="study-goal-title">
-            <h3 id="study-goal-title" className="inline-flex items-center gap-2"><Target size={18} aria-hidden />{t("goalTitle")}</h3>
-            <p className="text-sm text-muted">{t("goalHint")}</p>
-            <div className="filter-chips" role="group" aria-label={t("period")}>
-                {PERIODS.map((k) => (
-                    <button key={k} type="button" aria-pressed={period === k} className={`filter-chip min-h-11 ${period === k ? "active" : ""}`} onClick={() => setPeriod(k)}>{t(`period_${k}`)}</button>
-                ))}
-            </div>
-            <div className="flex flex-wrap gap-4">
-                {KINDS.map(([, key, label]) => (
-                    <label key={key} className="flex items-center gap-2 text-sm">{t(label)}
-                        <input type="number" min={0} className="input w-16 text-center" value={counts[key]} onChange={(e) => setCounts({ ...counts, [key]: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
-                    </label>
-                ))}
-            </div>
-            <label className="flex items-center gap-2 text-sm min-h-11">
-                <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />{t("goalActive")}
-            </label>
-            <div className="flex flex-wrap gap-2">
-                <button type="button" className="btn btn-primary min-h-11" onClick={() => run(() => saveStudyGoal(languageId, { period, active, ...counts }))}>{t("goalSave")}</button>
-                {state.goal && <button type="button" className="btn btn-secondary min-h-11" onClick={() => run(() => pickStudyGoalNow(languageId))}>{t("goalPickNow")}</button>}
-            </div>
-            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            {p ? (
-                <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted">{t("goalCycle", { start: p.cycle_start, end: p.cycle_end })}</p>
-                    {KINDS.filter(([kind]) => p.types[kind].n > 0).map(([kind, , label]) => (
-                        <div key={kind} className="flex flex-col gap-1">
-                            <span className="text-sm">{t(label)} — {t("goalProgress", { mastered: p.types[kind].mastered, picked: p.types[kind].picked })}
-                                {p.types[kind].carried > 0 && <span className="text-muted"> ({t("goalCarried", { n: p.types[kind].carried })})</span>}
-                            </span>
-                            <ProgressBar current={p.types[kind].mastered} total={Math.max(p.types[kind].picked, 1)} />
+        <form onSubmit={save}>
+            <SectionCard title={t("goalTitle")}>
+                <p className="text-sm text-muted">{t("goalHint")}</p>
+                <label className="flex flex-wrap items-center gap-3 text-sm">
+                    <span className="opacity-70">{t("goalLanguage")}</span>
+                    <select className="input w-auto" value={languageId} onChange={(e) => setLanguageId(e.target.value)}>
+                        {languages.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                </label>
+
+                {progress && (
+                    <div className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] p-3 text-sm" role="note">
+                        <Lock size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+                        <div className="flex flex-col gap-1">
+                            <p className="font-medium">{t("goalLockedUntil", { start: date(progress.cycle_start), end: date(progress.cycle_end) })}</p>
+                            <p className="text-muted">
+                                {KINDS.filter((k) => progress.types[k.kind].n + progress.types[k.kind].r > 0)
+                                    .map((k) => `${t(k.label)}: ${progress.types[k.kind].n} ${t("goalColNew").toLowerCase()} + ${progress.types[k.kind].r} ${t("goalColReview").toLowerCase()}`).join(" · ")}
+                            </p>
+                            <p className="text-muted">{progress.next.pending || dirty.has(languageId) ? t("goalChangesFrom", { date: date(progress.next.start) }) : t("goalNoChanges")}</p>
                         </div>
-                    ))}
-                </div>
-            ) : <p className="text-sm text-muted">{t("goalNone")}</p>}
-        </section>
+                    </div>
+                )}
+
+                {draft && (
+                    <>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm opacity-70">{t("period")}</span>
+                            <div className="filter-chips" role="group" aria-label={t("period")}>
+                                {PERIODS.map((k) => (
+                                    <button key={k} type="button" aria-pressed={draft.period === k} className={`filter-chip min-h-11 px-4 text-sm ${draft.period === k ? "active" : ""}`} onClick={() => edit({ period: k })}>{t(`period_${k}`)}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" role="status">
+                            <span className={`inline-flex items-center gap-1.5 ${draft.auto ? "text-accent" : "text-muted"}`}>
+                                <Sparkles size={14} aria-hidden />{draft.auto ? t("goalAuto") : t("goalCustom")}
+                            </span>
+                            {draft.auto
+                                ? <span className="text-muted">{t("goalAutoHint")}</span>
+                                : suggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
+                        </div>
+                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-3" role="group" aria-label={t("goalQuantities")}>
+                            <span aria-hidden />
+                            <span className="text-xs uppercase tracking-wide text-muted">{t("goalColNew")}</span>
+                            <span className="text-xs uppercase tracking-wide text-muted">{t("goalColReview")}</span>
+                            {KINDS.map(({ kind, label, n, r, Icon }) => (
+                                <div key={kind} className="contents">
+                                    <span className="inline-flex items-center gap-2 text-sm"><Icon size={16} aria-hidden className="text-muted" />{t(label)}</span>
+                                    <NumberField ariaLabel={`${t(label)}: ${t("goalColNew")}`} value={draft[n] as number} onChange={(v) => edit({ [n]: v === "" ? 0 : v }, true)} />
+                                    <NumberField ariaLabel={`${t(label)}: ${t("goalColReview")}`} value={draft[r] as number} onChange={(v) => edit({ [r]: v === "" ? 0 : v }, true)} />
+                                </div>
+                            ))}
+                        </div>
+                        <ToggleRow label={t("goalActive")} description={t("goalActiveDesc")} checked={draft.active} onChange={(v) => edit({ active: v })} />
+                    </>
+                )}
+                {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+                <div><SaveButton isLoading={saving} /></div>
+            </SectionCard>
+        </form>
     );
 }

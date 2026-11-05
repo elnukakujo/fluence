@@ -3,7 +3,7 @@ import SettingsLayout from "@/components/user/settingsLayout";
 import ProfileSection from "@/components/user/profileSection";
 import PasswordSection from "@/components/user/passwordSection";
 import PreferencesSection from "@/components/user/preferencesSection";
-import StudyPreferencesSection from "@/components/user/studyPreferencesSection";
+import StudyGoalsCard from "@/components/language/studyGoalCard";
 import AiFeaturesSection from "@/components/user/aiFeaturesSection";
 import ApiEndpointsSection from "@/components/user/apiEndpointsSection";
 import BackupSection from "@/components/user/backupSection";
@@ -25,7 +25,7 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
             </header>
 
             <section id="profile">
-                <ProfileSection user={user} />
+                <ProfileSection user={user} preferences={preferences} />
             </section>
 
             <section id="security">
@@ -36,8 +36,8 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
                 <PreferencesSection preferences={preferences} />
             </section>
 
-            <section id="study">
-                <StudyPreferencesSection preferences={preferences} />
+            <section id="goals">
+                <StudyGoalsCard userId={user.id} />
             </section>
 
             <section id="ai-features">

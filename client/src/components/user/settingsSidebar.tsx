@@ -13,7 +13,7 @@ export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean
     { id: "profile", label: t("sidebar.profile") },
     { id: "security", label: t("sidebar.security") },
     { id: "preferences", label: t("sidebar.learning") },
-    { id: "study", label: t("sidebar.study") },
+    { id: "goals", label: t("sidebar.goals") },
     { id: "ai-features", label: t("sidebar.aiFeatures") },
     { id: "api-endpoints", label: t("sidebar.endpoints") },
   ];

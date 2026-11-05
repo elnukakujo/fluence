@@ -11,8 +11,8 @@ import { getTodayDailyStats } from "@/api/dailyStats";
 import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
 import { getCurrentUserId } from "@/utils/user_cookie";
+import { getStudyGoal } from "@/api/studyGoal";
 import ImportButton from "@/components/ingestion/importButton";
-import StudyGoalCard from "@/components/language/studyGoalCard";
 import { getTranslations } from "next-intl/server";
 
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
@@ -27,6 +27,7 @@ export default async function Language({ params }: { params: Promise<{ language_
     const isOwner = userId === language.user_id;
     const dailyStats = language.user_id ? await getTodayDailyStats(language.user_id, language_id) : null;
     const commitmentLog = language.user_id ? await (await import("@/api/commitmentLog")).getCommitmentLogForUserLanguage(language.user_id, language_id) : null;
+    const studyGoal = isOwner ? await getStudyGoal(language_id).catch(() => null) : null;
     const hasLessons = allLessons.length > 0;
 
     return (
@@ -34,7 +35,6 @@ export default async function Language({ params }: { params: Promise<{ language_
             <header className="flex flex-col gap-4">
                 <LanguageHeaderCard language={language} />
                 <ElementPerformanceCard element={language} />
-                {isOwner && <StudyGoalCard languageId={language_id} />}
                 <ElementTagsCard element={language} />
                 <ElementSourcesCard element={language} />
                 <nav className="flex flex-row flex-wrap gap-2">
@@ -52,7 +52,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                     {isOwner && <CollaborateButton targetType="language" targetId={language_id} />}
                     <DeleteButton element_id={language_id}/>
                 </nav>
-                <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} />
+                <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} studyGoal={studyGoal} settingsHref={`/user/${userId}/update#goals`} />
             </header>
             <article className="flex flex-col space-y-4">
                 {hasLessons && (

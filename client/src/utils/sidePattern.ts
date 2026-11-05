@@ -1,30 +1,26 @@
 import type { VocSidePattern } from "@/interface/systemData/UserPreferences";
 
-export const SIDE_PRESETS = {
-    random: { mode: "random", front: 1, back: 1 },
-    alternate: { mode: "cycle", cycle: ["F", "B"] },
-    twoFrontOneBack: { mode: "cycle", cycle: ["F", "F", "B"] },
-    oneFrontTwoBack: { mode: "cycle", cycle: ["F", "B", "B"] },
-    split: { mode: "split" },
-} as const satisfies Record<string, VocSidePattern>;
+/** The vocabulary mix as two independent settings: how often each side shows (ratio) and how they interleave (order). */
+export type SideOrder = "random" | "alternate" | "blocks";
+export interface SideParts { front: number; back: number; order: SideOrder }
 
-export type SidePresetKey = keyof typeof SIDE_PRESETS;
+export const MAX_RATIO = 9;
 
-/** The preset a stored pattern equals, or "custom". null (never set) means the default, random 1:1. */
-export function presetKeyOf(pattern: VocSidePattern | null | undefined): SidePresetKey | "custom" {
-    const p = pattern ?? SIDE_PRESETS.random;
-    const found = (Object.keys(SIDE_PRESETS) as SidePresetKey[]).find((k) => JSON.stringify(SIDE_PRESETS[k]) === JSON.stringify(p));
-    return found ?? "custom";
+/** A stored pattern as ratio + order. null (never set) is the default, random 1:1. */
+export function splitPattern(p: VocSidePattern | null | undefined): SideParts {
+    if (!p) return { front: 1, back: 1, order: "random" };
+    if (p.mode === "random") return { front: p.front, back: p.back, order: "random" };
+    if (p.mode === "split") return { front: 1, back: 1, order: "blocks" };
+    const front = p.cycle.filter((c) => c === "F").length;
+    return { front, back: p.cycle.length - front, order: "alternate" };
 }
 
-/** "FFB" / "f f b" -> ["F","F","B"]; null when empty or any other letter. */
-export function parseCycle(text: string): ("F" | "B")[] | null {
-    const letters = text.toUpperCase().replace(/[\s,]/g, "").split("");
-    return letters.length > 0 && letters.every((c) => c === "F" || c === "B") ? (letters as ("F" | "B")[]) : null;
-}
-
-/** A custom ratio is valid with two non-negative integers that are not both 0. */
-export function ratioPattern(front: number, back: number): VocSidePattern | null {
+/** Ratio + order as a stored pattern; null when the ratio is invalid (not two non-negative integers, or 0:0). Blocks ignore the ratio. */
+export function joinPattern({ front, back, order }: SideParts): VocSidePattern | null {
+    if (order === "blocks") return { mode: "split" };
     const ok = (n: number) => Number.isInteger(n) && n >= 0;
-    return ok(front) && ok(back) && front + back > 0 ? { mode: "random", front, back } : null;
+    if (!ok(front) || !ok(back) || front + back === 0) return null;
+    if (order === "random") return { mode: "random", front, back };
+    // ponytail: "in turns" is front x a then back x b; arbitrary sequences (FBBF...) are no longer editable
+    return { mode: "cycle", cycle: [...Array<"F">(front).fill("F"), ...Array<"B">(back).fill("B")] };
 }

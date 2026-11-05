@@ -1,23 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { SIDE_PRESETS, parseCycle, presetKeyOf, ratioPattern } from "./sidePattern";
+import { joinPattern, splitPattern } from "./sidePattern";
 
 describe("sidePattern", () => {
-    it("recognises presets and defaults", () => {
-        expect(presetKeyOf(null)).toBe("random");
-        expect(presetKeyOf({ mode: "cycle", cycle: ["F", "F", "B"] })).toBe("twoFrontOneBack");
-        expect(presetKeyOf({ mode: "random", front: 3, back: 1 })).toBe("custom");
-        expect(presetKeyOf(SIDE_PRESETS.split)).toBe("split");
+    it("splits stored patterns into ratio and order", () => {
+        expect(splitPattern(null)).toEqual({ front: 1, back: 1, order: "random" });
+        expect(splitPattern({ mode: "random", front: 3, back: 1 })).toEqual({ front: 3, back: 1, order: "random" });
+        expect(splitPattern({ mode: "cycle", cycle: ["F", "F", "B"] })).toEqual({ front: 2, back: 1, order: "alternate" });
+        expect(splitPattern({ mode: "split" }).order).toBe("blocks");
     });
-    it("parses cycles", () => {
-        expect(parseCycle("ffb")).toEqual(["F", "F", "B"]);
-        expect(parseCycle("F, B")).toEqual(["F", "B"]);
-        expect(parseCycle("FXB")).toBeNull();
-        expect(parseCycle("")).toBeNull();
+    it("joins ratio and order back", () => {
+        expect(joinPattern({ front: 3, back: 1, order: "random" })).toEqual({ mode: "random", front: 3, back: 1 });
+        expect(joinPattern({ front: 2, back: 1, order: "alternate" })).toEqual({ mode: "cycle", cycle: ["F", "F", "B"] });
+        expect(joinPattern({ front: 0, back: 0, order: "blocks" })).toEqual({ mode: "split" });
     });
-    it("validates ratios", () => {
-        expect(ratioPattern(3, 1)).toEqual({ mode: "random", front: 3, back: 1 });
-        expect(ratioPattern(0, 0)).toBeNull();
-        expect(ratioPattern(-1, 2)).toBeNull();
-        expect(ratioPattern(1.5, 2)).toBeNull();
+    it("rejects an invalid ratio", () => {
+        expect(joinPattern({ front: 0, back: 0, order: "random" })).toBeNull();
+        expect(joinPattern({ front: 1.5, back: 2, order: "alternate" })).toBeNull();
     });
 });

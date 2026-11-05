@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { createUser } from "@/api/user";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock("@/api/user", () => ({ createUser: vi.fn(), updateUser: vi.fn() }));
@@ -24,6 +25,16 @@ describe("UserForm", () => {
     render(<UserForm />);
     toStep2();
     expect(screen.getByText("Chinese")).toBeInTheDocument();
+  });
+
+  it("lets the preferences step be skipped: the account is created with the defaults", async () => {
+    vi.mocked(createUser).mockResolvedValue({ user: { approved: false } } as never);
+    render(<UserForm />);
+    toStep2();
+    expect(screen.getByText("Optional")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Skip, use the defaults"));
+    await vi.waitFor(() => expect(createUser).toHaveBeenCalled());
+    expect(vi.mocked(createUser).mock.calls[0][0].preferences).toMatchObject({ daily_goal_minutes: 20, native_language_iso639_2: ["zho"] });
   });
 
   it("keeps an existing user's natives", () => {
