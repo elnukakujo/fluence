@@ -9,7 +9,11 @@ from ...models.containers import Language, Lesson
 from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
-from ..system_data import ScoreService
+from ..system_data import ScoreService, ExerciseUserPrefService
+from ..system_data.exercise_user_pref import effective_mode
+from .side_pattern import make_side_picker
+from .study_constants import BOOST_FACTOR
+from .study_goal import StudyGoalService
 from ..system_data.score import SIDES, side_id
 
 # Convert the user's daily minutes goal into a card count. Fixed estimate.
@@ -23,6 +27,28 @@ FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy, Exercise)
 # A vocabulary's two sides are kept at least this many cards apart in the queue.
 # TODO(user): stand-in value.
 VOC_SIDE_GAP = 3
+
+
+SECTION_MODELS = {"voc": Vocabulary, "gram": Grammar, "ex": Exercise, "call": Calligraphy}
+
+
+def model_pattern_active(pattern) -> bool:
+    return pattern is not None
+
+
+def section_budgets(layout: list[dict], daily_goal_minutes: int) -> dict[str, int]:
+    """Cards per section: its own minutes, else an equal share of the daily goal (30 s per card, at least 1)."""
+    share = daily_goal_minutes / max(len(layout), 1)
+    return {sec["type"]: max(1, round((sec.get("minutes") or share) * 60 / SECONDS_PER_CARD)) for sec in layout}
+
+
+def order_bucket(items: list, priority_of, goal_ids: set, boosted_ids: set) -> list:
+    """Goal items first, then by review priority (boosted ones multiplied by BOOST_FACTOR), best first."""
+    def key(item):
+        element = item[0] if isinstance(item, tuple) else item
+        weight = BOOST_FACTOR if element.id in boosted_ids else 1.0
+        return (element.id in goal_ids, priority_of(item) * weight)
+    return sorted(items, key=key, reverse=True)
 
 
 class ReviewService:
@@ -62,32 +88,57 @@ class ReviewService:
         lesson_ids = [lesson.id for lesson in lessons]
         lesson_title_by_id = {lesson.id: lesson.title for lesson in lessons}
 
-        buckets = {model: [] for model in FEATURE_MODELS}
+        type_prefs = (preferences.exercise_type_prefs if preferences else None) or {}
+        layout = preferences.review_layout if preferences else None
+        pattern = preferences.voc_side_pattern if preferences else None
+        goal_ids = {i.element_id for i in StudyGoalService().ensure_cycle(user_id, language_id, session=session)}
+
+        buckets = {}
         for model in FEATURE_MODELS:
             cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all()
+            boosted: set[str] = set()
+            if model is Exercise:
+                own = ExerciseUserPrefService().modes_for(user_id, [c.id for c in cards], session=session)
+                modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in cards}
+                cards = [c for c in cards if modes[c.id] != "ban"]
+                boosted = {i for i, m in modes.items() if m == "boost"}
             if model is Vocabulary:
-                buckets[model] = self._vocabulary_candidates(cards, user_id, session)
-                continue
-            scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
-            buckets[model] = sorted(
-                cards,
-                key=lambda c: review_priority(
-                    *self._review_fields(c, scores.get(c.id))
-                ),
-                reverse=True,
-            )
+                priority = self._vocabulary_priorities(cards, user_id, session)
+                items = [(v, sd) for v in cards for sd in SIDES]
+                key_of = lambda it: priority[(it[0].id, it[1])]
+            else:
+                scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
+                items = cards
+                key_of = lambda c, scores=scores: review_priority(*self._review_fields(c, scores.get(c.id)))
+            buckets[model] = order_bucket(items, key_of, goal_ids, boosted)
 
-        # Round-robin across the three types so one type can't crowd out the rest.
+        picker = None
+        if model_pattern_active(pattern):
+            n = len(buckets[Vocabulary]) // len(SIDES)
+            picker = make_side_picker(pattern, front_count=n, back_count=n)
+
         queue: list = []
-        while len(queue) < max_cards and any(buckets[m] for m in FEATURE_MODELS):
-            for model in FEATURE_MODELS:
-                if len(queue) >= max_cards:
-                    break
-                if buckets[model]:
-                    queue.append(self._pop(buckets[model], queue, model))
+        sections: list = []
+        if layout:
+            budgets = section_budgets(layout, daily_goal_minutes)
+            for sec in layout:
+                model, left = SECTION_MODELS[sec["type"]], budgets[sec["type"]]
+                while left > 0 and buckets[model]:
+                    queue.append(self._pop(buckets[model], queue, model, picker))
+                    sections.append(sec["type"])
+                    left -= 1
+        else:
+            # Round-robin across the types so one type can't crowd out the rest.
+            while len(queue) < max_cards and any(buckets[m] for m in FEATURE_MODELS):
+                for model in FEATURE_MODELS:
+                    if len(queue) >= max_cards:
+                        break
+                    if buckets[model]:
+                        queue.append(self._pop(buckets[model], queue, model, picker))
+                        sections.append(None)
 
         if as_dict:
-            return [self._card_dict(card, lesson_title_by_id) for card in queue]
+            return [{**self._card_dict(card, lesson_title_by_id), "section": sec} for card, sec in zip(queue, sections)]
         return queue
 
     @staticmethod
@@ -102,25 +153,28 @@ class ReviewService:
         return out
 
     @staticmethod
-    def _vocabulary_candidates(vocabularies, user_id, session) -> list:
-        """One (vocabulary, side) candidate per side, ranked by that side's own review priority."""
-        ids = [side_id(v.id, s) for v in vocabularies for s in SIDES]
-        scores = ScoreService().get_many(user_id, ids, session=session)
-        pairs = [(v, s) for v in vocabularies for s in SIDES]
-        return sorted(
-            pairs,
-            key=lambda p: review_priority(*ReviewService._review_fields(p[0], scores.get(side_id(p[0].id, p[1])))),
-            reverse=True,
-        )
+    def _vocabulary_priorities(vocabularies, user_id, session) -> dict:
+        """review_priority of every (vocabulary id, side), from that side's own Score row."""
+        scores = ScoreService().get_many(user_id, [side_id(v.id, sd) for v in vocabularies for sd in SIDES], session=session)
+        return {(v.id, sd): review_priority(*ReviewService._review_fields(v, scores.get(side_id(v.id, sd))))
+                for v in vocabularies for sd in SIDES}
 
     @staticmethod
-    def _pop(bucket: list, queue: list, model):
-        """Take the next card; for vocabulary skip a side whose sibling was queued within VOC_SIDE_GAP cards."""
+    def _vocabulary_candidates(vocabularies, user_id, session) -> list:
+        """One (vocabulary, side) candidate per side, ranked by that side's own review priority."""
+        priority = ReviewService._vocabulary_priorities(vocabularies, user_id, session)
+        return order_bucket([(v, sd) for v in vocabularies for sd in SIDES], lambda it: priority[(it[0].id, it[1])], set(), set())
+
+    @staticmethod
+    def _pop(bucket: list, queue: list, model, picker=None):
+        """Take the next card. Vocabulary: skip a side whose sibling was queued within VOC_SIDE_GAP
+        cards; with a side picker, prefer the side it asks for."""
         if model is Vocabulary:
             recent = {c[0].id for c in queue[-VOC_SIDE_GAP:] if isinstance(c, tuple)}
-            for i, (v, _s) in enumerate(bucket):
-                if v.id not in recent:
-                    return bucket.pop(i)
+            free = [i for i, (v, _s) in enumerate(bucket) if v.id not in recent]
+            if free:
+                want = picker() if picker else None
+                return bucket.pop(next((i for i in free if bucket[i][1] == want), free[0]))
         return bucket.pop(0)
 
     @staticmethod
