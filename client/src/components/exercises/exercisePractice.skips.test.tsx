@@ -10,34 +10,30 @@ vi.mock("@/components/ui/buttons/backButton", () => ({ default: ({ children }: {
 
 import ExercisePractice from "./exercisePractice";
 
-const ex = (id: string, exercise_type: Exercise["exercise_type"]) => ({ id, exercise_type, question: "q", answer: "a" }) as Exercise;
-const list = [ex("e1", "essay"), ex("e2", "dictation"), ex("e3", "speaking"), ex("e4", "quizz")];
+const ex = (id: string, exercise_type: Exercise["exercise_type"], audio_files: string[] = []) => ({ id, exercise_type, audio_files, question: "q", answer: "a" }) as Exercise;
 const current = () => screen.queryByTestId("runner")?.textContent;
-const next = () => userEvent.click(screen.getByRole("button", { name: /next/i }));
 
 describe("practice skips", () => {
-    it("can't hear removes dictation from the queue and reports the count; scores are never touched", async () => {
-        render(<ExercisePractice exercise_lists={list} />);
-        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
-        expect(screen.getByRole("status")).toHaveTextContent("1 exercise skipped");
-        await next();
-        expect(current()).toBe("e3");          // e2 (dictation) skipped
+    it("shows no skip button on an exercise that needs neither hearing nor speaking", () => {
+        render(<ExercisePractice exercise_lists={[ex("e1", "essay"), ex("e2", "dictation")]} />);
+        expect(screen.queryByRole("button", { name: /I can't/ })).toBeNull();
     });
 
-    it("turning a skip off restores the original order", async () => {
-        render(<ExercisePractice exercise_lists={list} />);
-        const hear = screen.getByRole("button", { name: "I can't hear" });
-        await userEvent.click(hear);
-        await next();                           // e1 done, now e3
-        await userEvent.click(hear);            // un-skip
-        expect(current()).toBe("e2");           // e2 comes back before e3
+    it("can't hear shows only on audio exercises and skips just that one, unscored", async () => {
+        render(<ExercisePractice exercise_lists={[ex("e1", "dictation"), ex("e2", "answering", ["a.wav"]), ex("e3", "essay")]} />);
+        expect(screen.queryByRole("button", { name: "I can't speak" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(current()).toBe("e2");           // moved on to the next one
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(current()).toBe("e3");
+        expect(screen.queryByRole("button", { name: /I can't/ })).toBeNull();
     });
 
-    it("shows a nothing-left message when every remaining exercise is skipped", async () => {
-        render(<ExercisePractice exercise_lists={[ex("e2", "dictation"), ex("e3", "speaking")]} />);
-        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+    it("can't speak shows on recording exercises, and skipping the last one finishes with a skipped count", async () => {
+        render(<ExercisePractice exercise_lists={[ex("e1", "speaking")]} />);
+        expect(screen.queryByRole("button", { name: "I can't hear" })).toBeNull();
         await userEvent.click(screen.getByRole("button", { name: "I can't speak" }));
-        expect(screen.getByText(/Nothing left to practise/)).toBeInTheDocument();
         expect(screen.queryByTestId("runner")).toBeNull();
+        expect(screen.getByRole("status")).toHaveTextContent("1 exercise skipped");
     });
 });

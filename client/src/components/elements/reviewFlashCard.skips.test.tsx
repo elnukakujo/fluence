@@ -18,23 +18,19 @@ const ex = (id: string, exercise_type: string) => ({ id, exercise_type, question
 beforeEach(() => vi.clearAllMocks());
 
 describe("review: skips", () => {
-    it("skips a speaking exercise without scoring it, and gets it back when un-skipped", async () => {
+    it("offers can't speak only on a speaking exercise; skipping it moves on without scoring", async () => {
         render(<ReviewFlashCard cards={[ex("ex_1", "speaking"), ex("ex_2", "essay")]} />);
-        expect(screen.getByTestId("runner")).toHaveTextContent("ex_1");
-        const speak = screen.getByRole("button", { name: "I can't speak" });
-        await userEvent.click(speak);
+        expect(screen.queryByRole("button", { name: "I can't hear" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "I can't speak" }));
         expect(screen.getByTestId("runner")).toHaveTextContent("ex_2");
-        expect(screen.getByRole("status")).toHaveTextContent("1 exercise skipped");
+        expect(screen.queryByRole("button", { name: /I can't/ })).toBeNull();
         expect(api.updateScoreById).not.toHaveBeenCalled();
-        await userEvent.click(speak);
-        expect(screen.getByTestId("runner")).toHaveTextContent("ex_1");
     });
 
-    it("lets the user turn a skip off even when everything was skipped", async () => {
-        render(<ReviewFlashCard cards={[ex("ex_1", "speaking")]} />);
-        await userEvent.click(screen.getByRole("button", { name: "I can't speak" }));
+    it("skipping the only exercise ends the review without scoring", async () => {
+        render(<ReviewFlashCard cards={[ex("ex_1", "dictation")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
         expect(screen.queryByTestId("runner")).toBeNull();
-        await userEvent.click(screen.getByRole("button", { name: "I can't speak" }));
-        expect(screen.getByTestId("runner")).toHaveTextContent("ex_1");
+        expect(api.updateScoreById).not.toHaveBeenCalled();
     });
 });

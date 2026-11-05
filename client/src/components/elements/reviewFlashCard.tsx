@@ -18,9 +18,8 @@ import ElementTagsCard from "./elementTagsCard";
 import ElementSourcesCard from "./elementSourcesCard";
 import ElementPerformanceCard from "./elementPerformanceCard";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
-import ProgressBar from "@/components/ui/progressBar";
-import SkipToggles from "@/components/exercises/skipToggles";
-import { isSkipped, type Skips } from "@/utils/exerciseSkills";
+import ReviewHeader from "./reviewHeader";
+import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 
@@ -29,13 +28,12 @@ const isGrammar = (c: ReviewCard): c is Grammar => "title" in c;
 const isCalligraphy = (c: ReviewCard): c is Calligraphy => "character" in c;
 const isExercise = (c: ReviewCard): c is Exercise => "exercise_type" in c;
 
-const typeLabel = (c: ReviewCard) =>
-    isVocabulary(c) ? "Vocabulary" : isGrammar(c) ? "Grammar" : isCalligraphy(c) ? "Calligraphy" : "Exercise";
+const kindKey = (c: ReviewCard) =>
+    isVocabulary(c) ? "section_voc" : isGrammar(c) ? "section_gram" : isCalligraphy(c) ? "section_call" : "section_ex";
 
 export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const t = useTranslations("elements");
-    const [done, setDone] = useState<string[]>([]);   // finished cards; the queue is derived so un-skipping restores the order
-    const [skips, setSkips] = useState<Skips>({ hear: false, speak: false });
+    const [done, setDone] = useState<string[]>([]);   // finished or skipped cards
     const startTimeRef = useRef<number>(performance.now());
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
@@ -46,9 +44,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const tStudy = useTranslations("study");
 
     const keyOf = (c: ReviewCard) => ("card_id" in c && c.card_id ? String(c.card_id) : c.id!);   // a vocabulary appears once per side
-    const skippedNow = (c: ReviewCard) => isExercise(c) && isSkipped(c, skips);
-    const remaining = cards.filter((c) => !done.includes(keyOf(c)) && !skippedNow(c));
-    const skippedCount = cards.filter((c) => !done.includes(keyOf(c)) && skippedNow(c)).length;
+    const remaining = cards.filter((c) => !done.includes(keyOf(c)));
     const currentIndex = done.length;
     const card = remaining[0];
 
@@ -64,7 +60,6 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     if (!card) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
-                {skippedCount > 0 && <SkipToggles value={skips} onChange={setSkips} skippedCount={skippedCount} />}
                 <p className="text-muted">{t("nothingToReview")}</p>
                 <BackButton>{t("backToLanguage")}</BackButton>
             </article>
@@ -101,39 +96,38 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
-            <ProgressBar
+            <ReviewHeader
+                kind={tStudy(kindKey(card))}
+                side={isVocabulary(card) && card.side ? tStudy(card.side) : undefined}
+                sectionProgress={card.section ? (() => {
+                    const inSection = cards.filter((c) => c.section === card.section);
+                    return { done: inSection.findIndex((c) => c === card) + (graded ? 1 : 0), total: inSection.length };
+                })() : undefined}
+                sectionLabel={tStudy(kindKey(card))}
                 current={currentIndex + (graded ? 1 : 0)}
                 total={done.length + remaining.length}
+                meta={[
+                    card.lesson_title ? `${t("lesson")}: ${card.lesson_title}` : "",
+                    `${t("created")}: ${new Date(card.created_at).toLocaleDateString()}`,
+                    card.last_seen_at ? `${t("lastSeen")}: ${new Date(card.last_seen_at).toLocaleDateString()}` : "",
+                ].filter(Boolean)}
+                progressLabel={t("reviewProgress")}
             />
-
-            {cards.some(isExercise) && <SkipToggles value={skips} onChange={setSkips} skippedCount={skippedCount} />}
-
-            {card.section && (() => {
-                const inSection = cards.filter((c) => c.section === card.section);
-                const done = inSection.findIndex((c) => c === card) + (graded ? 1 : 0);
-                return <ProgressBar current={done} total={inSection.length} label={`${tStudy(`section_${card.section}`)} · ${done} / ${inSection.length}`} />;
-            })()}
-
-            {/* ── Card metadata ───────────────────────────────────── */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                <span className="badge">{typeLabel(card)}</span>
-                {isVocabulary(card) && card.side && <span className="badge">{tStudy(card.side)}</span>}
-                {card.lesson_title && <span>{t("lesson")}: {card.lesson_title}</span>}
-                <span>{t("created")}: {new Date(card.created_at).toLocaleDateString()}</span>
-                {card.last_seen_at && <span>{t("lastSeen")}: {new Date(card.last_seen_at).toLocaleDateString()}</span>}
-            </div>
 
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
                     <ExerciseRunner key={card.id} exercise={card} />
-                    {remaining.length > 1 ? (
-                        <button className="btn btn-primary self-end" onClick={handleGoNext}>
-                            {t("nextButton")}
-                        </button>
-                    ) : (
-                        <BackButton>{t("backToLanguage")}</BackButton>
-                    )}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <SkipButtons exercise={card} onSkip={handleGoNext} />
+                        {remaining.length > 1 ? (
+                            <button className="btn btn-primary ml-auto" onClick={handleGoNext}>
+                                {t("nextButton")}
+                            </button>
+                        ) : (
+                            <BackButton>{t("backToLanguage")}</BackButton>
+                        )}
+                    </div>
                 </>
             ) : (
                 <>
