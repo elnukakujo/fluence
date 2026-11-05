@@ -33,3 +33,49 @@ def test_lessons_sorted_oldest_first(db):
 
     lessons = LessonService().get_all(language_id="lang_L1", as_dict=True)
     assert [l["title"] for l in lessons] == ["older", "Basics", "newer"]
+
+
+def _voc(db, n):
+    from lapp.models.components import Word
+    from lapp.models.features import Vocabulary
+    with db.session_scope() as s:
+        for i in range(n):
+            db.insert(Word(id=f"word_W{i}", language_id="lang_L1", word=f"w{i}"), session=s, commit=False)
+            db.insert(Vocabulary(id=f"voc_V{i}", lesson_id="lesson_L1", word_id=f"word_W{i}"), session=s, commit=False)
+
+
+def test_vocabulary_emitted_per_side(db):
+    _seed(db)
+    _voc(db, 1)
+    cards = ReviewService().get_review_cards(language_id="lang_L1", as_dict=True)
+    voc = [c for c in cards if "word" in c]
+    assert sorted(c["side"] for c in voc) == ["back", "front"]
+    assert {c["card_id"] for c in voc} == {"voc_V0#front", "voc_V0#back"}
+
+
+def test_harder_side_ranked_first(db):
+    from lapp.services.system_data import ScoreService
+    _seed(db)
+    _voc(db, 1)
+    ScoreService().set("user_U1", "voc_V0#back", score=0.0, difficulty=0.95)
+    ScoreService().set("user_U1", "voc_V0#front", score=0.0, difficulty=0.1)
+    voc = [c for c in ReviewService().get_review_cards(language_id="lang_L1", as_dict=True) if "word" in c]
+    assert voc[0]["side"] == "back"
+
+
+def test_sibling_sides_kept_apart(db):
+    _seed(db)
+    _voc(db, 6)
+    cards = ReviewService().get_review_cards(language_id="lang_L1", as_dict=True)
+    voc_stream = [c["id"] for c in cards if "word" in c]
+    # the tail is forced (only siblings are left), so check the first 8 cards
+    for vid in set(voc_stream):
+        a, b = [i for i, x in enumerate(voc_stream) if x == vid]
+        if b < 8:
+            assert b - a > 3
+
+
+def test_single_vocabulary_does_not_hang(db):
+    _seed(db)
+    _voc(db, 1)
+    assert len([c for c in ReviewService().get_review_cards(language_id="lang_L1", as_dict=True) if "word" in c]) == 2

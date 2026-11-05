@@ -10,6 +10,7 @@ from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
 from ..system_data import ScoreService
+from ..system_data.score import SIDES, side_id
 
 # Convert the user's daily minutes goal into a card count. Fixed estimate.
 # ponytail: SECONDS_PER_CARD fixed; derive from DailyStats.time_studied_ms /
@@ -18,6 +19,10 @@ SECONDS_PER_CARD = 30.0
 
 # The three flashcard-able feature types, in review (round-robin) order.
 FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy, Exercise)
+
+# A vocabulary's two sides are kept at least this many cards apart in the queue.
+# TODO(user): stand-in value.
+VOC_SIDE_GAP = 3
 
 
 class ReviewService:
@@ -60,6 +65,9 @@ class ReviewService:
         buckets = {model: [] for model in FEATURE_MODELS}
         for model in FEATURE_MODELS:
             cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all()
+            if model is Vocabulary:
+                buckets[model] = self._vocabulary_candidates(cards, user_id, session)
+                continue
             scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
             buckets[model] = sorted(
                 cards,
@@ -76,14 +84,44 @@ class ReviewService:
                 if len(queue) >= max_cards:
                     break
                 if buckets[model]:
-                    queue.append(buckets[model].pop(0))
+                    queue.append(self._pop(buckets[model], queue, model))
 
         if as_dict:
-            return [
-                {**card.to_dict(include_relations=True), "lesson_title": lesson_title_by_id.get(card.lesson_id)}
-                for card in queue
-            ]
+            return [self._card_dict(card, lesson_title_by_id) for card in queue]
         return queue
+
+    @staticmethod
+    def _card_dict(card, lesson_title_by_id) -> dict:
+        side = None
+        if isinstance(card, tuple):
+            card, side = card
+        out = {**card.to_dict(include_relations=True), "lesson_title": lesson_title_by_id.get(card.lesson_id)}
+        if side:
+            out["side"] = side
+            out["card_id"] = side_id(card.id, side)
+        return out
+
+    @staticmethod
+    def _vocabulary_candidates(vocabularies, user_id, session) -> list:
+        """One (vocabulary, side) candidate per side, ranked by that side's own review priority."""
+        ids = [side_id(v.id, s) for v in vocabularies for s in SIDES]
+        scores = ScoreService().get_many(user_id, ids, session=session)
+        pairs = [(v, s) for v in vocabularies for s in SIDES]
+        return sorted(
+            pairs,
+            key=lambda p: review_priority(*ReviewService._review_fields(p[0], scores.get(side_id(p[0].id, p[1])))),
+            reverse=True,
+        )
+
+    @staticmethod
+    def _pop(bucket: list, queue: list, model):
+        """Take the next card; for vocabulary skip a side whose sibling was queued within VOC_SIDE_GAP cards."""
+        if model is Vocabulary:
+            recent = {c[0].id for c in queue[-VOC_SIDE_GAP:] if isinstance(c, tuple)}
+            for i, (v, _s) in enumerate(bucket):
+                if v.id not in recent:
+                    return bucket.pop(i)
+        return bucket.pop(0)
 
     @staticmethod
     def _review_fields(card, score):
