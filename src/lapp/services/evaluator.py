@@ -94,7 +94,18 @@ class EvaluatorService:
             logger.warning(f"Exercise item {ex_id} is not a translation exercise")
             return False, None
 
-        return exercise.answer, exercise.exercise_type
+        return self._reference_answer(exercise), exercise.exercise_type
+
+    @staticmethod
+    def _reference_answer(exercise) -> str:
+        """What a text answer is compared with. A fill-in-the-blank is answered with just its blanks, joined by
+        ", " (the form the app stores), whatever an older exercise kept in `answer`."""
+        content = getattr(exercise, "content", None)
+        content = content if isinstance(content, dict) else {}
+        blanks = content.get("blanks") or []
+        if exercise.exercise_type == "type_in_the_blank" and blanks:
+            return ", ".join(b["answer"] for b in blanks)
+        return exercise.answer
 
     def _get_correct_audio_path_and_type(self, ex_id: str, correct_audio_index: int, session: Optional[Session] = None) -> tuple[Optional[str], Optional[str]]:
         exercise = exercise_service.get_by_id(ex_id, session=session)

@@ -48,12 +48,8 @@ export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercis
         e.preventDefault();
         setIsLoading(true);
 
-        let answerIndex = 0;
-        const userText = segments.reduce((acc, part, i) => {
-            if (i === segments.length - 1) return acc + part;
-            const nextAnswer = filledAnswers[answerIndex++] ?? "";
-            return acc + part + (nextAnswer ?? "").trim();
-        }, "");
+        // Only what the learner typed in the blanks is graded, the same shape as the stored answer ("a, b").
+        const userText = blanks.map((_, i) => (filledAnswers[i] ?? "").trim()).join(", ");
 
         evaluateText(exercise.id!, userText).then((result) => {
             setFeedbackMessage(result.feedback);
