@@ -18,6 +18,7 @@ from .passage import bp as passage_bp
 from .daily_stats import bp as daily_stats_bp
 from .commitment_log import commitment_log_bp
 from .review import bp as review_bp
+from .study_goal import bp as study_goal_bp
 from .auth import bp as auth_bp
 from .collaboration import bp as collaboration_bp
 from .ingestion import bp as ingestion_bp
@@ -43,6 +44,7 @@ __all__ = [
     daily_stats_bp,
     commitment_log_bp,
     review_bp,
+    study_goal_bp,
     auth_bp,
     collaboration_bp,
     ingestion_bp,
