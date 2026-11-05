@@ -12,6 +12,7 @@ import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import ImportButton from "@/components/ingestion/importButton";
+import StudyGoalCard from "@/components/language/studyGoalCard";
 import { getTranslations } from "next-intl/server";
 
 export default async function Language({ params }: { params: Promise<{ language_id: string }> }) {
@@ -33,6 +34,7 @@ export default async function Language({ params }: { params: Promise<{ language_
             <header className="flex flex-col gap-4">
                 <LanguageHeaderCard language={language} />
                 <ElementPerformanceCard element={language} />
+                {isOwner && <StudyGoalCard languageId={language_id} />}
                 <ElementTagsCard element={language} />
                 <ElementSourcesCard element={language} />
                 <nav className="flex flex-row flex-wrap gap-2">

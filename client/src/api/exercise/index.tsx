@@ -59,3 +59,13 @@ export async function generateLineAudio(exerciseId: string, line: number): Promi
   if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "tts_failed");
   return res.json();
 }
+
+export async function setExerciseUserPref(exerciseId: string, mode: "boost" | "ban" | null) {
+  const res = await fetch(`${BASE_URL}/api/exercise/${exerciseId}/user-pref`, {
+    method: "PUT",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ mode }),
+  });
+  if (!res.ok) throw new Error(`Failed to set the exercise preference (${res.status})`);
+  return res.json();
+}

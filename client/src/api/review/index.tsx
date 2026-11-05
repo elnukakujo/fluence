@@ -4,7 +4,7 @@ import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
 import type Exercise from "@/interface/features/Exercise";
 
-export type ReviewCard = (Vocabulary | Grammar | Calligraphy | Exercise) & { lesson_title?: string };
+export type ReviewCard = (Vocabulary | Grammar | Calligraphy | Exercise) & { lesson_title?: string; section?: "voc" | "gram" | "ex" | "call" | null };
 
 export async function getReviewCards(languageId: string): Promise<ReviewCard[]> {
   const res = await fetch(`${BASE_URL}/api/review/${languageId}`, { headers: await getAuthHeaders() });

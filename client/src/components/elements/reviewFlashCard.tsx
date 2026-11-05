@@ -40,6 +40,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const [showPractice, setShowPractice] = useState<boolean>(false);
     const [practiceResult, setPracticeResult] = useState<{ similarity: number; strokeOrderErrors: number } | null>(null);
     const tCal = useTranslations("calligraphy");
+    const tStudy = useTranslations("study");
 
     const card = cards[currentIndex];
 
@@ -96,9 +97,16 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                 total={cards.length}
             />
 
+            {card.section && (() => {
+                const inSection = cards.filter((c) => c.section === card.section);
+                const done = inSection.findIndex((c) => c === card) + (graded ? 1 : 0);
+                return <ProgressBar current={done} total={inSection.length} label={`${tStudy(`section_${card.section}`)} · ${done} / ${inSection.length}`} />;
+            })()}
+
             {/* ── Card metadata ───────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                 <span className="badge">{typeLabel(card)}</span>
+                {isVocabulary(card) && card.side && <span className="badge">{tStudy(card.side)}</span>}
                 {card.lesson_title && <span>{t("lesson")}: {card.lesson_title}</span>}
                 <span>{t("created")}: {new Date(card.created_at).toLocaleDateString()}</span>
                 {card.last_seen_at && <span>{t("lastSeen")}: {new Date(card.last_seen_at).toLocaleDateString()}</span>}
