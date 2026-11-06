@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ getStudyGoal: vi.fn(), saveStudyGoal: vi.fn() }));
+const api = vi.hoisted(() => ({ getStudyGoal: vi.fn(), saveStudyGoal: vi.fn(), resetStudyGoal: vi.fn() }));
 vi.mock("@/api/studyGoal", () => api);
 vi.mock("@/api/language", () => ({ getAvailableLanguages: vi.fn().mockResolvedValue([{ id: "lang_1", name: "Japanese" }]) }));
 
@@ -53,7 +53,17 @@ describe("study goals card", () => {
         api.getStudyGoal.mockResolvedValue(locked);
         render(<StudyGoalsCard userId="u" />);
         expect(await screen.findByRole("note")).toHaveTextContent(/locked/i);
-        expect(screen.getByRole("note")).toHaveTextContent("Vocabulary: 20 new + 5 review");
+        expect(screen.getByRole("note")).toHaveTextContent(/Vocabulary\s*20\s*new\s*5\s*review/);
         expect(screen.getByRole("note")).toHaveTextContent(/Your changes start on Nov 12/);
+    });
+
+    it("the lock opens the rebuild dialog; confirming rebuilds, keeping the mastered ones", async () => {
+        api.getStudyGoal.mockResolvedValue({ ...locked, progress: { ...locked.progress, rebuild: { mastered: 2, redraw: 9 } } });
+        api.resetStudyGoal.mockResolvedValue(locked);
+        render(<StudyGoalsCard userId="u" />);
+        await userEvent.click(await screen.findByRole("button", { name: /unlock to rebuild/i }));
+        expect(screen.getByRole("dialog")).toHaveTextContent("2");
+        await userEvent.click(screen.getByRole("button", { name: "Rebuild" }));
+        expect(api.resetStudyGoal).toHaveBeenCalledWith("lang_1");
     });
 });

@@ -105,25 +105,32 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                 <RebuildMenuDialog open={confirming} mastered={progress?.rebuild?.mastered ?? 0} redraw={progress?.rebuild?.redraw ?? 0}
                     onConfirm={restart} onCancel={() => setConfirming(false)} />
                 {progress && (
-                    <div className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] p-3 text-sm" role="note">
-                        <Lock size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-                        <div className="flex flex-col gap-1">
-                            <p className="font-medium">{t("goalLockedUntil", { start: date(progress.cycle_start), end: date(progress.cycle_end) })}</p>
-                            <p className="text-muted">
-                                {KINDS.filter((k) => progress.types[k.kind].n + progress.types[k.kind].r > 0)
-                                    .map((k) => `${t(k.label)}: ${progress.types[k.kind].n} ${t("goalColNew").toLowerCase()} + ${progress.types[k.kind].r} ${t("goalColReview").toLowerCase()}`).join(" · ")}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <button type="button" className="btn btn-secondary min-h-11" disabled={dirty.has(languageId)} onClick={() => setConfirming(true)}>{t("goalRebuild")}</button>
-                                <span className="text-muted">{t("goalRebuildDesc")}</span>
+                    <section className="lock-panel" role="note">
+                        <div className="lock-head">
+                            <button type="button" className="lock-btn" disabled={dirty.has(languageId)} onClick={() => setConfirming(true)}
+                                aria-label={t("goalUnlockLabel")} title={dirty.has(languageId) ? t("goalUnlockSaveFirst") : t("goalUnlockLabel")}>
+                                <Lock size={18} aria-hidden />
+                            </button>
+                            <div className="flex flex-col">
+                                <p className="font-semibold">{t("goalLockedTitle", { end: date(progress.cycle_end) })}</p>
+                                <p className="text-sm text-muted">{date(progress.cycle_start)} – {date(progress.cycle_end)} · {t("goalUnlockHint")}</p>
                             </div>
-                            <details className="callout">
-                                <summary>{t("goalHowTitle")}</summary>
-                                <p className="mt-1">{t("goalHowBody")}</p>
-                            </details>
-                            <p className="text-muted">{progress.next.pending || dirty.has(languageId) ? t("goalChangesFrom", { date: date(progress.next.start) }) : t("goalNoChanges")}</p>
                         </div>
-                    </div>
+                        <ul className="lock-rows">
+                            {KINDS.filter((k) => progress.types[k.kind].n + progress.types[k.kind].r > 0).map(({ kind, label, Icon }) => (
+                                <li key={kind} className="lock-row">
+                                    <span className="lock-row-name"><Icon size={16} className="text-accent" aria-hidden />{t(label)}</span>
+                                    <span className="pill"><b>{progress.types[kind].n}</b>{t("goalColNew").toLowerCase()}</span>
+                                    <span className="pill"><b>{progress.types[kind].r}</b>{t("goalColReview").toLowerCase()}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <details className="callout">
+                            <summary>{t("goalHowTitle")}</summary>
+                            <p className="mt-1">{t("goalHowBody")}</p>
+                        </details>
+                        <p className="text-sm text-muted">{progress.next.pending || dirty.has(languageId) ? t("goalChangesFrom", { date: date(progress.next.start) }) : t("goalNoChanges")}</p>
+                    </section>
                 )}
 
                 {draft && (

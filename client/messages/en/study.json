@@ -65,7 +65,6 @@
   "goalMenuTitle": "This period's menu",
   "goalColNew": "New",
   "goalColReview": "Review",
-  "goalLockedUntil": "This period ({start} – {end}) is locked.",
   "goalChangesFrom": "Your changes start on {date}.",
   "goalNoChanges": "Changes you save start with the next period.",
   "goalQuantities": "Elements per period",
@@ -77,8 +76,6 @@
   "goalAutoHint": "Follows your daily time when you change it. Edit a number to make it yours.",
   "goalCustom": "Your own values",
   "goalUseSuggested": "Use suggested values",
-  "goalRebuild": "Rebuild this week's menu",
-  "goalRebuildDesc": "Redraws the elements you haven't mastered yet. Mastered ones, your scores and your streak stay.",
   "goalRebuildTitle": "Rebuild this period's menu?",
   "goalRebuildKept": "{count, plural, one {# element kept (mastered or already reviewed)} other {# elements kept (mastered or already reviewed)}}",
   "goalRebuildRedraw": "{count, plural, one {# element redrawn from your current numbers} other {# elements redrawn from your current numbers}}",
@@ -87,5 +84,9 @@
   "goalCancel": "Cancel",
   "goalHowTitle": "How are the week's objectives split into days?",
   "goalHowBody": "The week's menu is one pool, not a fixed split per day. Each daily review takes from it in priority order (new elements first) and fits as many cards as your daily minutes allow: a vocabulary card takes a few seconds, a grammar point a minute or two. Anything you haven't finished carries over to the next days, then to the next period. An element counts as mastered at a score of 60 or more.",
-  "reviewStreakValidated": "Day validated — streak: {count}"
+  "reviewStreakValidated": "Day validated — streak: {count}",
+  "goalUnlockLabel": "Unlock to rebuild this period's menu",
+  "goalUnlockSaveFirst": "Save your changes first",
+  "goalLockedTitle": "Locked until {end}",
+  "goalUnlockHint": "tap the lock to rebuild the menu"
 }
