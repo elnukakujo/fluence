@@ -9,7 +9,7 @@ import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
 import type Exercise from "@/interface/features/Exercise";
-import type { ReviewCard } from "@/api/review";
+import { completeReview, type ReviewCard } from "@/api/review";
 import WordCard from "./wordCard";
 import GrammarCard from "./grammarCard";
 import CharacterCard from "./characterCard";
@@ -31,7 +31,7 @@ const isExercise = (c: ReviewCard): c is Exercise => "exercise_type" in c;
 const kindKey = (c: ReviewCard) =>
     isVocabulary(c) ? "section_voc" : isGrammar(c) ? "section_gram" : isCalligraphy(c) ? "section_call" : "section_ex";
 
-export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
+export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCard[]; languageId?: string }) {
     const t = useTranslations("elements");
     const [done, setDone] = useState<string[]>([]);   // finished or skipped cards
     const startTimeRef = useRef<number>(performance.now());
@@ -46,6 +46,15 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
     const keyOf = (c: ReviewCard) => ("card_id" in c && c.card_id ? String(c.card_id) : c.id!);   // a vocabulary appears once per side
     const remaining = cards.filter((c) => !done.includes(keyOf(c)));
     const currentIndex = done.length;
+    const [streak, setStreak] = useState<number | null>(null);
+    const finishedRef = useRef(false);
+    const finish = () => {          // the queue's last card was answered: the day counts for the streak, once
+        if (finishedRef.current || !languageId) return;
+        finishedRef.current = true;
+        completeReview(languageId, cards.length).then((r) => setStreak(r.validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
+    };
+    const last = remaining.length === 1;
+    useEffect(() => { if (last && graded) finish(); });
     const card = remaining[0];
 
     useEffect(() => {
@@ -125,7 +134,7 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                                 {t("nextButton")}
                             </button>
                         ) : (
-                            <BackButton>{t("backToLanguage")}</BackButton>
+                            <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
                         )}
                     </div>
                 </>
@@ -237,12 +246,13 @@ export default function ReviewFlashCard({ cards }: { cards: ReviewCard[] }) {
                                     {t("nextButton")}
                                 </button>
                             ) : (
-                                <BackButton>{t("backToLanguage")}</BackButton>
+                                <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
                             )}
                         </>
                     )}
                 </>
             )}
+            {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
         </article>
     );
 }

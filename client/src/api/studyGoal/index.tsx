@@ -8,6 +8,7 @@ export interface GoalItem { id: string; kind: GoalKind; role: "new" | "review"; 
 export interface StudyGoalProgress {
     period: string; active: boolean; cycle_start: string; cycle_end: string;
     types: Record<GoalKind, GoalTypeProgress>; items: GoalItem[];
+    rebuild?: { mastered: number; redraw: number };
     next: { start: string; period: string; pending: boolean; n: Record<GoalKind, number>; r: Record<GoalKind, number> };
 }
 export interface Suggested { n: Record<GoalKind, number>; r: Record<GoalKind, number> }
@@ -26,9 +27,9 @@ export async function saveStudyGoal(languageId: string, goal: Pick<StudyGoal, "p
     return res.json();
 }
 
-/** Unlock the running period: its menu is dropped and rebuilt from the saved quantities. */
-export async function resetStudyGoal(languageId: string): Promise<StudyGoalState> {
-    const res = await fetch(`${BASE_URL}/api/study-goal/${languageId}/reset`, { method: "POST", headers: await getAuthHeaders() });
+/** Rebuild the running menu from the saved quantities; mastered / reviewed elements are kept unless `keepMastered` is false. */
+export async function resetStudyGoal(languageId: string, keepMastered = true): Promise<StudyGoalState> {
+    const res = await fetch(`${BASE_URL}/api/study-goal/${languageId}/reset`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ keep_mastered: keepMastered }) });
     if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Failed to reset the study goal (${res.status})`);
     return res.json();
 }

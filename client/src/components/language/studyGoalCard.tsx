@@ -7,6 +7,7 @@ import SectionCard from "@/components/user/sectionCard";
 import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
 import NumberField from "@/components/ui/input/numberField";
+import RebuildMenuDialog from "./rebuildMenuDialog";
 import { getAvailableLanguages } from "@/api/language";
 import { getStudyGoal, resetStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
 import type Language from "@/interface/containers/Language";
@@ -49,8 +50,9 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
             .then((s) => { setStates((x) => ({ ...x, [languageId]: s })); setDrafts((d) => ({ ...d, [languageId]: draftOf(s) })); });
     }, [languageId, states]);
 
+    const [confirming, setConfirming] = useState(false);
     const restart = async () => {
-        if (!window.confirm(t("goalResetConfirm"))) return;
+        setConfirming(false);
         setError("");
         try {
             const s = await resetStudyGoal(languageId);
@@ -100,6 +102,8 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                     </select>
                 </label>
 
+                <RebuildMenuDialog open={confirming} mastered={progress?.rebuild?.mastered ?? 0} redraw={progress?.rebuild?.redraw ?? 0}
+                    onConfirm={restart} onCancel={() => setConfirming(false)} />
                 {progress && (
                     <div className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] p-3 text-sm" role="note">
                         <Lock size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
@@ -110,9 +114,13 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                     .map((k) => `${t(k.label)}: ${progress.types[k.kind].n} ${t("goalColNew").toLowerCase()} + ${progress.types[k.kind].r} ${t("goalColReview").toLowerCase()}`).join(" · ")}
                             </p>
                             <div className="flex flex-wrap items-center gap-3">
-                                <button type="button" className="btn btn-secondary min-h-11" disabled={dirty.has(languageId)} onClick={restart}>{t("goalReset")}</button>
-                                <span className="text-muted">{t("goalResetDesc")}</span>
+                                <button type="button" className="btn btn-secondary min-h-11" disabled={dirty.has(languageId)} onClick={() => setConfirming(true)}>{t("goalRebuild")}</button>
+                                <span className="text-muted">{t("goalRebuildDesc")}</span>
                             </div>
+                            <details className="callout">
+                                <summary>{t("goalHowTitle")}</summary>
+                                <p className="mt-1">{t("goalHowBody")}</p>
+                            </details>
                             <p className="text-muted">{progress.next.pending || dirty.has(languageId) ? t("goalChangesFrom", { date: date(progress.next.start) }) : t("goalNoChanges")}</p>
                         </div>
                     </div>

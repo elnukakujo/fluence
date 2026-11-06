@@ -10,7 +10,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ languag
     return (
         <main>
             <h1>{t("dailyReview")}</h1>
-            <ReviewFlashCard cards={cards} />
+            <ReviewFlashCard cards={cards} languageId={language_id} />
         </main>
     );
 }

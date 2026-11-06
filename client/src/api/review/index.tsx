@@ -11,3 +11,10 @@ export async function getReviewCards(languageId: string): Promise<ReviewCard[]> 
   if (!res.ok) throw new Error(`Failed to fetch review cards for language ${languageId}`);
   return res.json();
 }
+
+/** The daily review queue was finished: validates today for the streak (once per day). */
+export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean }> {
+  const res = await fetch(`${BASE_URL}/api/review/${languageId}/complete`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ cards }) });
+  if (!res.ok) throw new Error(`Failed to complete the review (${res.status})`);
+  return res.json();
+}

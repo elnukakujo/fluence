@@ -68,9 +68,6 @@
   "goalLockedUntil": "Cette période ({start} – {end}) est verrouillée.",
   "goalChangesFrom": "Vos changements commenceront le {date}.",
   "goalNoChanges": "Les changements enregistrés commencent à la période suivante.",
-  "goalReset": "Redémarrer la période",
-  "goalResetDesc": "Supprime le menu de la période et le reconstruit maintenant à partir des nombres ci-dessus (enregistrez-les d'abord). Vos scores sont conservés.",
-  "goalResetConfirm": "Redémarrer la période maintenant ? Le menu actuel est remplacé.",
   "goalQuantities": "Éléments par période",
   "goalNextPeriod": "La prochaine période (dès le {date}) utilisera les quantités enregistrées.",
   "goalReviewShort": "Seulement {picked} éléments à réviser sur {n}",
@@ -79,5 +76,16 @@
   "goalAuto": "Suggéré pour votre temps quotidien",
   "goalAutoHint": "Suit votre temps quotidien quand vous le changez. Modifiez un chiffre pour en faire le vôtre.",
   "goalCustom": "Vos propres valeurs",
-  "goalUseSuggested": "Utiliser les valeurs suggérées"
+  "goalUseSuggested": "Utiliser les valeurs suggérées",
+  "goalRebuild": "Reconstruire le menu de la semaine",
+  "goalRebuildDesc": "Retire au sort à nouveau les éléments pas encore maîtrisés. Les éléments maîtrisés, vos scores et votre série restent.",
+  "goalRebuildTitle": "Reconstruire le menu de la période ?",
+  "goalRebuildKept": "{count, plural, one {# élément conservé (maîtrisé ou déjà révisé)} other {# éléments conservés (maîtrisés ou déjà révisés)}}",
+  "goalRebuildRedraw": "{count, plural, one {# élément retiré selon vos nombres actuels} other {# éléments retirés selon vos nombres actuels}}",
+  "goalRebuildNote": "Enregistrez d'abord vos nombres si vous les avez modifiés. Rien n'est supprimé de vos leçons.",
+  "goalRebuildConfirm": "Reconstruire",
+  "goalCancel": "Annuler",
+  "goalHowTitle": "Comment les objectifs de la semaine sont-ils répartis par jour ?",
+  "goalHowBody": "Le menu de la semaine est un seul réservoir, pas une répartition fixe par jour. Chaque révision quotidienne y puise par ordre de priorité (les nouveaux éléments d'abord) et prend autant de cartes que vos minutes quotidiennes le permettent : une carte de vocabulaire dure quelques secondes, un point de grammaire une à deux minutes. Ce qui n'est pas terminé est reporté aux jours suivants, puis à la période suivante. Un élément est maîtrisé à partir d'un score de 60.",
+  "reviewStreakValidated": "Journée validée — série : {count}"
 }

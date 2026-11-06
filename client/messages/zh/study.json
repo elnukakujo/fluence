@@ -68,9 +68,6 @@
   "goalLockedUntil": "本周期（{start} – {end}）已锁定。",
   "goalChangesFrom": "你的修改将从 {date} 开始生效。",
   "goalNoChanges": "保存的修改将从下一周期开始。",
-  "goalReset": "重新开始本周期",
-  "goalResetDesc": "清除本周期的菜单，并按上方数量立即重建（请先保存）。你的分数会保留。",
-  "goalResetConfirm": "现在重新开始本周期？当前菜单将被替换。",
   "goalQuantities": "每周期的内容数量",
   "goalNextPeriod": "下一周期（{date} 起）将使用你保存的数量。",
   "goalReviewShort": "仅有 {picked} / {n} 个可复习内容",
@@ -79,5 +76,16 @@
   "goalAuto": "根据你的每日时间推荐",
   "goalAutoHint": "修改每日时间后会自动跟随。修改任一数字即变为你自己的设置。",
   "goalCustom": "你自己的设置",
-  "goalUseSuggested": "使用推荐值"
+  "goalUseSuggested": "使用推荐值",
+  "goalRebuild": "重建本周菜单",
+  "goalRebuildDesc": "重新抽取尚未掌握的内容。已掌握的内容、你的分数和连续天数都会保留。",
+  "goalRebuildTitle": "重建本周期的菜单？",
+  "goalRebuildKept": "{count, plural, other {保留 # 个（已掌握或已复习）}}",
+  "goalRebuildRedraw": "{count, plural, other {按当前数量重新抽取 # 个}}",
+  "goalRebuildNote": "如果修改了数量，请先保存。不会删除你课程中的任何内容。",
+  "goalRebuildConfirm": "重建",
+  "goalCancel": "取消",
+  "goalHowTitle": "一周的目标如何分配到每天？",
+  "goalHowBody": "本周菜单是一个整体，而不是每天固定分配。每日复习按优先级（先学新内容）从中抽取，并根据你的每日时长安排尽可能多的卡片：单词卡几秒，语法点一两分钟。没完成的内容会顺延到之后几天，再顺延到下一周期。分数达到 60 即视为已掌握。",
+  "reviewStreakValidated": "今日已完成——连续 {count} 天"
 }
