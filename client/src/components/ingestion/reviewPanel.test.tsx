@@ -409,19 +409,29 @@ describe("exercise cards", () => {
 
 describe("exercise merge", () => {
   const ex = (id: string, q: string): Candidate => ({ id, kind: "exercise", exercise_type: "answering", question: q, answer: "a", quote: q, page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null });
-  it("joins the ticked exercises through the model with the chosen type", async () => {
-    mergeExercises.mockResolvedValue({ exercise_type: "matching", question: "Match", answer: "x", text_support: null, content: { pairs: [["a", "b"]] }, status: "flagged", quote: "q", min_conf: null, flags: [] });
+  it("Merge runs straight away, keeping the type the ticked exercises share, and says it is working", async () => {
+    mergeExercises.mockClear();
+    mergeExercises.mockResolvedValue({ exercise_type: "answering", question: "Joined", answer: "x", text_support: null, content: null, status: "flagged", quote: "q", min_conf: null, flags: [] });
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[ex("e1", "First q"), ex("e2", "Second q")]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: "Select" }));
     await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
     const bar = screen.getByRole("region", { name: "Actions for the selected items" });
     await userEvent.click(within(bar).getByRole("button", { name: "Merge" }));
-    await userEvent.selectOptions(screen.getByLabelText("Merged exercise type"), "matching");
-    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
-    expect(mergeExercises).toHaveBeenCalledWith("j", [expect.objectContaining({ question: "First q" }), expect.objectContaining({ question: "Second q" })], "matching");
-    expect(await screen.findByText("a")).toBeInTheDocument();                       // the merged card's pair
+    expect(mergeExercises).toHaveBeenCalledWith("j", [expect.objectContaining({ question: "First q" }), expect.objectContaining({ question: "Second q" })], "answering");
+    expect(await screen.findByText("Joined")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2);        // sources kept, undoable
   });
+
+  it("a failed exercise merge shows why and leaves the cards alone", async () => {
+    mergeExercises.mockRejectedValue(new Error("model down"));
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[ex("e1", "First q"), ex("e2", "Second q")]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+    await userEvent.click(within(screen.getByRole("region", { name: "Actions for the selected items" })).getByRole("button", { name: "Merge" }));
+    expect(await screen.findByText(/model down/)).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "Undo" })).toHaveLength(0);
+  });
+
 });
 
 describe("enhance and change type", () => {

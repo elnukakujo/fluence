@@ -131,16 +131,16 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const FILTER_LABEL: Record<Filter, string> = { all: t("filterAll"), verified: t("filterVerified"), flagged: t("filterFlagged"), pending: t("filterPending") };
   const hasConflicts = activeRows.some((r) => !r.deleted && hasConflict(r.candidate));
   const patchMany = (ids: string[], change: (r: Row) => Partial<Row>) => setRows((rs) => rs.map((r) => (ids.includes(r.candidate.id) && !r.deleted ? { ...r, ...change(r) } : r)));
-  const [mergeAsk, setMergeAsk] = useState<BarProps | null>(null);
   const merge = async (b: BarProps, exercise_type?: string) => {
     setMerging(true);
     setError(null);
     try {
       const picked = rows.filter((r) => b.ids.includes(r.candidate.id) && !r.deleted);
       if (active === "exercise") {
-        const joined = await mergeExercises(jobId, picked.map(exerciseItem), exercise_type);
+        // keep the type the ticked cards share (a split type-in-the-blank stays one); mixed types leave the choice to the model
+        const types = new Set(picked.map((r) => r.exercise_type));
+        const joined = await mergeExercises(jobId, picked.map(exerciseItem), exercise_type ?? (types.size === 1 ? picked[0].exercise_type : undefined));
         setRows((rs) => mergeExerciseRows(rs, b.ids, joined));
-        setMergeAsk(null);
         b.onDone(t("bulkMergedDone", { count: picked.length }));
         return;
       }
@@ -174,7 +174,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("overwrite")}><PenLine size={20} aria-hidden />{t("overwrite")}</button>
           </>}
           <button type="button" className="bulk-action" disabled={!canMerge} title={canMerge ? undefined : t(active === "exercise" ? "mergeNeedsTwoExercises" : "mergeNeedsTwoGrammar")}
-            onClick={() => (active === "exercise" ? setMergeAsk(b) : merge(b))}>
+            onClick={() => merge(b)}>
             <Combine size={20} aria-hidden />{merging ? t("merging") : tEl("bulkMerge")}
           </button>
         </>} />
@@ -342,8 +342,6 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             ))}
           </div>
         )}
-
-        {mergeAsk && <RegenerateForm withRequest={false} busy={merging} onSubmit={(o) => merge(mergeAsk, o.exercise_type)} onCancel={() => setMergeAsk(null)} />}
 
         {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
 
