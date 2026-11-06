@@ -15,7 +15,7 @@ import ExerciseBody from "./exerciseBody";
 import RegenerateForm from "./regenerateForm";
 import {
   type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeExerciseRows, mergeRows, needsDecision,
-  dialogueLines, initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
+  initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
 import ReviewCard from "./reviewCard";
@@ -26,7 +26,6 @@ const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
 };
 const SELECT_KIND: Record<RowKind, Kind> = { vocabulary: "voc", grammar: "gram", calligraphy: "call", exercise: "ex" };
 const rowLabel = (r: Row) => r.title || r.word || r.character || r.question?.slice(0, 40) || r.candidate.quote;
-const clip = (t: string, n = 140) => (t.length > n ? `${t.slice(0, n)}…` : t);
 
 // Select-mode checkbox at the top of a card (the shared selection scope holds the ticks).
 function RowTick({ kind, row }: { kind: Kind; row: Row }) {
