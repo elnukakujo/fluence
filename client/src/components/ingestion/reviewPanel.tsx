@@ -76,12 +76,14 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 
   const [merging, setMerging] = useState(false);
   const [reloadingId, setReloadingId] = useState<string | null>(null);
-  const reload = async (row: Row) => {
+  const [enhanceId, setEnhanceId] = useState<string | null>(null);
+  const reload = async (row: Row, request?: string) => {
     setReloadingId(row.candidate.id);
     setError(null);
     try {
-      const fresh = await regenerateGrammar(jobId, { title: row.title, explanation: row.explanation, original_text: row.original_text });
+      const fresh = await regenerateGrammar(jobId, { title: row.title, explanation: row.explanation, original_text: row.original_text }, request);
       patch(row.candidate.id, { ...fresh, selected: false });   // back to pending: the user checks the new pass
+      setEnhanceId(null);
     } catch (e) {
       setError(t("reloadFailed", { message: e instanceof Error ? e.message : "" }));
     } finally {
@@ -104,6 +106,11 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     } finally {
       setReloadingId(null);
     }
+  };
+  // free-text types share one shape (no content), so they switch in place; any other change rebuilds the content with the model
+  const changeType = (row: Row, to: string) => {
+    if ([row.exercise_type, to].every((x) => ["essay", "answering", "translate"].includes(x ?? ""))) patch(row.candidate.id, { exercise_type: to });
+    else regenerate(row, { exercise_type: to });
   };
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -208,6 +215,12 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("grammar_generated");
       return (
         <ReviewCard {...common} summary={<strong>{row.title}</strong>} onReload={row.original_text ? () => reload(row) : undefined} reloading={reloadingId === c.id}
+          onEnhance={() => setEnhanceId(enhanceId === c.id ? null : c.id)}
+          footer={<>
+            {footer}
+            {enhanceId === c.id && <RegenerateForm withRequest withType={false} goLabel={t("enhanceGo")} hint={t("enhanceHint")} busy={reloadingId === c.id}
+              onSubmit={(o) => reload(row, o.request ?? "")} onCancel={() => setEnhanceId(null)} />}
+          </>}
           preview={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>
@@ -255,7 +268,12 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("answer_generated");
       const invalid = has("content_invalid");
       return (
-        <ReviewCard {...common} summary={<><span className="badge mr-2">{row.exercise_type ? tEx(EXERCISE_TYPE_KEY[row.exercise_type] ?? "essay") : t("exerciseFallback")}</span></>}
+        <ReviewCard {...common} summary={
+            <select className="input min-h-11 w-auto max-w-full" aria-label={t("changeType")} value={row.exercise_type ?? ""} disabled={reloadingId === c.id}
+              onChange={(e) => changeType(row, e.target.value)}>
+              {!row.exercise_type && <option value="">{t("exerciseFallback")}</option>}
+              {Object.entries(EXERCISE_TYPE_KEY).map(([id, key]) => <option key={id} value={id}>{tEx(key)}</option>)}
+            </select>}
           preview={<ExerciseBody row={row} />}
           onReload={() => setRegenId(regenId === c.id ? null : c.id)} reloading={reloadingId === c.id}
           footer={<>

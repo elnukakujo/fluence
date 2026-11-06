@@ -322,7 +322,7 @@ describe("ReviewPanel", () => {
     render(<ReviewPanel jobId="j" filename="b" candidates={[{ ...grammar, status: "verified" }]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Add 1" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Redo" }));
-    expect(regenerateGrammar).toHaveBeenCalledWith("j", { title: "Te-form", explanation: "Connects verbs", original_text: grammar.original_text });
+    expect(regenerateGrammar).toHaveBeenCalledWith("j", { title: "Te-form", explanation: "Connects verbs", original_text: grammar.original_text }, undefined);
     expect(await screen.findByText("Redone text")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled();
   });
@@ -421,5 +421,38 @@ describe("exercise merge", () => {
     expect(mergeExercises).toHaveBeenCalledWith("j", [expect.objectContaining({ question: "First q" }), expect.objectContaining({ question: "Second q" })], "matching");
     expect(await screen.findByText("a")).toBeInTheDocument();                       // the merged card's pair
     expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2);        // sources kept, undoable
+  });
+});
+
+describe("enhance and change type", () => {
+  const free: Candidate = { id: "f1", kind: "exercise", exercise_type: "answering", question: "Who sat?", answer: "the cat", quote: "Who", page: 0, chunk_id: "c", status: "verified", flags: [], min_conf: null };
+
+  it("the sparkles button on a grammar card asks the model to enhance with the user's request", async () => {
+    regenerateGrammar.mockResolvedValue({ title: "Te-form", explanation: "Connects verbs\n\n**Explanation (added by the model)**\nmore", example_sentences: [] });
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Enhance with AI" }));
+    expect(screen.queryByLabelText("Exercise type")).toBeNull();   // no type picker for grammar
+    await userEvent.type(screen.getByLabelText("Request (optional)"), "explain each item");
+    await userEvent.click(screen.getByRole("button", { name: "Enhance" }));
+    expect(regenerateGrammar).toHaveBeenCalledWith("j", expect.objectContaining({ title: "Te-form" }), "explain each item");
+    expect(await screen.findByText(/added by the model/)).toBeInTheDocument();
+  });
+
+  it("changing the type rebuilds the exercise as that type and puts the card back to pending", async () => {
+    regenerateExercise.mockResolvedValue({ exercise_type: "type_in_the_blank", question: "Q", answer: "a", text_support: null, content: { segments: ["a", "b"], blanks: [{ answer: "x" }] }, status: "flagged", quote: "Q", min_conf: null, flags: [] });
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[free]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.selectOptions(screen.getByLabelText("Change type"), "type_in_the_blank");
+    expect(regenerateExercise).toHaveBeenCalledWith("j", expect.objectContaining({ question: "Who sat?" }), { exercise_type: "type_in_the_blank" });
+    expect(await screen.findByDisplayValue("Type in the Blank")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+  });
+
+  it("switching between free-text types needs no model call", async () => {
+    regenerateExercise.mockClear();
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[free]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.selectOptions(screen.getByLabelText("Change type"), "essay");
+    expect(regenerateExercise).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue("Essay")).toBeInTheDocument();
+    expect(screen.getByText("the cat")).toBeInTheDocument();   // question and answer kept
   });
 });

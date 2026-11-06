@@ -132,9 +132,9 @@ export async function mergeGrammar(jobId: string, items: { title?: string; expla
 }
 
 /** Redo one grammar candidate from its original page text (same model, same rules as the merge). */
-export async function regenerateGrammar(jobId: string, item: { title?: string; explanation?: string; original_text?: string }): Promise<MergedGrammar> {
+export async function regenerateGrammar(jobId: string, item: { title?: string; explanation?: string; original_text?: string }, request?: string): Promise<MergedGrammar> {
   const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/regenerate`, {
-    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify({ items: [item] }),
+    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify({ items: [item], request }),
   });
   if (!res.ok) return fail(res, "Could not redo the grammar point");
   return res.json();

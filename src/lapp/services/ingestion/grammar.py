@@ -12,6 +12,13 @@ MAX_EXAMPLES = 3
 GRAMMAR_COVERAGE_MIN = 0.5  # validated 2026-11-04 on Genki II (lowest complete point 0.58); HSK 2 / Spektrum not measured, revisit if false flags appear
 
 
+ENHANCE_RULE = (
+    "- The user asked to enhance the sheet. Keep everything from the source exactly as it is, then ADD after it a section "
+    "`**Explanation (added by the model)**` that explains what each item means, how and when to use it, and 1-2 extra example sentences with translations where it helps. "
+    "Everything in that section is yours: never present it as the book's, and never put its extra examples in `example_sentences`.\n"
+)
+
+
 def clean_corrections(raw, source: str) -> list[dict]:
     """The model's {from, to} fixes, minus anything unusable: not a dict, empty, unchanged, or a `from` the page text does not contain."""
     out = []
@@ -101,7 +108,7 @@ def generate_grammar(chunk: Chunk, api: dict, target_name: str, source_name: str
     return items
 
 
-def merge_prompt() -> str:
+def merge_prompt(enhance: bool = False) -> str:
     """System prompt for joining several grammar candidates that are really one point."""
     return (
         "You rebuild ONE grammar sheet from one or several pieces of the same grammar point (a parser may have split it, or lost or garbled text in a single piece).\n"
@@ -116,12 +123,13 @@ def merge_prompt() -> str:
         "- Lay the sheet out the same way every time so it reads well: the pattern or formula first, then its meaning and usage notes, then the examples each with its translation. Conjugations and formulas go in pipe tables.\n"
         "- OCR can misread a character (e.g. 食ベる for 食べる, a wrong accent, a broken conjugation ending). Fix such a misread only when you are sure, i.e. the book's own pattern, table or other examples show what it must be. "
         "When unsure leave the text exactly as it is. Never reword or add content. Report each fix in `corrections` as {\"from\": what the page text has, \"to\": what you wrote}.\n"
+        + ENHANCE_RULE * enhance +
         "- Give one `title` for the whole point and list 1 to 3 example sentences copied exactly from the explanation (they stay inside it).\n"
         '- Reply with ONLY a JSON object: {"title": str, "explanation": str, "example_sentences": [str], "corrections": [{"from": str, "to": str}]}.'
     )
 
 
-def merge_grammar(items: list[dict], api: dict) -> dict:
+def merge_grammar(items: list[dict], api: dict, request: str | None = None) -> dict:
     """Join grammar candidates [{title, explanation, original_text}] into one {title, explanation, example_sentences}.
 
     Raises ExtractionError when the model's reply is unusable (ModelAPIError from the call itself passes through).
@@ -129,10 +137,13 @@ def merge_grammar(items: list[dict], api: dict) -> dict:
     user = "\n\n".join(
         f"PIECE {i + 1}\nTitle: {it.get('title') or ''}\nParsed explanation:\n{it.get('explanation') or ''}\nOriginal page text:\n{it.get('original_text') or ''}"
         for i, it in enumerate(items))
+    request = (request or "").strip() or None
+    if request:
+        user += f"\n\nRequest from the user: {request}"
     reply = chat_completion(
         retries=3, base_url=api["base_url"], api_key=api.get("api_key", ""), model=api["model"],
         api_format=api.get("api_format", "openai"), auth_type=api.get("auth_type", "bearer"),
-        messages=[{"role": "system", "content": merge_prompt()}, {"role": "user", "content": user}],
+        messages=[{"role": "system", "content": merge_prompt(bool(request))}, {"role": "user", "content": user}],
         max_tokens=MAX_TOKENS, temperature=0, disable_thinking=True)
     data = _parse_json(reply)
     if isinstance(data, list):   # _parse_json tries `[` first and would return the inner example list of an object reply

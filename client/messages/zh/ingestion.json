@@ -304,5 +304,9 @@
   "regenerateGo": "重新生成",
   "cancel": "取消",
   "mergeNeedsTwoExercises": "请选择两个或更多练习",
-  "mergeType": "合并后的练习类型"
+  "mergeType": "合并后的练习类型",
+  "enhance": "用AI补充",
+  "enhanceGo": "补充",
+  "enhanceHint": "例如：解释每一项的含义和用法",
+  "changeType": "更改类型"
 }

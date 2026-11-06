@@ -511,3 +511,20 @@ def test_merge_grammar_returns_corrections_and_defaults_to_none(monkeypatch):
     item = {"title": "T", "explanation": "食ベる ok", "original_text": "食ベる ok"}
     assert grammar_module.merge_grammar([item], API)["corrections"] == [{"from": "食ベる", "to": "食べる"}]
     assert grammar_module.merge_grammar([item], API)["corrections"] == []
+
+
+def test_enhance_request_reaches_the_model_and_keeps_the_book_text(monkeypatch):
+    seen = {}
+
+    def fake(**kw):
+        seen["msgs"] = kw["messages"]
+        return '{"title": "T", "explanation": "- **aus** Ich komme aus Schweden.\\n\\n**Explanation**\\naus = from", "example_sentences": ["Ich komme aus Schweden."], "corrections": []}'
+    monkeypatch.setattr(grammar_module, "chat_completion", fake)
+    item = {"title": "T", "explanation": "- **aus** Ich komme aus Schweden.", "original_text": "aus Ich komme aus Schweden."}
+    out = grammar_module.merge_grammar([item], API, request="explain each preposition")
+    system, user = seen["msgs"][0]["content"], seen["msgs"][1]["content"]
+    assert "explain each preposition" in user and "added by the model" in system
+    assert out["explanation"].startswith("- **aus** Ich komme aus Schweden.")
+    seen.clear()
+    grammar_module.merge_grammar([item], API)
+    assert "added by the model" not in seen["msgs"][0]["content"] and "Request from the user" not in seen["msgs"][1]["content"]

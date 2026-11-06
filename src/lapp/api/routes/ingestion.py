@@ -315,7 +315,7 @@ def regenerate_candidate(job_id: str):
     if not api:
         return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
     try:
-        return jsonify(merge_grammar(items, api))
+        return jsonify(merge_grammar(items, api, (request.get_json(silent=True) or {}).get("request")))
     except (ModelAPIError, ExtractionError) as e:
         return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
 

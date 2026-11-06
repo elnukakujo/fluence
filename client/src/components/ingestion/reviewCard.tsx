@@ -2,14 +2,14 @@
 
 import { Fragment, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Sparkles } from "lucide-react";
 import { needsDecision, type Row } from "@/lib/ingestion/review";
 import MergeEditor, { fieldName } from "./mergeEditor";
 
 type Existing = Record<string, string | number | boolean | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
-export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, onReload, reloading, children }: {
+export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, onReload, onEnhance, reloading, children }: {
   row: Row;
   summary: ReactNode;
   badge: string;
@@ -22,6 +22,7 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   media?: ReactNode;
   preview?: ReactNode; // shown only while not editing (the textarea replaces it)
   onReload?: () => void; // asks the model for a fresh pass over this item
+  onEnhance?: () => void; // asks the model to add what the source lacks (e.g. an explanation)
   reloading?: boolean;
   lead?: ReactNode;    // the select-mode tick, above the state line
   children: ReactNode;
@@ -49,6 +50,12 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1 break-words">{summary}</div>
         <span className="badge" title={badgeTitle}>{badge}</span>
+        {onEnhance && (
+          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
+            aria-label={t("enhance")} title={t("enhance")} onClick={onEnhance}>
+            <Sparkles size={16} aria-hidden />
+          </button>
+        )}
         {onReload && (
           <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
             aria-label={reloading ? t("reloading") : t("reload")} title={t("reload")} onClick={onReload}>

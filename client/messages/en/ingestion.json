@@ -304,5 +304,9 @@
   "regenerateGo": "Regenerate",
   "cancel": "Cancel",
   "mergeNeedsTwoExercises": "Select two or more exercises",
-  "mergeType": "Merged exercise type"
+  "mergeType": "Merged exercise type",
+  "enhance": "Enhance with AI",
+  "enhanceGo": "Enhance",
+  "enhanceHint": "e.g. explain what each item means and how to use it",
+  "changeType": "Change type"
 }

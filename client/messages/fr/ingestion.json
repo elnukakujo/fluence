@@ -304,5 +304,9 @@
   "regenerateGo": "Régénérer",
   "cancel": "Annuler",
   "mergeNeedsTwoExercises": "Sélectionnez au moins deux exercices",
-  "mergeType": "Type de l'exercice fusionné"
+  "mergeType": "Type de l'exercice fusionné",
+  "enhance": "Enrichir avec l'IA",
+  "enhanceGo": "Enrichir",
+  "enhanceHint": "ex. expliquer le sens de chaque élément et son usage",
+  "changeType": "Changer le type"
 }
