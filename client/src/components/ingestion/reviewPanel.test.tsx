@@ -438,6 +438,16 @@ describe("enhance and change type", () => {
     expect(await screen.findByText(/added by the model/)).toBeInTheDocument();
   });
 
+  it("enhancing with an empty request still asks to enhance (a blank request must not become a plain redo)", async () => {
+    regenerateGrammar.mockClear();
+    regenerateGrammar.mockResolvedValue({ title: "Te-form", explanation: "x", example_sentences: [] });
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[grammar]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Enhance with AI" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enhance" }));
+    const request = regenerateGrammar.mock.calls[0][2];
+    expect(typeof request === "string" && request.trim().length > 0).toBe(true);
+  });
+
   it("changing the type rebuilds the exercise as that type and puts the card back to pending", async () => {
     regenerateExercise.mockResolvedValue({ exercise_type: "type_in_the_blank", question: "Q", answer: "a", text_support: null, content: { segments: ["a", "b"], blanks: [{ answer: "x" }] }, status: "flagged", quote: "Q", min_conf: null, flags: [] });
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[free]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);

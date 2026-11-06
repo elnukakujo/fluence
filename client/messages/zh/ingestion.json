@@ -308,5 +308,6 @@
   "enhance": "用AI补充",
   "enhanceGo": "补充",
   "enhanceHint": "例如：解释每一项的含义和用法",
-  "changeType": "更改类型"
+  "changeType": "更改类型",
+  "enhanceDefault": "解释每一项的含义、用法和使用场合，并补充几个带翻译的例句。"
 }

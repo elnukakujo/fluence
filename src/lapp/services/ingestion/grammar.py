@@ -13,7 +13,7 @@ GRAMMAR_COVERAGE_MIN = 0.5  # validated 2026-11-04 on Genki II (lowest complete 
 
 
 ENHANCE_RULE = (
-    "- The user asked to enhance the sheet. Keep everything from the source exactly as it is, then ADD after it a section "
+    "- The user asked to ENHANCE the sheet: this overrides the no-additions rules for the added section only, and the explanation MUST end up longer than the source. Keep everything from the source exactly as it is, then ADD after it a section "
     "`**Explanation (added by the model)**` that explains what each item means, how and when to use it, and 1-2 extra example sentences with translations where it helps. "
     "Everything in that section is yours: never present it as the book's, and never put its extra examples in `example_sentences`.\n"
 )

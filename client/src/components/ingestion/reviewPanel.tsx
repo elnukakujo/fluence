@@ -219,7 +219,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           footer={<>
             {footer}
             {enhanceId === c.id && <RegenerateForm withRequest withType={false} goLabel={t("enhanceGo")} hint={t("enhanceHint")} busy={reloadingId === c.id}
-              onSubmit={(o) => reload(row, o.request ?? "")} onCancel={() => setEnhanceId(null)} />}
+              onSubmit={(o) => reload(row, o.request ?? t("enhanceDefault"))} onCancel={() => setEnhanceId(null)} />}
           </>}
           preview={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
