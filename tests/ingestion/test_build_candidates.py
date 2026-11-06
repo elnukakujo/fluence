@@ -233,7 +233,7 @@ def test_exercise_split_over_two_pages_gives_merged_items_with_support(monkeypat
     monkeypatch.setattr(elements_module, "_ask", fake_ask)
     doc = _doc("The cat sat on the mat. 1. Who sat?", "2. Where did it sit?")
     result = _build(doc, None, page_kinds={1: ["exercise"], 2: ["exercise"]})
-    assert [e.fields["question"] for e in result.elements] == ["Who sat?", "Where did it sit?"]
+    assert [e.fields["question"] for e in result.elements] == ["Answer\nWho sat?", "Answer\nWhere did it sit?"]
     assert {e.fields["text_support"] for e in result.elements} == {"The cat sat on the mat."}
 
 

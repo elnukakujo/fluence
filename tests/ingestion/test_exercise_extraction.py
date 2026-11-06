@@ -158,3 +158,61 @@ def test_dictation_answer_is_joined_lines_and_content_has_null_audio():
     assert cand.fields["answer"] == "犬がいます 猫もいます"
     assert cand.fields["content"]["lines"] == [{"text": "犬がいます", "audioIndex": None}, {"text": "猫もいます", "audioIndex": None}]
     assert "needs_audio" in {f.code for f in cand.flags}   # info flag: clips are generated or uploaded after adding
+
+
+# --- consigne, support text, suspicious types -------------------------------------------------
+
+def test_split_prompt_puts_word_banks_in_support_text(model):
+    model.replies = [[]]
+    el.extract_exercises(CHUNK, API, "English", None)
+    system = model.calls[0][0]
+    assert "word bank" in system and "support_text" in system and "select_in_the_blank" in system
+
+
+def test_build_prompt_asks_for_the_consigne():
+    assert '"consigne"' in el._build_prompt("quizz", "English")
+
+
+def test_each_item_carries_the_block_instruction_as_consigne(model):
+    model.replies = [[_block("quizz", ["Pick"]), _block("answering", ["Q1"], keys=["A1"])], QUIZ]
+    out = el.extract_exercises(CHUNK, API, "English", None)
+    assert [o["consigne"] for o in out] == ["Do it", "Do it"]
+    assert out[0]["question"] == "Pick"          # the item itself stays bare; verify joins them
+
+
+def _ex(etype, question, consigne="Fill in", content=None, answer="a", page="Fill in x a b"):
+    raw = {"exercise_type": etype, "question": question, "answer": answer, "content": content, "quote": question,
+           "consigne": consigne, "text_support": None}
+    return el.verify_element("exercise", raw, Chunk(id="p0c0", page=0, text=page, trust="native"), "en")
+
+
+def test_consigne_leads_the_question_of_an_answering_exercise():
+    assert _ex("answering", "What is x?").fields["question"] == "Fill in\nWhat is x?"
+
+
+def test_consigne_survives_the_blank_rebuild():
+    content = {"segments": ["x ", " b"], "blanks": [{"answer": "a"}]}
+    assert _ex("type_in_the_blank", "x __ b", content=content).fields["question"] == "Fill in\nx __ b"
+
+
+def test_matching_question_becomes_the_consigne_and_no_consigne_means_no_prefix():
+    pairs = {"pairs": [["a", "b"]]}
+    assert _ex("matching", "Match", content=pairs).fields["question"] == "Fill in"
+    assert _ex("answering", "What is x?", consigne=None).fields["question"] == "What is x?"
+
+
+def test_consigne_does_not_break_the_question_in_source_check():
+    assert "quote_not_in_source" not in {f.code for f in _ex("answering", "Fill in x").flags}
+
+
+@pytest.mark.parametrize("etype,question,suspect", [
+    ("answering", "I ___ to school every day.", True),
+    ("translate", "Il ……… un chat.", True),
+    ("answering", "What is your name?", False),
+    ("type_in_the_blank", "He (is / are) tall __.", True),
+    ("type_in_the_blank", "He __ tall.", False),
+])
+def test_type_suspect_flag(etype, question, suspect):
+    content = {"segments": ["a", "b"], "blanks": [{"answer": "x"}]} if etype == "type_in_the_blank" else None
+    codes = {f.code for f in _ex(etype, question, content=content, page=f"Fill in {question} a").flags}
+    assert ("type_suspect" in codes) is suspect
