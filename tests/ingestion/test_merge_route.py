@@ -32,7 +32,7 @@ def test_merge_sends_originals_and_forbids_summaries(app, db, scheduled, monkeyp
     monkeypatch.setattr(grammar_module, "chat_completion", fake)
     r = client.post(f"/api/ingestion/{job_id}/merge", json={"items": ITEMS})
     assert r.status_code == 200, r.get_json()
-    assert r.get_json() == {"title": "AB", "explanation": "Part one. 例1。 Part two. 例2。", "example_sentences": ["例1。"]}
+    assert r.get_json() == {"title": "AB", "explanation": "Part one. 例1。 Part two. 例2。", "example_sentences": ["例1。"], "corrections": []}
     prompt = " ".join(m["content"] for m in seen["msgs"])
     assert "Do NOT summarise" in prompt and "ORIG-ONE" in prompt and "ORIG-TWO" in prompt
 

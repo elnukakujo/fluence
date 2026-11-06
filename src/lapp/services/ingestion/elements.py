@@ -4,7 +4,7 @@ import re
 import uuid
 
 from .extract import WINDOW_RULE, ExtractionError, _ask
-from .grammar import GRAMMAR_COVERAGE_MIN, MAX_EXAMPLES
+from .grammar import GRAMMAR_COVERAGE_MIN, MAX_EXAMPLES, clean_corrections
 from .types import Chunk, ElementCandidate, Flag, Kind
 from .verify import _phonetic_flag, _source_flags, _words_present, normalise
 
@@ -373,7 +373,15 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
         if src and len(raw["explanation"]) < GRAMMAR_COVERAGE_MIN * src:
             flag("explanation_incomplete", "The explanation is much shorter than the section in the document - check nothing was removed")
         in_expl = normalise(raw["explanation"])
-        examples = [e for e in raw.get("example_sentences", []) if normalise(e) in text and normalise(e) in in_expl]
+        fixes = clean_corrections(raw.get("corrections"), chunk.text)
+
+        def as_on_page(e: str) -> str:  # an example the model corrected is looked up the way the page printed it
+            for c in fixes:
+                e = e.replace(c["to"], c["from"])
+            return e
+        examples = [e for e in raw.get("example_sentences", []) if normalise(as_on_page(e)) in text and normalise(e) in in_expl]
+        if fixes:
+            flag("ocr_corrected", "Corrected a misread: " + "; ".join(f"{c['from']} → {c['to']}" for c in fixes), "info")
         fields = {"title": raw["title"], "explanation": raw["explanation"],
                   "example_sentences": examples[:MAX_EXAMPLES],
                   "original_text": chunk.text}

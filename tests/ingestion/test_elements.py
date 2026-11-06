@@ -475,3 +475,39 @@ def test_grammar_prompt_boxes_furigana_and_single_point_rules():
     prompt = grammar_module._system_prompt("Japanese", "English")
     assert "ONE grammar point" in prompt
     assert "blockquote" in prompt and "furigana" in prompt
+
+
+# --- OCR corrections -----------------------------------------------------------------------
+
+def test_grammar_prompts_allow_sure_corrections_and_report_them():
+    for prompt in (grammar_module._system_prompt("Japanese", None), grammar_module.merge_prompt()):
+        assert "never correct" not in prompt and "no corrections" not in prompt
+        assert "only when you are sure" in prompt and '"corrections"' in prompt
+
+
+def test_corrected_example_is_kept_and_the_fix_is_reported():
+    raw = {"title": "Ru-form", "explanation": "食べる is the dictionary form", "example_sentences": ["食べる"], "quote": "Ru-form",
+           "corrections": [{"from": "食ベる", "to": "食べる"}]}
+    c = el.verify_element("grammar", raw, _chunk("Ru-form: 食ベる is the dictionary form"), "ja")
+    assert c.fields["example_sentences"] == ["食べる"]
+    info = [f for f in c.flags if f.code == "ocr_corrected"]
+    assert len(info) == 1 and info[0].severity == "info" and "食ベる" in info[0].message and "食べる" in info[0].message
+    assert _codes(c) == {"grammar_generated", "ocr_corrected"}
+
+
+@pytest.mark.parametrize("bad", [
+    [{"from": "", "to": "x"}], [{"from": "ab", "to": "ab"}], [{"from": "zzz", "to": "yyy"}], ["ab"], "ab", None,
+])
+def test_unusable_corrections_are_ignored(bad):
+    raw = {"title": "Le", "explanation": "marks completion", "example_sentences": [], "quote": "Le", "corrections": bad}
+    c = el.verify_element("grammar", raw, _chunk("Le: marks completion"), "zh")
+    assert "ocr_corrected" not in _codes(c)
+
+
+def test_merge_grammar_returns_corrections_and_defaults_to_none(monkeypatch):
+    replies = iter(['{"title": "T", "explanation": "食べる ok", "example_sentences": [], "corrections": [{"from": "食ベる", "to": "食べる"}, {"from": "", "to": "x"}]}',
+                    '{"title": "T", "explanation": "ok", "example_sentences": []}'])
+    monkeypatch.setattr(grammar_module, "chat_completion", lambda **kw: next(replies))
+    item = {"title": "T", "explanation": "食ベる ok", "original_text": "食ベる ok"}
+    assert grammar_module.merge_grammar([item], API)["corrections"] == [{"from": "食ベる", "to": "食べる"}]
+    assert grammar_module.merge_grammar([item], API)["corrections"] == []
