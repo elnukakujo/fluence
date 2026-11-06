@@ -309,5 +309,6 @@
   "enhanceGo": "Enrichir",
   "enhanceHint": "ex. expliquer le sens de chaque élément et son usage",
   "changeType": "Changer le type",
-  "enhanceDefault": "Explique le sens de chaque élément, comment et quand l'utiliser, et ajoute quelques exemples avec traduction."
+  "enhanceDefault": "Explique le sens de chaque élément, comment et quand l'utiliser, et ajoute quelques exemples avec traduction.",
+  "instruction": "Consigne"
 }

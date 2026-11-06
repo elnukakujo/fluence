@@ -309,5 +309,6 @@
   "enhanceGo": "Enhance",
   "enhanceHint": "e.g. explain what each item means and how to use it",
   "changeType": "Change type",
-  "enhanceDefault": "Explain what each item means, how and when to use it, and add a few extra examples with translations."
+  "enhanceDefault": "Explain what each item means, how and when to use it, and add a few extra examples with translations.",
+  "instruction": "Instruction"
 }

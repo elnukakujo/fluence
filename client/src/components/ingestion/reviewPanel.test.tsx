@@ -466,3 +466,34 @@ describe("enhance and change type", () => {
     expect(screen.getByText("the cat")).toBeInTheDocument();   // question and answer kept
   });
 });
+
+describe("editing an exercise whose content was lost", () => {
+  const lost: Candidate = {
+    id: "l1", kind: "exercise", exercise_type: "type_in_the_blank", question: "Fill in\nHe ___ tall.", answer: "is", text_support: null, content: null,
+    quote: "He", page: 0, chunk_id: "c", status: "flagged", flags: [{ code: "content_invalid", message: "content for type_in_the_blank must be ...", severity: "warning" }], min_conf: null,
+  };
+
+  it("starts the blank editor from the holes in the question; a new answer becomes the content and clears the warning", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[lost]} addLabel={(n) => `Add ${n}`} onAdd={onAdd} />);
+    expect(screen.getByText("⚠ Content needs fixing")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByDisplayValue("He")).toBeInTheDocument();                 // text before the hole, found in the question
+    const answer = screen.getByPlaceholderText("Answer");
+    expect(answer).toHaveValue("is");
+    await userEvent.clear(answer);
+    await userEvent.type(answer, "was");
+    expect(screen.queryByText("⚠ Content needs fixing")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Done editing" }));
+    expect(screen.getByText("was")).toBeInTheDocument();                         // the hole with its new answer
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
+    expect(onAdd.mock.calls[0][0].elements[0].fields).toMatchObject({ question: "Fill in\nHe __ tall.", answer: "was", content: { segments: ["He ", " tall."], blanks: [{ answer: "was" }] } });
+  });
+
+  it("opening Edit alone does not change the card", async () => {
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[lost]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByText("⚠ Content needs fixing")).toBeInTheDocument();
+  });
+});

@@ -10,8 +10,10 @@ import ItemActionBar from "@/components/elements/itemActionBar";
 import { SelectAllRow, SelectionScope, SelectToggle, useItemSelection, type BarProps, type Kind } from "@/components/elements/itemSelection";
 import Tick from "@/components/elements/tick";
 import { mergeExercises, mergeGrammar, pageImageUrl, regenerateExercise, regenerateGrammar, type ExerciseItem } from "@/api/ingestion";
+import { contentIsValid } from "@/lib/ingestion/exerciseEdit";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import ExerciseBody from "./exerciseBody";
+import ExerciseEditor from "./exerciseEditor";
 import RegenerateForm from "./regenerateForm";
 import {
   type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeExerciseRows, mergeRows, needsDecision,
@@ -90,6 +92,13 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       setReloadingId(null);
     }
   };
+  // an edit that gives the exercise usable content clears the "content needs fixing" warning (the server re-checks on add)
+  const editExercise = (row: Row, change: Partial<Row>) => setRows((rs) => rs.map((r) => {
+    if (r.candidate.id !== row.candidate.id) return r;
+    const fixed = change.content && contentIsValid(r.exercise_type ?? "", change.content as Record<string, unknown>);
+    const flags = fixed ? r.candidate.flags.filter((f) => f.code !== "content_invalid") : r.candidate.flags;
+    return { ...r, ...change, candidate: { ...r.candidate, flags } };
+  }));
   const [regenId, setRegenId] = useState<string | null>(null);
   const exerciseItem = (r: Row): ExerciseItem => ({ exercise_type: r.exercise_type, question: r.question, answer: r.answer, text_support: r.text_support, chunk_id: r.candidate.chunk_id });
   const regenerate = async (row: Row, opts: { exercise_type?: string; request?: string }) => {
@@ -282,19 +291,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           </>}
           badge={invalid ? t("contentInvalid") : has("needs_audio") && !generated ? t("needsAudio") : generated ? t("generatedAnswer") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={invalid ? c.flags.find((f) => f.code === "content_invalid")?.message ?? "" : generated ? t("generatedAnswerTitle") : confirmedTitle}>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("question")}</span>
-            <textarea className="input input-grow" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("supportText")}</span>
-            <textarea className="input input-grow" value={row.text_support || ""} onChange={(e) => patch(c.id, { text_support: e.target.value || null })} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("answer")}</span>
-            <textarea className="input input-grow" value={row.answer || ""} onChange={(e) => patch(c.id, { answer: e.target.value })} />
-          </label>
-          {row.content && <p className="text-sm opacity-70"><strong>{t("contentColon")}</strong> <code className="text-xs">{JSON.stringify(row.content)}</code></p>}
+          <ExerciseEditor row={row} onChange={(p) => editExercise(row, p)} />
         </ReviewCard>
       );
     }
