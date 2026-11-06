@@ -151,6 +151,33 @@ class DailyStatsService:
             raise RuntimeError("Failed to create daily stats entry")
         return result
 
+    @transactional
+    def validate_day(self, user_id: str, language_id: str, session: Optional[Session] = None, as_dict: bool = False) -> DailyStats | dict:
+        """Mark today a streak day (time goal reached, or the daily review finished). Idempotent: once per day."""
+        daily_stats = self.get_today_for_user(user_id=user_id, language_id=language_id, session=session)
+        if daily_stats.streak_day:
+            return self._serialize(daily_stats, as_dict, False)
+        daily_stats.streak_day = True
+        logger.info(f"User {user_id} just achieved a streak day for language {language_id}!")
+
+        yesterday = (datetime.now() - timedelta(days=1)).date()
+        previous = (
+            session.query(DailyStats)
+            .filter(
+                DailyStats.user_id == user_id,
+                DailyStats.language_id == language_id,
+                DailyStats.streak_day.is_(True),
+                func.date(DailyStats.created_at) == yesterday,
+            )
+            .order_by(DailyStats.created_at.desc())
+            .first()
+        )
+        daily_stats.current_streak_length = previous.current_streak_length + 1 if previous else 1
+        if db_manager.modify(obj=daily_stats, session=session, commit=False) is None:
+            raise RuntimeError("Failed to validate the day")
+        commitment_log_service.apply_daily_stats(daily_stats_id=daily_stats.id, session=session)
+        return self._serialize(daily_stats, as_dict, False)
+
     def update(
         self,
         progress_tracking_id: str,
@@ -191,39 +218,11 @@ class DailyStatsService:
         else:
             daily_goal_ms = user_preferences.daily_goal_minutes * 60 * 1000
 
-        streak_just_set = False
-        if daily_stats.time_studied_ms >= daily_goal_ms and daily_stats.streak_day is False:
-            streak_just_set = True
-            daily_stats.streak_day = True
-            logger.info(f"User {progress_tracking.user_id} just achieved a streak day for language {progress_tracking.language_id}!")
-
-            yesterday = (datetime.now() - timedelta(days=1)).date()
-            previous_daily_stats = (
-                session.query(DailyStats)
-                .filter(
-                    DailyStats.user_id == progress_tracking.user_id,
-                    DailyStats.language_id == progress_tracking.language_id,
-                    DailyStats.streak_day.is_(True),
-                    func.date(DailyStats.created_at) == yesterday,
-                )
-                .order_by(DailyStats.created_at.desc())
-                .first()
-            )
-
-            if previous_daily_stats is not None:
-                daily_stats.current_streak_length = previous_daily_stats.current_streak_length + 1
-            else:
-                daily_stats.current_streak_length = 1
-
         result = db_manager.modify(obj=daily_stats, session=session, commit=False)
         if result is None:
             raise RuntimeError(f"Failed to update daily stats entry for progress tracking {progress_tracking_id}")
 
-        # If we just set today's streak flag, propagate to the commitment log
-        if daily_stats.streak_day is True and streak_just_set:
-            commitment_log_service.apply_daily_stats(
-                daily_stats_id=daily_stats.id,
-                session=session,
-            )
+        if daily_stats.time_studied_ms >= daily_goal_ms:
+            self.validate_day(progress_tracking.user_id, progress_tracking.language_id, session=session)
 
         return result
