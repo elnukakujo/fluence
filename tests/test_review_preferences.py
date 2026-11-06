@@ -35,6 +35,7 @@ def test_budget_never_below_one():
 def test_no_layout_is_capped_by_seconds_not_a_flat_count(db):
     _seed(db, vocs=40)
     _prefs(daily_goal_minutes=10)
+    StudyGoalService().upsert("user_U1", "lang_L1", "week", 40, 0, 0)          # a menu supplies the 40 words
     n = len(_cards())
     assert 20 < n <= 600 // 8       # ~74 vocabulary cards fit in 10 min, not the old flat 20 (30 s each)
 
@@ -138,6 +139,7 @@ def test_no_goal_does_not_lock(db):
 
 def test_split_fills_the_budget_with_fronts_then_the_same_backs(db):
     _seed(db, vocs=30)
+    StudyGoalService().upsert("user_U1", "lang_L1", "week", 30, 0, 0)
     _prefs(daily_goal_minutes=5, voc_side_pattern={"mode": "split"})   # 300 s / 8 s = 37 cards -> 18 words
     cards = _cards()
     assert [c["side"] for c in cards] == ["front"] * 18 + ["back"] * 18
@@ -180,3 +182,23 @@ def test_all_banned_returns_empty(db):
     _seed(db, exs=("essay",))
     _prefs(exercise_type_prefs={"essay": "ban"})
     assert _cards() == []
+
+
+def test_no_goal_draws_new_elements_only_from_the_default_window(db):
+    """Without a goal: new elements come from the first 10 voc / 5 gram / 10 call (lesson order), seen ones as before."""
+    _seed(db, vocs=25, grams=12, calls=25)
+    _prefs(daily_goal_minutes=120)                                  # a budget big enough for everything allowed
+    ids = [c["id"] for c in _cards()]
+    assert len({i for i in ids if i.startswith("voc_")}) == 10
+    assert len({i for i in ids if i.startswith("gram_")}) == 5
+    assert len({i for i in ids if i.startswith("call_")}) == 10
+    assert StudyGoalService().get("user_U1", "lang_L1") is None     # nothing was created behind the user's back
+
+
+def test_no_goal_still_reviews_seen_elements_outside_the_window(db):
+    _seed(db, vocs=25)
+    _prefs(daily_goal_minutes=120)
+    ScoreService().set("user_U1", "voc_V24", score=30.0, difficulty=0.5)       # seen: a review candidate, not "new"
+    ids = {c["id"] for c in _cards()}
+    assert "voc_V24" in ids and len(ids) == 11
+

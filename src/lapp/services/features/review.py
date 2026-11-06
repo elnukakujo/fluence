@@ -1,3 +1,4 @@
+import random
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -12,8 +13,8 @@ from ...utils import review_priority
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from .side_pattern import make_side_picker
-from .study_constants import BOOST_FACTOR, SECONDS_PER_CARD_BY_TYPE
-from .study_goal import StudyGoalService
+from .study_constants import BOOST_FACTOR, NO_GOAL_NEW, SECONDS_PER_CARD_BY_TYPE
+from .study_goal import StudyGoalService, TYPES
 from ..system_data.score import SIDES, side_id
 
 # The three flashcard-able feature types, in review (round-robin) order.
@@ -120,11 +121,21 @@ class ReviewService:
         locked = {m for m, kind in ((Vocabulary, "vocabulary"), (Grammar, "grammar"), (Calligraphy, "calligraphy"))
                   if kind in StudyGoalService().locked_kinds(user_id, language_id, session=session)}
 
+        # No goal at all: the app still works. New elements are drawn at random from a small default window
+        # (NO_GOAL_NEW per type, lesson order); seen elements stay candidates by review priority, as before goals.
+        no_goal = StudyGoalService().get(user_id, language_id, session=session) is None
+        kind_of = {m: k for k, (m, _n, _r) in TYPES.items()}
+
         buckets = {}
         for model in (Vocabulary, Grammar, Calligraphy):
             cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all()
             if model in locked:
                 cards = [c for c in cards if c.id in goal_ids]
+            elif no_goal:
+                unstarted = StudyGoalService._new_elements(model, language_id, user_id, set(), len(cards), session)
+                window = set(unstarted[:NO_GOAL_NEW[kind_of[model]]])
+                cards = [c for c in cards if c.id in window or c.id not in set(unstarted)]
+                random.shuffle(cards)                   # equal priorities (the new ones) then come out in random order
             scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
             if model is Vocabulary:
                 priority = self._vocabulary_priorities(cards, user_id, session)
