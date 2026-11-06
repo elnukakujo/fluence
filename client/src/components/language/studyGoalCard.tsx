@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { BookOpen, Brush, Lock, PenLine, Sparkles } from "lucide-react";
+import { BookOpen, Brush, Lock, LockOpen, PenLine, Sparkles } from "lucide-react";
 import SectionCard from "@/components/user/sectionCard";
 import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
@@ -26,8 +26,9 @@ const draftOf = (s: StudyGoalState): Draft => s.goal ? {
     r_vocabulary: s.goal.r_vocabulary, r_grammar: s.goal.r_grammar, r_calligraphy: s.goal.r_calligraphy,
 } : BLANK;
 
-/** Study goals: per language, how many new and how many review elements each period's menu holds. The running
- *  period is locked; what is saved here starts with the next one. One Save writes every edited language. */
+/** Study goals, one card per language with two states. Unlocked: edit the period and the new / review quantities
+ *  per type, then "Lock goals" saves them and builds the period's menu now. Locked: a read-only summary; the lock
+ *  unlocks it for editing (the current menu stays active until it is locked again). */
 export default function StudyGoalsCard({ userId }: { userId: string }) {
     const t = useTranslations("study");
     const locale = useLocale();
@@ -35,7 +36,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     const [languageId, setLanguageId] = useState("");
     const [states, setStates] = useState<Record<string, StudyGoalState>>({});
     const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-    const [dirty, setDirty] = useState<Set<string>>(new Set());
+    const [editing, setEditing] = useState<Set<string>>(new Set());   // locked languages the user unlocked
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
 
@@ -51,37 +52,33 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     }, [languageId, states]);
 
     const [confirming, setConfirming] = useState(false);
-    const restart = async () => {
-        setConfirming(false);
-        setError("");
-        try {
-            const s = await resetStudyGoal(languageId);
-            setStates((x) => ({ ...x, [languageId]: s }));
-        } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
-    };
+    const setEdit = (id: string, on: boolean) => setEditing((cur) => { const n = new Set(cur); if (on) n.add(id); else n.delete(id); return n; });
 
-    const save = async (e: React.FormEvent) => {
-        e.preventDefault();
+    /** Save the numbers as the user's own and (re)build the menu; `rebuild` when a menu of theirs already exists. */
+    const lock = async (rebuild: boolean) => {
+        setConfirming(false);
         setError("");
         setSaving(true);
         try {
-            for (const id of dirty) {
-                const s = await saveStudyGoal(id, drafts[id]);
-                setStates((x) => ({ ...x, [id]: s }));
-                setDrafts((d) => ({ ...d, [id]: draftOf(s) }));
-            }
-            setDirty(new Set());
+            let s = await saveStudyGoal(languageId, { ...drafts[languageId], auto: false });
+            if (rebuild) s = await resetStudyGoal(languageId);
+            setStates((x) => ({ ...x, [languageId]: s }));
+            setDrafts((d) => ({ ...d, [languageId]: draftOf(s) }));
+            setEdit(languageId, false);
         } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
         finally { setSaving(false); }
     };
+    const cancelEdit = () => { setDrafts((d) => ({ ...d, [languageId]: draftOf(states[languageId]) })); setEdit(languageId, false); };
 
     if (languages.length === 0) return null;
     const draft = drafts[languageId];
     const progress = states[languageId]?.progress;
+    const hasOwnMenu = !!progress && !!states[languageId]?.goal && !states[languageId].goal!.auto;   // a menu the user locked before
+    const isLocked = hasOwnMenu && !editing.has(languageId);
+    const submit = (e: React.FormEvent) => { e.preventDefault(); if (hasOwnMenu) setConfirming(true); else lock(false); };
     // changing a quantity makes the goal the user's own (it stops following the daily minutes)
     const edit = (patch: Partial<Draft>, own = false) => {
         setDrafts((d) => ({ ...d, [languageId]: { ...d[languageId], ...patch, ...(own ? { auto: false } : {}) } }));
-        setDirty((s) => new Set(s).add(languageId));
     };
     const suggested = states[languageId]?.suggested;
     const useSuggested = () => suggested && edit({
@@ -92,7 +89,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
     return (
-        <form onSubmit={save}>
+        <form onSubmit={submit}>
             <SectionCard title={t("goalTitle")}>
                 <p className="text-sm text-muted">{t("goalHint")}</p>
                 <label className="flex flex-wrap items-center gap-3 text-sm">
@@ -103,18 +100,19 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                 </label>
 
                 <RebuildMenuDialog open={confirming} mastered={progress?.rebuild?.mastered ?? 0} redraw={progress?.rebuild?.redraw ?? 0}
-                    onConfirm={restart} onCancel={() => setConfirming(false)} />
-                {progress && (
+                    onConfirm={() => lock(true)} onCancel={() => setConfirming(false)} />
+
+                {isLocked && progress && (
                     <section className="lock-panel" role="note">
                         <div className="lock-head">
-                            <button type="button" className="lock-btn" disabled={dirty.has(languageId)} onClick={() => setConfirming(true)}
-                                aria-label={t("goalUnlockLabel")} title={dirty.has(languageId) ? t("goalUnlockSaveFirst") : t("goalUnlockLabel")}>
+                            <button type="button" className="lock-btn" onClick={() => setEdit(languageId, true)} aria-label={t("goalUnlockLabel")} title={t("goalUnlockLabel")}>
                                 <Lock size={18} aria-hidden />
                             </button>
                             <div className="flex flex-col">
                                 <p className="font-semibold">{t("goalLockedTitle", { end: date(progress.cycle_end) })}</p>
                                 <p className="text-sm text-muted">{date(progress.cycle_start)} – {date(progress.cycle_end)} · {t("goalUnlockHint")}</p>
                             </div>
+                            {!progress.active && <span className="pill ml-auto">{t("goalPaused")}</span>}
                         </div>
                         <ul className="lock-rows">
                             {KINDS.filter((k) => progress.types[k.kind].n + progress.types[k.kind].r > 0).map(({ kind, label, Icon }) => (
@@ -125,16 +123,18 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                 </li>
                             ))}
                         </ul>
-                        <details className="callout">
-                            <summary>{t("goalHowTitle")}</summary>
-                            <p className="mt-1">{t("goalHowBody")}</p>
-                        </details>
-                        <p className="text-sm text-muted">{progress.next.pending || dirty.has(languageId) ? t("goalChangesFrom", { date: date(progress.next.start) }) : t("goalNoChanges")}</p>
                     </section>
                 )}
 
-                {draft && (
-                    <>
+                {!isLocked && draft && (
+                    <section className="lock-panel" aria-label={t("goalEditing")}>
+                        <div className="lock-head">
+                            <span className="lock-badge" aria-hidden><LockOpen size={18} /></span>
+                            <div className="flex flex-col">
+                                <p className="font-semibold">{t("goalEditing")}</p>
+                                <p className="text-sm text-muted">{hasOwnMenu ? t("goalEditingKeep") : t("goalEditingFirst")}</p>
+                            </div>
+                        </div>
                         <div className="flex flex-col gap-1">
                             <span className="text-sm opacity-70">{t("period")}</span>
                             <div className="filter-chips" role="group" aria-label={t("period")}>
@@ -151,7 +151,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                 ? <span className="text-muted">{t("goalAutoHint")}</span>
                                 : suggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
                         </div>
-                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-3" role="group" aria-label={t("goalQuantities")}>
+                        <div className="lock-rows grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-3" role="group" aria-label={t("goalQuantities")}>
                             <span aria-hidden />
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColNew")}</span>
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColReview")}</span>
@@ -164,10 +164,18 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                             ))}
                         </div>
                         <ToggleRow label={t("goalActive")} description={t("goalActiveDesc")} checked={draft.active} onChange={(v) => edit({ active: v })} />
-                    </>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <SaveButton isLoading={saving} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
+                            {hasOwnMenu && <button type="button" className="btn btn-secondary min-h-11" onClick={cancelEdit}>{t("goalCancel")}</button>}
+                        </div>
+                    </section>
                 )}
+
+                <details className="callout">
+                    <summary>{t("goalHowTitle")}</summary>
+                    <p className="mt-1">{t("goalHowBody")}</p>
+                </details>
                 {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-                <div><SaveButton isLoading={saving} /></div>
             </SectionCard>
         </form>
     );

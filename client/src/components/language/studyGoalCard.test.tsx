@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,12 +27,8 @@ describe("study goals card", () => {
         await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[0]);   // vocabulary: new
         await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[1]);   // vocabulary: review
         fireEvent.submit(document.querySelector("form")!);
-        await screen.findByRole("button", { name: /save/i });
-        expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", { period: "biweek", active: true, n_vocabulary: 1, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 1, r_grammar: 0, r_calligraphy: 0, auto: false });
-        api.saveStudyGoal.mockClear();
-        fireEvent.submit(document.querySelector("form")!);
-        await Promise.resolve();
-        expect(api.saveStudyGoal).not.toHaveBeenCalled();
+        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", { period: "biweek", active: true, n_vocabulary: 1, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 1, r_grammar: 0, r_calligraphy: 0, auto: false }));
+        expect(api.resetStudyGoal).not.toHaveBeenCalled();      // a first lock needs no rebuild: saving builds the menu
     });
 
     it("shows a suggested goal as following the daily time; editing a number makes it the user's own, and 'use suggested' goes back", async () => {
@@ -45,8 +41,7 @@ describe("study goals card", () => {
         await userEvent.click(screen.getByRole("button", { name: "Use suggested values" }));
         expect(screen.getByText("Suggested for your daily time")).toBeInTheDocument();
         fireEvent.submit(document.querySelector("form")!);
-        await screen.findByRole("button", { name: /save/i });
-        expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ auto: true, n_vocabulary: 25, r_calligraphy: 6 }));
+        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ auto: false, n_vocabulary: 25, r_calligraphy: 6 })));   // locking makes the numbers the user's own
     });
 
     it("tells the menu is locked and when the saved changes start", async () => {
@@ -54,16 +49,30 @@ describe("study goals card", () => {
         render(<StudyGoalsCard userId="u" />);
         expect(await screen.findByRole("note")).toHaveTextContent(/locked/i);
         expect(screen.getByRole("note")).toHaveTextContent(/Vocabulary\s*20\s*new\s*5\s*review/);
-        expect(screen.getByRole("note")).toHaveTextContent(/Your changes start on Nov 12/);
     });
 
-    it("the lock opens the rebuild dialog; confirming rebuilds, keeping the mastered ones", async () => {
+    it("the lock unlocks the goals for editing; locking again asks to rebuild, then saves and rebuilds", async () => {
         api.getStudyGoal.mockResolvedValue({ ...locked, progress: { ...locked.progress, rebuild: { mastered: 2, redraw: 9 } } });
+        api.saveStudyGoal.mockResolvedValue(locked);
         api.resetStudyGoal.mockResolvedValue(locked);
         render(<StudyGoalsCard userId="u" />);
-        await userEvent.click(await screen.findByRole("button", { name: /unlock to rebuild/i }));
+        expect(screen.queryByRole("button", { name: "Lock goals" })).toBeNull();            // locked: summary only
+        await userEvent.click(await screen.findByRole("button", { name: /unlock to edit/i }));
+        await userEvent.click(screen.getByRole("button", { name: "Lock goals" }));
         expect(screen.getByRole("dialog")).toHaveTextContent("2");
-        await userEvent.click(screen.getByRole("button", { name: "Rebuild" }));
-        expect(api.resetStudyGoal).toHaveBeenCalledWith("lang_1");
+        await userEvent.click(screen.getByRole("button", { name: "Lock and rebuild" }));
+        await waitFor(() => expect(api.resetStudyGoal).toHaveBeenCalledWith("lang_1"));
+        expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ auto: false, n_vocabulary: 25 }));
+        expect(await screen.findByRole("note")).toBeInTheDocument();                        // back to the locked summary
+    });
+
+    it("cancel discards the edits and returns to the locked summary", async () => {
+        api.getStudyGoal.mockResolvedValue(locked);
+        render(<StudyGoalsCard userId="u" />);
+        await userEvent.click(await screen.findByRole("button", { name: /unlock to edit/i }));
+        await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[0]);
+        await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+        expect(await screen.findByRole("note")).toBeInTheDocument();
+        expect(api.saveStudyGoal).not.toHaveBeenCalled();
     });
 });

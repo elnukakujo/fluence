@@ -262,6 +262,17 @@
     cursor: pointer;
     transition: background-color 150ms, color 150ms, border-color 150ms;
   }
+  .lock-badge {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-full);
+    border: 1px dashed var(--color-border);
+    color: var(--color-muted);
+  }
   .lock-btn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-surface); border-color: var(--color-accent); }
   .lock-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
   .lock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
