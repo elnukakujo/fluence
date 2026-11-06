@@ -100,7 +100,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     return { ...r, ...change, candidate: { ...r.candidate, flags } };
   }));
   const [regenId, setRegenId] = useState<string | null>(null);
-  const exerciseItem = (r: Row): ExerciseItem => ({ exercise_type: r.exercise_type, question: r.question, answer: r.answer, text_support: r.text_support, chunk_id: r.candidate.chunk_id });
+  const exerciseItem = (r: Row): ExerciseItem => ({ exercise_type: r.exercise_type, question: r.question, answer: r.answer, text_support: r.text_support, content: r.content, chunk_id: r.candidate.chunk_id });
   const regenerate = async (row: Row, opts: { exercise_type?: string; request?: string }) => {
     setReloadingId(row.candidate.id);
     setError(null);

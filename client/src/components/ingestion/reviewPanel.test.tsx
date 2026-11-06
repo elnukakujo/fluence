@@ -417,7 +417,7 @@ describe("exercise merge", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
     const bar = screen.getByRole("region", { name: "Actions for the selected items" });
     await userEvent.click(within(bar).getByRole("button", { name: "Merge" }));
-    expect(mergeExercises).toHaveBeenCalledWith("j", [expect.objectContaining({ question: "First q" }), expect.objectContaining({ question: "Second q" })], "answering");
+    expect(mergeExercises).toHaveBeenCalledWith("j", [expect.objectContaining({ question: "First q", content: null }), expect.objectContaining({ question: "Second q" })], "answering");
     expect(await screen.findByText("Joined")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2);        // sources kept, undoable
   });

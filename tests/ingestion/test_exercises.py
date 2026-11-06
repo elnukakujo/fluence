@@ -92,3 +92,34 @@ def test_combined_chunk_joins_the_named_chunks_in_order_and_ignores_unknown_ids(
     out = ex.combined_chunk([a, b], ["p1c0", "p0c0", "p1c0", "nope"])
     assert out.id == "p1c0" and out.text == "B\nA"
     assert ex.combined_chunk([a, b], ["nope"]) is None
+
+
+def _blank(question, segments, answers, support=None):
+    return {"exercise_type": "type_in_the_blank", "question": question, "answer": ", ".join(answers), "text_support": support,
+            "content": {"segments": segments, "blanks": [{"answer": a} for a in answers]}}
+
+
+def test_two_halves_of_a_blank_exercise_are_joined_exactly_without_the_model(model):
+    a = _blank("Fill in\nHe __ tall and", ["He ", " tall and"], ["is"], "is are")
+    b = _blank("Fill in\nshe __ short.", ["she ", " short."], ["is"], "is are")
+    out = ex.merge_exercises([a, b], CHUNK, API, "English")
+    assert model.calls == []
+    assert out["exercise_type"] == "type_in_the_blank"
+    assert out["content"] == {"segments": ["He ", " tall and she ", " short."], "blanks": [{"answer": "is"}, {"answer": "is"}]}
+    assert out["question"] == "Fill in\nHe __ tall and she __ short." and out["answer"] == "is, is"
+    assert out["text_support"] == "is are"
+
+
+def test_matching_pairs_and_dictation_lines_are_concatenated_in_order(model):
+    m = lambda p: {"exercise_type": "matching", "question": "Match", "answer": "", "content": {"pairs": p}}
+    assert ex.merge_exercises([m([["a", "b"]]), m([["c", "d"]])], CHUNK, API, "English")["content"] == {"pairs": [["a", "b"], ["c", "d"]]}
+    d = lambda t: {"exercise_type": "dictation", "question": "Write", "answer": t, "content": {"lines": [{"text": t, "audioIndex": None}]}}
+    assert [l["text"] for l in ex.merge_exercises([d("one"), d("two")], CHUNK, API, "English")["content"]["lines"]] == ["one", "two"]
+    assert model.calls == []
+
+
+def test_different_types_or_a_requested_other_type_still_go_to_the_model(model):
+    model.replies = [BLANK]
+    a = _blank("Fill in\nHe __ tall.", ["He ", " tall."], ["is"])
+    ex.merge_exercises([a, {**a, "exercise_type": "select_in_the_blank"}], CHUNK, API, "English", exercise_type="type_in_the_blank")
+    assert len(model.calls) == 1

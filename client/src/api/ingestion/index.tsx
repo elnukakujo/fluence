@@ -99,7 +99,7 @@ export async function getCandidates(jobId: string): Promise<{ candidates: Candid
 
 export type MergedGrammar = { title: string; explanation: string; example_sentences: string[]; corrections?: { from: string; to: string }[] };
 
-export type ExerciseItem = { exercise_type?: string; question?: string; answer?: string; text_support?: string | null; chunk_id?: string };
+export type ExerciseItem = { exercise_type?: string; question?: string; answer?: string; text_support?: string | null; content?: Record<string, unknown> | null; chunk_id?: string };
 /** A rebuilt exercise: the card's fields plus the checks the server ran on it. */
 export type RebuiltExercise = {
   exercise_type: string; question: string; answer: string; text_support: string | null; content: Record<string, unknown> | null;

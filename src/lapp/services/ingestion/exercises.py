@@ -21,13 +21,59 @@ def _describe(item: dict) -> str:
     return "\n".join(p for p in (f"Exercise: {item.get('question') or ''}", item.get("answer") and f"Answer given: {item['answer']}") if p)
 
 
+JOINABLE = ("type_in_the_blank", "select_in_the_blank", "matching", "organize", "dictation")
+
+
+def _in_order(content: dict) -> list:
+    return [content["items"][i] for i in content.get("answer_order", range(len(content["items"])))]
+
+
+def _join(items: list[dict], requested: str | None) -> tuple[str, dict] | None:
+    """Exact join of same-type structured cards (e.g. a blank exercise the parser cut in two): (type, raw) or None to ask the model."""
+    kinds = {i.get("exercise_type") for i in items}
+    contents = [i.get("content") for i in items]
+    if len(kinds) != 1 or (requested and requested not in kinds) or not all(isinstance(c, dict) for c in contents):
+        return None
+    etype = kinds.pop()
+    try:
+        if etype in ("type_in_the_blank", "select_in_the_blank"):
+            segs: list[str] = []
+            for c in contents:
+                nxt = list(c["segments"])
+                if segs and segs[-1] and nxt[0] and not segs[-1][-1].isspace() and not nxt[0][0].isspace():
+                    segs[-1] += " "          # the cut fell between two words
+                segs = segs[:-1] + [segs[-1] + nxt[0]] + nxt[1:] if segs else nxt
+            content = {"segments": segs, "blanks": [b for c in contents for b in c["blanks"]]}
+            question = "__".join(segs)
+        elif etype == "matching":
+            content = {"pairs": [p for c in contents for p in c["pairs"]]}
+            question = items[0]["question"]
+        elif etype == "organize":
+            pieces = [w for c in contents for w in _in_order(c)]
+            content = {"items": pieces, "answer_order": list(range(len(pieces)))}
+            question = " ".join(pieces)
+        elif etype == "dictation":
+            content = {"lines": [{"text": l["text"]} for c in contents for l in c["lines"]]}
+            question = items[0]["question"]
+        else:
+            return None
+    except (KeyError, TypeError, IndexError):
+        return None
+    first = items[0].get("question") or ""
+    consigne = first.split("\n")[0].strip() if "\n" in first else None
+    return etype, {"question": question, "consigne": consigne if etype != "dictation" else None, "answer": "", "content": content, "quote": first.split("\n")[-1] or first}
+
+
 def _rebuild(items: list[dict], chunk: Chunk, api: dict, target: str, exercise_type: str | None, request: str | None, current: str) -> dict:
     supports = list(dict.fromkeys(s.strip() for s in (i.get("text_support") for i in items) if isinstance(s, str) and s.strip()))
     support = "\n\n".join(supports) or None
+    joined = _join(items, exercise_type) if len(items) > 1 else None
+    if joined:
+        return _finish(joined[1], joined[0], support, chunk)
     data = "\n".join(p for p in (support and f"Support text: {support}", *(_describe(i) for i in items),
                                  request and f"Request from the user: {request}") if p)
     if len(items) > 1:
-        data = "These exercises become ONE exercise covering all of them.\n" + data
+        data = "These exercises become ONE exercise. Keep EVERY exercise below in full, in order: nothing may be dropped.\n" + data
     etype = exercise_type or el.choose_type(data + f"\nPage text:\n{chunk.text}", chunk, api, target, current)
     raw = el.build_item(f"{data}\nPage text (context only):\n{chunk.text}", items[0].get("question") or "", items[0].get("answer"), etype, chunk, api, target)
     if raw is None:
