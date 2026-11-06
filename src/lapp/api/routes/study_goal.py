@@ -61,6 +61,7 @@ def reset_study_goal(language_id: str):
     """
     require_write(language_id)
     user_id = current_user_id()
-    if service.reset(user_id, language_id) is None:
+    keep = bool((request.get_json(silent=True) or {}).get("keep_mastered", True))
+    if service.reset(user_id, language_id, keep_mastered=keep) is None:
         return jsonify({'error': 'No study goal'}), 404
     return jsonify({"goal": service.get(user_id, language_id), "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id)})

@@ -253,3 +253,64 @@ def test_first_own_save_replaces_the_suggested_menu_at_once(db):
     _goal(svc, n_vocabulary=1, n_grammar=0, n_calligraphy=0)     # the user enters their own numbers
     t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
     assert (t["n"], t["picked"]) == (1, 1)
+
+
+def test_mastery_bar_is_60(db):
+    _seed(db)
+    svc = StudyGoalService()
+    _goal(svc, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=60.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=59.0, difficulty=0.5)
+    t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
+    assert t["mastered"] == 1
+
+
+def test_unreviewed_review_item_carries_over_once(db):
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
+    _goal(svc, n_vocabulary=0, n_grammar=0, n_calligraphy=0, r_vocabulary=1)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    week2 = D0 + timedelta(days=7)
+    p = svc.progress("user_U1", "lang_L1", today=week2)
+    carried = [i for i in p["items"] if i["id"] == "voc_V3"]
+    assert len(carried) == 1 and carried[0]["carried"] is True and carried[0]["role"] == "review"
+    assert p["types"]["vocabulary"]["carried"] == 1
+
+
+def test_reviewed_review_item_does_not_carry(db):
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
+    _goal(svc, n_vocabulary=0, n_grammar=0, n_calligraphy=0, r_vocabulary=1)
+    svc.ensure_cycle("user_U1", "lang_L1", today=date.today())      # reviews below are stamped "now"
+    ScoreService().record_side("user_U1", "voc_V3", "front", 1.0)
+    ScoreService().record_side("user_U1", "voc_V3", "back", 1.0)
+    p = svc.progress("user_U1", "lang_L1", today=date.today() + timedelta(days=7))
+    assert all(not i["carried"] for i in p["items"])
+
+
+def test_rebuild_keeps_mastered_and_redraws_the_rest(db):
+    _seed(db)
+    svc = StudyGoalService()
+    _goal(svc, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)                # V0, V1 picked
+    ScoreService().set("user_U1", "voc_V0", score=80.0, difficulty=0.5)
+    assert svc.progress("user_U1", "lang_L1", today=D0)["rebuild"] == {"mastered": 1, "redraw": 1}
+    svc.reset("user_U1", "lang_L1", today=D0)
+    p = svc.progress("user_U1", "lang_L1", today=D0)
+    ids = [i["id"] for i in p["items"] if i["role"] == "new"]
+    assert "voc_V0" in ids and len(ids) == len(set(ids)) == 2
+    assert p["types"]["vocabulary"]["mastered"] == 1
+
+
+def test_rebuild_with_keep_false_drops_everything(db):
+    _seed(db)
+    svc = StudyGoalService()
+    _goal(svc, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=80.0, difficulty=0.5)
+    svc.reset("user_U1", "lang_L1", today=D0, keep_mastered=False)
+    ids = {i["id"] for i in svc.progress("user_U1", "lang_L1", today=D0)["items"]}
+    assert "voc_V0" not in ids         # mastered now, so it is not redrawn as "new"

@@ -72,14 +72,28 @@ class StudyGoalService:
         return self._dict(goal)
 
     @transactional
-    def reset(self, user_id: str, language_id: str, today: Optional[date] = None,
+    def reset(self, user_id: str, language_id: str, today: Optional[date] = None, keep_mastered: bool = True,
               session: Optional[Session] = None) -> Optional[dict]:
-        """Unlock the running period: drop its menu and the carried-over picks and start a new period today, built
-        from the goal's current quantities on the next read."""
+        """Rebuild the menu from the goal's current quantities. With `keep_mastered`, the running period stays and
+        only its unfinished picks (and carried ones) are redrawn; the mastered / reviewed ones keep their slot.
+        Without anything finished (or without `keep_mastered`) the period restarts today with a fresh menu."""
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             return None
-        self._reset(goal, today or date.today(), session)
+        today = today or date.today()
+        if keep_mastered and goal.active and goal.locked:
+            lock = self._lock(goal, today, session)
+            items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
+            done = self._done(items, user_id, session)
+            if done:
+                for i in items:
+                    if i.id not in done:
+                        session.delete(i)
+                goal.locked = {**goal.locked, "n": {k: getattr(goal, c[1]) for k, c in TYPES.items()},
+                               "r": {k: getattr(goal, c[2]) for k, c in TYPES.items()}}
+                session.flush()
+                return self._dict(goal)
+        self._reset(goal, today, session)
         session.flush()
         return self._dict(goal)
 
@@ -121,8 +135,8 @@ class StudyGoalService:
         are picked. Nothing is added, removed or resized until the period ends; only slots that could not be
         filled (not enough matching elements) are filled later, up to the frozen quantity.
 
-        Open = a new element not yet mastered (those of earlier periods carry over) or a review element not
-        yet reviewed this period."""
+        Open = a new element not yet mastered or a review element not yet reviewed since its period began;
+        unfinished ones of earlier periods carry over."""
         today = today or date.today()
         goal = self._goal(user_id, language_id, session)
         if goal is None or not goal.active:
@@ -133,9 +147,8 @@ class StudyGoalService:
         items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
         everything = {i.element_id for i in items}
         this_period = {i.element_id for i in items if i.cycle_start == start}
-        older_new = [i.element_id for i in items if i.cycle_start != start and i.kind == "new"]
-        older_scores = self._scores(user_id, older_new, session)
-        carried_open = {e for e in older_new if older_scores.get(e, 0.0) < GOAL_MASTERED_SCORE}   # already served as new
+        done = self._done(items, user_id, session)
+        carried_open = {i.element_id for i in items if i.cycle_start != start and i.id not in done}   # still on the list
         for kind, (model, _n, _r) in TYPES.items():
             mine = [i for i in items if i.cycle_start == start and _type_of(i.element_id) == kind]
             for role, quota, pick in (("new", lock["n"][kind], self._new_elements), ("review", lock["r"][kind], self._review_elements)):
@@ -150,7 +163,8 @@ class StudyGoalService:
                     this_period.add(element_id)
         session.flush()
         items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
-        return self._open(items, user_id, start, session)
+        done = self._done(items, user_id, session)
+        return [i for i in items if i.id not in done]
 
     @transactional
     def locked_kinds(self, user_id: str, language_id: str, today: Optional[date] = None,
@@ -173,16 +187,16 @@ class StudyGoalService:
         lock = self._lock(goal, today, session)
         start, end = lock["start"], lock["end"]
         items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
-        done = self._done(items, user_id, start, session)
+        done = self._done(items, user_id, session)
         types = {k: {"n": lock["n"][k], "picked": 0, "mastered": 0, "carried": 0,
                      "r": lock["r"][k], "review_picked": 0, "review_done": 0} for k in TYPES}
         listed = []
         for i in items:
             kind = _type_of(i.element_id)
-            row, finished = types[kind], i.element_id in done
+            row, finished = types[kind], i.id in done
             current = i.cycle_start == start
-            if not current and (i.kind != "new" or finished):
-                continue                                     # old periods only carry unfinished new elements
+            if not current and finished:
+                continue                                     # old periods only carry unfinished elements
             if current and i.kind == "new":
                 row["picked"] += 1
                 row["mastered"] += int(finished)
@@ -198,6 +212,8 @@ class StudyGoalService:
                    or any(getattr(goal, TYPES[k][1]) != lock["n"][k] or getattr(goal, TYPES[k][2]) != lock["r"][k] for k in TYPES))
         return {"period": lock["period"], "active": goal.active, "cycle_start": start.isoformat(), "cycle_end": end.isoformat(),
                 "types": types, "items": listed,
+                "rebuild": {"mastered": sum(1 for i in items if i.id in done and i.cycle_start == start),
+                            "redraw": sum(1 for i in items if i.id not in done)},
                 "next": {"start": end.isoformat(), "period": goal.period, "pending": pending,
                          "n": {k: getattr(goal, TYPES[k][1]) for k in TYPES}, "r": {k: getattr(goal, TYPES[k][2]) for k in TYPES}}}
 
@@ -266,23 +282,22 @@ class StudyGoalService:
         rows = session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(element_ids)).all()
         return {r.element_id: r.score for r in rows}
 
-    def _done(self, items, user_id, start: date, session) -> set[str]:
-        """Finished elements: a new one once mastered, a review one once reviewed in this period (both sides for vocabulary)."""
+    def _done(self, items, user_id, session) -> set[str]:
+        """Ids of the finished items: a new one once mastered, a review one once reviewed since its own period
+        began (both sides for vocabulary)."""
         new_ids = [i.element_id for i in items if i.kind == "new"]
-        review_ids = [i.element_id for i in items if i.kind == "review"]
         scores = self._scores(user_id, new_ids, session)
-        finished = {e for e in new_ids if scores.get(e, 0.0) >= GOAL_MASTERED_SCORE}
-        since = datetime.combine(start, time.min)
-        sides = {e: ([f"{e}#{s}" for s in SIDES] if _type_of(e) == "vocabulary" else [e]) for e in review_ids}
+        finished = {i.id for i in items if i.kind == "new" and scores.get(i.element_id, 0.0) >= GOAL_MASTERED_SCORE}
+        reviews = [i for i in items if i.kind == "review"]
+        sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
         rows = session.query(Score.element_id, Score.last_seen_at).filter(
-            Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if review_ids else []
+            Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
         seen = {element_id: last for element_id, last in rows}
-        finished |= {e for e, ids in sides.items() if all((seen.get(x) or datetime.min) >= since for x in ids)}
+        for i in reviews:
+            since = datetime.combine(i.cycle_start, time.min)
+            if all((seen.get(x) or datetime.min) >= since for x in sides[i.id]):
+                finished.add(i.id)
         return finished
-
-    def _open(self, items, user_id, start: date, session) -> list[StudyGoalItem]:
-        done = self._done(items, user_id, start, session)
-        return [i for i in items if i.element_id not in done and (i.cycle_start == start or i.kind == "new")]
 
     @staticmethod
     def _drop_gone(goal, language_id, session) -> None:
