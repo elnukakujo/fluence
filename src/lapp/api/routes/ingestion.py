@@ -28,6 +28,10 @@ from ...utils.llm_providers import resolve_api
 from ...utils.model_api import ModelAPIError
 from ...services.ingestion.extract import ExtractionError
 from ...services.ingestion.grammar import merge_grammar
+from ...services.ingestion.chunk import chunk_document
+from ...services.ingestion.exercises import combined_chunk, merge_exercises, regenerate_exercise
+from ...services.parsing.types import Document
+from ...utils.detect_language import get_language_by_iso2t
 from ...schemas.components import PassageDict, CharacterDict
 from ...schemas.features import GrammarDict
 from ...services.ingestion.elements import conversation_json_ok, exercise_content_ok
@@ -314,6 +318,79 @@ def regenerate_candidate(job_id: str):
         return jsonify(merge_grammar(items, api))
     except (ModelAPIError, ExtractionError) as e:
         return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
+
+
+def _rebuild_exercises(job_id: str, items_key: str, run):
+    """Shared by the exercise merge/regenerate routes: auth, text model, the cards' page text, error mapping."""
+    job, err = _owned_job_or_404(job_id)
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    items = [i for i in (body.get(items_key) if isinstance(body.get(items_key), list) else [body.get(items_key)]) if isinstance(i, dict)]
+    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
+    if not api:
+        return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
+    path = document_path(current_app.config["MEDIA_ROOT"], job_id)
+    if not path.is_file():
+        return jsonify({"error": "The parsed document is no longer available"}), 404
+    chunk = combined_chunk(chunk_document(Document.model_validate_json(path.read_text())), [str(i.get("chunk_id")) for i in items])
+    if chunk is None:
+        return jsonify({"error": "These exercises are not from this document"}), 404
+    from ...services.containers import LanguageService
+    language = LanguageService().get_by_id(job["language_id"], as_dict=True, include_relations=False)
+    target = get_language_by_iso2t(language.get("target_iso639_2t") or "")
+    try:
+        return jsonify(run(items, chunk, api, "the target language" if target.iso1 == "unknown" else target.name, body.get("exercise_type") or None))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except (ModelAPIError, ExtractionError) as e:
+        return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
+
+
+@bp.route("/<job_id>/exercises/merge", methods=["POST"])
+@login_required
+def merge_exercise_candidates(job_id: str):
+    """Join several exercise cards into one exercise (optionally of a chosen type) with the user's text-generation model.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - in: body
+          name: body
+          schema: {type: object, properties: {items: {type: array}, exercise_type: {type: string}}}
+    responses:
+        200: {description: "The rebuilt exercise: exercise_type, question, answer, text_support, content, status, flags"}
+        400: {description: Fewer than two items, unknown type, or no text endpoint}
+        404: {description: Job or page text not found}
+        502: {description: The model call failed}
+    """
+    return _rebuild_exercises(job_id, "items", lambda items, chunk, api, target, etype: merge_exercises(items, chunk, api, target, etype))
+
+
+@bp.route("/<job_id>/exercises/regenerate", methods=["POST"])
+@login_required
+def regenerate_exercise_candidate(job_id: str):
+    """Rebuild one exercise card, as a chosen type or the model's pick, optionally following a free-text request.
+    ---
+    tags:
+        - Ingestion
+    parameters:
+        - {name: job_id, in: path, type: string, required: true}
+        - in: body
+          name: body
+          schema: {type: object, properties: {item: {type: object}, exercise_type: {type: string}, request: {type: string}}}
+    responses:
+        200: {description: "The rebuilt exercise: exercise_type, question, answer, text_support, content, status, flags"}
+        400: {description: No item, unknown type, or no text endpoint}
+        404: {description: Job or page text not found}
+        502: {description: The model call failed}
+    """
+    def run(items, chunk, api, target, etype):
+        if len(items) != 1:
+            raise ValueError("Send exactly one exercise")
+        return regenerate_exercise(items[0], chunk, api, target, etype, (request.get_json(silent=True) or {}).get("request"))
+    return _rebuild_exercises(job_id, "item", run)
 
 
 @bp.route("/<job_id>/candidates", methods=["GET"])
