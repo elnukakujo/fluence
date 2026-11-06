@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  type Candidate, countRows, filterRows, hasConflict, needsDecision, initialRows, dialogueLines, pageSpan, rowsByKind, toAcceptItems, warningReasons,
+  type Candidate, countRows, filterRows, hasConflict, needsDecision, initialRows, mergeExerciseRows, dialogueLines, pageSpan, rowsByKind, toAcceptItems, warningReasons,
 } from "./review";
 
 const cand = (over: Partial<Candidate> = {}): Candidate => ({
@@ -134,5 +134,20 @@ describe("conflict decisions", () => {
     const [row] = initialRows([callig()]);
     const out = toAcceptItems([{ ...row, selected: true, on_conflict: "overwrite" }]);
     expect(out.elements?.[0].fields.on_conflict).toBe("overwrite");
+  });
+});
+
+describe("mergeExerciseRows", () => {
+  const ex = (id: string, chunk = "p0c0"): Candidate => ({ id, kind: "exercise", exercise_type: "answering", question: id, answer: "a", quote: id, page: 0, chunk_id: chunk, status: "verified", flags: [], min_conf: null });
+  const merged = { exercise_type: "type_in_the_blank", question: "Fill\nx __", answer: "y", text_support: "bank", content: null, status: "flagged" as const, flags: [], quote: "x" };
+  it("puts one pending merged row where the first source was and keeps the sources as deleted", () => {
+    const rows = initialRows([ex("a"), ex("b"), ex("c")]);
+    const out = mergeExerciseRows(rows, [rows[0].candidate.id, rows[1].candidate.id], merged);
+    expect(out.map((r) => [r.candidate.id, !!r.deleted])).toEqual([["merged_a+b", false], ["a", true], ["b", true], ["c", false]]);
+    expect(out[0]).toMatchObject({ exercise_type: "type_in_the_blank", question: "Fill\nx __", text_support: "bank", selected: false });
+  });
+  it("needs two live rows", () => {
+    const rows = initialRows([ex("a")]);
+    expect(mergeExerciseRows(rows, ["a"], merged)).toBe(rows);
   });
 });

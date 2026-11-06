@@ -97,7 +97,30 @@ export async function getCandidates(jobId: string): Promise<{ candidates: Candid
   return { ...body, candidates: [...body.candidates, ...flattenElements(body.elements)] };
 }
 
-export type MergedGrammar = { title: string; explanation: string; example_sentences: string[] };
+export type MergedGrammar = { title: string; explanation: string; example_sentences: string[]; corrections?: { from: string; to: string }[] };
+
+export type ExerciseItem = { exercise_type?: string; question?: string; answer?: string; text_support?: string | null; chunk_id?: string };
+/** A rebuilt exercise: the card's fields plus the checks the server ran on it. */
+export type RebuiltExercise = {
+  exercise_type: string; question: string; answer: string; text_support: string | null; content: Record<string, unknown> | null;
+  status: "verified" | "flagged"; quote: string; min_conf: number | null; flags: { code: string; message: string; severity: "warning" | "info" }[];
+};
+
+async function postExercises(jobId: string, path: string, body: object, failure: string): Promise<RebuiltExercise> {
+  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/exercises/${path}`, {
+    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  if (!res.ok) return fail(res, failure);
+  return res.json();
+}
+
+/** Join several exercise cards into one exercise (of `exercise_type`, else the model's pick). */
+export const mergeExercises = (jobId: string, items: ExerciseItem[], exercise_type?: string) =>
+  postExercises(jobId, "merge", { items, exercise_type }, "Could not merge the exercises");
+
+/** Rebuild one exercise card, as `exercise_type` or the model's pick, following an optional free-text request. */
+export const regenerateExercise = (jobId: string, item: ExerciseItem, opts: { exercise_type?: string; request?: string } = {}) =>
+  postExercises(jobId, "regenerate", { item, ...opts }, "Could not redo the exercise");
 
 /** The user's text-generation model joins grammar candidates the parser split (no summarising); throws with the server's reason. */
 export async function mergeGrammar(jobId: string, items: { title?: string; explanation?: string; original_text?: string }[]): Promise<MergedGrammar> {

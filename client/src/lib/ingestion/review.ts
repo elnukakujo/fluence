@@ -257,3 +257,22 @@ export function mergeRows(rows: Row[], ids: string[], merged: { title: string; e
   }
   return out;
 }
+
+/** Replace the ticked exercise rows by one pending row holding the rebuilt exercise; the sources stay as deleted rows (undoable). */
+export function mergeExerciseRows(rows: Row[], ids: string[], merged: Pick<Candidate, "exercise_type" | "question" | "answer" | "text_support" | "content" | "status" | "flags" | "quote">): Row[] {
+  const picked = rows.filter((r) => ids.includes(r.candidate.id) && !r.deleted);
+  if (picked.length < 2) return rows;
+  const first = picked[0].candidate;
+  const candidate: Candidate = {
+    ...merged, id: `merged_${picked.map((r) => r.candidate.id).join("+")}`, kind: "exercise", chunk_id: first.chunk_id, min_conf: null,
+    page: Math.min(...picked.map((r) => r.candidate.page)), page_end: Math.max(...picked.map((r) => r.candidate.page_end ?? r.candidate.page)),
+  };
+  const [row] = initialRows([candidate]);
+  const out: Row[] = [];
+  for (const r of rows) {
+    if (!picked.includes(r)) { out.push(r); continue; }
+    if (out.every((o) => o.candidate.id !== candidate.id)) out.push({ ...row, selected: false });
+    out.push({ ...r, deleted: true, selected: false });
+  }
+  return out;
+}

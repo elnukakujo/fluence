@@ -287,5 +287,22 @@
   "reloading": "重做中…",
   "reloadFailed": "无法重做：{message}",
   "addingProgress": "添加中… {done} / {total}",
-  "needsAudio": "需要音频"
+  "needsAudio": "需要音频",
+  "supportText": "辅助文本",
+  "exOptions": "选项",
+  "exCorrect": "（正确）",
+  "exTrue": "对",
+  "exFalse": "错",
+  "exPieces": "词块",
+  "exOrder": "正确顺序",
+  "exPairs": "配对",
+  "regenerate": "重新生成",
+  "regenerateType": "练习类型",
+  "regenerateAuto": "由模型选择",
+  "regenerateRequest": "要求（可选）",
+  "regenerateRequestHint": "例如：改成带词库的填空题",
+  "regenerateGo": "重新生成",
+  "cancel": "取消",
+  "mergeNeedsTwoExercises": "请选择两个或更多练习",
+  "mergeType": "合并后的练习类型"
 }

@@ -9,7 +9,9 @@ import type { Candidate } from "@/lib/ingestion/review";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const mergeGrammar = vi.hoisted(() => vi.fn());
 const regenerateGrammar = vi.hoisted(() => vi.fn());
-vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", mergeGrammar, regenerateGrammar }));
+const mergeExercises = vi.hoisted(() => vi.fn());
+const regenerateExercise = vi.hoisted(() => vi.fn());
+vi.mock("@/api/ingestion", () => ({ pageImageUrl: () => "/x.png", mergeGrammar, regenerateGrammar, mergeExercises, regenerateExercise }));
 
 const grammar: Candidate = {
   id: "g1", kind: "grammar", title: "Te-form", explanation: "Connects verbs", example_sentences: ["Tabete iru."], original_text: "This is the original OCR text from the page.",
@@ -363,5 +365,61 @@ describe("ReviewPanel", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent("model down");
       expect(screen.getByText("Three")).toBeInTheDocument();
     });
+  });
+});
+
+describe("exercise cards", () => {
+  const blank: Candidate = {
+    id: "b1", kind: "exercise", exercise_type: "select_in_the_blank", question: "Choose the right word.\nHe __ tall.", answer: "is", text_support: "Word bank: is, are",
+    content: { segments: ["He ", " tall."], blanks: [{ answer: "is", options: ["is", "are"] }] },
+    quote: "He", page: 0, chunk_id: "c", status: "flagged", flags: [{ code: "type_suspect", message: "The exercise type may be wrong", severity: "warning" }], min_conf: null,
+  };
+  const fresh = { exercise_type: "type_in_the_blank", question: "Fill in\nHe __ tall.", answer: "is", text_support: "Word bank: is, are", content: null, status: "verified" as const, quote: "He", min_conf: null, flags: [] };
+
+  it("shows the consigne, the support text, the blanks with their options and the type warning without clicking Edit", () => {
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[blank]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getByText(/Choose the right word\./)).toBeInTheDocument();
+    expect(screen.getByText("Word bank: is, are")).toBeInTheDocument();
+    expect(screen.getByText("(is / are)")).toBeInTheDocument();
+    expect(screen.getByText("The exercise type may be wrong")).toBeInTheDocument();
+  });
+
+  it("Regenerate sends the chosen type and the request, then puts the card back to pending", async () => {
+    regenerateExercise.mockResolvedValue(fresh);
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[{ ...blank, status: "verified" }]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Undo confirm" })).toBeInTheDocument();   // verified = confirmed to start with
+    await userEvent.click(screen.getByRole("button", { name: "Redo" }));
+    await userEvent.selectOptions(screen.getByLabelText("Exercise type"), "type_in_the_blank");
+    await userEvent.type(screen.getByLabelText("Request (optional)"), "no choices");
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    expect(regenerateExercise).toHaveBeenCalledWith("j", expect.objectContaining({ question: blank.question, chunk_id: "c" }), { exercise_type: "type_in_the_blank", request: "no choices" });
+    expect(await screen.findByText(/Fill in/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();   // back to pending
+  });
+
+  it("a failed Regenerate says why and leaves the card as it was", async () => {
+    regenerateExercise.mockRejectedValue(new Error("model down"));
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[blank]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Redo" }));
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    expect(await screen.findByText(/model down/)).toBeInTheDocument();
+    expect(screen.getByText(/Choose the right word\./)).toBeInTheDocument();
+  });
+});
+
+describe("exercise merge", () => {
+  const ex = (id: string, q: string): Candidate => ({ id, kind: "exercise", exercise_type: "answering", question: q, answer: "a", quote: q, page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null });
+  it("joins the ticked exercises through the model with the chosen type", async () => {
+    mergeExercises.mockResolvedValue({ exercise_type: "matching", question: "Match", answer: "x", text_support: null, content: { pairs: [["a", "b"]] }, status: "flagged", quote: "q", min_conf: null, flags: [] });
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[ex("e1", "First q"), ex("e2", "Second q")]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Select all/ }));
+    const bar = screen.getByRole("region", { name: "Actions for the selected items" });
+    await userEvent.click(within(bar).getByRole("button", { name: "Merge" }));
+    await userEvent.selectOptions(screen.getByLabelText("Merged exercise type"), "matching");
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    expect(mergeExercises).toHaveBeenCalledWith("j", [expect.objectContaining({ question: "First q" }), expect.objectContaining({ question: "Second q" })], "matching");
+    expect(await screen.findByText("a")).toBeInTheDocument();                       // the merged card's pair
+    expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2);        // sources kept, undoable
   });
 });

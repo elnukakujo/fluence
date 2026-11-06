@@ -287,5 +287,22 @@
   "reloading": "Nouvelle passe…",
   "reloadFailed": "Impossible de refaire : {message}",
   "addingProgress": "Ajout… {done} / {total}",
-  "needsAudio": "Audio requis"
+  "needsAudio": "Audio requis",
+  "supportText": "Texte support",
+  "exOptions": "Options",
+  "exCorrect": "(correct)",
+  "exTrue": "Vrai",
+  "exFalse": "Faux",
+  "exPieces": "Éléments",
+  "exOrder": "Bon ordre",
+  "exPairs": "Paires",
+  "regenerate": "Régénérer",
+  "regenerateType": "Type d'exercice",
+  "regenerateAuto": "Laisser le modèle choisir",
+  "regenerateRequest": "Demande (facultatif)",
+  "regenerateRequestHint": "ex. en faire un texte à trous avec une liste de mots",
+  "regenerateGo": "Régénérer",
+  "cancel": "Annuler",
+  "mergeNeedsTwoExercises": "Sélectionnez au moins deux exercices",
+  "mergeType": "Type de l'exercice fusionné"
 }

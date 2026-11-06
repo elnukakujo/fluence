@@ -287,5 +287,22 @@
   "reloading": "Redoing…",
   "reloadFailed": "Could not redo: {message}",
   "addingProgress": "Adding… {done} / {total}",
-  "needsAudio": "Needs audio"
+  "needsAudio": "Needs audio",
+  "supportText": "Support text",
+  "exOptions": "Options",
+  "exCorrect": "(correct)",
+  "exTrue": "True",
+  "exFalse": "False",
+  "exPieces": "Pieces",
+  "exOrder": "Correct order",
+  "exPairs": "Pairs",
+  "regenerate": "Regenerate",
+  "regenerateType": "Exercise type",
+  "regenerateAuto": "Let the model choose",
+  "regenerateRequest": "Request (optional)",
+  "regenerateRequestHint": "e.g. make it a fill in the blank with a word bank",
+  "regenerateGo": "Regenerate",
+  "cancel": "Cancel",
+  "mergeNeedsTwoExercises": "Select two or more exercises",
+  "mergeType": "Merged exercise type"
 }

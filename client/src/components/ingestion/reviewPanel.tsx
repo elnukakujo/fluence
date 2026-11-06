@@ -9,9 +9,12 @@ import Modal from "@/components/ui/dialogs/modal";
 import ItemActionBar from "@/components/elements/itemActionBar";
 import { SelectAllRow, SelectionScope, SelectToggle, useItemSelection, type BarProps, type Kind } from "@/components/elements/itemSelection";
 import Tick from "@/components/elements/tick";
-import { mergeGrammar, pageImageUrl, regenerateGrammar } from "@/api/ingestion";
+import { mergeExercises, mergeGrammar, pageImageUrl, regenerateExercise, regenerateGrammar, type ExerciseItem } from "@/api/ingestion";
+import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
+import ExerciseBody from "./exerciseBody";
+import RegenerateForm from "./regenerateForm";
 import {
-  type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeRows, needsDecision,
+  type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeExerciseRows, mergeRows, needsDecision,
   dialogueLines, initialRows, rowsByKind, toAcceptItems, warningReasons, WORD_TYPES,
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
@@ -53,6 +56,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 }) {
   const t = useTranslations("ingestion");
   const tEl = useTranslations("elements");
+  const tEx = useTranslations("exercises");
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");
   const [tab, setTab] = useState<RowKind | null>(null);
@@ -85,6 +89,23 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       setReloadingId(null);
     }
   };
+  const [regenId, setRegenId] = useState<string | null>(null);
+  const exerciseItem = (r: Row): ExerciseItem => ({ exercise_type: r.exercise_type, question: r.question, answer: r.answer, text_support: r.text_support, chunk_id: r.candidate.chunk_id });
+  const regenerate = async (row: Row, opts: { exercise_type?: string; request?: string }) => {
+    setReloadingId(row.candidate.id);
+    setError(null);
+    try {
+      const { exercise_type, question, answer, text_support, content, status, flags } = await regenerateExercise(jobId, exerciseItem(row), opts);
+      // back to pending: the user checks the new pass
+      setRows((rs) => rs.map((r) => (r.candidate.id === row.candidate.id
+        ? { ...r, exercise_type, question, answer, text_support, content, selected: false, candidate: { ...r.candidate, status, flags } } : r)));
+      setRegenId(null);
+    } catch (e) {
+      setError(t("reloadFailed", { message: e instanceof Error ? e.message : "" }));
+    } finally {
+      setReloadingId(null);
+    }
+  };
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -95,11 +116,19 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
   const FILTER_LABEL: Record<Filter, string> = { all: t("filterAll"), verified: t("filterVerified"), flagged: t("filterFlagged"), pending: t("filterPending") };
   const hasConflicts = activeRows.some((r) => !r.deleted && hasConflict(r.candidate));
   const patchMany = (ids: string[], change: (r: Row) => Partial<Row>) => setRows((rs) => rs.map((r) => (ids.includes(r.candidate.id) && !r.deleted ? { ...r, ...change(r) } : r)));
-  const merge = async (b: BarProps) => {
+  const [mergeAsk, setMergeAsk] = useState<BarProps | null>(null);
+  const merge = async (b: BarProps, exercise_type?: string) => {
     setMerging(true);
     setError(null);
     try {
       const picked = rows.filter((r) => b.ids.includes(r.candidate.id) && !r.deleted);
+      if (active === "exercise") {
+        const joined = await mergeExercises(jobId, picked.map(exerciseItem), exercise_type);
+        setRows((rs) => mergeExerciseRows(rs, b.ids, joined));
+        setMergeAsk(null);
+        b.onDone(t("bulkMergedDone", { count: picked.length }));
+        return;
+      }
       const joined = await mergeGrammar(jobId, picked.map((r) => ({ title: r.title, explanation: r.explanation, original_text: r.original_text })));
       setRows((rs) => mergeRows(rs, b.ids, joined));
       b.onDone(t("bulkMergedDone", { count: picked.length }));
@@ -116,7 +145,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       patchMany(conflicts, () => ({ selected: true, merged: false, on_conflict }));
       b.onDone(t("bulkApplied", { count: conflicts.length }));
     };
-    const canMerge = active === "grammar" && picked.length >= 2 && !merging;
+    const canMerge = (active === "grammar" || active === "exercise") && picked.length >= 2 && !merging;
     return (
       <ItemActionBar {...b} userId="" links={false} deleteAction={{ label: t("reject"), icon: <Ban size={20} aria-hidden /> }}
         onDelete={async (ids) => patchMany(ids, () => ({ deleted: true, selected: false }))}
@@ -129,7 +158,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("keep")}><KeepIcon size={20} aria-hidden />{t("keepExisting")}</button>
             <button type="button" className="bulk-action" disabled={conflicts.length === 0} onClick={() => decide("overwrite")}><PenLine size={20} aria-hidden />{t("overwrite")}</button>
           </>}
-          <button type="button" className="bulk-action" disabled={!canMerge} title={canMerge ? undefined : t("mergeNeedsTwoGrammar")} onClick={() => merge(b)}>
+          <button type="button" className="bulk-action" disabled={!canMerge} title={canMerge ? undefined : t(active === "exercise" ? "mergeNeedsTwoExercises" : "mergeNeedsTwoGrammar")}
+            onClick={() => (active === "exercise" ? setMergeAsk(b) : merge(b))}>
             <Combine size={20} aria-hidden />{merging ? t("merging") : tEl("bulkMerge")}
           </button>
         </>} />
@@ -226,14 +256,22 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("answer_generated");
       const invalid = has("content_invalid");
       return (
-        <ReviewCard {...common} summary={row.exercise_type === "conversation"
-          ? <><span className="badge mr-2">{t("conversation")}</span><span className="block whitespace-pre-line">{dialogueLines(row.question ?? "").join("\n")}</span></>
-          : <><span className="badge mr-2">{row.exercise_type || t("exerciseFallback")}</span>{clip(row.question ?? "")}</>}
+        <ReviewCard {...common} summary={<><span className="badge mr-2">{row.exercise_type ? tEx(EXERCISE_TYPE_KEY[row.exercise_type] ?? "essay") : t("exerciseFallback")}</span></>}
+          preview={<ExerciseBody row={row} />}
+          onReload={() => setRegenId(regenId === c.id ? null : c.id)} reloading={reloadingId === c.id}
+          footer={<>
+            {footer}
+            {regenId === c.id && <RegenerateForm withRequest busy={reloadingId === c.id} onSubmit={(o) => regenerate(row, o)} onCancel={() => setRegenId(null)} />}
+          </>}
           badge={invalid ? t("contentInvalid") : has("needs_audio") && !generated ? t("needsAudio") : generated ? t("generatedAnswer") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={invalid ? c.flags.find((f) => f.code === "content_invalid")?.message ?? "" : generated ? t("generatedAnswerTitle") : confirmedTitle}>
           <label className="flex flex-col gap-1">
             <span className="field-label">{t("question")}</span>
             <textarea className="input input-grow" value={row.question || ""} onChange={(e) => patch(c.id, { question: e.target.value })} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="field-label">{t("supportText")}</span>
+            <textarea className="input input-grow" value={row.text_support || ""} onChange={(e) => patch(c.id, { text_support: e.target.value || null })} />
           </label>
           <label className="flex flex-col gap-1">
             <span className="field-label">{t("answer")}</span>
@@ -290,6 +328,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             ))}
           </div>
         )}
+
+        {mergeAsk && <RegenerateForm withRequest={false} busy={merging} onSubmit={(o) => merge(mergeAsk, o.exercise_type)} onCancel={() => setMergeAsk(null)} />}
 
         {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
 
