@@ -63,6 +63,7 @@
   "filterAll": "Tous",
   "filterVerified": "Trouvé dans le texte",
   "filterFlagged": "À vérifier",
+  "filterPending": "À traiter",
   "confirmAllVerified": "Tout confirmer",
   "audioClips": "Créer {count, plural, one {# clip audio manquant} other {# clips audio manquants}} avec mon point de terminaison de synthèse vocale (un appel par clip)",
   "audioClipsDisabled": "Ajouter un point de terminaison de synthèse vocale dans les paramètres pour activer cela.",

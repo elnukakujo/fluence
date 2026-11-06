@@ -63,6 +63,7 @@
   "filterAll": "All",
   "filterVerified": "Found in the text",
   "filterFlagged": "Need checking",
+  "filterPending": "Needs action",
   "confirmAllVerified": "Confirm all verified",
   "audioClips": "Make the {count, plural, one {# missing audio clip} other {# missing audio clips}} with my text-to-speech endpoint (one call per clip)",
   "audioClipsDisabled": "Add a text-to-speech endpoint in Settings to turn this on.",

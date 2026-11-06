@@ -92,7 +92,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     document.addEventListener("mousedown", away);
     return () => document.removeEventListener("mousedown", away);
   }, []);
-  const FILTER_LABEL: Record<Filter, string> = { all: t("filterAll"), verified: t("filterVerified"), flagged: t("filterFlagged") };
+  const FILTER_LABEL: Record<Filter, string> = { all: t("filterAll"), verified: t("filterVerified"), flagged: t("filterFlagged"), pending: t("filterPending") };
   const hasConflicts = activeRows.some((r) => !r.deleted && hasConflict(r.candidate));
   const patchMany = (ids: string[], change: (r: Row) => Partial<Row>) => setRows((rs) => rs.map((r) => (ids.includes(r.candidate.id) && !r.deleted ? { ...r, ...change(r) } : r)));
   const merge = async (b: BarProps) => {
@@ -305,7 +305,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
               {filterOpen && (
                 <div className="filter-panel" role="group" aria-label={t("filtersLabel")}>
                   <div className="filter-chips">
-                    {(["all", "verified", "flagged"] as Filter[]).map((f) => (
+                    {(["pending", "all", "verified", "flagged"] as Filter[]).map((f) => (
                       <button key={f} type="button" className={`filter-chip ${filter === f ? "active" : ""}`} aria-pressed={filter === f}
                         onClick={() => { setFilter(f); setFilterOpen(false); }}>{FILTER_LABEL[f]}</button>
                     ))}

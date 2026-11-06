@@ -248,6 +248,16 @@ describe("ReviewPanel", () => {
     expect(screen.getByText("Te-form")).toBeInTheDocument();
   });
 
+  it("Needs action hides confirmed cards", async () => {
+    const a: Candidate = { id: "a", word: "alpha", translation: "x", quote: "a", page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null };
+    const b: Candidate = { ...a, id: "b", word: "beta", status: "verified" };
+    render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[a, b]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Filter" }));
+    await userEvent.click(screen.getByRole("button", { name: "Needs action" }));
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.queryByText("beta")).toBeNull();
+  });
+
   it("Confirm all verified confirms only the verified items of the open tab", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     const a: Candidate = { id: "a", word: "a", translation: "x", quote: "a", page: 0, chunk_id: "c", status: "flagged", flags: [], min_conf: null };

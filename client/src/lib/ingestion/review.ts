@@ -79,7 +79,7 @@ export function needsDecision(r: Row): boolean {
   return !r.deleted && r.on_conflict === null && hasConflict(r.candidate);
 }
 
-export type Filter = "all" | "verified" | "flagged";
+export type Filter = "all" | "verified" | "flagged" | "pending";
 
 /** Verified candidates start checked; anything the verifier could not confirm is opt-in. */
 export function initialRows(candidates: Candidate[]): Row[] {
@@ -118,7 +118,9 @@ export function initialRows(candidates: Candidate[]): Row[] {
 }
 
 export function filterRows(rows: Row[], filter: Filter): Row[] {
-  return filter === "all" ? rows : rows.filter((r) => r.candidate.status === filter);
+  if (filter === "all") return rows;
+  if (filter === "pending") return rows.filter((r) => !r.selected && !r.deleted);
+  return rows.filter((r) => r.candidate.status === filter);
 }
 
 export function countRows(rows: Row[]) {

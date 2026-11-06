@@ -34,6 +34,13 @@ describe("filterRows / countRows", () => {
     expect(filterRows(rows, "verified")).toHaveLength(2);
     expect(filterRows(rows, "flagged").map((r) => r.candidate.id)).toEqual(["word_not_in_source"]);
   });
+  it("pending keeps only rows neither confirmed nor deleted", () => {
+    const r = initialRows([cand(), flagged("word_not_in_source"), cand({ id: "c3" })]);
+    r[2].deleted = true; // c1 is verified -> selected
+    expect(filterRows(r, "pending").map((x) => x.candidate.id)).toEqual(["word_not_in_source"]);
+    r[0].selected = false; r[0].deleted = true; r[2].deleted = false; r[2].selected = false; // follows current state
+    expect(filterRows(r, "pending").map((x) => x.candidate.id)).toEqual(["word_not_in_source", "c3"]);
+  });
   it("counts totals and the current selection", () => {
     expect(countRows(rows)).toEqual({ total: 3, verified: 2, flagged: 1, selected: 2, undecided: 0, deleted: 0 });
   });
