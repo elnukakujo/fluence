@@ -315,7 +315,10 @@ def regenerate_candidate(job_id: str):
     if not api:
         return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
     try:
-        return jsonify(merge_grammar(items, api, (request.get_json(silent=True) or {}).get("request")))
+        from ...services.containers import LanguageService
+        language = LanguageService().get_by_id(job["language_id"], as_dict=True, include_relations=False)
+        source = get_language_by_iso2t(language.get("source_iso639_2t") or "")
+        return jsonify(merge_grammar(items, api, (request.get_json(silent=True) or {}).get("request"), None if source.iso1 == "unknown" else source.name))
     except (ModelAPIError, ExtractionError) as e:
         return jsonify({"error": getattr(e, "message", None) or str(e)}), 502
 

@@ -528,3 +528,25 @@ def test_enhance_request_reaches_the_model_and_keeps_the_book_text(monkeypatch):
     seen.clear()
     grammar_module.merge_grammar([item], API)
     assert "added by the model" not in seen["msgs"][0]["content"] and "Request from the user" not in seen["msgs"][1]["content"]
+
+
+def test_enhance_sends_only_the_cards_own_text_and_writes_in_the_users_language(monkeypatch):
+    seen = {}
+
+    def fake(**kw):
+        seen["msgs"] = kw["messages"]
+        return '{"title": "T", "explanation": "kept\\n\\n**Explanation (added by the model)**\\nx", "example_sentences": []}'
+    monkeypatch.setattr(grammar_module, "chat_completion", fake)
+    item = {"title": "Präpositionen", "explanation": "- **aus** Ich komme aus Schweden.", "original_text": "WHOLE PAGE with Personalpronomen and Negation"}
+    grammar_module.merge_grammar([item], API, request="explain", source_name="French")
+    system, user = seen["msgs"][0]["content"], seen["msgs"][1]["content"]
+    assert "WHOLE PAGE" not in user and "- **aus** Ich komme aus Schweden." in user
+    assert "Write the added explanation in French" in system and "never in the language being learned" in system
+
+
+def test_a_redo_is_scoped_to_the_cards_own_point(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(grammar_module, "chat_completion", lambda **kw: seen.update(msgs=kw["messages"]) or '{"title": "T", "explanation": "e", "example_sentences": []}')
+    grammar_module.merge_grammar([{"title": "Präpositionen", "explanation": "e", "original_text": "WHOLE PAGE"}], API)
+    system, user = seen["msgs"][0]["content"], seen["msgs"][1]["content"]
+    assert "OTHER grammar points" in system and "WHOLE PAGE" in user

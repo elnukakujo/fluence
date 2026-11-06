@@ -66,3 +66,18 @@ def test_regenerate_redoes_one_candidate_from_its_original_text(app, db, schedul
     r = client.post(f"/api/ingestion/{job_id}/regenerate", json={"items": ITEMS[:1]})
     assert r.status_code == 200 and r.get_json()["explanation"] == "Full text. 例1。" and "ORIG-ONE" in seen["user"]
     assert client.post(f"/api/ingestion/{job_id}/regenerate", json={"items": ITEMS}).status_code == 400
+
+
+def test_enhance_uses_the_users_source_language_and_not_the_page_text(app, db, scheduled, monkeypatch):
+    client, job_id = _client(app, db)
+    _text_api(monkeypatch)
+    seen = {}
+
+    def fake(**kw):
+        seen["system"], seen["user"] = kw["messages"][0]["content"], kw["messages"][-1]["content"]
+        return '{"title": "A", "explanation": "Part one. 例1。\\n\\n**Explanation (added by the model)**\\nx", "example_sentences": []}'
+    monkeypatch.setattr(grammar_module, "chat_completion", fake)
+    r = client.post(f"/api/ingestion/{job_id}/regenerate", json={"items": ITEMS[:1], "request": "explain"})
+    assert r.status_code == 200
+    assert "Write the added explanation in English" in seen["system"]      # the seeded language's native language is eng
+    assert "ORIG-ONE" not in seen["user"] and "Request from the user: explain" in seen["user"]
