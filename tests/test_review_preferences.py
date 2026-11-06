@@ -18,9 +18,25 @@ class E:   # tiny stand-in element for order_bucket
 
 def test_section_budgets():
     layout = [{"type": t, "minutes": None} for t in ("voc", "gram", "ex", "call")]
-    assert section_budgets(layout, 20) == {"voc": 10, "gram": 10, "ex": 10, "call": 10}
+    assert section_budgets(layout, 20) == {"voc": 38, "gram": 3, "ex": 5, "call": 20}   # 300 s each / 8, 90, 60, 15 s
     layout[0]["minutes"] = 1
-    assert section_budgets(layout, 20)["voc"] == 2
+    assert section_budgets(layout, 20)["voc"] == 8
+
+
+def test_budget_uses_type_cost():
+    layout = [{"type": t} for t in ("voc", "call", "gram", "ex")]
+    assert section_budgets(layout, 10) == {"voc": 19, "call": 10, "gram": 2, "ex": 2}   # 150 s each
+
+
+def test_budget_never_below_one():
+    assert section_budgets([{"type": "gram"}], 1)["gram"] == 1
+
+
+def test_no_layout_is_capped_by_seconds_not_a_flat_count(db):
+    _seed(db, vocs=40)
+    _prefs(daily_goal_minutes=10)
+    n = len(_cards())
+    assert 20 < n <= 600 // 8       # ~74 vocabulary cards fit in 10 min, not the old flat 20 (30 s each)
 
 
 def test_order_bucket_goal_then_priority_with_boost():
@@ -122,10 +138,10 @@ def test_no_goal_does_not_lock(db):
 
 def test_split_fills_the_budget_with_fronts_then_the_same_backs(db):
     _seed(db, vocs=30)
-    _prefs(daily_goal_minutes=5, voc_side_pattern={"mode": "split"})   # 10 cards
+    _prefs(daily_goal_minutes=5, voc_side_pattern={"mode": "split"})   # 300 s / 8 s = 37 cards -> 18 words
     cards = _cards()
-    assert [c["side"] for c in cards] == ["front"] * 5 + ["back"] * 5
-    assert [c["id"] for c in cards[:5]] == [c["id"] for c in cards[5:]]
+    assert [c["side"] for c in cards] == ["front"] * 18 + ["back"] * 18
+    assert [c["id"] for c in cards[:18]] == [c["id"] for c in cards[18:]]
 
 
 @pytest.mark.parametrize("pattern", [None, {"mode": "cycle", "cycle": ["F", "F", "B"]}, {"mode": "random", "front": 3, "back": 1}, {"mode": "split"}])

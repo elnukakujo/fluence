@@ -12,14 +12,9 @@ from ...utils import review_priority
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from .side_pattern import make_side_picker
-from .study_constants import BOOST_FACTOR
+from .study_constants import BOOST_FACTOR, SECONDS_PER_CARD_BY_TYPE
 from .study_goal import StudyGoalService
 from ..system_data.score import SIDES, side_id
-
-# Convert the user's daily minutes goal into a card count. Fixed estimate.
-# ponytail: SECONDS_PER_CARD fixed; derive from DailyStats.time_studied_ms /
-# items_reviewed if a per-user pace ever matters.
-SECONDS_PER_CARD = 30.0
 
 # The three flashcard-able feature types, in review (round-robin) order.
 FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy, Exercise)
@@ -30,12 +25,13 @@ VOC_SIDE_GAP = 3
 
 
 SECTION_MODELS = {"voc": Vocabulary, "gram": Grammar, "ex": Exercise, "call": Calligraphy}
+CARD_SECONDS = {m: SECONDS_PER_CARD_BY_TYPE[sec] for sec, m in SECTION_MODELS.items()}
 
 
 def section_budgets(layout: list[dict], daily_goal_minutes: int) -> dict[str, int]:
-    """Cards per section: its own minutes, else an equal share of the daily goal (30 s per card, at least 1)."""
+    """Cards per section: its own minutes, else an equal share of the daily goal, over that type's seconds per card (at least 1)."""
     share = daily_goal_minutes / max(len(layout), 1)
-    return {sec["type"]: max(1, round((sec.get("minutes") or share) * 60 / SECONDS_PER_CARD)) for sec in layout}
+    return {sec["type"]: max(1, round((sec.get("minutes") or share) * 60 / SECONDS_PER_CARD_BY_TYPE[sec["type"]])) for sec in layout}
 
 
 def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set) -> list:
@@ -48,17 +44,17 @@ def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set) ->
     return sorted(items, key=key, reverse=True)
 
 
-def quotas(lengths: dict, cap: int) -> dict:
-    """How many cards each type contributes to a round-robin queue of at most `cap` cards."""
-    left, out, total = dict(lengths), {m: 0 for m in lengths}, 0
-    while total < cap and any(left.values()):
+def quotas(lengths: dict, cap_seconds: float) -> dict:
+    """How many cards each type contributes to a round-robin queue costing at most `cap_seconds` (always at least one card)."""
+    left, out, spent, added = dict(lengths), {m: 0 for m in lengths}, 0.0, True
+    while added:
+        added = False
         for m in FEATURE_MODELS:
-            if total >= cap:
-                break
-            if left.get(m, 0) > 0:
+            if left.get(m, 0) > 0 and (spent == 0 or spent + CARD_SECONDS[m] <= cap_seconds):
                 out[m] += 1
                 left[m] -= 1
-                total += 1
+                spent += CARD_SECONDS[m]
+                added = True
     return out
 
 
@@ -107,7 +103,7 @@ class ReviewService:
         )
         if preferences is not None and preferences.daily_goal_minutes:
             daily_goal_minutes = preferences.daily_goal_minutes
-        max_cards = max(1, round(daily_goal_minutes * 60 / SECONDS_PER_CARD))
+        cap_seconds = daily_goal_minutes * 60
 
         lessons = session.query(Lesson).filter(Lesson.language_id == language_id).all()
         lesson_ids = [lesson.id for lesson in lessons]
@@ -152,7 +148,7 @@ class ReviewService:
                 m = SECTION_MODELS[sec]
                 quota[m] = min(len(exercises) if m is Exercise else len(buckets[m]), left)
         else:
-            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}, max_cards)
+            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}, cap_seconds)
         buckets[Vocabulary] = pair_vocabulary(buckets[Vocabulary], quota[Vocabulary], split=bool(pattern and pattern.get("mode") == "split"))
 
         # Exercises come from the lessons of the elements being reviewed (all of them when no element is).
@@ -180,13 +176,17 @@ class ReviewService:
                     left -= 1
         else:
             # Round-robin across the types so one type can't crowd out the rest.
-            while len(queue) < max_cards and any(buckets[m] for m in FEATURE_MODELS):
+            spent = 0.0
+            while any(buckets[m] for m in FEATURE_MODELS):
+                took = False
                 for model in FEATURE_MODELS:
-                    if len(queue) >= max_cards:
-                        break
-                    if buckets[model]:
+                    if buckets[model] and (not queue or spent + CARD_SECONDS[model] <= cap_seconds):
                         queue.append(self._pop(buckets[model], queue, model, picker))
                         sections.append(None)
+                        spent += CARD_SECONDS[model]
+                        took = True
+                if not took:
+                    break
 
         if as_dict:
             return [{**self._card_dict(card, lesson_title_by_id), "section": sec} for card, sec in zip(queue, sections)]
