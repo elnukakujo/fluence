@@ -184,21 +184,28 @@ def test_all_banned_returns_empty(db):
     assert _cards() == []
 
 
-def test_no_goal_draws_new_elements_only_from_the_default_window(db):
-    """Without a goal: new elements come from the first 10 voc / 5 gram / 10 call (lesson order), seen ones as before."""
+def test_review_creates_the_suggested_goal_and_follows_its_menu(db):
+    _seed(db, vocs=40)
+    _prefs(daily_goal_minutes=20)
+    assert StudyGoalService().get("user_U1", "lang_L1") is None
+    ids = {c["id"] for c in _cards()}
+    goal = StudyGoalService().get("user_U1", "lang_L1")
+    assert goal and goal["auto"] is True
+    assert len(ids) == goal["n_vocabulary"]                        # only the menu's 20 words, not the 40
+
+
+def test_without_preferences_new_elements_come_from_the_default_window(db):
+    """No goal and no preferences to size one: first 10 voc / 5 gram / 10 call (lesson order), seen ones as before."""
     _seed(db, vocs=25, grams=12, calls=25)
-    _prefs(daily_goal_minutes=120)                                  # a budget big enough for everything allowed
     ids = [c["id"] for c in _cards()]
     assert len({i for i in ids if i.startswith("voc_")}) == 10
     assert len({i for i in ids if i.startswith("gram_")}) == 5
     assert len({i for i in ids if i.startswith("call_")}) == 10
-    assert StudyGoalService().get("user_U1", "lang_L1") is None     # nothing was created behind the user's back
+    assert StudyGoalService().get("user_U1", "lang_L1") is None
 
 
-def test_no_goal_still_reviews_seen_elements_outside_the_window(db):
+def test_without_preferences_seen_elements_outside_the_window_still_come_back(db):
     _seed(db, vocs=25)
-    _prefs(daily_goal_minutes=120)
     ScoreService().set("user_U1", "voc_V24", score=30.0, difficulty=0.5)       # seen: a review candidate, not "new"
     ids = {c["id"] for c in _cards()}
     assert "voc_V24" in ids and len(ids) == 11
-

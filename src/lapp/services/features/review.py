@@ -113,6 +113,7 @@ class ReviewService:
         type_prefs = (preferences.exercise_type_prefs if preferences else None) or {}
         layout = preferences.review_layout if preferences else None
         pattern = preferences.voc_side_pattern if preferences else None
+        StudyGoalService().ensure_default(user_id, language_id, session=session)   # no goal yet: the suggested one
         goal_items = StudyGoalService().ensure_cycle(user_id, language_id, session=session)
         goal_rank = {i.element_id: 2 if i.kind == "new" else 1 for i in goal_items}       # new before review
         goal_ids = set(goal_rank)
@@ -121,7 +122,7 @@ class ReviewService:
         locked = {m for m, kind in ((Vocabulary, "vocabulary"), (Grammar, "grammar"), (Calligraphy, "calligraphy"))
                   if kind in StudyGoalService().locked_kinds(user_id, language_id, session=session)}
 
-        # No goal at all: the app still works. New elements are drawn at random from a small default window
+        # Still no goal (the user has no preferences yet, so no suggested one): the app works anyway. New elements are drawn at random from a small default window
         # (NO_GOAL_NEW per type, lesson order); seen elements stay candidates by review priority, as before goals.
         no_goal = StudyGoalService().get(user_id, language_id, session=session) is None
         kind_of = {m: k for k, (m, _n, _r) in TYPES.items()}
