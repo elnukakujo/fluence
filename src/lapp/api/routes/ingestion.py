@@ -19,6 +19,7 @@ from ...services.features import GrammarService, ExerciseService, CalligraphySer
 from ...services.ingestion.jobs import (IngestionJobService, candidates_path, created_lesson_path, document_path, job_dir, paused_path,
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
+from ...services.ingestion.exercises import link_to_elements
 from ...services.ingestion.structure import lesson_ranges, normalize_ranges, validate_structure
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
@@ -895,15 +896,25 @@ def _invalid_items(items) -> str | None:
     return None
 
 
+def _lesson_element_texts(session, lesson_id: str):
+    """((id, word), (id, title), (id, character)) lists of the lesson's vocabulary, grammar and calligraphy."""
+    from ...models.features import Calligraphy, Grammar, Vocabulary
+    q = lambda m: session.query(m).filter(m.lesson_id == lesson_id).all()
+    return ([(v.id, v.word.word) for v in q(Vocabulary)], [(g.id, g.title) for g in q(Grammar)],
+            [(c.id, c.character.character) for c in q(Calligraphy)])
+
+
 def _add_all(session, job: dict, lesson_id: str, items: list, elements: list, notes: list, progress=None) -> tuple[int, int]:
     """(vocabulary added, elements added). Calligraphy goes first: adding a word also creates its characters with a
     generated (romaji) phonetic, and the reviewed calligraphy item would then be answered by that row under "keep"."""
-    is_calligraphy = [isinstance(e, dict) and e.get("kind") == "calligraphy" for e in elements]
-    first = [e for e, c in zip(elements, is_calligraphy) if c]
-    rest = [e for e, c in zip(elements, is_calligraphy) if not c]
+    kind_of = lambda e: e.get("kind") if isinstance(e, dict) else None
+    first = [e for e in elements if kind_of(e) == "calligraphy"]
+    exercises = [e for e in elements if kind_of(e) == "exercise"]      # last: they link to the elements added before them
+    rest = [e for e in elements if kind_of(e) not in ("calligraphy", "exercise")]
     added_elements = _add_elements(session, job, lesson_id, job["language_id"], first, notes, progress)
     added = _add_vocabulary(session, job, lesson_id, items, progress)
-    return added, added_elements + _add_elements(session, job, lesson_id, job["language_id"], rest, notes, progress)
+    added_elements += _add_elements(session, job, lesson_id, job["language_id"], rest, notes, progress)
+    return added, added_elements + _add_elements(session, job, lesson_id, job["language_id"], exercises, notes, progress)
 
 
 def _add_vocabulary(session, job: dict, lesson_id: str, items: list, progress=None) -> int:
@@ -1078,6 +1089,12 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
             ).first()
             if not existing:
                 answer = fields.get("answer") or ""
+                links = link_to_elements(fields, *_lesson_element_texts(session, lesson_id))
+                if not any(links.values()):     # an exercise is never stored unlinked
+                    notes_out.append(f"The exercise “{question[:40]}” was not added: it matches no element of this lesson.")
+                    if progress:
+                        progress()
+                    continue
                 exercise_dict = ExerciseDict(
                     lesson_id=lesson_id,
                     exercise_type=fields.get("exercise_type") or "",
@@ -1085,6 +1102,7 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     answer=answer,
                     text_support=fields.get("text_support") or None,
                     content=fields.get("content") or None,
+                    **links,
                 )
                 created_exercise = exercise_service.create(exercise_dict, session=session)
                 if created_exercise:

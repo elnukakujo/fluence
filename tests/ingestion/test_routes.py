@@ -349,7 +349,7 @@ def test_accept_creates_grammar_calligraphy_exercise_with_source(app, db, media_
         "elements": [
             {"kind": "grammar", "fields": {"title": "Present tense", "explanation": "Used for now", "example_sentences": []}},
             {"kind": "calligraphy", "fields": {"character": "中", "phonetic": "zhong", "meaning": "middle", "radical": None, "strokes": None}},
-            {"kind": "exercise", "fields": {"exercise_type": "answering", "question": "What?", "answer": "Answer", "text_support": None, "content": None}}
+            {"kind": "exercise", "fields": {"exercise_type": "answering", "question": "What is hello?", "answer": "Answer", "text_support": None, "content": None}}
         ]
     })
     assert res.status_code == 200
@@ -361,7 +361,7 @@ def test_accept_creates_grammar_calligraphy_exercise_with_source(app, db, media_
         assert grammar and grammar.explanation == "Used for now"
         calligraphy = s.query(Calligraphy).filter(Calligraphy.lesson_id == "lesson_L1").first()
         assert calligraphy and calligraphy.character.character == "中"
-        exercise = s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1", Exercise.question == "What?").first()
+        exercise = s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1", Exercise.question == "What is hello?").first()
         assert exercise and exercise.answer == "Answer"
         # Check all are tagged with import source
         source = s.query(Source).filter(Source.user_id == "user_U1", Source.title.like("Imported from%")).first()
@@ -587,12 +587,12 @@ def test_accept_stores_exercises_in_the_shapes_the_app_loads(app, db, media_root
     svc.update(job_id, status="ready")
     conv_q = '{"speakers":[{"id":"s1","name":"A","isUser":false},{"id":"s2","name":"You","isUser":true}],"lines":[{"speakerId":"s1","text":"hi","audioIndex":null},{"speakerId":"s2","text":"hello","audioIndex":null}]}'
     elements = [
-        {"kind": "exercise", "fields": {"exercise_type": "quizz", "question": "Pick", "answer": "b", "content": {"options": ["a", "b"], "correct": [1]}}},
+        {"kind": "exercise", "fields": {"exercise_type": "quizz", "question": "Pick the car", "answer": "b", "content": {"options": ["a", "b"], "correct": [1]}}},
         {"kind": "exercise", "fields": {"exercise_type": "type_in_the_blank", "question": "The __ is red", "answer": "car",
                                         "content": {"segments": ["The ", " is red"], "blanks": [{"answer": "car"}]}}},
         {"kind": "exercise", "fields": {"exercise_type": "conversation", "question": conv_q, "answer": conv_q, "content": None}},
     ]
-    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "elements": elements})
+    res = client.post(f"/api/ingestion/{job_id}/accept", json={"lesson_id": "lesson_L1", "items": [{"word": "car"}, {"word": "hello"}], "elements": elements})   # exercises must link to the lesson's words
     assert res.status_code == 200 and res.get_json()["created_elements"] == 3
     with db.session_scope() as s:
         by_type = {e.exercise_type: e for e in s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").all()}
