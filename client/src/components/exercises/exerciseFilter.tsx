@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { SlidersHorizontal } from "lucide-react";
 import { categoryLabel } from "@/utils/groupByCategory";
+import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import type { ExamCategory } from "@/utils/language_iso639";
 
 /** Filter popover for the exercise list. State lives in the URL (`?type=a,b&status=ready|notready`), so the server page filters. */
@@ -18,7 +19,8 @@ export default function ExerciseFilter({ types, categories = [] }: { types: stri
     const selectedTypes = (params.get("type") ?? "").split(",").filter(Boolean);
     const status = params.get("status") ?? "";
     const category = params.get("category") ?? "";
-    const count = selectedTypes.length + (status ? 1 : 0) + (category ? 1 : 0);
+    const origin = params.get("origin") ?? "";
+    const count = selectedTypes.length + (status ? 1 : 0) + (category ? 1 : 0) + (origin ? 1 : 0);
 
     useEffect(() => {
         const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
@@ -55,6 +57,13 @@ export default function ExerciseFilter({ types, categories = [] }: { types: stri
                             ))}
                         </div>
                     </div>
+                    <div>
+                        <p className="filter-group-label">{t("filterOrigin")}</p>
+                        <div className="filter-chips">
+                            <button type="button" aria-pressed={origin === "ai"} className={`filter-chip ${origin === "ai" ? "active" : ""}`}
+                                onClick={() => set("origin", origin === "ai" ? "" : "ai")}>{t("originAi")}</button>
+                        </div>
+                    </div>
                     {categories.length > 0 && (
                         <div>
                             <p className="filter-group-label">{t("filterCategory")}</p>
@@ -74,7 +83,7 @@ export default function ExerciseFilter({ types, categories = [] }: { types: stri
                             {types.map((type) => (
                                 <button key={type} type="button" aria-pressed={selectedTypes.includes(type)}
                                     className={`filter-chip ${selectedTypes.includes(type) ? "active" : ""}`} onClick={() => toggleType(type)}>
-                                    {type}
+                                    {EXERCISE_TYPE_KEY[type] ? t(EXERCISE_TYPE_KEY[type]) : type}
                                 </button>
                             ))}
                         </div>

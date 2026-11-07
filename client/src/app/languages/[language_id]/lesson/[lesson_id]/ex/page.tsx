@@ -9,7 +9,8 @@ import remarkGfm from "remark-gfm";
 import LessonItems, { SelectAllRow, SelectBox, SelectToggle } from "@/components/elements/itemSelection";
 import { getLessonById } from "@/api/lesson";
 import { getLanguageById } from "@/api/language";
-import { categoryOf, getExamCategories } from "@/utils/language_iso639";
+import { getExamCategories } from "@/utils/language_iso639";
+import { categoriesWithDerived, filterExercises } from "@/utils/filterExercises";
 import { categoryLabel, groupByCategory } from "@/utils/groupByCategory";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { Play, Pencil } from "lucide-react";
@@ -17,11 +18,11 @@ import GenerationBanner from "@/components/exercises/generationBanner";
 import GenerateDialog from "@/components/exercises/generateDialog";
 import { getTranslations } from "next-intl/server";
 
-export default async function ExercisesPage({ params, searchParams }: { params: Promise<{ language_id: string, lesson_id: string }>, searchParams: Promise<{ type?: string, status?: string, category?: string }> }){
+export default async function ExercisesPage({ params, searchParams }: { params: Promise<{ language_id: string, lesson_id: string }>, searchParams: Promise<{ type?: string, status?: string, category?: string, origin?: string }> }){
     const t = await getTranslations("languages");
     const tEx = await getTranslations("exercises");
     const { language_id, lesson_id } = await params;
-    const { type: typeParam, status, category } = await searchParams;
+    const { type: typeParam, status, category, origin } = await searchParams;
 
     const lesson = await getLessonById(lesson_id);
     const userId = await getCurrentUserId();
@@ -29,10 +30,7 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
     const exercises: Exercise[] = await getExercisesByLesson(lesson_id)
     const allTypes = [...new Set(exercises.map((e) => e.exercise_type || "unknown"))].sort();
     const wanted = (typeParam ?? "").split(",").filter(Boolean);
-    const shown = exercises.filter((e) =>
-        (!wanted.length || wanted.includes(e.exercise_type || "unknown")) &&
-        (!status || (status === "ready") === !e.needs?.length) &&
-        (!category || categoryOf(e.exercise_type, categories) === category));
+    const shown = filterExercises(exercises, { types: wanted, status: status ?? "", category: category ?? "", origin: origin ?? "" }, categories);
     const exercisesByCategory = groupByCategory(shown, categories);
 
     return(
@@ -40,7 +38,7 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
             <div className="flex flex-wrap items-center justify-between gap-2"><h1>{t("exercises")}</h1>{userId === lesson.user_id && <GenerateDialog lessonId={lesson_id} />}</div>
             {userId === lesson.user_id && <GenerationBanner lessonId={lesson_id} count={exercises.filter((e) => e.review_reason).length} />}
             <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
-                {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><div className="flex flex-wrap items-center gap-2"><SelectToggle kind="ex" /><ExerciseFilter types={allTypes} categories={categories} /></div><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={shown.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
+                {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><div className="flex flex-wrap items-center gap-2"><SelectToggle kind="ex" /><ExerciseFilter types={allTypes} categories={categoriesWithDerived(exercises, categories)} /></div><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={shown.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
                 {exercises.length > 0 && shown.length === 0 && <p className="text-muted">{tEx("filterNoMatch")}</p>}
                 {exercisesByCategory.map(({ slug, exercises }) => (
                     <section key={slug ?? "none"}>

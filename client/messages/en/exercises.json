@@ -163,5 +163,7 @@
   "reviewLater": "Later",
   "reviewFailed": "Something went wrong. Try again.",
   "reviewBanner": "{count, plural, one {# generated exercise needs a look} other {# generated exercises need a look}}",
-  "aiGenerated": "AI-generated"
+  "aiGenerated": "AI-generated",
+  "filterOrigin": "Origin",
+  "originAi": "AI-generated"
 }
