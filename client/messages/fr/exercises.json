@@ -172,5 +172,7 @@
   "generateBackground": "Continuer en arrière-plan",
   "generateBackgroundNote": "Vous pouvez fermer cette fenêtre : la génération continue et les exercices apparaissent dans la leçon à la fin.",
   "generateSuggested": "Suggestion : {count} (max {max})",
-  "generateRetry": "Réessayer"
+  "generateRetry": "Réessayer",
+  "groupBy": "Grouper par",
+  "originManual": "Ajouté à la main"
 }

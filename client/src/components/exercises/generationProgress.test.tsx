@@ -28,6 +28,6 @@ describe("GenerationProgress", () => {
 
     it("the moving highlight is a class the stylesheet turns off for reduced motion", () => {
         render(<GenerationProgress done={1} total={4} />);
-        expect(document.querySelector(".gen-progress-fill")).toHaveClass("is-active");
+        expect(document.querySelector(".progress-bar-fill")).toHaveClass("is-active");
     });
 });

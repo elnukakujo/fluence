@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { SlidersHorizontal } from "lucide-react";
-import { categoryLabel } from "@/utils/groupByCategory";
+import { categoryLabel, GROUP_BYS } from "@/utils/groupByCategory";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import type { ExamCategory } from "@/utils/language_iso639";
 
@@ -36,7 +36,16 @@ export default function ExerciseFilter({ types, categories = [] }: { types: stri
     const toggleType = (type: string) =>
         set("type", (selectedTypes.includes(type) ? selectedTypes.filter((x) => x !== type) : [...selectedTypes, type]).join(","));
 
-    return (
+    const groupBy = params.get("group") ?? "category";
+    const groupNames: Record<string, string> = { category: t("filterCategory"), origin: t("filterOrigin"), status: t("filterStatus"), type: t("filterType") };
+
+    return (<>
+        <label className="inline-flex items-center gap-2 text-sm">
+            <span className="text-muted">{t("groupBy")}</span>
+            <select className="min-h-11 rounded-lg border border-border bg-background px-2" value={groupBy} onChange={(e) => set("group", e.target.value === "category" ? "" : e.target.value)}>
+                {GROUP_BYS.map((g) => <option key={g} value={g}>{groupNames[g]}</option>)}
+            </select>
+        </label>
         <div className="filter-dropdown" ref={ref}>
             <button type="button" className={`btn ${count ? "btn-primary" : "btn-secondary"} inline-flex items-center gap-2`}
                 aria-expanded={open} onClick={() => setOpen((o) => !o)}>
@@ -92,5 +101,5 @@ export default function ExerciseFilter({ types, categories = [] }: { types: stri
                 </div>
             )}
         </div>
-    );
+    </>);
 }

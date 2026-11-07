@@ -40,11 +40,18 @@ def suggest(lesson_id: str):
         - Exercise generation
     parameters:
         - {name: lesson_id, in: path, type: string, required: true}
+        - {name: count, in: query, type: integer, required: false, description: "plan this many instead of the suggested number (1..60)"}
     responses:
         200: {description: "{count, mix: {type: n}, pool: number of elements}"}
     """
     require_write(lesson_id)
-    pool, slots, _ = _plan(lesson_id, None)
+    raw = request.args.get("count")
+    count = None
+    if raw is not None:
+        if not raw.isdigit() or not 1 <= int(raw) <= GEN_MAX:
+            return jsonify({"error": f"count must be a whole number from 1 to {GEN_MAX}"}), 400
+        count = int(raw)
+    pool, slots, _ = _plan(lesson_id, count)
     return jsonify({"count": len(slots), "mix": dict(Counter(s.exercise_type for s in slots)), "pool": len(pool)})
 
 

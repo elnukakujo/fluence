@@ -172,5 +172,7 @@
   "generateBackground": "Run in background",
   "generateBackgroundNote": "You can close this window: generation keeps running and the exercises appear in the lesson when it is done.",
   "generateSuggested": "Suggested: {count} (max {max})",
-  "generateRetry": "Try again"
+  "generateRetry": "Try again",
+  "groupBy": "Group by",
+  "originManual": "Added by hand"
 }

@@ -11,18 +11,20 @@ import { getLessonById } from "@/api/lesson";
 import { getLanguageById } from "@/api/language";
 import { getExamCategories } from "@/utils/language_iso639";
 import { categoriesWithDerived, filterExercises } from "@/utils/filterExercises";
-import { categoryLabel, groupByCategory } from "@/utils/groupByCategory";
+import { categoryLabel, GROUP_BYS, groupExercises, type GroupBy } from "@/utils/groupByCategory";
+import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { Play, Pencil } from "lucide-react";
 import GenerationBanner from "@/components/exercises/generationBanner";
 import GenerateDialog from "@/components/exercises/generateDialog";
 import { getTranslations } from "next-intl/server";
 
-export default async function ExercisesPage({ params, searchParams }: { params: Promise<{ language_id: string, lesson_id: string }>, searchParams: Promise<{ type?: string, status?: string, category?: string, origin?: string }> }){
+export default async function ExercisesPage({ params, searchParams }: { params: Promise<{ language_id: string, lesson_id: string }>, searchParams: Promise<{ type?: string, status?: string, category?: string, origin?: string, group?: string }> }){
     const t = await getTranslations("languages");
     const tEx = await getTranslations("exercises");
     const { language_id, lesson_id } = await params;
-    const { type: typeParam, status, category, origin } = await searchParams;
+    const { type: typeParam, status, category, origin, group } = await searchParams;
+    const groupBy = GROUP_BYS.find((g) => g === group) ?? "category";
 
     const lesson = await getLessonById(lesson_id);
     const userId = await getCurrentUserId();
@@ -31,7 +33,10 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
     const allTypes = [...new Set(exercises.map((e) => e.exercise_type || "unknown"))].sort();
     const wanted = (typeParam ?? "").split(",").filter(Boolean);
     const shown = filterExercises(exercises, { types: wanted, status: status ?? "", category: category ?? "", origin: origin ?? "" }, categories);
-    const exercisesByCategory = groupByCategory(shown, categories);
+    const groups = groupExercises(shown, groupBy, categories);
+    const groupLabel = (key: string | null) => !key ? tEx("uncategorized") : groupBy === "category" ? categoryLabel(tEx, key)
+        : groupBy === "origin" ? tEx(key === "ai" ? "originAi" : "originManual") : groupBy === "status" ? tEx(key === "ready" ? "statusReady" : "statusNotReady")
+        : EXERCISE_TYPE_KEY[key] ? tEx(EXERCISE_TYPE_KEY[key]) : key;
 
     return(
         <main className="flex flex-col space-y-5">
@@ -40,9 +45,9 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
             <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
                 {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><div className="flex flex-wrap items-center gap-2"><SelectToggle kind="ex" /><ExerciseFilter types={allTypes} categories={categoriesWithDerived(exercises, categories)} /></div><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={shown.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
                 {exercises.length > 0 && shown.length === 0 && <p className="text-muted">{tEx("filterNoMatch")}</p>}
-                {exercisesByCategory.map(({ slug, exercises }) => (
-                    <section key={slug ?? "none"}>
-                        <h3>{slug ? categoryLabel(tEx, slug) : tEx("uncategorized")} <span className="text-muted">({exercises.length})</span></h3>
+                {groups.map(({ key, exercises }) => (
+                    <section key={key ?? "none"}>
+                        <h3>{groupLabel(key)} <span className="text-muted">({exercises.length})</span></h3>
                         <ul className="list-none">
                             {exercises.map((exercise, index) => (
                                 <li key={index} className="card ex-card">

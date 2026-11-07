@@ -172,5 +172,7 @@
   "generateBackground": "转入后台",
   "generateBackgroundNote": "你可以关闭此窗口：生成会继续进行，完成后练习会出现在本课中。",
   "generateSuggested": "建议：{count}（最多 {max}）",
-  "generateRetry": "重试"
+  "generateRetry": "重试",
+  "groupBy": "分组方式",
+  "originManual": "手动添加"
 }

@@ -22,10 +22,10 @@ export default function ReviewHeader({ kind, side, sectionProgress, sectionLabel
                 {side && <span className="badge">{side}</span>}
                 <span className="ml-auto text-sm tabular-nums text-muted">{current} / {total}</span>
             </div>
-            <ProgressBar current={current} total={total} showLabel={false} showPercent={false} ariaLabel={progressLabel} title={`${current} / ${total}`} />
+            <ProgressBar thin current={current} total={total} showLabel={false} showPercent={false} ariaLabel={progressLabel} title={`${current} / ${total}`} />
             {sectionProgress && (
                 <div className="flex items-center gap-3">
-                    <ProgressBar accent className="flex-1" current={sectionProgress.done} total={sectionProgress.total} showLabel={false} showPercent={false}
+                    <ProgressBar thin accent className="flex-1" current={sectionProgress.done} total={sectionProgress.total} showLabel={false} showPercent={false}
                         ariaLabel={sectionLabel ?? kind} />
                     <span className="text-xs tabular-nums text-muted whitespace-nowrap">{sectionProgress.done} / {sectionProgress.total} {(sectionLabel ?? kind).toLowerCase()}</span>
                 </div>

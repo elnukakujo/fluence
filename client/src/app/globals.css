@@ -717,34 +717,21 @@
     opacity: 1;
   }
   /* ── Progress bar ──────────────────────────────────────────────── */
-  .progress-bar-track {
-    width: 100%;
-    height: 5px;
-    border-radius: var(--radius-full);
-    background: var(--color-border);
-    overflow: hidden;
-  }
-  .progress-bar-fill.is-accent { background: var(--color-accent); }
+  /* Shared progress bar: gradient fill, optional moving highlight (is-active) and an indeterminate slide while the length is unknown. is-sm = thin, for dense headers */
+  .progress-bar-track { position: relative; width: 100%; height: 0.75rem; border-radius: var(--radius-full); background: var(--color-border); overflow: hidden; }
+  .progress-bar-track.is-sm { height: 5px; }
   .progress-bar-fill {
-    height: 100%;
-    border-radius: var(--radius-full);
-    background: var(--color-primary);
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Generation job progress: thicker bar, a soft moving highlight, an indeterminate slide while the length is unknown */
-  .gen-progress-track { position: relative; width: 100%; height: 0.75rem; border-radius: var(--radius-full); background: var(--color-border); overflow: hidden; }
-  .gen-progress-fill {
     position: relative; height: 100%; overflow: hidden; border-radius: var(--radius-full);
     background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .gen-progress-fill.is-active::after {
+  .progress-bar-fill.is-accent { background: var(--color-accent); }
+  .progress-bar-fill.is-active::after {
     content: ""; position: absolute; inset: 0; transform: translateX(-100%);
     background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
     animation: gen-sheen 1.6s ease-in-out infinite;
   }
-  .gen-progress-fill.is-indeterminate { width: 40%; animation: gen-slide 1.4s ease-in-out infinite alternate; }
+  .progress-bar-fill.is-indeterminate { width: 40%; animation: gen-slide 1.4s ease-in-out infinite alternate; }
   .gen-mix-track { height: 0.375rem; border-radius: var(--radius-full); background: var(--color-border); overflow: hidden; }
   .gen-mix-fill { display: block; height: 100%; border-radius: var(--radius-full); background: var(--color-accent); }
   .dialog-enter { animation: dialog-in 0.18s ease-out; }
@@ -752,9 +739,9 @@
   @keyframes gen-slide { from { margin-left: 0; } to { margin-left: 60%; } }
   @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) {
-    .gen-progress-fill { transition: none; }
-    .gen-progress-fill.is-active::after { animation: none; }
-    .gen-progress-fill.is-indeterminate { animation: none; width: 100%; }
+    .progress-bar-fill { transition: none; }
+    .progress-bar-fill.is-active::after { animation: none; }
+    .progress-bar-fill.is-indeterminate { animation: none; width: 100%; }
     .dialog-enter { animation: none; }
   }
 
@@ -1329,15 +1316,6 @@
   }
   .backup-row:hover {
     background: var(--color-accent-soft);
-  }
-
-  /* ── Indeterminate progress bar (backup creation) ─────────────────── */
-  .progress-bar-indeterminate {
-    animation: indeterminate 1.4s ease-in-out infinite;
-  }
-  @keyframes indeterminate {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
   }
 
   /* ── Small-phone tightening: tighter card padding, 44px touch targets ── */

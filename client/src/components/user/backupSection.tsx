@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import ProgressBar from "@/components/ui/progressBar";
 import SectionCard from "./sectionCard";
 import BackupRow, { Backup } from "./backupRow";
 import { createBackup, deleteBackup, listBackups, restoreBackup } from "@/api/backup";
@@ -92,9 +93,7 @@ export default function BackupSection() {
           </label>
 
           {creating && (
-            <div className="progress-bar-track w-full">
-              <div className="progress-bar-fill progress-bar-indeterminate w-1/2" />
-            </div>
+            <ProgressBar current={0} total={1} indeterminate showLabel={false} showPercent={false} ariaLabel={t("creating")} />
           )}
 
           <div className="flex gap-2">
