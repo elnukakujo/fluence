@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Sparkles, X } from "lucide-react";
 import { getGeneration, startGeneration, suggestGeneration, undoGenerationBatch, type GenerationJob } from "@/api/exercise";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import GenerationReview from "./generationReview";
+import GenerationProgress from "./generationProgress";
+import NumberField from "@/components/ui/input/numberField";
 
 const MAX = 60;           // same cap as the server (GEN_MAX)
 const POLL_MS = 2000;
@@ -22,10 +24,10 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
     const [job, setJob] = useState<GenerationJob | null>(null);
     const [jobId, setJobId] = useState<string | null>(null);
     const [error, setError] = useState<string>("");
-    const countRef = useRef<HTMLInputElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
     const tRef = useRef(t); tRef.current = t;      // the polling effect must not restart whenever the translator changes identity
 
-    useEffect(() => { if (phase === "configure") countRef.current?.focus(); }, [phase]);
+    useEffect(() => { if (phase === "configure") dialogRef.current?.querySelector<HTMLInputElement>("input[type=number]")?.focus(); }, [phase]);
 
     useEffect(() => {
         if (phase !== "running" || !jobId) return;
@@ -94,7 +96,8 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
         }
     };
 
-    const mix = Object.entries(suggestion.mix);
+    const mix = Object.entries(suggestion.mix).sort((a, b) => b[1] - a[1]);
+    const top = mix[0]?.[1] ?? 1;
     const review = phase === "done" && (job?.result?.flagged.length ?? 0) > 0;   // step 2 replaces the dialog
     return (
         <>
@@ -104,22 +107,42 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
             {review && <GenerationReview lessonId={lessonId} onClose={close} />}
             {phase !== "closed" && !review && (
                 <div className="dialog-backdrop" onKeyDown={(e) => { if (e.key === "Escape") close(); }}>
-                    <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="generate-title">
-                        <h2 id="generate-title" className="text-lg font-semibold">{t("generateTitle")}</h2>
+                    <div ref={dialogRef} className="dialog dialog-enter" style={{ width: "min(34rem, 100%)", gap: "1rem" }} role="dialog" aria-modal="true" aria-labelledby="generate-title">
+                        <div className="flex items-start gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}>
+                                <Sparkles size={18} aria-hidden />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <h2 id="generate-title" className="text-lg font-semibold">{t("generateTitle")}</h2>
+                                <p className="text-sm text-muted">{t("generateSubtitle")}</p>
+                            </div>
+                            <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft" aria-label={t("generateClose")} onClick={close}>
+                                <X size={18} aria-hidden />
+                            </button>
+                        </div>
 
                         {phase === "loading" && <p role="status">{t("generateLoading")}</p>}
 
                         {phase === "configure" && (
-                            suggestion.count === 0 ? <p>{t("generateNone")}</p> : (
+                            suggestion.count === 0 ? <p className="callout">{t("generateNone")}</p> : (
                                 <>
-                                    <label className="flex flex-col gap-1 text-sm">
-                                        {t("generateCount")}
-                                        <input ref={countRef} className="input" type="number" min={1} max={MAX} value={count} onChange={(e) => setCount(e.target.value)} />
-                                    </label>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium">{t("generateCount")}</span>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <NumberField value={count === "" ? "" : Number(count)} onChange={(v) => setCount(String(v))} min={1} max={MAX} ariaLabel={t("generateCount")} />
+                                            <span className="text-sm text-muted">{t("generateSuggested", { count: suggestion.count, max: MAX })}</span>
+                                        </div>
+                                    </div>
                                     <div>
-                                        <p className="text-sm font-medium">{t("generateMix")}</p>
-                                        <ul className="flex flex-wrap gap-2 text-sm">
-                                            {mix.map(([type, n]) => <li key={type} className="badge">{EXERCISE_TYPE_KEY[type] ? t(EXERCISE_TYPE_KEY[type]) : type}: {n}</li>)}
+                                        <p className="mb-2 text-sm font-medium">{t("generateMix")}</p>
+                                        <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+                                            {mix.map(([type, n]) => (
+                                                <li key={type} className="grid grid-cols-[minmax(0,7rem)_1fr_1.5rem] items-center gap-2 text-sm">
+                                                    <span className="truncate">{EXERCISE_TYPE_KEY[type] ? t(EXERCISE_TYPE_KEY[type]) : type}</span>
+                                                    <span className="gen-mix-track" aria-hidden><span className="gen-mix-fill" style={{ width: `${Math.round((n / top) * 100)}%` }} /></span>
+                                                    <span className="text-right tabular-nums">{n}</span>
+                                                </li>
+                                            ))}
                                         </ul>
                                     </div>
                                 </>
@@ -127,25 +150,28 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
                         )}
 
                         {phase === "running" && job && (
-                            <div role="status" aria-live="polite">
-                                <p>{t("generateRunning", { done: job.done, total: job.total })}</p>
-                                <progress className="w-full" max={Math.max(job.total, 1)} value={job.done} aria-label={t("generateTitle")} />
-                            </div>
+                            <>
+                                <GenerationProgress done={job.done} total={job.total} />
+                                <p className="text-sm text-muted">{t("generateBackgroundNote")}</p>
+                            </>
                         )}
 
                         {phase === "done" && job?.result && (
-                            <div role="status" className="flex flex-col gap-1">
-                                <p>{t("generateSaved", { count: job.result.saved })}</p>
-                                {job.result.flagged.length > 0 && <p>{t("generateFlagged", { count: job.result.flagged.length })}</p>}
+                            <div role="status" className="flex items-center gap-3">
+                                <CheckCircle2 size={28} aria-hidden style={{ color: "var(--color-primary)" }} />
+                                <p className="text-base font-medium">{t("generateSaved", { count: job.result.saved })}</p>
                             </div>
                         )}
 
-                        {phase === "error" && <p role="alert" className="text-red-600">{error}</p>}
+                        {phase === "error" && (
+                            <p role="alert" className="callout flex items-start gap-2"><AlertTriangle size={18} aria-hidden className="mt-0.5 shrink-0" /><span>{error}</span></p>
+                        )}
 
                         <div className="flex flex-wrap justify-end gap-2">
+                            {phase === "error" && <button type="button" className="btn btn-primary min-h-11" onClick={openDialog}>{t("generateRetry")}</button>}
                             {phase === "done" && job?.result && <button type="button" className="btn btn-secondary min-h-11" onClick={undo}>{t("generateUndo")}</button>}
                             {phase === "configure" && <button type="button" className="btn btn-primary min-h-11" disabled={suggestion.count === 0} onClick={start}>{t("generateStart")}</button>}
-                            <button type="button" className="btn btn-secondary min-h-11" onClick={close}>{t("generateClose")}</button>
+                            <button type="button" className="btn btn-secondary min-h-11" onClick={close}>{phase === "running" ? t("generateBackground") : t("generateClose")}</button>
                         </div>
                     </div>
                 </div>

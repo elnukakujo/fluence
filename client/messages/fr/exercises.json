@@ -143,7 +143,7 @@
   "generateMix": "Répartition prévue",
   "generateStart": "Générer",
   "generateNone": "Rien à générer : la leçon n'a pas encore de vocabulaire, de grammaire ou de calligraphie, ou tous les types d'exercice sont bannis.",
-  "generateRunning": "Génération… {done} / {total}",
+  "generateRunning": "Écriture des exercices… {done} / {total}",
   "generateNotConfigured": "Ajoutez et activez d'abord un point d'accès de génération de texte dans les paramètres.",
   "generateLost": "La génération a été perdue (le serveur a redémarré). Vérifiez la leçon : les exercices terminés sont enregistrés.",
   "generateFailed": "Échec de la génération : {error}",
@@ -165,5 +165,12 @@
   "reviewBanner": "{count, plural, one {# exercice généré à vérifier} other {# exercices générés à vérifier}}",
   "aiGenerated": "Généré par IA",
   "filterOrigin": "Origine",
-  "originAi": "Généré par IA"
+  "originAi": "Généré par IA",
+  "generateSubtitle": "Des exercices écrits à partir du vocabulaire, de la grammaire et des caractères de cette leçon.",
+  "generateStarting": "Démarrage…",
+  "generateFinishing": "Vérification et enregistrement…",
+  "generateBackground": "Continuer en arrière-plan",
+  "generateBackgroundNote": "Vous pouvez fermer cette fenêtre : la génération continue et les exercices apparaissent dans la leçon à la fin.",
+  "generateSuggested": "Suggestion : {count} (max {max})",
+  "generateRetry": "Réessayer"
 }

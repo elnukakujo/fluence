@@ -143,7 +143,7 @@
   "generateMix": "Planned mix",
   "generateStart": "Generate",
   "generateNone": "Nothing to generate: the lesson has no vocabulary, grammar or calligraphy yet, or every exercise type is banned.",
-  "generateRunning": "Generating… {done} / {total}",
+  "generateRunning": "Writing exercises… {done} / {total}",
   "generateNotConfigured": "Add and activate a text-generation endpoint in Settings first.",
   "generateLost": "The generation was lost (the server restarted). Check the lesson: finished exercises are saved.",
   "generateFailed": "Generation failed: {error}",
@@ -165,5 +165,12 @@
   "reviewBanner": "{count, plural, one {# generated exercise needs a look} other {# generated exercises need a look}}",
   "aiGenerated": "AI-generated",
   "filterOrigin": "Origin",
-  "originAi": "AI-generated"
+  "originAi": "AI-generated",
+  "generateSubtitle": "Exercises written from this lesson's words, grammar and characters.",
+  "generateStarting": "Starting…",
+  "generateFinishing": "Checking and saving…",
+  "generateBackground": "Run in background",
+  "generateBackgroundNote": "You can close this window: generation keeps running and the exercises appear in the lesson when it is done.",
+  "generateSuggested": "Suggested: {count} (max {max})",
+  "generateRetry": "Try again"
 }

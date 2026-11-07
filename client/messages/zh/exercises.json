@@ -143,7 +143,7 @@
   "generateMix": "计划的题型",
   "generateStart": "生成",
   "generateNone": "无可生成：本课还没有词汇、语法或书法条目，或所有题型都已屏蔽。",
-  "generateRunning": "正在生成… {done} / {total}",
+  "generateRunning": "正在编写练习… {done} / {total}",
   "generateNotConfigured": "请先在设置中添加并启用文本生成接口。",
   "generateLost": "生成任务已丢失（服务器重启）。请查看本课：已完成的练习已保存。",
   "generateFailed": "生成失败：{error}",
@@ -165,5 +165,12 @@
   "reviewBanner": "{count} 个生成的练习需要检查",
   "aiGenerated": "AI 生成",
   "filterOrigin": "来源",
-  "originAi": "AI 生成"
+  "originAi": "AI 生成",
+  "generateSubtitle": "根据本课的词汇、语法和汉字编写练习。",
+  "generateStarting": "正在开始…",
+  "generateFinishing": "正在检查并保存…",
+  "generateBackground": "转入后台",
+  "generateBackgroundNote": "你可以关闭此窗口：生成会继续进行，完成后练习会出现在本课中。",
+  "generateSuggested": "建议：{count}（最多 {max}）",
+  "generateRetry": "重试"
 }
