@@ -11,7 +11,7 @@ from ...utils import get_language_by_iso2t
 from ...utils.llm_providers import resolve_api
 from ..features.exercise import ExerciseService
 from ..system_data import UserPreferencesService
-from .generate import generate_batch, judge_batch
+from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch
 from .planner import plan_slots
 from .pool import lesson_pool
 
@@ -21,11 +21,11 @@ _jobs: dict[str, dict] = {}
 _lock = threading.Lock()
 
 
-def start_job(app: Flask, user_id: str, lesson_id: str, count: int, api: dict, target: str) -> str:
+def start_job(app: Flask, user_id: str, lesson_id: str, count: int, api: dict, target: str, source: str | None = None) -> str:
     job_id = "gen_" + uuid.uuid4().hex[:12]
     with _lock:
         _jobs[job_id] = {"user_id": user_id, "state": "running", "done": 0, "total": count}
-    threading.Thread(target=_run, args=(app, job_id, user_id, lesson_id, count, api, target), daemon=True).start()
+    threading.Thread(target=_run, args=(app, job_id, user_id, lesson_id, count, api, target, source), daemon=True).start()
     return job_id
 
 
@@ -39,7 +39,7 @@ def target_name(iso2t: str | None) -> str:
     return "the target language" if language.iso1 == "unknown" else language.name
 
 
-def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api: dict, target: str) -> None:
+def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api: dict, target: str, source: str | None) -> None:
     job = _jobs[job_id]
     with app.app_context():
         try:
@@ -49,8 +49,10 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
                 tts = prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None
                 slots = plan_slots(pool, count, prefs.exercise_type_prefs, tts)
             job["total"] = len(slots)
-            items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1))
-            reasons = judge_batch(items, api, target)
+            known = [p.label for p in pool][:KNOWN_MAX]
+            items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1), source=source, known=known)
+            add_mentioned_links(items, pool)
+            reasons = judge_batch(items, api, target, known=known)
             batch_id = "batch_" + uuid.uuid4().hex[:12]
             created: list[tuple[str, str | None]] = []
             with db_manager.session_scope() as s:

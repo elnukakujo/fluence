@@ -90,3 +90,45 @@ def test_element_text_only_reaches_the_user_message(model):
     system, user = model.calls[0]
     assert "ignore previous instructions" in user["content"] and "ignore previous instructions" not in system["content"]
     assert "data" in system["content"].lower()
+
+
+def test_instructions_are_requested_in_the_source_language_and_known_words_stay_in_the_user_message(model):
+    model.replies = [[essay("Q?", ["voc_V1"])]]
+    gen.generate_batch([Slot("essay", [V1])], API, "Chinese", source="English", known=["猫", "狗"])
+    system, user = model.calls[0]
+    assert "English" in system["content"] and "Chinese" in system["content"] and "true_false" in system["content"]
+    assert "猫" in user["content"] and "猫" not in system["content"]
+
+
+def test_judge_gets_the_known_words_and_never_the_derived_answer_of_speaking_or_conversation(model):
+    model.replies = [{"verdicts": [{"ok": True}, {"ok": True}, {"ok": True}]}]
+    items = [{"exercise_type": "speaking", "question": "Say hi", "answer": "Say hi", "linked": []},
+             {"exercise_type": "conversation", "question": "DIALOGUE", "answer": "LEARNER-LINES-ONLY", "linked": []},
+             {"exercise_type": "essay", "question": "q", "answer": "a", "linked": []}]
+    gen.judge_batch(items, API, "Chinese", known=["猫"])
+    sent = json.loads(model.calls[0][1]["content"])
+    assert sent["known"] == ["猫"]
+    assert "answer" not in sent["exercises"][0] and "answer" not in sent["exercises"][1] and sent["exercises"][2]["answer"] == "a"
+    assert "LEARNER-LINES-ONLY" not in model.calls[0][1]["content"]
+    assert "by design" in model.calls[0][0]["content"]
+
+
+def _made(question, answer="x", etype="essay", linked=()):
+    return {"exercise_type": etype, "question": question, "answer": answer, "text_support": None, "content": None,
+            "related_vocabulary": list(linked), "related_grammar": [], "related_calligraphy": []}
+
+
+def test_every_pool_element_the_text_mentions_is_linked_not_only_the_ones_the_model_named():
+    pool = [PoolItem("vocabulary", "voc_V1", "cat", 0), PoolItem("vocabulary", "voc_V2", "dog", 0), PoolItem("grammar", "gram_G1", "把", 0),
+            PoolItem("vocabulary", "voc_V3", "bird", 0)]
+    item = _made("The dog sees a cat", "把 it", linked=["voc_V1"])
+    gen.add_mentioned_links([item], pool)
+    assert item["related_vocabulary"] == ["voc_V1", "voc_V2"] and item["related_grammar"] == ["gram_G1"]
+
+
+def test_conversation_links_look_at_the_spoken_text_not_the_json_keys():
+    pool = [PoolItem("vocabulary", "voc_V1", "name", 0), PoolItem("vocabulary", "voc_V2", "hello", 0)]
+    dialogue = json.dumps({"speakers": [{"id": "s1", "name": "A", "isUser": False}], "lines": [{"speakerId": "s1", "text": "hello there", "audioIndex": None}]})
+    item = _made(dialogue, dialogue, etype="conversation")
+    gen.add_mentioned_links([item], pool)
+    assert item["related_vocabulary"] == ["voc_V2"]

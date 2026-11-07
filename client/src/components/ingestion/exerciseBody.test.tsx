@@ -13,6 +13,11 @@ describe("ExerciseBody", () => {
     show({ text_support: "Some passage" });
     ["Q?", "Some passage", "A!"].forEach((x) => expect(screen.getByText(x)).toBeInTheDocument());
   });
+  it("speaking shows the prompt only: its stored answer just repeats it", () => {
+    show({ exercise_type: "speaking", question: "Say hello", answer: "Say hello" });
+    expect(screen.getAllByText("Say hello")).toHaveLength(1);
+    expect(screen.queryByText("Answer")).toBeNull();
+  });
   it("quizz marks every correct option", () => {
     show({ exercise_type: "quizz", content: { options: ["red", "blue", "green"], correct: [0, 2] } });
     expect(screen.getByText("red").parentElement).toHaveTextContent("(correct)");
