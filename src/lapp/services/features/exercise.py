@@ -170,6 +170,8 @@ class ExerciseService:
             text_support=exercise_data.get("text_support", ""),
             content=exercise_data.get("content"),
             category=exercise_data.get("category"),
+            generation_batch_id=exercise_data.get("generation_batch_id"),
+            review_reason=exercise_data.get("review_reason"),
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
             tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
@@ -209,6 +211,8 @@ class ExerciseService:
             setattr(existing, key, value)
         if "category" in data.model_fields_set and data.category is None:
             existing.category = None     # exclude_none above would otherwise make a category impossible to clear
+        if "review_reason" in data.model_fields_set and data.review_reason is None:
+            existing.review_reason = None   # accepting a generated exercise clears its reason
 
         if related_calligraphy is not None or related_vocabulary is not None or related_grammar is not None:
             existing.related_calligraphy, existing.related_vocabulary, existing.related_grammar = self._resolve_associations(

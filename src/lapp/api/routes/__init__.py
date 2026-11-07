@@ -23,6 +23,7 @@ from .auth import bp as auth_bp
 from .collaboration import bp as collaboration_bp
 from .ingestion import bp as ingestion_bp
 from .element import bp as element_bp
+from .exercise_generation import bp as exercise_generation_bp
 __all__ = [
     language_bp,
     lesson_bp,
@@ -49,4 +50,5 @@ __all__ = [
     collaboration_bp,
     ingestion_bp,
     element_bp,
+    exercise_generation_bp,
 ]

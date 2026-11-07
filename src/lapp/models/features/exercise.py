@@ -12,6 +12,8 @@ class Exercise(BaseFeatureModel):
     answer = Column(String, nullable=False)
     text_support = Column(String, default="")   # e.g., additional text information
     category = Column(String, nullable=True)  # exam-section slug (listening, reading, ...); the client owns the per-language table, never validated here
+    generation_batch_id = Column(String, nullable=True, index=True)  # set on AI-generated exercises: one id per generation run
+    review_reason = Column(String, nullable=True)  # why a generated exercise awaits review; set = not ready until accepted
     content = Column(JSON, nullable=True)  # structured data for type_in_the_blank/select_in_the_blank/matching/organize/true_false/quizz
     
     related_vocabulary = relationship('Vocabulary', secondary=exercise_vocabulary_link)
@@ -21,13 +23,14 @@ class Exercise(BaseFeatureModel):
     @property
     def needs(self) -> list[str]:
         """What the user still has to provide before this exercise can be practised ([] = ready).
-        A dictation needs a clip for every line; other types need nothing."""
+        A generated exercise waits for review; a dictation needs a clip for every line; other types need nothing."""
+        needs = ["review"] if self.review_reason else []
         if self.exercise_type != "dictation":
-            return []
+            return needs
         files = self.audio_files or []
         lines = (self.content or {}).get("lines") or []
         ok = all(isinstance(l.get("audioIndex"), int) and 0 <= l["audioIndex"] < len(files) for l in lines)
-        return [] if lines and ok else ["audio"]
+        return needs if lines and ok else needs + ["audio"]
 
     def to_dict(self, include_relations: bool = True) -> dict:
         base_dict = {
@@ -38,6 +41,8 @@ class Exercise(BaseFeatureModel):
             "answer": self.answer,
             "content": self.content,
             "category": self.category,
+            "generation_batch_id": self.generation_batch_id,
+            "review_reason": self.review_reason,
             "needs": self.needs,
             "related_vocabulary": [v.id for v in self.related_vocabulary],
             "related_calligraphy": [c.id for c in self.related_calligraphy],

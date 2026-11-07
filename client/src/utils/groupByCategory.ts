@@ -1,14 +1,15 @@
 import type Exercise from "@/interface/features/Exercise";
-import type { ExamCategory } from "@/utils/language_iso639";
+import { categoryOf, type ExamCategory } from "@/utils/language_iso639";
 
 export interface CategoryGroup { slug: string | null; exercises: Exercise[] }
 
-/** Groups in the exam's order, then groups for slugs the exam no longer has (by slug), then uncategorized (null) last. Empty groups are omitted. */
+/** Groups by the category derived from the exercise type: the exam's order, then slugs the exam lacks (by slug), then unknown types (null) last. Empty groups are omitted. */
 export function groupByCategory(exercises: Exercise[], categories: ExamCategory[]): CategoryGroup[] {
     const known = categories.map((c) => c.slug);
-    const stale = [...new Set(exercises.map((e) => e.category).filter((c): c is string => !!c && !known.includes(c)))].sort();
+    const cat = (e: Exercise) => categoryOf(e.exercise_type, categories);
+    const stale = [...new Set(exercises.map(cat).filter((c): c is string => !!c && !known.includes(c)))].sort();
     return [...known, ...stale, null]
-        .map((slug) => ({ slug, exercises: exercises.filter((e) => (e.category || null) === slug) }))
+        .map((slug) => ({ slug, exercises: exercises.filter((e) => cat(e) === slug) }))
         .filter((g) => g.exercises.length > 0);
 }
 

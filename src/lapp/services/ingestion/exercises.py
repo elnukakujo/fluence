@@ -1,6 +1,7 @@
 """Rebuild imported exercise candidates from the review screen: merge several into one, or regenerate one."""
 from . import elements as el
 from .types import Chunk
+from .verify import normalise
 
 
 def _finish(raw: dict, etype: str, support: str | None, chunk: Chunk) -> dict:
@@ -101,3 +102,20 @@ def combined_chunk(chunks: list[Chunk], chunk_ids: list[str]) -> Chunk | None:
     """The page text of the named chunks as one chunk (the first one's id/page); None if none of them exists."""
     found = [c for i in dict.fromkeys(chunk_ids) for c in chunks if c.id == i]
     return found[0].model_copy(update={"text": "\n".join(c.text for c in found), "prev": "", "next": ""}) if found else None
+
+
+def _strings(value) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        value = list(value.values())
+    return [t for v in value for t in _strings(v)] if isinstance(value, list) else []
+
+
+def link_to_elements(fields: dict, vocabulary: list[tuple[str, str]], grammar: list[tuple[str, str]],
+                     calligraphy: list[tuple[str, str]]) -> dict[str, list[str]]:
+    """The lesson elements ((id, text) pairs: word, grammar title, character) an exercise mentions in its question, answer, support or content."""
+    haystack = normalise(" ".join(_strings([fields.get("question"), fields.get("answer"), fields.get("text_support"), fields.get("content")])))
+    # ponytail: plain substring match, so a one-letter word links everywhere; a tokenizer-aware match if that shows up in practice
+    found = lambda pairs: [i for i, text in pairs if normalise(text) and normalise(text) in haystack]
+    return {"related_vocabulary": found(vocabulary), "related_grammar": found(grammar), "related_calligraphy": found(calligraphy)}

@@ -22,7 +22,7 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("exercise form: reading and dictation", () => {
   it("updates a reading: keeps each line's audioIndex and stores the joined lines as the answer", async () => {
-    form({ id: "ex_1", exercise_type: "reading", question: "Read", answer: "a\nb", lesson_id: "lesson_1",
+    form({ id: "ex_1", exercise_type: "reading", question: "Read", answer: "a\nb", lesson_id: "lesson_1", related_vocabulary: ["v1"],
       content: { speakers: [{ id: "s1", name: "A" }, { id: "s2", name: "B" }],
                  lines: [{ speakerId: "s1", text: "a", translation: null, audioIndex: 0 }, { speakerId: "s2", text: "b", translation: "bee", audioIndex: null }] } });
     const texts = screen.getAllByPlaceholderText("Line text…");
@@ -37,7 +37,7 @@ describe("exercise form: reading and dictation", () => {
   });
 
   it("creates dictation content and a space-joined answer from its rows", async () => {
-    form({ id: "ex_2", exercise_type: "dictation", question: "Write", answer: "x y", lesson_id: "lesson_1",
+    form({ id: "ex_2", exercise_type: "dictation", question: "Write", answer: "x y", lesson_id: "lesson_1", related_vocabulary: ["v1"],
       content: { lines: [{ text: "x", audioIndex: null }, { text: "y", audioIndex: 1 }] } });
     await userEvent.click(screen.getByRole("button", { name: "Update Exercise" }));
     const sent = api.updateExercise.mock.calls[0][1];
@@ -46,7 +46,7 @@ describe("exercise form: reading and dictation", () => {
   });
 
   it("saves with no instruction: the question falls back to the first line, and the field is not required", async () => {
-    form({ id: "ex_3", exercise_type: "dictation", question: "x", answer: "x", lesson_id: "lesson_1", content: { lines: [{ text: "犬がいます", audioIndex: null }] } });
+    form({ id: "ex_3", exercise_type: "dictation", question: "x", answer: "x", lesson_id: "lesson_1", related_vocabulary: ["v1"], content: { lines: [{ text: "犬がいます", audioIndex: null }] } });
     const instruction = screen.getByLabelText("Instruction (optional)");
     expect(instruction).not.toBeRequired();
     await userEvent.clear(instruction);
@@ -55,7 +55,7 @@ describe("exercise form: reading and dictation", () => {
   });
 
   it("puts the lines card between the instruction/support and the media loader", () => {
-    form({ id: "ex_4", exercise_type: "reading", question: "Read", answer: "a", lesson_id: "lesson_1",
+    form({ id: "ex_4", exercise_type: "reading", question: "Read", answer: "a", lesson_id: "lesson_1", related_vocabulary: ["v1"],
       content: { speakers: [{ id: "s1", name: "A" }], lines: [{ speakerId: "s1", text: "a", translation: null, audioIndex: null }] } });
     const support = screen.getByLabelText("Support");
     const lines = screen.getByText("Lines to read");

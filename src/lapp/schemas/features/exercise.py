@@ -28,6 +28,9 @@ class ExerciseDict(BaseFeatureDict):
     content: Optional[dict] = None              # structured data for the structured types below
     category: Optional[str] = None              # exam-section slug; free text on purpose (the client owns the table)
 
+    generation_batch_id: Optional[str] = None   # AI generation run that made it
+    review_reason: Optional[str] = None         # set = generated exercise awaiting review (explicit None on update clears it)
+
     related_vocabulary: Optional[list[str]] = None # e.g., ["voc_V1"]
     related_calligraphy: Optional[list[str]] = None  # e.g., ["call_C1"]
     related_grammar: Optional[list[str]] = None    # e.g., ["gram_G1"]

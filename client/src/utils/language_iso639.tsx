@@ -710,12 +710,16 @@ export function getExamCategories(iso: string | undefined): ExamCategory[] {
   return (iso && languageProficiencySystems[iso]?.examCategories) || DEFAULT_EXAM_CATEGORIES;
 }
 
-const TYPE_SUGGESTION: Record<string, string> = {
-  dictation: "listening", reading: "reading", speaking: "speaking", conversation: "speaking", essay: "writing", translate: "writing",
+const TYPE_CATEGORY: Record<string, string> = {
+  dictation: "listening", reading: "reading", answering: "reading", speaking: "speaking", conversation: "speaking", essay: "writing", translate: "writing",
+  quizz: "language_knowledge", matching: "language_knowledge", true_false: "language_knowledge", organize: "language_knowledge",
+  type_in_the_blank: "language_knowledge", select_in_the_blank: "language_knowledge",
 };
 
-/** The category slug a new exercise of this type should start with, when the language's exam has it. */
-export function suggestCategory(exerciseType: string, categories: ExamCategory[]): string | null {
-  const slug = TYPE_SUGGESTION[exerciseType];
-  return slug && categories.some((c) => c.slug === slug) ? slug : null;
+/** The exam section of an exercise, derived from its type. `language_knowledge` is JLPT-only: other exams file those types under reading.
+ *  Other slugs are returned as is, even when the exam lacks them (the list still groups them). Unknown type -> null. */
+export function categoryOf(exerciseType: string | undefined, categories: ExamCategory[]): string | null {
+  const slug = TYPE_CATEGORY[exerciseType ?? ""];
+  if (!slug) return null;
+  return slug === "language_knowledge" && !categories.some((c) => c.slug === slug) ? "reading" : slug;
 }

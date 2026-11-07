@@ -5,7 +5,7 @@ from lapp.models.features.exercise import Exercise
 
 def _ex(t, content, files):
     # the property only reads three attributes; a plain namespace avoids needing an app context
-    return SimpleNamespace(needs=Exercise.needs.fget(SimpleNamespace(exercise_type=t, content=content, audio_files=files)))
+    return SimpleNamespace(needs=Exercise.needs.fget(SimpleNamespace(exercise_type=t, content=content, audio_files=files, review_reason=None)))
 
 
 def test_dictation_needs_audio_until_every_line_has_a_clip():
