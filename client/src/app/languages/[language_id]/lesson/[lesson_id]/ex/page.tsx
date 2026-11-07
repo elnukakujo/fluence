@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 import LessonItems, { SelectAllRow, SelectBox, SelectToggle } from "@/components/elements/itemSelection";
 import { getLessonById } from "@/api/lesson";
 import { getLanguageById } from "@/api/language";
-import { getExamCategories } from "@/utils/language_iso639";
+import { categoryOf, getExamCategories } from "@/utils/language_iso639";
 import { categoryLabel, groupByCategory } from "@/utils/groupByCategory";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { Play, Pencil } from "lucide-react";
@@ -30,7 +30,7 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
     const shown = exercises.filter((e) =>
         (!wanted.length || wanted.includes(e.exercise_type || "unknown")) &&
         (!status || (status === "ready") === !e.needs?.length) &&
-        (!category || e.category === category));
+        (!category || categoryOf(e.exercise_type, categories) === category));
     const exercisesByCategory = groupByCategory(shown, categories);
 
     return(
