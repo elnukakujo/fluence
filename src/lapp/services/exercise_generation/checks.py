@@ -13,7 +13,7 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
     etype = item.get("exercise_type")
     if etype not in EXERCISE_TYPES:
         return f"unknown exercise type {etype!r}"
-    if not (item.get("question") or "").strip():
+    if not (item.get("question") or "").strip() and etype not in ("reading", "dictation"):    # their lines are the exercise; the instruction is optional
         return "the question is empty"
     if (error := exercise_content_error(etype, item.get("content"))):
         return error

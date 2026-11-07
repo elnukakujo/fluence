@@ -48,9 +48,32 @@ def test_every_item_is_covered_and_weak_ones_get_more():
     assert {i.id for s in plan_slots(pool, 3, None, True, random.Random(3)) for i in s.items} >= {"voc_weak", "voc_strong", "gram_G"}
 
 
-def test_matching_groups_several_items_others_take_one():
-    for s in plan_slots(_pool(8), 200, None, True, random.Random(4)):
-        assert (2 <= len(s.items) <= 4) if s.exercise_type == "matching" else len(s.items) == 1
+SIZES = {"matching": (2, 4), "reading": (3, 5), "conversation": (2, 4)}
+
+
+def test_multi_item_slots_hold_a_few_elements_and_the_others_one():
+    for s in plan_slots(_pool(10), 300, None, True, random.Random(4)):
+        low, high = SIZES.get(s.exercise_type, (1, 1))
+        assert low <= len(s.items) <= high, (s.exercise_type, len(s.items))
+        assert len({i.id for i in s.items}) == len(s.items)
+
+
+def test_a_small_pool_caps_the_slot_size():
+    for s in plan_slots(_pool(2), 50, None, True, random.Random(4)):
+        assert len(s.items) <= 2
+
+
+def test_every_batch_of_four_or_more_has_a_reading_unless_it_is_banned():
+    for seed in range(40):
+        kinds = [s.exercise_type for s in plan_slots(_pool(8), 6, None, True, random.Random(seed))]
+        assert "reading" in kinds, seed
+    banned = [s.exercise_type for s in plan_slots(_pool(8), 6, {"reading": "ban"}, True, random.Random(1))]
+    assert "reading" not in banned
+
+
+def test_reading_is_weighted_above_a_plain_type():
+    kinds = Counter(s.exercise_type for s in plan_slots(_pool(8), 1300, None, True, random.Random(5)))
+    assert kinds["reading"] > kinds["essay"] * 1.4
 
 
 def _seed(db, own=2, other=3):

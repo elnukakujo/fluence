@@ -132,3 +132,17 @@ def test_conversation_links_look_at_the_spoken_text_not_the_json_keys():
     item = _made(dialogue, dialogue, etype="conversation")
     gen.add_mentioned_links([item], pool)
     assert item["related_vocabulary"] == ["voc_V2"]
+
+
+def test_a_reading_without_an_instruction_takes_its_first_line_as_the_question(model):
+    reading = {"question": "", "answer": "", "text_support": None, "links": ["voc_V1"],
+               "content": {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": "你好，很高兴认识你！", "translation": None}]}}
+    model.replies = [[reading]]
+    [out] = gen.generate_batch([Slot("reading", [V1])], API, "Chinese")
+    assert out["question"] == "你好，很高兴认识你！"
+
+
+def test_the_reading_prompt_asks_for_a_short_passage_using_the_elements(model):
+    model.replies = [[], []]       # nothing usable twice: the slot is dropped, we only read the prompt
+    gen.generate_batch([Slot("reading", [V1])], API, "Chinese")
+    assert "short passage" in model.calls[0][0]["content"]
