@@ -18,13 +18,11 @@ const GRADES_CONFIG: GradeOption[] = [
 
 type RecallGradeButtonsProps = {
     onGrade: (score: number) => void;
-    /** Best score allowed (a hint was used): higher grades are disabled. */
-    maxScore?: number;
     /** The grade that matches how the card went; marked with text. The user still chooses. */
     suggested?: RecallGrade;
 };
 
-export default function RecallGradeButtons({ onGrade, maxScore = 1, suggested }: RecallGradeButtonsProps) {
+export default function RecallGradeButtons({ onGrade, suggested }: RecallGradeButtonsProps) {
     const t = useTranslations("ui");
 
     const GRADES = GRADES_CONFIG.map(g => ({
@@ -43,7 +41,6 @@ export default function RecallGradeButtons({ onGrade, maxScore = 1, suggested }:
                     <button
                         key={value}
                         onClick={() => onGrade(score)}
-                        disabled={score > maxScore}
                         className={`grade-btn grade-${value}`}
                     >
                         <span className="grade-dot" />

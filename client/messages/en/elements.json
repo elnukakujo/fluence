@@ -84,7 +84,7 @@
   "hintContext": "Example: {sentence}",
   "hintRadical": "Radical: {radical}",
   "hintPhonetic": "Sounds like: /{phonetic}/",
-  "hintCapNote": "Using a hint limits the best grade you can give.",
+  "hintCapNote": "A hint changes the suggested grade. You still choose.",
   "typePrompt": "Type the word",
   "typeCheck": "Check",
   "typeDontKnow": "I don't know",

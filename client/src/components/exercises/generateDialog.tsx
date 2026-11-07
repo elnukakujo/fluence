@@ -8,6 +8,7 @@ import { getGeneration, startGeneration, suggestGeneration, undoGenerationBatch,
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import GenerationReview from "./generationReview";
 import GenerationProgress from "./generationProgress";
+import { scaleMix } from "@/utils/scaleMix";
 import NumberField from "@/components/ui/input/numberField";
 
 const MAX = 60;           // same cap as the server (GEN_MAX)
@@ -25,20 +26,9 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
     const [jobId, setJobId] = useState<string | null>(null);
     const [error, setError] = useState<string>("");
     const dialogRef = useRef<HTMLDivElement>(null);
-    const planned = useRef(0);                      // the count the shown mix was planned for
     const tRef = useRef(t); tRef.current = t;      // the polling effect must not restart whenever the translator changes identity
 
     useEffect(() => { if (phase === "configure") dialogRef.current?.querySelector<HTMLInputElement>("input[type=number]")?.focus(); }, [phase]);
-
-    // the planned mix follows the number typed in (the server plans exactly that many); the first plan is the one opening the dialog
-    useEffect(() => {
-        const n = Math.min(MAX, parseInt(count, 10));
-        if (phase !== "configure" || !(n >= 1) || n === planned.current) return;
-        const timer = setTimeout(async () => {
-            try { const s = await suggestGeneration(lessonId, n); planned.current = n; setSuggestion((old) => ({ ...old, mix: s.mix })); } catch { /* keep the previous mix */ }
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [count, phase, lessonId]);
 
     useEffect(() => {
         if (phase !== "running" || !jobId) return;
@@ -68,7 +58,6 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
         try {
             const s = await suggestGeneration(lessonId);
             setSuggestion(s);
-            planned.current = s.count;
             setCount(String(s.count));
             setPhase("configure");
         } catch (e) {
@@ -108,7 +97,7 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
         }
     };
 
-    const mix = Object.entries(suggestion.mix).sort((a, b) => b[1] - a[1]);
+    const mix = Object.entries(scaleMix(suggestion.mix, Math.min(MAX, parseInt(count, 10) || 0))).sort((a, b) => b[1] - a[1]);   // preview only: the shown mix is the suggestion resized to the typed count
     const top = mix[0]?.[1] ?? 1;
     const review = phase === "done" && (job?.result?.flagged.length ?? 0) > 0;   // step 2 replaces the dialog
     return (

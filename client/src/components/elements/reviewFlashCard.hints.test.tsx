@@ -25,26 +25,25 @@ const flip = () => userEvent.click(screen.getByText("Click to reveal"));
 beforeEach(() => vi.clearAllMocks());
 
 describe("review card: hint ladder", () => {
-    it("hint 1 shows the answer's shape and caps the best grade at good", async () => {
+    it("hint 1 shows the answer's shape and suggests good, every grade stays available", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
         expect(screen.getByText("Starts with: c _ _")).toBeInTheDocument();
         await flip();
-        expect(screen.getByRole("button", { name: /Easy/ })).toBeDisabled();
-        expect(screen.getByRole("button", { name: /Good/ })).toBeEnabled();
+        expect(screen.getByRole("button", { name: /Easy/ })).toBeEnabled();
         expect(screen.getByRole("button", { name: /Good/ })).toHaveTextContent("Suggested");
     });
 
-    it("hint 2 shows an example and caps the best grade at hard", async () => {
+    it("hint 2 shows an example and suggests hard; the user can still pick another grade", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
         expect(screen.getByText("Example: 猫在睡觉")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Hint" })).toBeDisabled();
         await flip();
-        expect(screen.getByRole("button", { name: /Good/ })).toBeDisabled();
-        await userEvent.click(screen.getByRole("button", { name: /Hard/ }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0.5, expect.any(Number), true, undefined, "front");
+        expect(screen.getByRole("button", { name: /Hard/ })).toHaveTextContent("Suggested");
+        await userEvent.click(screen.getByRole("button", { name: /Good/ }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0.75, expect.any(Number), true, undefined, "front");
     });
 
     it("a quick flip with no hint suggests easy and allows every grade", async () => {
@@ -52,6 +51,12 @@ describe("review card: hint ladder", () => {
         await flip();
         expect(screen.getByRole("button", { name: /Easy/ })).toBeEnabled();
         expect(screen.getByRole("button", { name: /Easy/ })).toHaveTextContent("Suggested");
+    });
+
+    it("the hint button sits above the card, not under it", async () => {
+        render(<ReviewFlashCard cards={[voc()]} />);
+        const hint = screen.getByRole("button", { name: "Hint" });
+        expect(hint.compareDocumentPosition(screen.getByText("Click to reveal")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("without an example the ladder stops after the first hint", async () => {
@@ -68,10 +73,11 @@ describe("review card: hint ladder", () => {
         expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
     });
 
-    it("peeking counts as a hint for the cap", async () => {
+    it("peeking counts as a hint: it lowers the suggestion, nothing is disabled", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
         await userEvent.click(screen.getByRole("button", { name: "Peek" }));
         await flip();
-        expect(screen.getByRole("button", { name: /Easy/ })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /Easy/ })).toBeEnabled();
+        expect(screen.getByRole("button", { name: /Good/ })).toHaveTextContent("Suggested");
     });
 });

@@ -189,6 +189,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 </>
             ) : (
                 <>
+                    {/* ── Hints sit at the top, under the header ── */}
+                    {tier && hiddenTranslation && !showPractice && !choiceActive && (
+                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                    )}
+
                     {/* ── Calligraphy: draw the character (stroke order + similarity) ── */}
                     {isCalligraphy(card) && !showPractice && (
                         <button className="btn self-end" onClick={() => setShowPractice(true)}>{tCal("practiceButton")}</button>
@@ -285,13 +290,9 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         <button type="button" className="btn btn-secondary min-h-11 self-start" onClick={peek}>{t("peek")}</button>
                     )}
 
-                    {tier && hiddenTranslation && !showPractice && !choiceActive && (
-                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
-                    )}
-
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
-                        <RecallGradeButtons onGrade={handleGrade} maxScore={HINT_CAPS[effectiveLevel]} suggested={tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
+                        <RecallGradeButtons onGrade={handleGrade} suggested={tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
                     )}
 
                     {/* ── Post-grade content ───────────────────────── */}

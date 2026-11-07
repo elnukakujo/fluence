@@ -78,8 +78,8 @@ export type GenerationJob = {
 const codeOf = async (res: Response, fallback: string) => ((await res.json().catch(() => ({}))) as { error?: string }).error ?? fallback;
 
 /** Recommended number of exercises for a lesson and the planned mix of types. */
-export async function suggestGeneration(lessonId: string, count?: number): Promise<{ count: number; mix: Record<string, number>; pool: number }> {
-  const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/suggest${count ? `?count=${count}` : ""}`, { headers: await getAuthHeaders() });
+export async function suggestGeneration(lessonId: string): Promise<{ count: number; mix: Record<string, number>; pool: number }> {
+  const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/suggest`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(await codeOf(res, "suggest_failed"));
   return res.json();
 }

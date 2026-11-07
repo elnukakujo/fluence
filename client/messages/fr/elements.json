@@ -84,7 +84,7 @@
   "hintContext": "Exemple : {sentence}",
   "hintRadical": "Clé : {radical}",
   "hintPhonetic": "Se prononce : /{phonetic}/",
-  "hintCapNote": "Utiliser un indice limite la meilleure note possible.",
+  "hintCapNote": "Un indice change la note suggérée. Vous choisissez toujours.",
   "typePrompt": "Tapez le mot",
   "typeCheck": "Vérifier",
   "typeDontKnow": "Je ne sais pas",

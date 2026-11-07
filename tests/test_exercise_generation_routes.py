@@ -64,17 +64,6 @@ def test_suggest_returns_a_count_and_a_mix_without_banned_types(app, db):
     assert body["count"] >= 6 and body["pool"] == 8 and sum(body["mix"].values()) == body["count"] and "quizz" not in body["mix"]
 
 
-def test_suggest_with_a_count_plans_exactly_that_many(app, db):
-    _user(db, "user_U1")
-    _lesson(db)
-    c = _client(app, "user_U1")
-    for n in (3, 20):
-        body = c.get(f"/api/lesson/lesson_L1/exercises/suggest?count={n}").get_json()
-        assert body["count"] == n and sum(body["mix"].values()) == n
-    assert c.get("/api/lesson/lesson_L1/exercises/suggest?count=999").status_code == 400
-    assert c.get("/api/lesson/lesson_L1/exercises/suggest?count=abc").status_code == 400
-
-
 def test_suggest_on_an_empty_lesson_is_zero(app, db):
     _user(db, "user_U1")
     _lesson(db, words=0)

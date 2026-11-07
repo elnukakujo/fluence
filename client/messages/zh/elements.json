@@ -84,7 +84,7 @@
   "hintContext": "例句：{sentence}",
   "hintRadical": "部首：{radical}",
   "hintPhonetic": "读音：/{phonetic}/",
-  "hintCapNote": "使用提示会限制可给的最高评分。",
+  "hintCapNote": "提示会改变建议的评分，但由你决定。",
   "typePrompt": "输入这个词",
   "typeCheck": "检查",
   "typeDontKnow": "不知道",
