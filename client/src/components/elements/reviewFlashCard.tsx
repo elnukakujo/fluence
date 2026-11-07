@@ -27,6 +27,9 @@ import HintLadder from "./hintLadder";
 import TypeAnswer from "./typeAnswer";
 import LeechPanel from "./leechPanel";
 import LeechChoice from "./leechChoice";
+import AudioPlayer from "@/components/media/audioPlayer";
+import { PUBLIC_BASE_URL } from "@/api";
+import { isListenFirst } from "@/utils/listenFirst";
 import { gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
 import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
@@ -129,6 +132,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const tier = isVocabulary(card) || isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
     const scaffolds = tier ? scaffoldsFor(tier) : null;
     const showDetail = scaffolds?.detail === "shown" || peeked;                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
+    const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date());        // hear the clip before seeing the word
     const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
     const peek = () => { setPeeked(true); setHintUsed(true); };
     const effectiveLevel = Math.min(2, Math.max(hintLevel, peeked ? 1 : 0));            // a peek counts as the first hint
@@ -241,7 +245,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 }}
                             >
                                 {isVocabulary(card) && (
-                                    <>
+                                    listenFirst ? <p className="text-center text-lg font-medium">{t("listenPrompt")}</p> : <>
                                         <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} showPhonetic={showDetail} />
                                         {example && <SentenceCard sentence={example} hiddenTranslation={true} />}
                                     </>
@@ -271,6 +275,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         </div>
                     </div>
 
+                    )}
+
+                    {listenFirst && isVocabulary(card) && hiddenTranslation && !choiceActive && (
+                        <AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} />
                     )}
 
                     {scaffolds?.detail === "peek" && !peeked && hiddenTranslation && !showPractice && !choiceActive && (

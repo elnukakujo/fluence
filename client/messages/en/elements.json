@@ -96,5 +96,6 @@
   "leechNote": "Your memory trick",
   "leechNotePlaceholder": "Write a mnemonic, a picture, a story…",
   "chooseMeaning": "Which meaning goes with {word}?",
-  "chooseWord": "Which word means {translation}?"
+  "chooseWord": "Which word means {translation}?",
+  "listenPrompt": "Listen and recall"
 }

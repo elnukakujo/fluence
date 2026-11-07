@@ -96,5 +96,6 @@
   "leechNote": "你的记忆窍门",
   "leechNotePlaceholder": "写下助记法、画面或小故事…",
   "chooseMeaning": "哪个意思对应 {word}？",
-  "chooseWord": "哪个词的意思是 {translation}？"
+  "chooseWord": "哪个词的意思是 {translation}？",
+  "listenPrompt": "先听，再回忆"
 }
