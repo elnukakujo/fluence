@@ -24,6 +24,8 @@ import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
 import HintLadder from "./hintLadder";
+import TypeAnswer from "./typeAnswer";
+import { gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
 import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 
@@ -43,6 +45,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
     const [peeked, setPeeked] = useState<boolean>(false);
+    const [typed, setTyped] = useState<{ correct: boolean } | null>(null);        // the result of a typed answer
+    const [flipInstead, setFlipInstead] = useState<boolean>(false);
     const [hintLevel, setHintLevel] = useState<number>(0);   // hints taken from the ladder (0-2)
     const [flipMs, setFlipMs] = useState<number>(0);          // time from showing the card to flipping it
     const [showPractice, setShowPractice] = useState<boolean>(false);
@@ -64,6 +68,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     useEffect(() => { if (last && graded) finish(); });
     const card = remaining[0];
 
+    const autoDraw = !!card && isCalligraphy(card) && tierOf(card as unknown as Parameters<typeof tierOf>[0]) === "maintaining";   // a strong character is drawn, not flipped
+
     useEffect(() => {
         startTimeRef.current = performance.now();
         setHintUsed(false);
@@ -72,7 +78,9 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setPeeked(false);
         setHintLevel(0);
         setFlipMs(0);
-        setShowPractice(false);
+        setTyped(null);
+        setFlipInstead(false);
+        setShowPractice(autoDraw);
         setPracticeResult(null);
     }, [currentIndex]);
 
@@ -120,6 +128,15 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
     const peek = () => { setPeeked(true); setHintUsed(true); };
     const effectiveLevel = Math.min(2, Math.max(hintLevel, peeked ? 1 : 0));            // a peek counts as the first hint
+    const typedMode = tier === "maintaining" && isVocabulary(card) && card.side === "back" && !flipInstead;
+    const answerTyped = (value: string | null) => {          // null = gave up
+        if (!isVocabulary(card)) return;
+        const correct = value !== null && matchesAnswer(value, card.word);
+        const ms = Math.round(performance.now() - startTimeRef.current);
+        setTyped({ correct });
+        setHiddenTranslation(false);
+        handleGrade(Math.min(gradeForTyped(correct, ms), HINT_CAPS[effectiveLevel]));
+    };
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
@@ -180,6 +197,15 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     {tier && !showPractice && <TierBadge tier={tier} />}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
+                    ) : typedMode && isVocabulary(card) ? (
+                    <section className="flex flex-col gap-3">
+                        <WordCard word={card.word} hiddenTranslation={hiddenTranslation} hiddenAdditionalInformations={false} reverse showPhonetic={showDetail} />
+                        {hiddenTranslation ? (
+                            <TypeAnswer onSubmit={answerTyped} onGiveUp={() => answerTyped(null)} onFlip={() => setFlipInstead(true)} />
+                        ) : typed && (
+                            <p role="status" className="font-medium">{typed.correct ? t("typeRight") : t("typeWrong", { word: card.word.word ?? "" })}</p>
+                        )}
+                    </section>
                     ) : (
                     <div className="flashcard">
                         <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
