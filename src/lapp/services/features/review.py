@@ -147,7 +147,7 @@ class ReviewService:
                 key_of = lambda c, scores=scores: review_priority(*self._review_fields(c, scores.get(c.id)))
             buckets[model] = order_bucket(items, key_of, goal_rank, set())
 
-        exercises = session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids)).all()
+        exercises = session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids), Exercise.review_reason.is_(None)).all()
         own = ExerciseUserPrefService().modes_for(user_id, [c.id for c in exercises], session=session)
         modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in exercises}
         exercises = [c for c in exercises if modes[c.id] != "ban"]
