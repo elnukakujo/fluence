@@ -73,5 +73,10 @@
   "front": "Recto",
   "back": "Verso",
   "average": "Global",
-  "reviewProgress": "Progression de la révision"
+  "reviewProgress": "Progression de la révision",
+  "tier_learning": "Apprentissage",
+  "tier_practising": "Entraînement",
+  "tier_maintaining": "Entretien",
+  "tierTitle": "Votre niveau sur cette carte ; il règle l'aide donnée au recto.",
+  "peek": "Jeter un œil"
 }

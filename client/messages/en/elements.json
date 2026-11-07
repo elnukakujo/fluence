@@ -73,5 +73,10 @@
   "front": "Front",
   "back": "Back",
   "average": "Overall",
-  "reviewProgress": "Review progress"
+  "reviewProgress": "Review progress",
+  "tier_learning": "Learning",
+  "tier_practising": "Practising",
+  "tier_maintaining": "Maintaining",
+  "tierTitle": "How well you know this card; it sets how much help the front gives.",
+  "peek": "Peek"
 }

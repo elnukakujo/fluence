@@ -22,6 +22,8 @@ import ReviewHeader from "./reviewHeader";
 import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
+import TierBadge from "./tierBadge";
+import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 
 const isVocabulary = (c: ReviewCard): c is Vocabulary => "word" in c;
 const isGrammar = (c: ReviewCard): c is Grammar => "title" in c;
@@ -38,6 +40,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
+    const [peeked, setPeeked] = useState<boolean>(false);
     const [showPractice, setShowPractice] = useState<boolean>(false);
     const [practiceResult, setPracticeResult] = useState<{ similarity: number; strokeOrderErrors: number } | null>(null);
     const tCal = useTranslations("calligraphy");
@@ -62,6 +65,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setHintUsed(false);
         setHiddenTranslation(true);
         setGraded(false);
+        setPeeked(false);
         setShowPractice(false);
         setPracticeResult(null);
     }, [currentIndex]);
@@ -102,6 +106,12 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const handleGoNext = () => {
         setDone([...done, keyOf(card)]);
     };
+
+    const tier = isVocabulary(card) || isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
+    const scaffolds = tier ? scaffoldsFor(tier) : null;
+    const showDetail = scaffolds?.detail === "shown" || peeked;                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
+    const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
+    const peek = () => { setPeeked(true); setHintUsed(true); };
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
@@ -159,6 +169,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                             </div>
                         </section>
                     )}
+                    {tier && !showPractice && <TierBadge tier={tier} />}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
                     ) : (
@@ -177,7 +188,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 }}
                             >
                                 {isVocabulary(card) && (
-                                    <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} />
+                                    <>
+                                        <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} showPhonetic={showDetail} />
+                                        {example && <SentenceCard sentence={example} hiddenTranslation={true} />}
+                                    </>
                                 )}
                                 {isGrammar(card) && (
                                     <h3 className="font-serif">{card.title}</h3>
@@ -185,7 +199,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 {isCalligraphy(card) && (
                                     <>
                                         <h3 className="font-serif">{t("characterHeading")}</h3>
-                                        <CharacterCard character={card.character} hiddenTranslation={true} hiddenAdditionalInformations={true} />
+                                        <CharacterCard character={card.character} hiddenTranslation={true} hiddenAdditionalInformations={showDetail} />
                                     </>
                                 )}
                                 <p className="text-sm text-muted text-center mt-3">{t("clickToReveal")}</p>
@@ -204,6 +218,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         </div>
                     </div>
 
+                    )}
+
+                    {scaffolds?.detail === "peek" && !peeked && hiddenTranslation && !showPractice && (
+                        <button type="button" className="btn btn-secondary min-h-11 self-start" onClick={peek}>{t("peek")}</button>
                     )}
 
                     {/* ── Grade buttons ────────────────────────────── */}
