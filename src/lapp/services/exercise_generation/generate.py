@@ -113,7 +113,7 @@ def judge_batch(items: list[dict], api: dict, target: str) -> list[str | None]:
                         "linked": i.get("linked", [])} for n, i in enumerate(items, 1)], ensure_ascii=False)
     for _ in (1, 2):
         data = _complete(api, system, user, 0)
-        verdicts = data.get("verdicts") if isinstance(data, dict) else None
+        verdicts = data if isinstance(data, list) else data.get("verdicts") if isinstance(data, dict) else None   # _parse_json unwraps the array
         if isinstance(verdicts, list) and len(verdicts) == len(items) and all(isinstance(v, dict) for v in verdicts):
             return [None if v.get("ok") is True else (v.get("reason") or "the judge doubts this exercise") for v in verdicts]
     return [NOT_CHECKED] * len(items)
