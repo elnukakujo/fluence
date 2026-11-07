@@ -13,9 +13,9 @@ export const average = <T,>(xs: T[], pick: (x: T) => number | undefined) => (xs.
 // One feature of a lesson (vocabulary / grammar / calligraphy / exercises): icon + title + count, the lesson's
 // averages, the rows (children), and the two actions at the foot. While selecting, the card is outlined and the footer
 // swaps for a hint, so nothing navigates away mid-selection.
-export default function ListCard({ icon: Icon, title, count, score, difficulty, selectKind, addPath, practicePath, children }: {
+export default function ListCard({ icon: Icon, title, count, score, difficulty, selectKind, addPath, practicePath, extraAction, children }: {
   icon: LucideIcon; title: string; count: number; score?: number; difficulty?: number; selectKind?: Kind;   // no selectKind: not selectable here
-  addPath: string; practicePath?: string; children?: ReactNode;
+  addPath: string; practicePath?: string; extraAction?: ReactNode; children?: ReactNode;
 }) {
   const t = useTranslations("elements");
   const { isActive } = useItemSelection();
@@ -53,6 +53,7 @@ export default function ListCard({ icon: Icon, title, count, score, difficulty, 
             <NavButton path={practicePath} className="btn btn-primary min-h-11 flex-1"><Play size={16} aria-hidden />{t("listPractice")}</NavButton>
           )}
           <NavButton path={addPath} className={`btn min-h-11 flex-1 ${count === 0 ? "btn-primary" : "btn-secondary"}`}><Plus size={16} aria-hidden />{t("listAdd")}</NavButton>
+          {extraAction}
         </footer>
       )}
     </section>

@@ -20,7 +20,6 @@ import ElementPerformanceCard from "@/components/elements/elementPerformanceCard
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ExerciseStatus from "@/components/exercises/exerciseStatus";
-import ExerciseUserPrefMenu from "@/components/exercises/exerciseUserPrefMenu";
 import GenerateAudioButton from "@/components/exercises/generateAudioButton";
 import { getExerciseById } from "@/api/exercise";
 import { getTranslations } from "next-intl/server";
@@ -36,7 +35,6 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             <header className="ex-card-head">
                 <span className="badge">{exercise.exercise_type}</span>
                 <ExerciseStatus exercise={exercise} />
-                <ExerciseUserPrefMenu exerciseId={exercise.id!} mode={exercise.user_mode} />
             </header>
             {exercise.exercise_type === 'type_in_the_blank' && (
                 <TypeInTheBlankExercise exercise={exercise} />

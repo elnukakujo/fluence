@@ -200,9 +200,9 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
         <StepProgress step={job.status === "extracting" ? 3 : 1} second={t("chooseTheLessons")} />
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
-        {job.status === "extracting" && <ProgressBar current={job.pages_done} total={job.pages_total} />}
+        {job.status === "extracting" && <ProgressBar active current={job.pages_done} total={job.pages_total} />}
         {job.status === "parsing" && job.pages_total > 0 && (
-          <ProgressBar current={job.pages_done} total={job.pages_total} label={t("pagesRead", { done: job.pages_done, total: job.pages_total })} />
+          <ProgressBar active current={job.pages_done} total={job.pages_total} label={t("pagesRead", { done: job.pages_done, total: job.pages_total })} />
         )}
         <p className="text-sm opacity-70">
           {t("importTakesTime")}

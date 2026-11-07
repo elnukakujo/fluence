@@ -75,7 +75,7 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
                                     <div className="flex flex-col gap-1">
                                         <p className="flex items-baseline justify-between text-sm"><span>{t("goalColNew")}</span>
                                             <span className="text-lg font-semibold tabular-nums" aria-label={t("goalProgress", { mastered: row.mastered, picked: row.picked })}>{row.mastered}<span className="text-sm font-normal text-muted"> / {row.picked}</span></span></p>
-                                        <ProgressBar current={row.mastered} total={Math.max(row.picked, 1)} showLabel={false} showPercent={false} ariaLabel={`${t(label)}: ${t("goalColNew")}`} />
+                                        <ProgressBar thin current={row.mastered} total={Math.max(row.picked, 1)} showLabel={false} showPercent={false} ariaLabel={`${t(label)}: ${t("goalColNew")}`} />
                                         {row.picked < row.n && (
                                             <span className="badge badge-warn self-start" title={t("goalShortHint")}><TriangleAlert size={12} aria-hidden />{t("goalShort", { picked: row.picked, n: row.n })}</span>
                                         )}
@@ -85,7 +85,7 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
                                     <div className="flex flex-col gap-1">
                                         <p className="flex items-baseline justify-between text-sm"><span>{t("goalColReview")}</span>
                                             <span className="text-lg font-semibold tabular-nums" aria-label={t("goalReviewProgress", { done: row.review_done, picked: row.review_picked })}>{row.review_done}<span className="text-sm font-normal text-muted"> / {row.review_picked}</span></span></p>
-                                        <ProgressBar accent current={row.review_done} total={Math.max(row.review_picked, 1)} showLabel={false} showPercent={false} ariaLabel={`${t(label)}: ${t("goalColReview")}`} />
+                                        <ProgressBar thin accent current={row.review_done} total={Math.max(row.review_picked, 1)} showLabel={false} showPercent={false} ariaLabel={`${t(label)}: ${t("goalColReview")}`} />
                                         {row.review_picked < row.r && (
                                             <span className="badge badge-warn self-start" title={t("goalReviewShortHint")}><TriangleAlert size={12} aria-hidden />{t("goalReviewShort", { picked: row.review_picked, n: row.r })}</span>
                                         )}

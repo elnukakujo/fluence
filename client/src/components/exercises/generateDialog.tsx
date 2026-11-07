@@ -8,6 +8,7 @@ import { getGeneration, startGeneration, suggestGeneration, undoGenerationBatch,
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import GenerationReview from "./generationReview";
 import GenerationProgress from "./generationProgress";
+import { scaleMix } from "@/utils/scaleMix";
 import NumberField from "@/components/ui/input/numberField";
 
 const MAX = 60;           // same cap as the server (GEN_MAX)
@@ -96,7 +97,7 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
         }
     };
 
-    const mix = Object.entries(suggestion.mix).sort((a, b) => b[1] - a[1]);
+    const mix = Object.entries(scaleMix(suggestion.mix, Math.min(MAX, parseInt(count, 10) || 0))).sort((a, b) => b[1] - a[1]);   // preview only: the shown mix is the suggestion resized to the typed count
     const top = mix[0]?.[1] ?? 1;
     const review = phase === "done" && (job?.result?.flagged.length ?? 0) > 0;   // step 2 replaces the dialog
     return (

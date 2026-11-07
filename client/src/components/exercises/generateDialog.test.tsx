@@ -30,6 +30,16 @@ describe("generate exercises dialog", () => {
     expect(screen.getByText("Quizz").closest("li")).toHaveTextContent("5");
   });
 
+  it("the planned mix is the suggestion resized to the typed count, without asking the server again", async () => {
+    await open();
+    const field = await screen.findByLabelText("Number of exercises");
+    await userEvent.clear(field);
+    await userEvent.type(field, "1");
+    expect(screen.getByText("Essay").closest("li")).toHaveTextContent("1");
+    expect(screen.queryByText("Quizz")).toBeNull();
+    expect(api.suggestGeneration).toHaveBeenCalledTimes(1);
+  });
+
   it("cannot generate when nothing can be planned", async () => {
     api.suggestGeneration.mockResolvedValue({ count: 0, mix: {}, pool: 0 });
     await open();

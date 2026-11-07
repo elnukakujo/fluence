@@ -80,7 +80,7 @@ function JobView({ jobId, languageId, languageName, settingsHref, base }: Props 
         <h2>{job.filename}</h2>
         <p aria-live="polite">{STATUS_TEXT[job.status]}</p>
         {job.status === "parsing" && job.pages_total > 0 && (
-          <ProgressBar current={job.pages_done} total={job.pages_total} label={t("pagesRead", { done: job.pages_done, total: job.pages_total })} />
+          <ProgressBar active current={job.pages_done} total={job.pages_total} label={t("pagesRead", { done: job.pages_done, total: job.pages_total })} />
         )}
         <p className="text-sm opacity-70">
           {t("languageImportTakesTime")}
@@ -284,7 +284,7 @@ function LessonsReview({ job, languageId, languageName, onBack, onStopped }: { j
         <p aria-live="polite">
           {t("lessonsProgress", { ready, total: lessons.length, added: addedCount, languageName, reading: status === "extracting" ? "yes" : "no" })}
         </p>
-        {status === "extracting" && <ProgressBar current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
+        {status === "extracting" && <ProgressBar active current={lessons.filter((l) => l.status !== "pending").length} total={lessons.length} showPercent={false} />}
         {status === "extracting" && <div className="btn-row"><JobControls jobId={job.id} paused={job.paused} onStopped={onStopped} /></div>}
         <p className="text-xs opacity-60">{t("reviewEachLesson")}</p>
         {notes.length > 0 && (
@@ -321,7 +321,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         <ChevronRight size={18} aria-hidden className={`shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
         <strong className="min-w-0 flex-1 break-words">{l.title}</strong>
         <span className="text-sm text-muted">{t("lessonPagesRange", { ranges: formatRanges(lessonRanges(l)) })}</span>
-        {adding && <div className="w-full"><ProgressBar current={adding.done} total={adding.total} label={t("addingProgress", { done: adding.done, total: adding.total })} /></div>}
+        {adding && <div className="w-full"><ProgressBar active current={adding.done} total={adding.total} label={t("addingProgress", { done: adding.done, total: adding.total })} /></div>}
         <span className="badge">
           {createdId ? t("lessonAdded") : l.status === "pending" ? t("lessonWaiting") : l.status === "failed" ? t("lessonFailed")
             : t("lessonCounts", live ?? { total: shown.length || (l.counts?.total ?? 0), flagged: shown.length ? shown.filter((c) => c.status !== "verified").length : (l.counts?.flagged ?? 0) })}

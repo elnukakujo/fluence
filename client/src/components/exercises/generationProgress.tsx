@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import ProgressBar from "@/components/ui/progressBar";
 
 /** Progress of a generation job. Determinate while exercises are being written; indeterminate before the first one and while the finished batch is checked and saved
  *  (the numbers say 12 / 12 but the work is not over). The moving highlight is switched off by the stylesheet for reduced motion. */
@@ -18,10 +19,7 @@ export default function GenerationProgress({ done, total }: { done: number; tota
                 </p>
                 {!indeterminate && <span className="font-serif text-2xl font-semibold tabular-nums">{percent}%</span>}
             </div>
-            <div className="gen-progress-track" role="progressbar" aria-label={t("generateTitle")} aria-valuemin={0} aria-valuemax={total}
-                aria-valuenow={indeterminate ? undefined : done}>
-                <div className={`gen-progress-fill is-active${indeterminate ? " is-indeterminate" : ""}`} style={indeterminate ? undefined : { width: `${percent}%` }} />
-            </div>
+            <ProgressBar current={done} total={total} showLabel={false} showPercent={false} active indeterminate={indeterminate} ariaLabel={t("generateTitle")} />
         </div>
     );
 }

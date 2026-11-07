@@ -20,18 +20,22 @@ function useHintLines(card: Vocabulary | Calligraphy): string[] {
     return [parts.join(" · "), c.phonetic ? t("hintPhonetic", { phonetic: c.phonetic }) : ""].filter(Boolean);
 }
 
-/** A hint button that reveals up to two hints, one at a time. Each hint limits the best grade (see HINT_CAPS). */
+/** A hint button in the corner of the card and its hints drawn over the card's bottom, so nothing is pushed down. Each hint limits the best automatic grade (see HINT_CAPS). Place inside a `relative` wrapper. */
 export default function HintLadder({ card, level, onHint }: { card: Vocabulary | Calligraphy; level: number; onHint: () => void }) {
     const t = useTranslations("elements");
     const lines = useHintLines(card);
     if (!lines.length) return null;
     return (
-        <section className="flex flex-col gap-2" aria-live="polite">
-            <button type="button" className="btn btn-secondary min-h-11 self-start inline-flex items-center gap-2" disabled={level >= lines.length} onClick={onHint}>
+        <>
+            <button type="button" className="btn btn-secondary btn-sm absolute right-2 top-2 z-10 min-h-11 inline-flex items-center gap-1.5" disabled={level >= lines.length} onClick={onHint}>
                 <Lightbulb size={14} aria-hidden />{t("hintButton")}
             </button>
-            {lines.slice(0, level).map((line, i) => <p key={i} className="text-sm">{line}</p>)}
-            {level > 0 && <p className="text-xs text-muted">{t("hintCapNote")}</p>}
-        </section>
+            {level > 0 && (
+                <div className="absolute inset-x-3 bottom-3 z-10 flex flex-col gap-1 rounded-md border border-border bg-surface/95 p-2.5 shadow-sm" aria-live="polite">
+                    {lines.slice(0, level).map((line, i) => <p key={i} className="text-sm">{line}</p>)}
+                    <p className="text-xs text-muted">{t("hintCapNote")}</p>
+                </div>
+            )}
+        </>
     );
 }

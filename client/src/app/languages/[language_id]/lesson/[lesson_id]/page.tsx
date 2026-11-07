@@ -66,7 +66,7 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
                 <VocabularyList vocProps={vocabularies} />
                 <GrammarList gramProps={grammars} />
                 <CalligraphyList callProps={calligraphies} />
-                <ExerciseList exProps={exercises} />
+                <ExerciseList exProps={exercises} isOwner={isOwner} />
             </LessonItems>
         </main>
     );

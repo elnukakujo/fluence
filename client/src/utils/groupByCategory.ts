@@ -18,3 +18,15 @@ const LABELLED = ["listening", "reading", "writing", "speaking", "language_knowl
 export function categoryLabel(t: (key: string) => string, slug: string): string {
     return LABELLED.includes(slug) ? t(`cat_${slug}`) : slug;
 }
+
+export type GroupBy = "category" | "origin" | "status" | "type";
+export const GROUP_BYS: GroupBy[] = ["category", "origin", "status", "type"];
+export interface ExerciseGroup { key: string | null; exercises: Exercise[] }
+
+/** Groups the list the way the user picked. Keys: the exam section slug (null = unknown type), "ai"/"manual", "ready"/"notready", or the exercise type. Empty groups are omitted. */
+export function groupExercises(exercises: Exercise[], by: GroupBy, categories: ExamCategory[]): ExerciseGroup[] {
+    if (by === "category") return groupByCategory(exercises, categories).map((g) => ({ key: g.slug, exercises: g.exercises }));
+    const keyOf = (e: Exercise) => by === "origin" ? (e.generation_batch_id ? "ai" : "manual") : by === "status" ? (e.needs?.length ? "notready" : "ready") : (e.exercise_type || "unknown");
+    const order = by === "origin" ? ["ai", "manual"] : by === "status" ? ["ready", "notready"] : [...new Set(exercises.map(keyOf))].sort();
+    return order.map((key) => ({ key, exercises: exercises.filter((e) => keyOf(e) === key) })).filter((g) => g.exercises.length > 0);
+}

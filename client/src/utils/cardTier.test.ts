@@ -29,9 +29,9 @@ describe("tierOf", () => {
 });
 
 describe("scaffoldsFor", () => {
-    it("fades from shown to peek to hidden", () => {
+    it("fades from shown to hidden", () => {
         expect(scaffoldsFor("learning")).toEqual({ detail: "shown", example: true });
-        expect(scaffoldsFor("practising")).toEqual({ detail: "peek", example: false });
+        expect(scaffoldsFor("practising")).toEqual({ detail: "hidden", example: false });
         expect(scaffoldsFor("maintaining")).toEqual({ detail: "hidden", example: false });
     });
 });

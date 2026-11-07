@@ -14,7 +14,7 @@ vi.mock("@/api/tag", () => ({ getAllUserTags: vi.fn().mockResolvedValue([{ id: "
 vi.mock("@/api/source", () => ({ getAllUserSources: vi.fn().mockResolvedValue([]) }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1", lesson_id: "lesson_1" }), useRouter: () => nav }));
 
-import LessonItems from "./itemSelection";
+import LessonItems, { SelectAllRow, SelectBox, SelectToggle } from "./itemSelection";
 import VocabularyList from "./vocabularyList";
 import GrammarList from "./grammarList";
 
@@ -130,5 +130,23 @@ describe("lesson item selection", () => {
     expect(screen.getByText("1 selected")).toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: /水/ })).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /particle wa/ })).toBeChecked();
+  });
+});
+
+describe("select all inside a group", () => {
+  it("ticks only the rows of that group", async () => {
+    render(
+      <LessonItems isOwner userId="u1" lessonId="lesson_1" languageId="lang1">
+        <SelectToggle kind="ex" />
+        <SelectAllRow kind="ex" suffix="A" entries={[["ex_1", "a1"], ["ex_2", "a2"]]} />
+        <SelectBox kind="ex" id="ex_1" label="a1">a1</SelectBox><SelectBox kind="ex" id="ex_2" label="a2">a2</SelectBox>
+        <SelectAllRow kind="ex" suffix="B" entries={[["ex_3", "b1"]]} />
+        <SelectBox kind="ex" id="ex_3" label="b1">b1</SelectBox>
+      </LessonItems>);
+    await userEvent.click(screen.getByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Select all · A/ }));
+    expect(screen.getByRole("checkbox", { name: /a1/ })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /a2/ })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /b1/ })).not.toBeChecked();
   });
 });

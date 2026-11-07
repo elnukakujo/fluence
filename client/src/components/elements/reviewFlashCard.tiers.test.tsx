@@ -37,15 +37,11 @@ describe("review card: tiers and fading scaffolds", () => {
         expect(screen.getByText("Learning")).toBeInTheDocument();
     });
 
-    it("a practising card hides the phonetic behind Peek, and peeking counts as a hint", async () => {
+    it("a practising card hides the phonetic and has no Peek button", () => {
         render(<ReviewFlashCard cards={[voc(30)]} />);
         expect(screen.getByText("Practising")).toBeInTheDocument();
         expect(front().queryByText("/māo/")).toBeNull();
-        await userEvent.click(screen.getByRole("button", { name: "Peek" }));
-        expect(front().getByText("/māo/")).toBeInTheDocument();
-        await userEvent.click(screen.getByText("Click to reveal"));
-        await userEvent.click(screen.getByRole("button", { name: /Good/ }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0.75, expect.any(Number), true, undefined, "front");
+        expect(screen.queryByRole("button", { name: "Peek" })).toBeNull();
     });
 
     it("a maintaining card is bare", () => {
@@ -62,6 +58,5 @@ describe("review card: tiers and fading scaffolds", () => {
         unmount();
         render(<ReviewFlashCard cards={[call(40)]} />);
         expect(front().queryByText("/rì/")).toBeNull();
-        expect(screen.getByRole("button", { name: "Peek" })).toBeInTheDocument();
     });
 });

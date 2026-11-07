@@ -4,9 +4,11 @@ import ProgressBar from "@/components/ui/progressBar";
 
 /** Compact header of a review card: what it is, overall position, and two thin bars: the whole review (primary)
  *  and the current section (accent, with its done / total). */
-export default function ReviewHeader({ kind, side, sectionProgress, sectionLabel, current, total, meta = [], progressLabel }: {
+export default function ReviewHeader({ kind, side, badges, sectionProgress, sectionLabel, current, total, meta = [], progressLabel }: {
     kind: string;
     side?: string;
+    /** Extra badges after the kind and side (e.g. the card tier). */
+    badges?: React.ReactNode;
     sectionProgress?: { done: number; total: number };
     sectionLabel?: string;
     current: number;
@@ -20,12 +22,13 @@ export default function ReviewHeader({ kind, side, sectionProgress, sectionLabel
             <div className="flex flex-wrap items-center gap-2">
                 <span className="badge">{kind}</span>
                 {side && <span className="badge">{side}</span>}
+                {badges}
                 <span className="ml-auto text-sm tabular-nums text-muted">{current} / {total}</span>
             </div>
-            <ProgressBar current={current} total={total} showLabel={false} showPercent={false} ariaLabel={progressLabel} title={`${current} / ${total}`} />
+            <ProgressBar thin current={current} total={total} showLabel={false} showPercent={false} ariaLabel={progressLabel} title={`${current} / ${total}`} />
             {sectionProgress && (
                 <div className="flex items-center gap-3">
-                    <ProgressBar accent className="flex-1" current={sectionProgress.done} total={sectionProgress.total} showLabel={false} showPercent={false}
+                    <ProgressBar thin accent className="flex-1" current={sectionProgress.done} total={sectionProgress.total} showLabel={false} showPercent={false}
                         ariaLabel={sectionLabel ?? kind} />
                     <span className="text-xs tabular-nums text-muted whitespace-nowrap">{sectionProgress.done} / {sectionProgress.total} {(sectionLabel ?? kind).toLowerCase()}</span>
                 </div>

@@ -38,11 +38,11 @@ describe("review card: leech", () => {
         expect(screen.queryByText("Click to reveal")).toBeNull();
     });
 
-    it("the right choice continues to the card, assisted: the best grade is limited", async () => {
+    it("the right choice continues to the card, assisted: every grade stays available", async () => {
         render(<ReviewFlashCard cards={[leechy("front")]} />);
         await userEvent.click(screen.getByRole("button", { name: "cat" }));
         await userEvent.click(screen.getByText("Click to reveal"));
-        expect(screen.getByRole("button", { name: /Easy/ })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /Easy/ })).toBeEnabled();
         expect(screen.getByRole("button", { name: /Good/ })).toBeEnabled();
     });
 

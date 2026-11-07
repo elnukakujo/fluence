@@ -21,6 +21,6 @@ export function tierOf(card: TierSource): Tier {
 }
 
 /** What the front of a card gives away: its detail (phonetic / strokes) and an example sentence. Peek = hidden behind a button that counts as a hint. */
-export function scaffoldsFor(tier: Tier): { detail: "shown" | "peek" | "hidden"; example: boolean } {
-    return tier === "learning" ? { detail: "shown", example: true } : { detail: tier === "practising" ? "peek" : "hidden", example: false };
+export function scaffoldsFor(tier: Tier): { detail: "shown" | "hidden"; example: boolean } {
+    return tier === "learning" ? { detail: "shown", example: true } : { detail: "hidden", example: false };
 }

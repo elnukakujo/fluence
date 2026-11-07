@@ -11,6 +11,7 @@ import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import User from "@/interface/systemData/User";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
+import ProgressBar from "@/components/ui/progressBar";
 
 const DAILY_GOAL_OPTIONS = ["5", "10", "15", "20", "30", "45", "60"];
 
@@ -121,12 +122,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             {/* ── Step indicator ─────────────────────────────────── */}
             <div className="flex w-full items-center gap-2">
                 <span className="badge whitespace-nowrap">{t("step", { step })}</span>
-                <div className="h-1 flex-1 overflow-hidden rounded-full bg-border">
-                    <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: step === 1 ? "50%" : "100%" }}
-                    />
-                </div>
+                <ProgressBar thin className="flex-1" current={step} total={2} showLabel={false} showPercent={false} ariaLabel={t("step", { step })} />
             </div>
 
             {stepError && (

@@ -98,7 +98,7 @@ export function SelectToggle({ kind }: { kind: Kind }) {
 }
 
 // "Select all" tri-state checkbox over a group of ids (indeterminate when only some are ticked).
-export function SelectAllRow({ kind, entries }: { kind: Kind; entries: [string, string][] }) {
+export function SelectAllRow({ kind, entries, suffix }: { kind: Kind; entries: [string, string][]; suffix?: string }) {
   const t = useTranslations("elements");
   const { isActive, selected, setMany } = useItemSelection();
   const box = useRef<HTMLInputElement>(null);
@@ -109,7 +109,7 @@ export function SelectAllRow({ kind, entries }: { kind: Kind; entries: [string, 
     <label className="select-head">
       <input ref={box} type="checkbox" className="tick-input" checked={n === entries.length} onChange={(e) => setMany(entries, e.target.checked)} />
       <Tick />
-      <span className="flex-1">{t("bulkSelectAll")}</span>
+      <span className="flex-1">{t("bulkSelectAll")}{suffix ? ` · ${suffix}` : ""}</span>
       <span className="text-xs font-normal text-muted" aria-live="polite">{t("bulkSelectionOf", { selected: n, total: entries.length })}</span>
     </label>
   );
