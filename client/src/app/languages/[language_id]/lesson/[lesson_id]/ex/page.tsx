@@ -48,6 +48,7 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
                 {groups.map(({ key, exercises }) => (
                     <section key={key ?? "none"}>
                         <h3>{groupLabel(key)} <span className="text-muted">({exercises.length})</span></h3>
+                        <div className="w-full max-w-sm"><SelectAllRow kind="ex" suffix={groupLabel(key)} entries={exercises.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div>
                         <ul className="list-none">
                             {exercises.map((exercise, index) => (
                                 <li key={index} className="card ex-card">

@@ -49,7 +49,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
-    const [peeked, setPeeked] = useState<boolean>(false);
     const [typed, setTyped] = useState<{ correct: boolean } | null>(null);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
     const [choiceDone, setChoiceDone] = useState<boolean>(false);          // the leech "which one is it" step
@@ -81,7 +80,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setHintUsed(false);
         setHiddenTranslation(true);
         setGraded(false);
-        setPeeked(false);
         setHintLevel(0);
         setFlipMs(0);
         setTyped(null);
@@ -131,11 +129,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
 
     const tier = isVocabulary(card) || isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
     const scaffolds = tier ? scaffoldsFor(tier) : null;
-    const showDetail = scaffolds?.detail === "shown" || peeked;                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
+    const showDetail = scaffolds?.detail === "shown";                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
     const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date());        // hear the clip before seeing the word
     const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
-    const peek = () => { setPeeked(true); setHintUsed(true); };
-    const effectiveLevel = Math.min(2, Math.max(hintLevel, peeked ? 1 : 0));            // a peek counts as the first hint
+    const effectiveLevel = Math.min(2, hintLevel);
     const choiceActive = isVocabulary(card) && !!card.leech?.confusable && !choiceDone && hiddenTranslation && !graded;
     const pickChoice = (correct: boolean) => {
         setChoiceDone(true);
@@ -170,6 +167,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     card.last_seen_at ? `${t("lastSeen")}: ${new Date(card.last_seen_at).toLocaleDateString()}` : "",
                 ].filter(Boolean)}
                 progressLabel={t("reviewProgress")}
+                badges={tier && !showPractice ? <TierBadge tier={tier} /> : undefined}
             />
 
             {isExercise(card) ? (
@@ -189,11 +187,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 </>
             ) : (
                 <>
-                    {/* ── Hints sit at the top, under the header ── */}
-                    {tier && hiddenTranslation && !showPractice && !choiceActive && (
-                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
-                    )}
-
                     {/* ── Calligraphy: draw the character (stroke order + similarity) ── */}
                     {isCalligraphy(card) && !showPractice && (
                         <button className="btn self-end" onClick={() => setShowPractice(true)}>{tCal("practiceButton")}</button>
@@ -214,7 +207,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         </section>
                     )}
                     {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
-                    {tier && !showPractice && <TierBadge tier={tier} />}
+                    <div className="relative">
+                    {tier && hiddenTranslation && !showPractice && !choiceActive && (
+                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                    )}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
                     ) : choiceActive && isVocabulary(card) && card.leech?.confusable ? (
@@ -281,13 +277,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     </div>
 
                     )}
+                    </div>
 
                     {listenFirst && isVocabulary(card) && hiddenTranslation && !choiceActive && (
                         <AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} />
-                    )}
-
-                    {scaffolds?.detail === "peek" && !peeked && hiddenTranslation && !showPractice && !choiceActive && (
-                        <button type="button" className="btn btn-secondary min-h-11 self-start" onClick={peek}>{t("peek")}</button>
                     )}
 
                     {/* ── Grade buttons ────────────────────────────── */}

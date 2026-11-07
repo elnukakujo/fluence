@@ -78,7 +78,6 @@
   "tier_practising": "练习中",
   "tier_maintaining": "巩固中",
   "tierTitle": "你对这张卡片的掌握程度，决定正面给多少提示。",
-  "peek": "偷看",
   "hintButton": "提示",
   "hintShape": "开头：{shape}",
   "hintContext": "例句：{sentence}",

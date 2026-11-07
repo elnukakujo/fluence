@@ -72,12 +72,4 @@ describe("review card: hint ladder", () => {
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
         expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
     });
-
-    it("peeking counts as a hint: it lowers the suggestion, nothing is disabled", async () => {
-        render(<ReviewFlashCard cards={[voc()]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Peek" }));
-        await flip();
-        expect(screen.getByRole("button", { name: /Easy/ })).toBeEnabled();
-        expect(screen.getByRole("button", { name: /Good/ })).toHaveTextContent("Suggested");
-    });
 });

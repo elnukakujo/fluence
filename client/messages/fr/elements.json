@@ -78,7 +78,6 @@
   "tier_practising": "Entraînement",
   "tier_maintaining": "Entretien",
   "tierTitle": "Votre niveau sur cette carte ; il règle l'aide donnée au recto.",
-  "peek": "Jeter un œil",
   "hintButton": "Indice",
   "hintShape": "Commence par : {shape}",
   "hintContext": "Exemple : {sentence}",

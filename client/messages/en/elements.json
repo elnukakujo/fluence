@@ -78,7 +78,6 @@
   "tier_practising": "Practising",
   "tier_maintaining": "Maintaining",
   "tierTitle": "How well you know this card; it sets how much help the front gives.",
-  "peek": "Peek",
   "hintButton": "Hint",
   "hintShape": "Starts with: {shape}",
   "hintContext": "Example: {sentence}",

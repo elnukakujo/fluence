@@ -4,9 +4,11 @@ import ProgressBar from "@/components/ui/progressBar";
 
 /** Compact header of a review card: what it is, overall position, and two thin bars: the whole review (primary)
  *  and the current section (accent, with its done / total). */
-export default function ReviewHeader({ kind, side, sectionProgress, sectionLabel, current, total, meta = [], progressLabel }: {
+export default function ReviewHeader({ kind, side, badges, sectionProgress, sectionLabel, current, total, meta = [], progressLabel }: {
     kind: string;
     side?: string;
+    /** Extra badges after the kind and side (e.g. the card tier). */
+    badges?: React.ReactNode;
     sectionProgress?: { done: number; total: number };
     sectionLabel?: string;
     current: number;
@@ -20,6 +22,7 @@ export default function ReviewHeader({ kind, side, sectionProgress, sectionLabel
             <div className="flex flex-wrap items-center gap-2">
                 <span className="badge">{kind}</span>
                 {side && <span className="badge">{side}</span>}
+                {badges}
                 <span className="ml-auto text-sm tabular-nums text-muted">{current} / {total}</span>
             </div>
             <ProgressBar thin current={current} total={total} showLabel={false} showPercent={false} ariaLabel={progressLabel} title={`${current} / ${total}`} />
