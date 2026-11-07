@@ -135,5 +135,21 @@
   "cantHear": "I can't hear",
   "cantSpeak": "I can't speak",
   "skippedCount": "{count, plural, one {# exercise skipped} other {# exercises skipped}}",
-  "skipThisExercise": "Skip this exercise (it is not scored)"
+  "skipThisExercise": "Skip this exercise (it is not scored)",
+  "generateButton": "Generate exercises",
+  "generateTitle": "Generate exercises",
+  "generateLoading": "Planning…",
+  "generateCount": "Number of exercises",
+  "generateMix": "Planned mix",
+  "generateStart": "Generate",
+  "generateNone": "Nothing to generate: the lesson has no vocabulary, grammar or calligraphy yet, or every exercise type is banned.",
+  "generateRunning": "Generating… {done} / {total}",
+  "generateNotConfigured": "Add and activate a text-generation endpoint in Settings first.",
+  "generateLost": "The generation was lost (the server restarted). Check the lesson: finished exercises are saved.",
+  "generateFailed": "Generation failed: {error}",
+  "generateSaved": "{count, plural, one {# exercise saved.} other {# exercises saved.}}",
+  "generateFlagged": "{count, plural, one {# needs a look.} other {# need a look.}}",
+  "generateUndo": "Undo",
+  "generateClose": "Close",
+  "need_review": "review"
 }

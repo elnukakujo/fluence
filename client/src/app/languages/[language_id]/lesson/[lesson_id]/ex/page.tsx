@@ -13,6 +13,7 @@ import { categoryOf, getExamCategories } from "@/utils/language_iso639";
 import { categoryLabel, groupByCategory } from "@/utils/groupByCategory";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { Play, Pencil } from "lucide-react";
+import GenerateDialog from "@/components/exercises/generateDialog";
 import { getTranslations } from "next-intl/server";
 
 export default async function ExercisesPage({ params, searchParams }: { params: Promise<{ language_id: string, lesson_id: string }>, searchParams: Promise<{ type?: string, status?: string, category?: string }> }){
@@ -35,7 +36,7 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
 
     return(
         <main className="flex flex-col space-y-5">
-            <h1>{t("exercises")}</h1>
+            <div className="flex flex-wrap items-center justify-between gap-2"><h1>{t("exercises")}</h1>{userId === lesson.user_id && <GenerateDialog lessonId={lesson_id} />}</div>
             <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
                 {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><div className="flex flex-wrap items-center gap-2"><SelectToggle kind="ex" /><ExerciseFilter types={allTypes} categories={categories} /></div><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={shown.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
                 {exercises.length > 0 && shown.length === 0 && <p className="text-muted">{tEx("filterNoMatch")}</p>}

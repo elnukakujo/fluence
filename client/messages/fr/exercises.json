@@ -135,5 +135,21 @@
   "cantHear": "Je ne peux pas écouter",
   "cantSpeak": "Je ne peux pas parler",
   "skippedCount": "{count, plural, one {# exercice passé} other {# exercices passés}}",
-  "skipThisExercise": "Passer cet exercice (il n'est pas noté)"
+  "skipThisExercise": "Passer cet exercice (il n'est pas noté)",
+  "generateButton": "Générer des exercices",
+  "generateTitle": "Générer des exercices",
+  "generateLoading": "Préparation…",
+  "generateCount": "Nombre d'exercices",
+  "generateMix": "Répartition prévue",
+  "generateStart": "Générer",
+  "generateNone": "Rien à générer : la leçon n'a pas encore de vocabulaire, de grammaire ou de calligraphie, ou tous les types d'exercice sont bannis.",
+  "generateRunning": "Génération… {done} / {total}",
+  "generateNotConfigured": "Ajoutez et activez d'abord un point d'accès de génération de texte dans les paramètres.",
+  "generateLost": "La génération a été perdue (le serveur a redémarré). Vérifiez la leçon : les exercices terminés sont enregistrés.",
+  "generateFailed": "Échec de la génération : {error}",
+  "generateSaved": "{count, plural, one {# exercice enregistré.} other {# exercices enregistrés.}}",
+  "generateFlagged": "{count, plural, one {# à vérifier.} other {# à vérifier.}}",
+  "generateUndo": "Annuler",
+  "generateClose": "Fermer",
+  "need_review": "relecture"
 }

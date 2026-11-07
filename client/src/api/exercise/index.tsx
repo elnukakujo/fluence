@@ -69,3 +69,41 @@ export async function setExerciseUserPref(exerciseId: string, mode: "boost" | "b
   if (!res.ok) throw new Error(`Failed to set the exercise preference (${res.status})`);
   return res.json();
 }
+
+export type GenerationJob = {
+  state: "running" | "done" | "failed"; done: number; total: number; error?: string;
+  result?: { batch_id: string; saved: number; flagged: string[] };
+};
+
+const codeOf = async (res: Response, fallback: string) => ((await res.json().catch(() => ({}))) as { error?: string }).error ?? fallback;
+
+/** Recommended number of exercises for a lesson and the planned mix of types. */
+export async function suggestGeneration(lessonId: string): Promise<{ count: number; mix: Record<string, number>; pool: number }> {
+  const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/suggest`, { headers: await getAuthHeaders() });
+  if (!res.ok) throw new Error(await codeOf(res, "suggest_failed"));
+  return res.json();
+}
+
+/** Starts a background generation; returns the job id. Throws an Error whose message is the server's code (text_gen_not_configured, empty_lesson, ...). */
+export async function startGeneration(lessonId: string, count: number): Promise<string> {
+  const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/generate`, {
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ count }),
+  });
+  if (!res.ok) throw new Error(await codeOf(res, "generate_failed"));
+  return (await res.json()).job_id;
+}
+
+/** Progress of a generation job. Throws Error("lost") when the server no longer knows the job (restart). */
+export async function getGeneration(jobId: string): Promise<GenerationJob> {
+  const res = await fetch(`${BASE_URL}/api/exercise-generation/${jobId}`, { headers: await getAuthHeaders() });
+  if (res.status === 404) throw new Error("lost");
+  if (!res.ok) throw new Error(await codeOf(res, "progress_failed"));
+  return res.json();
+}
+
+/** Deletes every exercise of one generation batch. */
+export async function undoGenerationBatch(batchId: string): Promise<{ deleted: number }> {
+  const res = await fetch(`${BASE_URL}/api/exercise-batch/${batchId}`, { method: "DELETE", headers: await getAuthHeaders() });
+  if (!res.ok) throw new Error(await codeOf(res, "undo_failed"));
+  return res.json();
+}
