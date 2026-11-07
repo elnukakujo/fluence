@@ -84,6 +84,7 @@
   "failedCreate": "创建练习失败。详情请查看控制台。",
   "exerciseType": "练习类型",
   "questionLabel": "问题",
+  "linkRequired": "请将练习关联到本课至少一个词汇、语法或书法条目。",
   "associatedVocabulary": "相关词汇",
   "associatedGrammar": "相关语法",
   "associatedCalligraphies": "相关书法",

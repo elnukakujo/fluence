@@ -84,6 +84,7 @@
   "failedCreate": "Échec de la création de l'exercice. Consultez la console pour plus de détails.",
   "exerciseType": "Type d'exercice",
   "questionLabel": "Question",
+  "linkRequired": "Associez l'exercice à au moins un élément de vocabulaire, de grammaire ou de calligraphie de cette leçon.",
   "associatedVocabulary": "Vocabulaire associé",
   "associatedGrammar": "Grammaire associée",
   "associatedCalligraphies": "Calligraphies associées",

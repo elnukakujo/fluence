@@ -207,8 +207,13 @@ export default function ExerciseForm({
 
     const isLines = exerciseType === "reading" || exerciseType === "dictation";   // the lines are the content; the question is an optional instruction
 
+    const [linkError, setLinkError] = useState(false);
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const linked = relatedVocabularies.length + relatedGrammars.length + relatedCalligraphies.length > 0;
+        setLinkError(!linked);
+        if (!linked) return;       // every exercise belongs to at least one element of its lesson
 
         const currentPath = window.location.pathname;
         const pathParts = currentPath.split("/");
@@ -417,6 +422,7 @@ export default function ExerciseForm({
                             setSelectedElements={setRelatedCalligraphies}
                             label={t("associatedCalligraphies")}
                         />
+                        {linkError && <p role="alert" className="text-sm text-red-600">{t("linkRequired")}</p>}
                     </section>
 
                     <TagSelector
