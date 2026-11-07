@@ -90,5 +90,11 @@
   "typeDontKnow": "不知道",
   "typeFlipInstead": "改为翻卡",
   "typeRight": "正确！",
-  "typeWrong": "不太对。这个词是 {word}"
+  "typeWrong": "不太对。这个词是 {word}",
+  "leechBanner": "这张卡总是记不住（错了 {count} 次）",
+  "leechParts": "它由什么组成",
+  "leechNote": "你的记忆窍门",
+  "leechNotePlaceholder": "写下助记法、画面或小故事…",
+  "chooseMeaning": "哪个意思对应 {word}？",
+  "chooseWord": "哪个词的意思是 {translation}？"
 }

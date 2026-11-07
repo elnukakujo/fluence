@@ -171,10 +171,23 @@ class ScoreService:
                 e["status"] = status_for(eid, r.score)
                 e["last_seen_at"] = r.last_seen_at
                 e["current_lesson_id"] = r.current_lesson_id
+                e["note"] = r.note
             else:
                 e["score"] = 0.0
                 e["difficulty"] = 0.5
                 e["status"] = status_for(eid, 0.0)
                 e["last_seen_at"] = None
                 e["current_lesson_id"] = None
+                e["note"] = None
         return elements
+
+    @transactional
+    def set_note(self, user_id: str, element_id: str, note: str, session: Optional[Session] = None) -> None:
+        """Save the user's own note on an element (empty clears it); creates a zero score row when the element was never reviewed."""
+        row = session.query(Score).filter(Score.user_id == user_id, Score.element_id == element_id).first()
+        if row is None:
+            row = Score(id=db_manager.generate_new_id(Score, session=session), user_id=user_id, element_id=element_id, score=0.0, difficulty=0.5,
+                        created_at=datetime.now())
+            session.add(row)
+        row.note = note or None
+        session.flush()

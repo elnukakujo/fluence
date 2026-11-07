@@ -23,3 +23,4 @@ class Score(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False)  # first engagement
     last_seen_at = Column(DateTime, nullable=True)
     current_lesson_id = Column(String, nullable=True)  # only for language rows
+    note = Column(String, nullable=True)  # the user's own mnemonic for this element (personal, so it lives with the score)

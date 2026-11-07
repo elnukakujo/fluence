@@ -90,5 +90,11 @@
   "typeDontKnow": "Je ne sais pas",
   "typeFlipInstead": "Retourner la carte",
   "typeRight": "Juste !",
-  "typeWrong": "Pas tout à fait. Le mot est {word}"
+  "typeWrong": "Pas tout à fait. Le mot est {word}",
+  "leechBanner": "Celle-ci vous échappe sans cesse ({count} échecs)",
+  "leechParts": "De quoi c'est fait",
+  "leechNote": "Votre astuce mnémotechnique",
+  "leechNotePlaceholder": "Écrivez un moyen mnémotechnique, une image, une histoire…",
+  "chooseMeaning": "Quel sens va avec {word} ?",
+  "chooseWord": "Quel mot signifie {translation} ?"
 }

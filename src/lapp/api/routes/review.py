@@ -34,7 +34,33 @@ def get_review_cards(language_id: str):
     """
     require_write(language_id)
     cards = review_service.get_review_cards(language_id, user_id=current_user_id(), as_dict=True)
-    return jsonify(ScoreService().merge(current_user_id(), cards))
+    cards = ScoreService().merge(current_user_id(), cards)
+    return jsonify(review_service.annotate_leeches(cards, current_user_id(), language_id))
+
+
+NOTE_MAX = 500
+
+
+@bp.route('/note/<element_id>', methods=['PUT'])
+@login_required
+def set_note(element_id: str):
+    """Save the user's own note (mnemonic) on a card; an empty note clears it.
+    ---
+    tags:
+        - Review
+    parameters:
+        - {name: element_id, in: path, type: string, required: true}
+    responses:
+        200: {description: saved}
+        400: {description: note is not a string of at most 500 characters}
+        404: {description: unknown element}
+    """
+    require_write(element_id)
+    note = (request.get_json(silent=True) or {}).get('note')
+    if not isinstance(note, str) or len(note) > NOTE_MAX:
+        return jsonify({'error': f'note must be text of at most {NOTE_MAX} characters'}), 400
+    ScoreService().set_note(current_user_id(), element_id, note.strip())
+    return jsonify({'ok': True})
 
 
 

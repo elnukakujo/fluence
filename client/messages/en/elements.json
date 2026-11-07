@@ -90,5 +90,11 @@
   "typeDontKnow": "I don't know",
   "typeFlipInstead": "Flip instead",
   "typeRight": "Right!",
-  "typeWrong": "Not quite. The word is {word}"
+  "typeWrong": "Not quite. The word is {word}",
+  "leechBanner": "This one keeps slipping ({count} misses)",
+  "leechParts": "What it is made of",
+  "leechNote": "Your memory trick",
+  "leechNotePlaceholder": "Write a mnemonic, a picture, a story…",
+  "chooseMeaning": "Which meaning goes with {word}?",
+  "chooseWord": "Which word means {translation}?"
 }

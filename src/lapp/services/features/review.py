@@ -1,5 +1,7 @@
 import random
+from difflib import SequenceMatcher
 from typing import Optional
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import logging
@@ -8,12 +10,15 @@ logger = logging.getLogger(__name__)
 from ...core.database import db_manager, transactional
 from ...models.containers import Language, Lesson
 from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
+from ...models.components import Word
+from ...models.data_collection import ProgressTracking
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from .side_pattern import make_side_picker
-from .study_constants import BOOST_FACTOR, NO_GOAL_NEW, SECONDS_PER_CARD_BY_TYPE
+from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW,
+                              SECONDS_PER_CARD_BY_TYPE)
 from .study_goal import StudyGoalService, TYPES
 from ..system_data.score import SIDES, side_id
 
@@ -203,6 +208,41 @@ class ReviewService:
         if as_dict:
             return [{**self._card_dict(card, lesson_title_by_id), "section": sec} for card, sec in zip(queue, sections)]
         return queue
+
+    @transactional
+    def annotate_leeches(self, cards: list[dict], user_id: str, language_id: str, session: Optional[Session] = None) -> list[dict]:
+        """Add `leech` ({lapses, parts, confusable}) to the vocabulary and calligraphy cards whose score dropped LEECH_LAPSES times
+        (a lapse = a progress row with score_after < score_before). Only leeches cost more than the one grouped query."""
+        ids = {c["id"] for c in cards if str(c.get("id", "")).startswith(("voc_", "call_"))}
+        if not ids:
+            return cards
+        lapses = dict(session.query(ProgressTracking.element_id, func.count()).filter(
+            ProgressTracking.user_id == user_id, ProgressTracking.element_id.in_(ids), ProgressTracking.score_after < ProgressTracking.score_before,
+        ).group_by(ProgressTracking.element_id).all())
+        for card in cards:
+            n = lapses.get(card.get("id"), 0)
+            if n >= LEECH_LAPSES:
+                word = session.get(Word, card["word_id"]) if card.get("word_id") else None
+                card["leech"] = {"lapses": n,
+                                 "parts": [{"character": ch.character, "phonetic": ch.phonetic, "meaning": ch.meaning} for ch in word.characters] if word else [],
+                                 "confusable": self._confusable(word, language_id, session) if word else None}
+        return cards
+
+    @staticmethod
+    def _confusable(word, language_id: str, session: Session) -> dict | None:
+        """The other word of the language that looks (or sounds, tones aside) most like `word`; one with the same translation is a synonym, not a confusion."""
+        import unicodedata
+        plain = lambda s: "".join(c for c in unicodedata.normalize("NFD", (s or "").casefold()) if not unicodedata.combining(c) and not c.isdigit() and not c.isspace())
+        best, best_ratio = None, 0.0
+        for other in session.query(Word).filter(Word.language_id == language_id, Word.id != word.id).limit(LEECH_CANDIDATES):
+            if (other.translation or "").casefold() == (word.translation or "").casefold():
+                continue
+            ratio = SequenceMatcher(None, word.word, other.word).ratio()
+            if word.phonetic and plain(other.phonetic) == plain(word.phonetic):
+                ratio = max(ratio, 1.0)
+            if ratio >= LEECH_CONFUSABLE_RATIO and ratio > best_ratio:
+                best, best_ratio = other, ratio
+        return {"word": best.word, "translation": best.translation} if best else None
 
     @staticmethod
     def _card_dict(card, lesson_title_by_id) -> dict:
