@@ -26,7 +26,8 @@ describe("generate exercises dialog", () => {
   it("defaults the count to the suggestion and previews the mix", async () => {
     await open();
     expect(await screen.findByLabelText("Number of exercises")).toHaveValue(12);
-    expect(screen.getByText(/Essay/)).toHaveTextContent("7");
+    expect(screen.getByText("Essay").closest("li")).toHaveTextContent("7");
+    expect(screen.getByText("Quizz").closest("li")).toHaveTextContent("5");
   });
 
   it("cannot generate when nothing can be planned", async () => {
@@ -34,6 +35,24 @@ describe("generate exercises dialog", () => {
     await open();
     expect(await screen.findByText(/nothing to generate/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
+  });
+
+  it("offers to run in the background: closing keeps the job and does not stop polling the lesson", async () => {
+    api.getGeneration.mockResolvedValue({ state: "running", done: 1, total: 12 });
+    await open();
+    await userEvent.click(await screen.findByRole("button", { name: "Generate" }));
+    expect(screen.getByText(/keeps running/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Run in background" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("an error can be retried from the start", async () => {
+    api.startGeneration.mockRejectedValueOnce(new Error("boom"));
+    await open();
+    await userEvent.click(await screen.findByRole("button", { name: "Generate" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByLabelText("Number of exercises")).toBeInTheDocument();
   });
 
   it("starts the job with the chosen count and shows the progress while polling", async () => {
