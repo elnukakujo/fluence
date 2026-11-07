@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
 import { getGeneration, startGeneration, suggestGeneration, undoGenerationBatch, type GenerationJob } from "@/api/exercise";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
+import GenerationReview from "./generationReview";
 
 const MAX = 60;           // same cap as the server (GEN_MAX)
 const POLL_MS = 2000;
@@ -22,6 +23,7 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
     const [jobId, setJobId] = useState<string | null>(null);
     const [error, setError] = useState<string>("");
     const countRef = useRef<HTMLInputElement>(null);
+    const tRef = useRef(t); tRef.current = t;      // the polling effect must not restart whenever the translator changes identity
 
     useEffect(() => { if (phase === "configure") countRef.current?.focus(); }, [phase]);
 
@@ -35,17 +37,17 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
                 if (stopped) return;
                 setJob(next);
                 if (next.state === "done") return setPhase("done");
-                if (next.state === "failed") { setError(t("generateFailed", { error: next.error ?? "" })); return setPhase("error"); }
+                if (next.state === "failed") { setError(tRef.current("generateFailed", { error: next.error ?? "" })); return setPhase("error"); }
             } catch (e) {
                 if (stopped) return;
-                setError(e instanceof Error && e.message === "lost" ? t("generateLost") : t("generateFailed", { error: String(e) }));
+                setError(e instanceof Error && e.message === "lost" ? tRef.current("generateLost") : tRef.current("generateFailed", { error: String(e) }));
                 return setPhase("error");
             }
             timer = setTimeout(poll, POLL_MS);
         };
         timer = setTimeout(poll, POLL_MS);
         return () => { stopped = true; clearTimeout(timer); };
-    }, [phase, jobId, t]);
+    }, [phase, jobId]);
 
     const openDialog = async () => {
         setPhase("loading");
@@ -93,12 +95,14 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
     };
 
     const mix = Object.entries(suggestion.mix);
+    const review = phase === "done" && (job?.result?.flagged.length ?? 0) > 0;   // step 2 replaces the dialog
     return (
         <>
             <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center gap-2" onClick={openDialog}>
                 <Sparkles size={16} aria-hidden />{t("generateButton")}
             </button>
-            {phase !== "closed" && (
+            {review && <GenerationReview lessonId={lessonId} onClose={close} />}
+            {phase !== "closed" && !review && (
                 <div className="dialog-backdrop" onKeyDown={(e) => { if (e.key === "Escape") close(); }}>
                     <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="generate-title">
                         <h2 id="generate-title" className="text-lg font-semibold">{t("generateTitle")}</h2>

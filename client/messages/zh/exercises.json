@@ -151,5 +151,16 @@
   "generateFlagged": "{count} 个需要检查。",
   "generateUndo": "撤销",
   "generateClose": "关闭",
-  "need_review": "待审核"
+  "need_review": "待审核",
+  "reviewTitle": "审核生成的练习",
+  "reviewIntro": "这些练习未通过检查。在你接受之前，它们不会出现在练习中。",
+  "reviewReasonLabel": "原因",
+  "reviewAccept": "接受",
+  "reviewEdit": "编辑",
+  "reviewDelete": "删除",
+  "reviewAcceptAll": "全部接受",
+  "reviewDeleteAll": "全部删除",
+  "reviewLater": "稍后",
+  "reviewFailed": "出错了，请重试。",
+  "reviewBanner": "{count} 个生成的练习需要检查"
 }

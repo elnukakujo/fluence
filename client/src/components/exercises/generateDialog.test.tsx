@@ -4,7 +4,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ suggestGeneration: vi.fn(), startGeneration: vi.fn(), getGeneration: vi.fn(), undoGenerationBatch: vi.fn() }));
+const api = vi.hoisted(() => ({ getExercisesByLesson: vi.fn().mockResolvedValue([{ id: "ex_f", lesson_id: "lesson_1", exercise_type: "essay", question: "Q", answer: "A", review_reason: "too hard" }]), suggestGeneration: vi.fn(), startGeneration: vi.fn(), getGeneration: vi.fn(), undoGenerationBatch: vi.fn() }));
 vi.mock("@/api/exercise", () => api);
 const nav = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
@@ -72,5 +72,13 @@ describe("generate exercises dialog", () => {
     expect(await screen.findByText("12 exercises saved.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(api.undoGenerationBatch).toHaveBeenCalledWith("batch_1");
+  });
+
+  it("opens the review of the flagged exercises by itself when the job finishes", async () => {
+    api.getGeneration.mockResolvedValue({ state: "done", done: 12, total: 12, result: { batch_id: "batch_1", saved: 11, flagged: ["ex_f"] } });
+    await open();
+    await userEvent.click(await screen.findByRole("button", { name: "Generate" }));
+    await tick();
+    expect(await screen.findByText("too hard")).toBeInTheDocument();
   });
 });

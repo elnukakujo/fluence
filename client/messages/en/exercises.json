@@ -151,5 +151,16 @@
   "generateFlagged": "{count, plural, one {# needs a look.} other {# need a look.}}",
   "generateUndo": "Undo",
   "generateClose": "Close",
-  "need_review": "review"
+  "need_review": "review",
+  "reviewTitle": "Review generated exercises",
+  "reviewIntro": "These exercises were doubted by the checks. They stay out of practice until you accept them.",
+  "reviewReasonLabel": "Reason",
+  "reviewAccept": "Accept",
+  "reviewEdit": "Edit",
+  "reviewDelete": "Delete",
+  "reviewAcceptAll": "Accept all",
+  "reviewDeleteAll": "Delete all",
+  "reviewLater": "Later",
+  "reviewFailed": "Something went wrong. Try again.",
+  "reviewBanner": "{count, plural, one {# generated exercise needs a look} other {# generated exercises need a look}}"
 }
