@@ -74,7 +74,11 @@ def generate(lesson_id: str):
         return jsonify({"error": "empty_lesson"}), 409
     lesson = LessonService().get_by_id(lesson_id, as_dict=True)
     language = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
-    job_id = jobs.start_job(current_app._get_current_object(), current_user_id(), lesson_id, count, api, jobs.target_name(language.get("target_iso639_2t")))
+    prefs = UserPreferencesService().get_by_user_id(current_user_id())
+    source_iso = language.get("source_iso639_2t") or next(iter(prefs.native_language_iso639_2 or []), None)   # instructions go in the learner's own language
+    source = jobs.target_name(source_iso) if source_iso else None
+    job_id = jobs.start_job(current_app._get_current_object(), current_user_id(), lesson_id, count, api,
+                            jobs.target_name(language.get("target_iso639_2t")), source if source != "the target language" else None)
     return jsonify({"job_id": job_id}), 202
 
 

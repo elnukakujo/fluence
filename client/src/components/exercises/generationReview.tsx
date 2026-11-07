@@ -75,7 +75,7 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
                                     </p>
                                     {editing.includes(e.id)
                                         ? <ExerciseEditor row={e.row} onChange={(p) => patch(e.id, p)} />
-                                        : <><p className="whitespace-pre-line">{e.row.question}</p><ExerciseBody row={e.row} /></>}
+                                        : <ExerciseBody row={e.row} />}
                                     <div className="flex flex-wrap gap-2">
                                         <button type="button" className="btn btn-primary min-h-11" disabled={busy} onClick={() => run(async () => [await accept(e)])}>{t("reviewAccept")}</button>
                                         <button type="button" className="btn btn-secondary min-h-11" aria-expanded={editing.includes(e.id)}

@@ -20,7 +20,7 @@ def _user(db, uid, endpoints=(TEXT,), type_prefs=None):
 
 def _lesson(db, words=8):
     with db.session_scope() as s:
-        db.insert(Language(id="lang_L1", user_id="user_U1", name="French", target_iso639_2t="fra"), session=s, commit=False)
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="French", target_iso639_2t="fra", source_iso639_2t="eng"), session=s, commit=False)
         db.insert(Lesson(id="lesson_L1", user_id="user_U1", language_id="lang_L1", title="L", position=0), session=s, commit=False)
         for i in range(words):
             db.insert(Word(id=f"word_W{i}", language_id="lang_L1", word=f"w{i}"), session=s, commit=False)
@@ -43,8 +43,8 @@ def stub(monkeypatch):
     class S:
         reasons = [None, "answer is wrong", None]
         n = 3
-    monkeypatch.setattr(jobs, "generate_batch", lambda slots, api, target, progress=lambda: None: [progress() or _item(i) for i in range(S.n)])
-    monkeypatch.setattr(jobs, "judge_batch", lambda items, api, target: S.reasons[:len(items)])
+    monkeypatch.setattr(jobs, "generate_batch", lambda slots, api, target, progress=lambda: None, **kw: [progress() or _item(i) for i in range(S.n)])
+    monkeypatch.setattr(jobs, "judge_batch", lambda items, api, target, **kw: S.reasons[:len(items)])
     return S
 
 
@@ -136,3 +136,20 @@ def test_undo_deletes_only_that_batch(app, db, stub):
     res = c.delete(f"/api/exercise-batch/{job['result']['batch_id']}")
     assert res.get_json() == {"deleted": 3}
     assert [e["id"] for e in c.get("/api/exercise/lesson/lesson_L1").get_json()] == ["ex_keep"]
+
+
+def test_the_job_passes_the_source_language_and_the_known_words_and_links_every_mentioned_word(app, db, monkeypatch):
+    _user(db, "user_U1")
+    _lesson(db)
+    seen = {}
+    def fake(slots, api, target, progress=lambda: None, **kw):
+        seen.update(kw)
+        return [{**_item(0), "question": "Use w3 and w5 here"}]
+    monkeypatch.setattr(jobs, "generate_batch", fake)
+    monkeypatch.setattr(jobs, "judge_batch", lambda items, api, target, **kw: [None] * len(items))
+    c = _client(app, "user_U1")
+    job = _wait(c, c.post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6}).get_json()["job_id"])
+    assert job["state"] == "done"
+    assert seen["source"] == "English" and {"w0", "w7"} <= set(seen["known"])
+    [made] = c.get("/api/exercise/lesson/lesson_L1").get_json()
+    assert set(made["related_vocabulary"]) == {"voc_V0", "voc_V3", "voc_V5"}

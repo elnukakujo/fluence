@@ -22,6 +22,17 @@ import ReviewHeader from "./reviewHeader";
 import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
+import TierBadge from "./tierBadge";
+import HintLadder from "./hintLadder";
+import TypeAnswer from "./typeAnswer";
+import LeechPanel from "./leechPanel";
+import LeechChoice from "./leechChoice";
+import AudioPlayer from "@/components/media/audioPlayer";
+import { PUBLIC_BASE_URL } from "@/api";
+import { isListenFirst } from "@/utils/listenFirst";
+import { gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
+import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
+import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 
 const isVocabulary = (c: ReviewCard): c is Vocabulary => "word" in c;
 const isGrammar = (c: ReviewCard): c is Grammar => "title" in c;
@@ -38,6 +49,12 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
+    const [peeked, setPeeked] = useState<boolean>(false);
+    const [typed, setTyped] = useState<{ correct: boolean } | null>(null);        // the result of a typed answer
+    const [flipInstead, setFlipInstead] = useState<boolean>(false);
+    const [choiceDone, setChoiceDone] = useState<boolean>(false);          // the leech "which one is it" step
+    const [hintLevel, setHintLevel] = useState<number>(0);   // hints taken from the ladder (0-2)
+    const [flipMs, setFlipMs] = useState<number>(0);          // time from showing the card to flipping it
     const [showPractice, setShowPractice] = useState<boolean>(false);
     const [practiceResult, setPracticeResult] = useState<{ similarity: number; strokeOrderErrors: number } | null>(null);
     const tCal = useTranslations("calligraphy");
@@ -57,12 +74,20 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     useEffect(() => { if (last && graded) finish(); });
     const card = remaining[0];
 
+    const autoDraw = !!card && isCalligraphy(card) && tierOf(card as unknown as Parameters<typeof tierOf>[0]) === "maintaining";   // a strong character is drawn, not flipped
+
     useEffect(() => {
         startTimeRef.current = performance.now();
         setHintUsed(false);
         setHiddenTranslation(true);
         setGraded(false);
-        setShowPractice(false);
+        setPeeked(false);
+        setHintLevel(0);
+        setFlipMs(0);
+        setTyped(null);
+        setFlipInstead(false);
+        setChoiceDone(false);
+        setShowPractice(autoDraw);
         setPracticeResult(null);
     }, [currentIndex]);
 
@@ -95,12 +120,36 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
 
     const reveal = () => {
         if (!hiddenTranslation) return;
+        setFlipMs(Math.round(performance.now() - startTimeRef.current));
         setHiddenTranslation(false);
         setHintUsed(true);
     };
 
     const handleGoNext = () => {
         setDone([...done, keyOf(card)]);
+    };
+
+    const tier = isVocabulary(card) || isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
+    const scaffolds = tier ? scaffoldsFor(tier) : null;
+    const showDetail = scaffolds?.detail === "shown" || peeked;                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
+    const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date());        // hear the clip before seeing the word
+    const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
+    const peek = () => { setPeeked(true); setHintUsed(true); };
+    const effectiveLevel = Math.min(2, Math.max(hintLevel, peeked ? 1 : 0));            // a peek counts as the first hint
+    const choiceActive = isVocabulary(card) && !!card.leech?.confusable && !choiceDone && hiddenTranslation && !graded;
+    const pickChoice = (correct: boolean) => {
+        setChoiceDone(true);
+        if (correct) { setHintLevel((l) => Math.max(l, 1)); setHintUsed(true); }       // assisted: the best grade is limited
+        else { setHiddenTranslation(false); handleGrade(0); }
+    };
+    const typedMode = tier === "maintaining" && isVocabulary(card) && card.side === "back" && !flipInstead;
+    const answerTyped = (value: string | null) => {          // null = gave up
+        if (!isVocabulary(card)) return;
+        const correct = value !== null && matchesAnswer(value, card.word);
+        const ms = Math.round(performance.now() - startTimeRef.current);
+        setTyped({ correct });
+        setHiddenTranslation(false);
+        handleGrade(Math.min(gradeForTyped(correct, ms), HINT_CAPS[effectiveLevel]));
     };
 
     return (
@@ -159,8 +208,27 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                             </div>
                         </section>
                     )}
+                    {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
+                    {tier && !showPractice && <TierBadge tier={tier} />}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
+                    ) : choiceActive && isVocabulary(card) && card.leech?.confusable ? (
+                    (() => {
+                        const other = card.leech!.confusable!, back = card.side === "back";
+                        const options = [{ label: (back ? card.word.word : card.word.translation) ?? "", correct: true }, { label: back ? other.word : other.translation, correct: false }];
+                        const flipped = [...card.id!].reduce((a, c) => a + c.charCodeAt(0), 0) % 2 === 1;      // stable per card, so the right one is not always first
+                        return <LeechChoice prompt={back ? t("chooseWord", { translation: card.word.translation ?? "" }) : t("chooseMeaning", { word: card.word.word ?? "" })}
+                            options={flipped ? options.reverse() : options} onPick={pickChoice} />;
+                    })()
+                    ) : typedMode && isVocabulary(card) ? (
+                    <section className="flex flex-col gap-3">
+                        <WordCard word={card.word} hiddenTranslation={hiddenTranslation} hiddenAdditionalInformations={false} reverse showPhonetic={showDetail} />
+                        {hiddenTranslation ? (
+                            <TypeAnswer onSubmit={answerTyped} onGiveUp={() => answerTyped(null)} onFlip={() => setFlipInstead(true)} />
+                        ) : typed && (
+                            <p role="status" className="font-medium">{typed.correct ? t("typeRight") : t("typeWrong", { word: card.word.word ?? "" })}</p>
+                        )}
+                    </section>
                     ) : (
                     <div className="flashcard">
                         <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
@@ -177,7 +245,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 }}
                             >
                                 {isVocabulary(card) && (
-                                    <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} />
+                                    listenFirst ? <p className="text-center text-lg font-medium">{t("listenPrompt")}</p> : <>
+                                        <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} showPhonetic={showDetail} />
+                                        {example && <SentenceCard sentence={example} hiddenTranslation={true} />}
+                                    </>
                                 )}
                                 {isGrammar(card) && (
                                     <h3 className="font-serif">{card.title}</h3>
@@ -185,7 +256,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 {isCalligraphy(card) && (
                                     <>
                                         <h3 className="font-serif">{t("characterHeading")}</h3>
-                                        <CharacterCard character={card.character} hiddenTranslation={true} hiddenAdditionalInformations={true} />
+                                        <CharacterCard character={card.character} hiddenTranslation={true} hiddenAdditionalInformations={showDetail} />
                                     </>
                                 )}
                                 <p className="text-sm text-muted text-center mt-3">{t("clickToReveal")}</p>
@@ -206,9 +277,21 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
 
                     )}
 
+                    {listenFirst && isVocabulary(card) && hiddenTranslation && !choiceActive && (
+                        <AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} />
+                    )}
+
+                    {scaffolds?.detail === "peek" && !peeked && hiddenTranslation && !showPractice && !choiceActive && (
+                        <button type="button" className="btn btn-secondary min-h-11 self-start" onClick={peek}>{t("peek")}</button>
+                    )}
+
+                    {tier && hiddenTranslation && !showPractice && !choiceActive && (
+                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                    )}
+
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
-                        <RecallGradeButtons onGrade={handleGrade} />
+                        <RecallGradeButtons onGrade={handleGrade} maxScore={HINT_CAPS[effectiveLevel]} suggested={tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
                     )}
 
                     {/* ── Post-grade content ───────────────────────── */}

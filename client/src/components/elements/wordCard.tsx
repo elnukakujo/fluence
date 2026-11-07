@@ -7,16 +7,19 @@ export default function WordCard({
   hiddenTranslation,
   hiddenAdditionalInformations,
   reverse,
+  showPhonetic,
 }: {
   word: Word | Partial<Word>;
   hiddenTranslation?: boolean;
   hiddenAdditionalInformations?: boolean;
   /** Back side of a vocabulary card: while hidden, show the translation instead of the word. */
   reverse?: boolean;
+  /** Show the phonetic and chips on a hidden face too (a flashcard that scaffolds). */
+  showPhonetic?: boolean;
 }) {
   const t = useTranslations("elements");
   const showExtras =
-    ((hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation) && !(reverse && hiddenTranslation);
+    (((hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation) && !(reverse && hiddenTranslation)) || !!showPhonetic;
   const hasMedia =
     (word.image_files && word.image_files.length > 0) ||
     (word.audio_files && word.audio_files.length > 0);

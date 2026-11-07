@@ -14,7 +14,7 @@ _SYSTEM = (
     f"content it holds, from this fixed set: {', '.join(ALL_KINDS)}. vocabulary = word lists or glossaries; "
     "grammar = grammar explanations; calligraphy = pages teaching how to write a single character: stroke order, radicals, practice grids, character breakdowns; "
     "exercise = numbered tasks/questions for the learner to answer (fill-in blanks, multiple choice, "
-    "matching, true/false, translate, reorder, essay/speaking prompts). Use [] for covers, contents pages and blank pages. "
+    "matching, true/false, translate, reorder, essay/speaking prompts), and also a text or dialogue to read and study (a reading passage). Use [] for covers, contents pages and blank pages. "
     "If unsure, include the kind. "
     'Reply with ONLY a JSON array: [{"page": <page number as shown>, "kinds": ["vocabulary", ...]}].'
 )

@@ -90,7 +90,7 @@ export default function ExerciseBody({ row }: { row: Row }) {
         </details>
       )}
       {body()}
-      {FREE_TEXT.includes(type) && row.answer && (
+      {FREE_TEXT.includes(type) && type !== "speaking" && row.answer && (   // a speaking exercise stores its prompt as the answer: nothing to show
         <div><p className="field-label">{t("answer")}</p><p className="whitespace-pre-line">{row.answer}</p></div>
       )}
     </div>

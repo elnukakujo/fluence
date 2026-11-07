@@ -163,5 +163,7 @@
   "reviewLater": "Plus tard",
   "reviewFailed": "Une erreur est survenue. Réessayez.",
   "reviewBanner": "{count, plural, one {# exercice généré à vérifier} other {# exercices générés à vérifier}}",
-  "aiGenerated": "Généré par IA"
+  "aiGenerated": "Généré par IA",
+  "filterOrigin": "Origine",
+  "originAi": "Généré par IA"
 }

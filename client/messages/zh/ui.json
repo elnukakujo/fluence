@@ -50,5 +50,6 @@
   "atLabel": "在",
   "removeOption": "移除 {option}",
   "decrease": "减少",
-  "increase": "增加"
+  "increase": "增加",
+  "suggested": "建议"
 }

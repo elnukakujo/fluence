@@ -28,6 +28,12 @@ describe("generated exercises review", () => {
     expect(screen.queryByText("Question ex_ok")).toBeNull();
   });
 
+  it("shows each question once", async () => {
+    render(<GenerationReview lessonId="lesson_1" onClose={vi.fn()} />);
+    await screen.findByText("answer is wrong");
+    expect(screen.getAllByText("Question ex_1")).toHaveLength(1);
+  });
+
   it("accept clears the reason (and nothing else changes) and removes the card", async () => {
     render(<GenerationReview lessonId="lesson_1" onClose={vi.fn()} />);
     await userEvent.click((await screen.findAllByRole("button", { name: "Accept" }))[0]);

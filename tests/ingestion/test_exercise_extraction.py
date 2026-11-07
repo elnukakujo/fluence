@@ -216,3 +216,14 @@ def test_type_suspect_flag(etype, question, suspect):
     content = {"segments": ["a", "b"], "blanks": [{"answer": "x"}]} if etype == "type_in_the_blank" else None
     codes = {f.code for f in _ex(etype, question, content=content, page=f"Fill in {question} a").flags}
     assert ("type_suspect" in codes) is suspect
+
+
+def test_the_split_prompt_makes_a_passage_or_dialogue_to_read_a_reading_block():
+    prompt = el._split_prompt("English")
+    assert "a dialogue to read or a grammar note is NOT an exercise" not in prompt
+    assert "passage or dialogue to read" in prompt and "`type_hint` reading" in prompt
+
+
+def test_a_reading_block_without_lines_yields_nothing(model):
+    model.replies = [[_block("reading", [])]]
+    assert el.extract_exercises(CHUNK, API, "English", None) == []

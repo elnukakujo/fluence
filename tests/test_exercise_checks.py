@@ -41,6 +41,13 @@ def test_each_rule_rejects_a_broken_item(bad, why):
     assert why in (code_error(bad, IDS) or "").lower()
 
 
+def test_reading_and_dictation_may_have_no_instruction():
+    reading = {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": "hi"}]}
+    assert code_error(item("reading", reading, question=""), IDS) is None
+    assert code_error(item("dictation", {"lines": [{"text": "hi"}]}, question=""), IDS) is None
+    assert "question" in (code_error(item("essay", question=""), IDS) or "")
+
+
 def test_near_duplicates_are_found_by_normalised_text_and_similarity():
     kept = [item("essay", question="Translate the word cat.")]
     assert is_near_duplicate(item("essay", question="translate the word  CAT"), kept)

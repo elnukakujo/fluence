@@ -27,4 +27,20 @@ describe("exercise filter: category", () => {
     await userEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(nav.replace).toHaveBeenCalledWith("/ex");
   });
+
+  it("offers the derived Speaking section, translated type names and an AI-generated origin", async () => {
+    render(<ExerciseFilter types={["speaking"]} categories={[...getExamCategories("zho"), { slug: "speaking" }]} />);
+    await userEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    expect(screen.getAllByRole("button", { name: "Speaking" })).toHaveLength(2);        // the section chip and the type chip
+    await userEvent.click(screen.getByRole("button", { name: "AI-generated" }));
+    expect(nav.replace).toHaveBeenCalledWith("/ex?origin=ai");
+  });
+
+  it("an active origin counts as a filter that Clear removes", async () => {
+    nav.search = "origin=ai";
+    render(<ExerciseFilter types={[]} categories={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(nav.replace).toHaveBeenCalledWith("/ex");
+  });
 });

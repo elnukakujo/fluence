@@ -34,3 +34,11 @@ GEN_MIN = 6
 GEN_MAX = 60
 GEN_THIN_POOL = 6            # a lesson with fewer elements borrows same-level ones from the language's other lessons
 GEN_DUPLICATE_RATIO = 0.9    # two generated questions at least this similar count as the same exercise
+GEN_READING_WEIGHT = 2.0     # TODO(user): reading is a core exercise, so it is drawn more often than a plain type
+GEN_MULTI_ITEM = {"matching": (2, 4), "reading": (3, 5), "conversation": (2, 4)}   # TODO(user): elements per slot (low, high)
+GEN_GUARANTEE_READING_FROM = 4   # a batch of at least this many always has a reading (unless banned)
+
+# Leech cards (a card that keeps slipping). TODO(user): stand-ins.
+LEECH_LAPSES = 4             # score drops after which a card gets leech help
+LEECH_CONFUSABLE_RATIO = 0.6 # spelling similarity (difflib) for a confusable word
+LEECH_CANDIDATES = 2000      # words of the language compared at most

@@ -163,5 +163,7 @@
   "reviewLater": "稍后",
   "reviewFailed": "出错了，请重试。",
   "reviewBanner": "{count} 个生成的练习需要检查",
-  "aiGenerated": "AI 生成"
+  "aiGenerated": "AI 生成",
+  "filterOrigin": "来源",
+  "originAi": "AI 生成"
 }

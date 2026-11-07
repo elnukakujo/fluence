@@ -50,5 +50,6 @@
   "atLabel": "à",
   "removeOption": "Retirer {option}",
   "decrease": "Diminuer",
-  "increase": "Augmenter"
+  "increase": "Augmenter",
+  "suggested": "Suggéré"
 }
