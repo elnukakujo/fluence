@@ -23,6 +23,8 @@ import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
+import HintLadder from "./hintLadder";
+import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 
 const isVocabulary = (c: ReviewCard): c is Vocabulary => "word" in c;
@@ -41,6 +43,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
     const [peeked, setPeeked] = useState<boolean>(false);
+    const [hintLevel, setHintLevel] = useState<number>(0);   // hints taken from the ladder (0-2)
+    const [flipMs, setFlipMs] = useState<number>(0);          // time from showing the card to flipping it
     const [showPractice, setShowPractice] = useState<boolean>(false);
     const [practiceResult, setPracticeResult] = useState<{ similarity: number; strokeOrderErrors: number } | null>(null);
     const tCal = useTranslations("calligraphy");
@@ -66,6 +70,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setHiddenTranslation(true);
         setGraded(false);
         setPeeked(false);
+        setHintLevel(0);
+        setFlipMs(0);
         setShowPractice(false);
         setPracticeResult(null);
     }, [currentIndex]);
@@ -99,6 +105,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
 
     const reveal = () => {
         if (!hiddenTranslation) return;
+        setFlipMs(Math.round(performance.now() - startTimeRef.current));
         setHiddenTranslation(false);
         setHintUsed(true);
     };
@@ -112,6 +119,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const showDetail = scaffolds?.detail === "shown" || peeked;                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
     const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
     const peek = () => { setPeeked(true); setHintUsed(true); };
+    const effectiveLevel = Math.min(2, Math.max(hintLevel, peeked ? 1 : 0));            // a peek counts as the first hint
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
@@ -224,9 +232,13 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         <button type="button" className="btn btn-secondary min-h-11 self-start" onClick={peek}>{t("peek")}</button>
                     )}
 
+                    {tier && hiddenTranslation && !showPractice && (
+                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                    )}
+
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
-                        <RecallGradeButtons onGrade={handleGrade} />
+                        <RecallGradeButtons onGrade={handleGrade} maxScore={HINT_CAPS[effectiveLevel]} suggested={tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
                     )}
 
                     {/* ── Post-grade content ───────────────────────── */}

@@ -78,5 +78,11 @@
   "tier_practising": "练习中",
   "tier_maintaining": "巩固中",
   "tierTitle": "你对这张卡片的掌握程度，决定正面给多少提示。",
-  "peek": "偷看"
+  "peek": "偷看",
+  "hintButton": "提示",
+  "hintShape": "开头：{shape}",
+  "hintContext": "例句：{sentence}",
+  "hintRadical": "部首：{radical}",
+  "hintPhonetic": "读音：/{phonetic}/",
+  "hintCapNote": "使用提示会限制可给的最高评分。"
 }
