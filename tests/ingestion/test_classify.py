@@ -91,3 +91,8 @@ def test_validate_page_kinds_silently_filters_legacy_kinds():
 def test_validate_page_kinds_rejects(raw):
     ok, err = validate_page_kinds(raw, 1, 3)
     assert ok is None and err
+
+
+def test_the_page_classifier_counts_a_reading_passage_as_exercise_content():
+    system = classify_module._SYSTEM
+    assert "reading" in system and "dialogue" in system
