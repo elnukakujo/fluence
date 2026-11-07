@@ -1,0 +1,35 @@
+"""Code checks for a generated exercise: cheap, deterministic, run before the judge. The reason returned is shown to the model on a retry and to the user in review."""
+from difflib import SequenceMatcher
+
+from ..features.study_constants import GEN_DUPLICATE_RATIO
+from ..ingestion.elements import EXERCISE_TYPES, exercise_content_error
+from ..ingestion.verify import normalise
+
+ANSWER_REQUIRED = ("essay", "answering", "translate")   # the other types derive their answer from `content`
+
+
+def code_error(item: dict, allowed_ids: set[str]) -> str | None:
+    """None if `item` ({exercise_type, question, answer, content, links}) passes, else the first problem."""
+    etype = item.get("exercise_type")
+    if etype not in EXERCISE_TYPES:
+        return f"unknown exercise type {etype!r}"
+    if not (item.get("question") or "").strip():
+        return "the question is empty"
+    if (error := exercise_content_error(etype, item.get("content"))):
+        return error
+    if etype in ANSWER_REQUIRED and not (item.get("answer") or "").strip():
+        return "the answer is empty"
+    if etype == "matching":
+        pairs = [tuple(normalise(x) for x in p) for p in item["content"]["pairs"]]
+        if len({p[0] for p in pairs}) != len(pairs) or len({p[1] for p in pairs}) != len(pairs):
+            return "matching has a duplicate pair or a repeated side"
+    links = item.get("links") or []
+    if not links or not set(links) <= allowed_ids:
+        return "link the exercise to at least one of the elements it is about (use only the ids given)"
+    return None
+
+
+def is_near_duplicate(item: dict, kept: list[dict]) -> bool:
+    """Same question as an already kept exercise: equal once normalised, or at least GEN_DUPLICATE_RATIO similar."""
+    q = normalise(item.get("question") or "")
+    return any(q == (k := normalise(o.get("question") or "")) or SequenceMatcher(None, q, k).ratio() >= GEN_DUPLICATE_RATIO for o in kept)

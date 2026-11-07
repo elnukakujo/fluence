@@ -340,6 +340,17 @@ def dictation_content(content: dict) -> dict:
     return {"lines": [{"text": l["text"].strip(), "audioIndex": None} for l in content["lines"]]}
 
 
+def stored_content(exercise_type: str, content) -> dict | None:
+    """The `content` the app stores for a valid exercise: the model's reading/dictation shape rebuilt, none for a conversation (it lives in question/answer)."""
+    if exercise_type == "conversation":
+        return None
+    if content and exercise_type == "reading":
+        return reading_content(content)
+    if content and exercise_type == "dictation":
+        return dictation_content(content)
+    return content
+
+
 def app_form(exercise_type: str, content) -> tuple[str | None, str, list[str]] | None:
     """(question, answer, pieces of the answer that should occur in the page) the way the app's own exercise form builds
     them for the structured types; None for the free-text types, whose question/answer stay as the page gives them."""
@@ -478,8 +489,7 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
             "question": question,
             "answer": answer,
             "text_support": raw.get("text_support"),
-            "content": (None if exercise_type == "conversation" else reading_content(content) if exercise_type == "reading" and content
-                        else dictation_content(content) if exercise_type == "dictation" and content else content),
+            "content": stored_content(exercise_type, content),
         }
 
     if normalise(raw["quote"]) not in text and not any(f.code == "quote_not_in_source" for f in flags):
