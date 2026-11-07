@@ -162,5 +162,6 @@
   "reviewDeleteAll": "Delete all",
   "reviewLater": "Later",
   "reviewFailed": "Something went wrong. Try again.",
-  "reviewBanner": "{count, plural, one {# generated exercise needs a look} other {# generated exercises need a look}}"
+  "reviewBanner": "{count, plural, one {# generated exercise needs a look} other {# generated exercises need a look}}",
+  "aiGenerated": "AI-generated"
 }

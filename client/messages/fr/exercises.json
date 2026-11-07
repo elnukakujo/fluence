@@ -162,5 +162,6 @@
   "reviewDeleteAll": "Tout supprimer",
   "reviewLater": "Plus tard",
   "reviewFailed": "Une erreur est survenue. Réessayez.",
-  "reviewBanner": "{count, plural, one {# exercice généré à vérifier} other {# exercices générés à vérifier}}"
+  "reviewBanner": "{count, plural, one {# exercice généré à vérifier} other {# exercices générés à vérifier}}",
+  "aiGenerated": "Généré par IA"
 }

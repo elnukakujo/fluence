@@ -162,5 +162,6 @@
   "reviewDeleteAll": "全部删除",
   "reviewLater": "稍后",
   "reviewFailed": "出错了，请重试。",
-  "reviewBanner": "{count} 个生成的练习需要检查"
+  "reviewBanner": "{count} 个生成的练习需要检查",
+  "aiGenerated": "AI 生成"
 }
