@@ -24,3 +24,13 @@ def default_goal_quantities(daily_minutes: int) -> dict:
     scale = max(daily_minutes, 1) / DEFAULT_GOAL_ANCHOR_MINUTES
     new = {k: max(1, int(v * scale + 0.5)) for k, v in DEFAULT_NEW_AT_ANCHOR.items()}   # half up
     return {"n": new, "r": {k: max(1, int(v * DEFAULT_REVIEW_SHARE + 0.5)) for k, v in new.items()}}
+
+
+# AI exercise generation for a lesson. TODO(user): stand-ins for every number below.
+GEN_VOC_PER_EXERCISE = 2     # one exercise per this many words
+GEN_GRAMMAR_EXERCISES = 2    # exercises per grammar point
+GEN_CALL_PER_EXERCISE = 2    # one exercise per this many calligraphy characters
+GEN_MIN = 6
+GEN_MAX = 60
+GEN_THIN_POOL = 6            # a lesson with fewer elements borrows same-level ones from the language's other lessons
+GEN_DUPLICATE_RATIO = 0.9    # two generated questions at least this similar count as the same exercise
