@@ -78,16 +78,16 @@ export type GenerationJob = {
 const codeOf = async (res: Response, fallback: string) => ((await res.json().catch(() => ({}))) as { error?: string }).error ?? fallback;
 
 /** Recommended number of exercises for a lesson and the planned mix of types. */
-export async function suggestGeneration(lessonId: string): Promise<{ count: number; mix: Record<string, number>; pool: number }> {
+export async function suggestGeneration(lessonId: string): Promise<{ count: number; mix: Record<string, number>; pool: number; types?: string[] }> {
   const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/suggest`, { headers: await getAuthHeaders() });
   if (!res.ok) throw new Error(await codeOf(res, "suggest_failed"));
   return res.json();
 }
 
 /** Starts a background generation; returns the job id. Throws an Error whose message is the server's code (text_gen_not_configured, empty_lesson, ...). */
-export async function startGeneration(lessonId: string, count: number): Promise<string> {
+export async function startGeneration(lessonId: string, count: number, mix?: Record<string, number>): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/generate`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ count }),
+    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(mix ? { count, mix } : { count }),
   });
   if (!res.ok) throw new Error(await codeOf(res, "generate_failed"));
   return (await res.json()).job_id;

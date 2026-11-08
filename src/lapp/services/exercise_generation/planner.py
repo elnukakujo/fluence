@@ -41,6 +41,32 @@ def _type_weights(type_prefs: Optional[dict], tts_enabled: bool) -> dict[str, fl
     return weights
 
 
+def offerable_types(type_prefs: Optional[dict], tts_enabled: bool) -> list[str]:
+    """The exercise types the user may ask for: not banned, and dictation only with a TTS endpoint."""
+    return list(_type_weights(type_prefs, tts_enabled))
+
+
+def plan_slots_from_mix(pool: list[PoolItem], mix: dict[str, int], rng: Optional[random.Random] = None) -> list[Slot]:
+    """Exactly `mix` ({type: n}) as slots: the same primaries as `plan_slots` (weakest first, then weighted picks);
+    calligraphy items take the single-character types first, the rest take whatever type has the most left."""
+    rng = rng or random.Random()
+    left = {t: n for t, n in mix.items() if n > 0}
+    count = sum(left.values())
+    if not pool or not count:
+        return []
+    primaries = sorted(pool, key=lambda p: p.score)[:count]
+    primaries += rng.choices(pool, weights=[2 - p.score / 100 for p in pool], k=count - len(primaries))
+    primaries.sort(key=lambda p: p.kind != "calligraphy")        # calligraphy items choose first
+    slots = []
+    for primary in primaries:
+        fitting = {t: n for t, n in left.items() if n > 0 and (primary.kind != "calligraphy" or t in CALLIGRAPHY_TYPES)} or {t: n for t, n in left.items() if n > 0}
+        best = max(fitting.values())
+        etype = rng.choice([t for t, n in fitting.items() if n == best])
+        left[etype] -= 1
+        slots.append(_slot(primary, etype, pool, rng))
+    return slots
+
+
 def plan_slots(pool: list[PoolItem], count: int, type_prefs: Optional[dict], tts_enabled: bool,
                rng: Optional[random.Random] = None) -> list[Slot]:
     """`count` slots: every pool item first (weakest first), then weakest-weighted picks; types weighted by the user's boost/ban."""

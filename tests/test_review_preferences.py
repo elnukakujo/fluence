@@ -16,20 +16,23 @@ class E:   # tiny stand-in element for order_bucket
     def __init__(self, id): self.id = id
 
 
+MEAN = {"voc": 8, "gram": 90, "ex": 60, "call": 15}
+
+
 def test_section_budgets():
     layout = [{"type": t, "minutes": None} for t in ("voc", "gram", "ex", "call")]
-    assert section_budgets(layout, 20) == {"voc": 38, "gram": 3, "ex": 5, "call": 20}   # 300 s each / 8, 90, 60, 15 s
+    assert section_budgets(layout, 20, MEAN) == {"voc": 38, "gram": 3, "ex": 5, "call": 20}   # 300 s each / 8, 90, 60, 15 s
     layout[0]["minutes"] = 1
-    assert section_budgets(layout, 20)["voc"] == 8
+    assert section_budgets(layout, 20, MEAN)["voc"] == 8
 
 
 def test_budget_uses_type_cost():
     layout = [{"type": t} for t in ("voc", "call", "gram", "ex")]
-    assert section_budgets(layout, 10) == {"voc": 19, "call": 10, "gram": 2, "ex": 2}   # 150 s each
+    assert section_budgets(layout, 10, MEAN) == {"voc": 19, "call": 10, "gram": 2, "ex": 2}   # 150 s each
 
 
 def test_budget_never_below_one():
-    assert section_budgets([{"type": "gram"}], 1)["gram"] == 1
+    assert section_budgets([{"type": "gram"}], 1, MEAN)["gram"] == 1
 
 
 def test_no_layout_is_capped_by_seconds_not_a_flat_count(db):
@@ -209,3 +212,37 @@ def test_without_preferences_seen_elements_outside_the_window_still_come_back(db
     ScoreService().set("user_U1", "voc_V24", score=30.0, difficulty=0.5)       # seen: a review candidate, not "new"
     ids = {c["id"] for c in _cards()}
     assert "voc_V24" in ids and len(ids) == 11
+
+
+def _short_exercises(db, n):
+    with db.session_scope() as s:
+        for i in range(n):
+            db.insert(Exercise(id=f"ex_S{i}", lesson_id="lesson_L1", exercise_type="translate", question=f"say {i}", answer="ok"), session=s, commit=False)
+
+
+def test_one_sentence_exercises_fill_the_section(db):
+    _seed(db, vocs=1)
+    _short_exercises(db, 30)
+    _prefs(daily_goal_minutes=10, review_layout=[{"type": t, "minutes": None} for t in ("voc", "gram", "ex", "call")])
+    cards = _cards()
+    assert sum(c["section"] == "ex" for c in cards) >= 6          # was 2 with a flat 60 s per exercise
+    assert all("est_seconds" in c for c in cards)
+
+
+def test_section_always_serves_its_first_card(db):
+    _seed(db, exs=("translate",))
+    with db.session_scope() as s:
+        db.get_by_id(Exercise, "ex_E0", session=s).text_support = "word " * 1000      # ~5 min to read, in a 1 min section
+    _prefs(daily_goal_minutes=1, review_layout=[{"type": "ex", "minutes": 1}])
+    assert [c["section"] for c in _cards()] == ["ex"]
+
+
+def test_idle_history_does_not_shrink_the_queue(db):
+    from lapp.models.data_collection import ProgressTracking
+    _seed(db, vocs=1)
+    _short_exercises(db, 30)
+    with db.session_scope() as s:
+        db.insert(ProgressTracking(id="prog_idle", user_id="user_U1", language_id="lang_L1", element_type="exercise", element_id="ex_S0",
+                                   element_status="reviewed", score_before=0, score_after=1, result=True, duration_ms=1_200_000), session=s, commit=False)
+    _prefs(daily_goal_minutes=10, review_layout=[{"type": "ex", "minutes": None}])
+    assert len(_cards()) >= 6

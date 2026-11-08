@@ -67,7 +67,7 @@ def test_suggest_returns_a_count_and_a_mix_without_banned_types(app, db):
 def test_suggest_on_an_empty_lesson_is_zero(app, db):
     _user(db, "user_U1")
     _lesson(db, words=0)
-    assert _client(app, "user_U1").get("/api/lesson/lesson_L1/exercises/suggest").get_json() == {"count": 0, "mix": {}, "pool": 0}
+    assert _client(app, "user_U1").get("/api/lesson/lesson_L1/exercises/suggest").get_json() | {"types": None} == {"count": 0, "mix": {}, "pool": 0, "types": None}
 
 
 def test_generate_saves_the_clean_ones_and_flags_the_doubtful(app, db, stub):
@@ -198,3 +198,30 @@ def test_the_lesson_remembers_a_failed_job_once(app, db, monkeypatch):
     first = c.get("/api/lesson/lesson_L1/exercises/generate").get_json()
     assert first["state"] == "failed" and "no model" in first["error"]
     assert c.get("/api/lesson/lesson_L1/exercises/generate").get_json() is None
+
+
+def test_suggest_lists_offerable_types(app, db):
+    _user(db, "user_U1", type_prefs={"quizz": "ban"})
+    _lesson(db)
+    types = _client(app, "user_U1").get("/api/lesson/lesson_L1/exercises/suggest").get_json()["types"]
+    assert "translate" in types and "quizz" not in types and "dictation" not in types      # banned; no TTS endpoint
+
+
+@pytest.mark.parametrize("mix", [
+    {"nonsense": 6}, {"quizz": 6}, {"dictation": 6}, {"translate": 5}, {"translate": 7},
+    {"translate": 0, "essay": 6}, {"translate": -1, "essay": 7}, {"translate": 2.5, "essay": 3.5}, {"translate": "6"}, [],
+])
+def test_generate_rejects_a_bad_mix(app, db, stub, mix):
+    _user(db, "user_U1", type_prefs={"quizz": "ban"})
+    _lesson(db)
+    r = _client(app, "user_U1").post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6, "mix": mix})
+    assert r.status_code == 400 and "mix" in r.get_json()["error"]
+
+
+def test_generate_hands_the_mix_to_the_job(app, db, stub, monkeypatch):
+    _user(db, "user_U1")
+    _lesson(db)
+    seen = {}
+    monkeypatch.setattr(jobs, "start_job", lambda *a, **kw: seen.update(args=a, kw=kw) or "gen_x")
+    r = _client(app, "user_U1").post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6, "mix": {"translate": 4, "essay": 2}})
+    assert r.status_code == 202 and ({"translate": 4, "essay": 2} in seen["args"] or seen["kw"].get("mix") == {"translate": 4, "essay": 2})

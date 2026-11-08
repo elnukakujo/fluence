@@ -184,5 +184,14 @@
   "noSource": "无来源",
   "noTag": "无标签",
   "generateFailedShort": "生成失败（详情）",
-  "generateRunningShort": "正在生成 {done}/{total}…（打开）"
+  "generateRunningShort": "正在生成 {done}/{total}…（打开）",
+  "generateMixPlaced": "已安排 {placed} / {total}",
+  "generateMixFree": "空余 {free}",
+  "generateMixRemoveOne": "减少一个「{type}」",
+  "generateMixAddOne": "增加一个「{type}」",
+  "generateMixAddType": "添加题型",
+  "generateMixAdd": "添加",
+  "generateMixReset": "重置",
+  "generateMixNeedRoom": "要增加，请先从其他题型中减少一个。",
+  "generateMixPlaceFree": "请安排空余的练习或调低总数后再生成。"
 }

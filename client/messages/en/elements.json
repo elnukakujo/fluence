@@ -97,6 +97,7 @@
   "chooseMeaning": "Which meaning goes with {word}?",
   "chooseWord": "Which word means {translation}?",
   "listenPrompt": "Listen and recall",
+  "cantHearCard": "I can't hear",
   "exerciseBroken": "This exercise is broken and cannot be shown.",
   "skipBroken": "Skip it"
 }

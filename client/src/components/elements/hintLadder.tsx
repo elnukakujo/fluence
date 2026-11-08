@@ -32,12 +32,12 @@ export default function HintLadder({ card, level, onHint, shown, children }: { c
     if (!lines.length && !children) return null;
     return (
         <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 min-h-16">   {/* stable height: a hint appearing must not push the card down */}
+            {children}
             {lines.length > 0 && (
                 <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5" disabled={level >= lines.length} onClick={onHint}>
                     <Lightbulb size={14} aria-hidden />{t("hintButton")}
                 </button>
             )}
-            {children}
             {level > 0 && (
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 self-center rounded-md border border-border bg-surface px-3 py-1.5" aria-live="polite">
                     {lines.slice(0, level).map((line, i) => <p key={i} className="text-sm">{line}</p>)}

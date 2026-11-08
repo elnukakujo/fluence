@@ -24,13 +24,14 @@ import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
-import { PenLine } from "lucide-react";
+import { EarOff, PenLine } from "lucide-react";
 import HintLadder from "./hintLadder";
 import TypeAnswer from "./typeAnswer";
 import LeechPanel from "./leechPanel";
 import LeechChoice from "./leechChoice";
 import AudioPlayer from "@/components/media/audioPlayer";
 import { PUBLIC_BASE_URL } from "@/api";
+import { pickReplacement } from "@/utils/replaceCard";
 import { isListenFirst } from "@/utils/listenFirst";
 import { gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
 import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
@@ -62,18 +63,22 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const tStudy = useTranslations("study");
 
     const keyOf = (c: ReviewCard) => ("card_id" in c && c.card_id ? String(c.card_id) : c.id!);   // a vocabulary appears once per side
-    const remaining = cards.filter((c) => !done.includes(keyOf(c)));
+    const queue = cards.filter((c) => !c.spare);                    // spares ride along to replace an exercise the learner can't do
+    const [replaced, setReplaced] = useState<Record<string, Exercise>>({});   // queue slot -> the spare exercise standing in
+    const remaining = queue.filter((c) => !done.includes(keyOf(c)));
+    const slot = remaining[0];
     const currentIndex = done.length;
     const [streak, setStreak] = useState<number | null>(null);
     const finishedRef = useRef(false);
     const finish = () => {          // the queue's last card was answered: the day counts for the streak, once
         if (finishedRef.current || !languageId) return;
         finishedRef.current = true;
-        completeReview(languageId, cards.length).then((r) => setStreak(r.validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
+        completeReview(languageId, queue.length).then((r) => setStreak(r.validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
     };
     const last = remaining.length === 1;
     useEffect(() => { if (last && graded) finish(); });
-    const card = remaining[0];
+    const card = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
+    const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
     const autoDraw = !!card && isCalligraphy(card) && tierOf(card as unknown as Parameters<typeof tierOf>[0]) === "maintaining";   // a strong character is drawn, not flipped
 
@@ -89,7 +94,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setChoiceDone(false);
         setShowPractice(autoDraw);
         setPracticeResult(null);
-    }, [currentIndex]);
+        setCantHear(false);
+    }, [currentIndex, card?.id]);
 
     if (!card) {
         return (
@@ -126,14 +132,22 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     };
 
     const handleGoNext = () => {
-        setDone([...done, keyOf(card)]);
+        setDone([...done, keyOf(slot)]);
+    };
+
+    // Can't do this exercise right now (no audio / mic, or it is broken): another ready one takes its place, else it is skipped.
+    const handleReplace = (lacks: "hearing" | "speaking" | null) => {
+        const used = new Set(Object.values(replaced).map((r) => r.id!));
+        const spare = pickReplacement(cards.filter((c): c is ReviewCard & Exercise => !!c.spare && isExercise(c)), lacks, used);
+        if (!spare) return handleGoNext();
+        setReplaced({ ...replaced, [keyOf(slot)]: spare });
     };
 
     const practiceButton = <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{tCal("practiceButton")}</button>;
     const tier = isVocabulary(card) || isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
     const scaffolds = tier ? scaffoldsFor(tier) : null;
     const showDetail = scaffolds?.detail === "shown";                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
-    const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date());        // hear the clip before seeing the word
+    const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date()) && !cantHear;        // hear the clip before seeing the word
     const example = isVocabulary(card) && scaffolds?.example && card.side !== "back" ? card.example_sentences?.[0] : undefined;   // never on the back side: the sentence contains the answer
     const effectiveLevel = Math.min(2, hintLevel);
     const choiceActive = isVocabulary(card) && !!card.leech?.confusable && !choiceDone && hiddenTranslation && !graded;
@@ -159,8 +173,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 kind={tStudy(kindKey(card))}
                 side={isVocabulary(card) && card.side ? tStudy(card.side) : undefined}
                 sectionProgress={card.section ? (() => {
-                    const inSection = cards.filter((c) => c.section === card.section);
-                    return { done: inSection.findIndex((c) => c === card) + (graded ? 1 : 0), total: inSection.length };
+                    const inSection = queue.filter((c) => c.section === card.section);
+                    return { done: inSection.findIndex((c) => c === slot) + (graded ? 1 : 0), total: inSection.length };
                 })() : undefined}
                 sectionLabel={tStudy(kindKey(card))}
                 current={currentIndex + (graded ? 1 : 0)}
@@ -177,9 +191,9 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
-                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={handleGoNext} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
+                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={() => handleReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <SkipButtons exercise={card} onSkip={handleGoNext} onNext={handleGoNext} />
+                        <SkipButtons exercise={card} onSkip={handleReplace} onNext={handleGoNext} />
                         {remaining.length > 1 ? (
                             <button className="btn btn-primary min-h-11 ml-auto" onClick={handleGoNext}>
                                 {t("nextButton")}
@@ -285,6 +299,13 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
 
                     )}
                     </div>
+
+                    {/* a listen-first card: the escape sits below the card, like the skip buttons under an exercise */}
+                    {listenFirst && hiddenTranslation && !graded && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={() => setCantHear(true)}><EarOff size={16} aria-hidden />{t("cantHearCard")}</button>
+                        </div>
+                    )}
 
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (

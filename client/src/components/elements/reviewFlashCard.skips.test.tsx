@@ -33,4 +33,29 @@ describe("review: skips", () => {
         expect(screen.queryByTestId("runner")).toBeNull();
         expect(api.updateScoreById).not.toHaveBeenCalled();
     });
+
+    it("swaps an exercise the learner can't do for a ready spare, keeping the queue length", async () => {
+        const spare = { ...ex("ex_s", "translate"), spare: true } as unknown as ReviewCard;
+        render(<ReviewFlashCard cards={[ex("ex_1", "dictation"), ex("ex_2", "essay"), spare]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(screen.getByTestId("runner")).toHaveTextContent("ex_s");
+        expect(screen.getByText(/1 \/ 2|1\/2/)).toBeInTheDocument();
+        expect(api.updateScoreById).not.toHaveBeenCalled();
+    });
+
+    it("uses a spare only once and never one the learner can't do", async () => {
+        const spares = [{ ...ex("ex_d", "dictation"), spare: true }, { ...ex("ex_s", "translate"), spare: true }] as unknown as ReviewCard[];
+        render(<ReviewFlashCard cards={[ex("ex_1", "dictation"), ex("ex_2", "dictation"), ...spares]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(screen.getByTestId("runner")).toHaveTextContent("ex_s");
+        await userEvent.click(screen.getByRole("button", { name: "Next" }));
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(screen.queryByTestId("runner")).toBeNull();      // no usable spare left: skipped as before
+    });
+
+    it("the section total does not count the spares", () => {
+        const sec = (id: string, spare = false) => ({ ...ex(id, "essay"), section: "ex", spare }) as unknown as ReviewCard;
+        render(<ReviewFlashCard cards={[sec("ex_1"), sec("ex_2"), sec("ex_s1", true), sec("ex_s2", true), sec("ex_s3", true)]} />);
+        expect(screen.getByText((_, el) => /^0 \/ \d+ \S+/.test(el?.textContent ?? "") && el?.className.includes("whitespace-nowrap") === true)).toHaveTextContent(/^0 \/ 2 /);      // 2 queued exercises, not 5
+    });
 });

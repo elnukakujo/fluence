@@ -8,8 +8,38 @@ STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review t
 # ones of each type (lesson order); seen elements come back by review priority. TODO(user): stand-ins.
 NO_GOAL_NEW = {"vocabulary": 10, "grammar": 5, "calligraphy": 10}
 
-# Seconds one review card takes, per section type. TODO(user): stand-ins (exercises vary a lot).
-SECONDS_PER_CARD_BY_TYPE = {"voc": 8.0, "call": 15.0, "gram": 90.0, "ex": 60.0}
+# Seconds one review card takes. TODO(user): stand-ins for every number below.
+# Exercises are estimated per type: base + reading (question, text support, content) + interaction + listening.
+# per_item: seconds per list entry of the content (options, blanks, pairs...); typed: the learner types the answer.
+EXERCISE_TIME = {
+    "true_false": {"base": 4.0, "per_item": 0.0, "typed": False},
+    "select_in_the_blank": {"base": 5.0, "per_item": 1.5, "typed": False},
+    "quizz": {"base": 5.0, "per_item": 1.5, "typed": False},
+    "matching": {"base": 6.0, "per_item": 2.0, "typed": False},
+    "organize": {"base": 6.0, "per_item": 1.5, "typed": False},
+    "type_in_the_blank": {"base": 6.0, "per_item": 2.0, "typed": True},
+    "translate": {"base": 5.0, "per_item": 0.0, "typed": True},
+    "answering": {"base": 6.0, "per_item": 0.0, "typed": True},
+    "essay": {"base": 45.0, "per_item": 0.0, "typed": True},
+    "speaking": {"base": 15.0, "per_item": 0.0, "typed": False},
+    "conversation": {"base": 15.0, "per_item": 5.0, "typed": False},
+    "reading": {"base": 15.0, "per_item": 0.0, "typed": False},
+    "dictation": {"base": 10.0, "per_item": 0.0, "typed": True},
+}
+EXERCISE_TIME_DEFAULT = {"base": 10.0, "per_item": 1.0, "typed": False}   # an unknown exercise type
+READ_CHARS_PER_S = 15.0     # reading speed for CJK text (characters)
+READ_WORDS_PER_S = 3.5      # reading speed for other scripts (words)
+TYPE_CHARS_PER_S = 4.0      # typing speed
+AUDIO_SECONDS = 4.0         # one audio clip (real durations are not stored)
+VOC_SECONDS = 8.0
+CALL_SECONDS = 15.0
+GRAM_BASE = 20.0
+# Measured pace: median of actual / estimated time over the last PACE_SAMPLES cards of a kind, trusted n / (n + PACE_PRIOR_WEIGHT).
+PACE_SAMPLES = 20
+PACE_PRIOR_WEIGHT = 5
+PACE_MIN_MS = 2000          # a card is never counted faster than this ...
+PACE_MAX_FACTOR = 5         # ... or slower than this many times its estimate (an idle tab)
+SPARE_EXERCISES = 5         # ready exercises sent along as replacements for skipped or broken ones
 
 # Default study goal, scaled by the user's daily minutes. TODO(user): stand-ins anchored on the 20 min/day example
 # (20 new vocabulary, 5 grammar, 10 calligraphy a week); the review share is half of the new quantity.

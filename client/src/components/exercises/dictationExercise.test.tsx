@@ -28,8 +28,14 @@ beforeEach(() => {
 describe("dictation exercise", () => {
   it("plays the line's stored clip", async () => {
     render(<DictationExercise exercise={ex()} />);
-    await userEvent.click(screen.getAllByRole("button", { name: "Play" }).at(-1)!);   // the media card has its own play buttons
+    await userEvent.click(screen.getByRole("button", { name: /play line 1/i }));
     expect(played.urls).toContain("/media/audio/d.wav");
+  });
+
+  it("shows a single audio control, not the exercise's whole clip list", () => {
+    const { container } = render(<DictationExercise exercise={ex()} />);
+    expect(screen.getAllByRole("button", { name: /play/i })).toHaveLength(1);
+    expect(container.querySelectorAll("audio")).toHaveLength(0);
   });
 
   it("is not practicable while a line has no clip", () => {

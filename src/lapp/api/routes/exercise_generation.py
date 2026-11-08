@@ -9,7 +9,7 @@ from ...models.features import Exercise
 from ...services import ExerciseService
 from ...services.containers import LanguageService, LessonService
 from ...services.exercise_generation import jobs
-from ...services.exercise_generation.planner import plan_slots, suggest_count
+from ...services.exercise_generation.planner import offerable_types, plan_slots, suggest_count
 from ...services.exercise_generation.pool import lesson_pool
 from ...services.features.study_constants import GEN_MAX
 from ...services.system_data import UserPreferencesService
@@ -17,6 +17,12 @@ from ...utils.llm_providers import resolve_api
 
 logger = logging.getLogger(__name__)
 bp = Blueprint("exercise_generation", __name__)
+
+
+def _offerable() -> list[str]:
+    """The exercise types the current user may ask for (not banned; dictation only with a TTS endpoint)."""
+    prefs = UserPreferencesService().get_by_user_id(current_user_id())
+    return offerable_types(prefs.exercise_type_prefs, prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None)
 
 
 def _plan(lesson_id: str, count: int | None):
@@ -41,11 +47,11 @@ def suggest(lesson_id: str):
     parameters:
         - {name: lesson_id, in: path, type: string, required: true}
     responses:
-        200: {description: "{count, mix: {type: n}, pool: number of elements}"}
+        200: {description: "{count, mix: {type: n}, pool: number of elements, types: the exercise types that can be asked for}"}
     """
     require_write(lesson_id)
     pool, slots, _ = _plan(lesson_id, None)
-    return jsonify({"count": len(slots), "mix": dict(Counter(s.exercise_type for s in slots)), "pool": len(pool)})
+    return jsonify({"count": len(slots), "mix": dict(Counter(s.exercise_type for s in slots)), "pool": len(pool), "types": _offerable()})
 
 
 @bp.route("/api/lesson/<lesson_id>/exercises/generate", methods=["POST"])
@@ -59,13 +65,19 @@ def generate(lesson_id: str):
         - {name: lesson_id, in: path, type: string, required: true}
     responses:
         202: {description: "{job_id}"}
-        400: {description: count outside 1..60}
+        400: {description: "count outside 1..60, or a mix that is not offerable types with positive whole numbers summing to count"}
         409: {description: "text_gen_not_configured or empty_lesson"}
     """
     require_write(lesson_id)
     count = (request.get_json(silent=True) or {}).get("count")
     if not isinstance(count, int) or isinstance(count, bool) or not 1 <= count <= GEN_MAX:
         return jsonify({"error": f"count must be a whole number from 1 to {GEN_MAX}"}), 400
+    mix = (request.get_json(silent=True) or {}).get("mix")
+    if mix is not None:
+        offered = set(_offerable())
+        ok = isinstance(mix, dict) and mix and all(t in offered and isinstance(n, int) and not isinstance(n, bool) and n > 0 for t, n in mix.items())
+        if not ok or sum(mix.values()) != count:
+            return jsonify({"error": "mix must map offered exercise types to positive whole numbers that add up to count"}), 400
     api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
     if not api:
         return jsonify({"error": "text_gen_not_configured"}), 409
@@ -78,7 +90,7 @@ def generate(lesson_id: str):
     source_iso = language.get("source_iso639_2t") or next(iter(prefs.native_language_iso639_2 or []), None)   # instructions go in the learner's own language
     source = jobs.target_name(source_iso) if source_iso else None
     job_id = jobs.start_job(current_app._get_current_object(), current_user_id(), lesson_id, count, api,
-                            jobs.target_name(language.get("target_iso639_2t")), source if source != "the target language" else None)
+                            jobs.target_name(language.get("target_iso639_2t")), source if source != "the target language" else None, mix)
     return jsonify({"job_id": job_id}), 202
 
 
