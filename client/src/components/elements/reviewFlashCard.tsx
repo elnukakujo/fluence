@@ -129,6 +129,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setDone([...done, keyOf(card)]);
     };
 
+    const practiceButton = <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{tCal("practiceButton")}</button>;
     const tier = isVocabulary(card) || isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
     const scaffolds = tier ? scaffoldsFor(tier) : null;
     const showDetail = scaffolds?.detail === "shown";                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
@@ -136,6 +137,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const example = isVocabulary(card) && scaffolds?.example && card.side !== "back" ? card.example_sentences?.[0] : undefined;   // never on the back side: the sentence contains the answer
     const effectiveLevel = Math.min(2, hintLevel);
     const choiceActive = isVocabulary(card) && !!card.leech?.confusable && !choiceDone && hiddenTranslation && !graded;
+    const hintShown = !!tier && hiddenTranslation && !showPractice && !choiceActive;
     const pickChoice = (correct: boolean) => {
         setChoiceDone(true);
         if (correct) { setHintLevel((l) => Math.max(l, 1)); setHintUsed(true); }       // assisted: the best grade is limited
@@ -190,9 +192,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             ) : (
                 <>
                     {/* ── Calligraphy: draw the character (stroke order + similarity) ── */}
-                    {isCalligraphy(card) && !showPractice && (
-                        <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5 self-end" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{tCal("practiceButton")}</button>
-                    )}
+                    {isCalligraphy(card) && !showPractice && !hintShown && practiceButton}
                     {isCalligraphy(card) && practiceResult && (
                         <section className="card flex flex-col gap-2.5">
                             <h3 className="font-serif">{tCal("practiceResult")}</h3>
@@ -210,9 +210,9 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     )}
                     {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
                     <div className="flex flex-col gap-2">
-                    {tier && hiddenTranslation && !showPractice && !choiceActive && (
+                    {hintShown && (
                         <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} shown={{ detail: showDetail, example: !!example }}
-                            onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                            onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }}>{isCalligraphy(card) && practiceButton}</HintLadder>
                     )}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
