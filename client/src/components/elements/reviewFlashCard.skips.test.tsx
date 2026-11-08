@@ -52,4 +52,10 @@ describe("review: skips", () => {
         await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
         expect(screen.queryByTestId("runner")).toBeNull();      // no usable spare left: skipped as before
     });
+
+    it("the section total does not count the spares", () => {
+        const sec = (id: string, spare = false) => ({ ...ex(id, "essay"), section: "ex", spare }) as unknown as ReviewCard;
+        render(<ReviewFlashCard cards={[sec("ex_1"), sec("ex_2"), sec("ex_s1", true), sec("ex_s2", true), sec("ex_s3", true)]} />);
+        expect(screen.getByText((_, el) => /^0 \/ \d+ \S+/.test(el?.textContent ?? "") && el?.className.includes("whitespace-nowrap") === true)).toHaveTextContent(/^0 \/ 2 /);      // 2 queued exercises, not 5
+    });
 });

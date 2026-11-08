@@ -173,7 +173,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 kind={tStudy(kindKey(card))}
                 side={isVocabulary(card) && card.side ? tStudy(card.side) : undefined}
                 sectionProgress={card.section ? (() => {
-                    const inSection = cards.filter((c) => c.section === card.section);
+                    const inSection = queue.filter((c) => c.section === card.section);
                     return { done: inSection.findIndex((c) => c === slot) + (graded ? 1 : 0), total: inSection.length };
                 })() : undefined}
                 sectionLabel={tStudy(kindKey(card))}
