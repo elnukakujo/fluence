@@ -5,7 +5,7 @@ from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
 from lapp.models.components import Word, Character
 from lapp.models.features import Vocabulary, Grammar, Calligraphy
-from lapp.services.exercise_generation.planner import PoolItem, plan_slots, suggest_count
+from lapp.services.exercise_generation.planner import PoolItem, offerable_types, plan_slots, plan_slots_from_mix, suggest_count
 from lapp.services.exercise_generation.pool import lesson_pool
 from lapp.services.ingestion.elements import EXERCISE_TYPES
 from lapp.services.system_data import ScoreService
@@ -109,3 +109,25 @@ def test_pool_of_a_rich_lesson_stays_inside_the_lesson(db):
     _seed(db, own=7, other=2)
     with db.session_scope() as s:
         assert not {p.id for p in lesson_pool("lesson_A", "user_U1", s)} & {"voc_V7", "voc_V8"}
+
+
+def test_mix_plan_has_exactly_the_mix_counts():
+    mix = {"quizz": 3, "dictation": 1, "reading": 2}
+    slots = plan_slots_from_mix(_pool(), mix, random.Random(1))
+    assert Counter(s.exercise_type for s in slots) == mix
+
+
+def test_mix_plan_calligraphy_gets_compatible_types():
+    pool = [PoolItem("calligraphy", f"call_C{i}", f"c{i}", 50.0) for i in range(4)]
+    slots = plan_slots_from_mix(pool, {"quizz": 2, "answering": 1, "essay": 1}, random.Random(1))
+    assert len(slots) == 4
+    assert Counter(s.exercise_type for s in slots) == {"quizz": 2, "answering": 1, "essay": 1}
+
+
+def test_mix_plan_empty_pool_or_mix():
+    assert plan_slots_from_mix([], {"quizz": 2}) == [] and plan_slots_from_mix(_pool(), {}) == []
+
+
+def test_offerable_types():
+    types = offerable_types({"quizz": "ban"}, False)
+    assert "quizz" not in types and "dictation" not in types and "translate" in types
