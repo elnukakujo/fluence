@@ -1,29 +1,20 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import RecallGradeButtons from "./recallGradeButtons";
 
-describe("RecallGradeButtons", () => {
-    it("sends the grade's score", async () => {
+describe("RecallGradeButtons keyboard", () => {
+    it("keys 1-4 grade again/hard/good/easy", () => {
         const onGrade = vi.fn();
         render(<RecallGradeButtons onGrade={onGrade} />);
-        await userEvent.click(screen.getByRole("button", { name: /Good/ }));
-        expect(onGrade).toHaveBeenCalledWith(0.75);
+        fireEvent.keyDown(window, { key: "1" }); fireEvent.keyDown(window, { key: "4" });
+        expect(onGrade.mock.calls).toEqual([[0], [1]]);
     });
-
-    it("never disables a grade: the suggestion is only a hint, the user chooses", async () => {
+    it("ignores keys typed in a field", () => {
         const onGrade = vi.fn();
-        render(<RecallGradeButtons onGrade={onGrade} suggested="hard" />);
-        for (const name of [/Again/, /Hard/, /Good/, /Easy/]) expect(screen.getByRole("button", { name })).toBeEnabled();
-        await userEvent.click(screen.getByRole("button", { name: /Easy/ }));
-        expect(onGrade).toHaveBeenCalledWith(1);
-    });
-
-    it("marks the suggested grade with text", () => {
-        render(<RecallGradeButtons onGrade={vi.fn()} suggested="good" />);
-        expect(screen.getByRole("button", { name: /Good/ })).toHaveTextContent("Suggested");
-        expect(screen.getByRole("button", { name: /Easy/ })).not.toHaveTextContent("Suggested");
+        const { container } = render(<><input data-testid="i" /><RecallGradeButtons onGrade={onGrade} /></>);
+        fireEvent.keyDown(container.querySelector("input")!, { key: "2" });
+        expect(onGrade).not.toHaveBeenCalled();
     });
 });

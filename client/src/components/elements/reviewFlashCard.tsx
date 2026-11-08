@@ -178,7 +178,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <SkipButtons exercise={card} onSkip={handleGoNext} />
                         {remaining.length > 1 ? (
-                            <button className="btn btn-primary ml-auto" onClick={handleGoNext}>
+                            <button className="btn btn-primary min-h-11 ml-auto" onClick={handleGoNext}>
                                 {t("nextButton")}
                             </button>
                         ) : (
@@ -293,6 +293,14 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     {/* ── Post-grade content ───────────────────────── */}
                     {graded && (
                         <>
+                            {/* next first: the details below can be long, the action must stay in view */}
+                            {remaining.length > 1 ? (
+                                <button className="btn btn-primary min-h-11 self-start" onClick={handleGoNext} autoFocus>
+                                    {t("nextButton")}
+                                </button>
+                            ) : (
+                                <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
+                            )}
                             {isVocabulary(card) && card.example_sentences && card.example_sentences.length > 0 && (
                                 <section className="flex flex-col space-y-4">
                                     <h3 className="font-serif">{t("exampleSentences", { ns: "vocabulary" })}</h3>
@@ -320,13 +328,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                             <ElementTagsCard element={card} />
                             <ElementSourcesCard element={card} />
                             <ElementPerformanceCard element={card} />
-                            {remaining.length > 1 ? (
-                                <button className="btn btn-primary" onClick={handleGoNext}>
-                                    {t("nextButton")}
-                                </button>
-                            ) : (
-                                <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
-                            )}
                         </>
                     )}
                 </>
