@@ -59,7 +59,7 @@ def test_a_near_duplicate_of_a_kept_item_is_dropped(model):
 
 
 def test_structured_items_are_stored_the_way_the_app_form_stores_them(model):
-    blank = {"question": "x", "answer": "", "text_support": "cat (neko)", "links": ["voc_V1"],
+    blank = {"question": "x", "answer": "", "text_support": "the animal that meows", "links": ["voc_V1"],
              "content": {"segments": ["The ", " sleeps."], "blanks": [{"answer": "cat"}]}}
     model.replies = [[blank]]
     [out] = gen.generate_batch([Slot("type_in_the_blank", [V1])], API, "Japanese")
@@ -153,3 +153,15 @@ def test_a_gap_without_a_clue_is_retried_with_the_reason(model):
     model.replies = [[bare], [{**bare, "text_support": "cat, dog"}]]
     [out] = gen.generate_batch([Slot("type_in_the_blank", [V1])], API, "Japanese")
     assert out["text_support"] == "cat, dog"
+
+
+def test_type_in_clue_that_copies_the_answer_is_rejected():
+    from lapp.services.exercise_generation.checks import code_error
+    def item(q, ts):
+        return {"exercise_type": "type_in_the_blank", "question": q, "answer": "", "text_support": ts, "links": ["voc_V1"],
+                "content": {"segments": ["我", "喜欢运动。"], "blanks": [{"answer": "最"}]}}
+    ids = {"voc_V1"}
+    assert code_error(item("Complete with 最: I like sports the most.", "the most"), ids)       # the question gives it
+    assert code_error(item("I like sports the most.", "最 (the most)"), ids)                    # the clue gives it
+    assert code_error(item("I like sports the most.", "the most"), ids) is None                 # a meaning clue is fine
+    assert code_error(item("Fill the gap.", "最, 很, 太"), ids) is None                          # a word bank lists it among others

@@ -1,4 +1,5 @@
 """Code checks for a generated exercise: cheap, deterministic, run before the judge. The reason returned is shown to the model on a retry and to the user in review."""
+import re
 from difflib import SequenceMatcher
 
 from ..features.study_constants import GEN_DUPLICATE_RATIO
@@ -21,6 +22,13 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
         return "the answer is empty"
     if etype == "type_in_the_blank" and not (item.get("text_support") or "").strip():
         return "a type-in gap needs a clue in `text_support` (a word bank, the base form or the translation of each missing word), otherwise the answer is a guess"
+    if etype == "type_in_the_blank":
+        question, support = normalise(item.get("question") or ""), normalise(item.get("text_support") or "")
+        for b in item["content"]["blanks"]:
+            a = normalise(b.get("answer") or "")
+            # a word bank ("cat, dog") legitimately lists the answer; "answer (gloss)" or the bare answer is a copy
+            if a and (a in question or support == a or re.match(rf"{re.escape(a)}\s*[(（:：=-]", support)):
+                return "the question or `text_support` gives the answer itself: give its translation or base form, never the answer word"
     if etype == "matching":
         pairs = [tuple(normalise(x) for x in p) for p in item["content"]["pairs"]]
         if len({p[0] for p in pairs}) != len(pairs) or len({p[1] for p in pairs}) != len(pairs):
