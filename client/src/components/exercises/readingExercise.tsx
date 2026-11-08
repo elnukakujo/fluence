@@ -7,7 +7,6 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Exercise from "@/interface/features/Exercise";
 import { updateScoreById } from "@/api/process";
-import ElementMediaCard from "@/components/elements/elementMediaCard";
 import { useLineAudio } from "./lineAudio";
 
 // 36px square target with an 8px gap between neighbours; the speaker column never wraps.
@@ -39,7 +38,6 @@ export default function ReadingExercise({ exercise }: { exercise: Exercise }) {
         <div className="card flex flex-col space-y-4">
             {exercise.question && <h3>{exercise.question}</h3>}
             {exercise.text_support?.trim() && <Markdown remarkPlugins={[remarkGfm]}>{exercise.text_support}</Markdown>}
-            <ElementMediaCard element={exercise} />
             <ol className="flex flex-col gap-3 list-none pl-0">
                 {content.lines.map((line, i) => (
                     <li key={i} className="flex flex-col gap-1">
