@@ -174,7 +174,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
-                    <RunnerBoundary key={card.id} onSkip={handleGoNext} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
+                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={handleGoNext} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <SkipButtons exercise={card} onSkip={handleGoNext} />
                         {remaining.length > 1 ? (

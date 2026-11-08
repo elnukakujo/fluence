@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -20,23 +21,8 @@ def test_dictation_needs_audio_until_every_line_has_a_clip():
     assert _needs("dictation", {"lines": lines}, ["/m/a.wav", "/m/b.wav"]) == []
 
 
-GOOD = [
-    ("reading", {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": "a"}]}),
-    ("essay", None), ("answering", None), ("translate", None), ("speaking", None),
-    ("matching", {"pairs": [["a", "b"]]}),
-    ("quizz", {"options": ["a", "b"], "correct": [0]}),
-    ("true_false", {"statement": "s", "answer": True}),
-    ("organize", {"items": ["a", "b"], "answer_order": [1, 0]}),
-    ("type_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x"}]}),
-    ("select_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x", "options": ["x", "y"]}]}),
-]
-BAD = [
-    ("matching", {"pairs": []}), ("matching", {}), ("quizz", {}), ("quizz", {"options": ["a"], "correct": [0]}),
-    ("true_false", {"statement": "s"}), ("organize", {"items": ["a"], "answer_order": []}),
-    ("type_in_the_blank", {"segments": ["a"], "blanks": [{"answer": "x"}]}),
-    ("select_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x"}]}),
-    ("reading", {"lines": []}), ("matching", "oops"),
-]
+_FIXTURES = json.loads((Path(__file__).parents[1] / "client/src/test/exerciseContent.json").read_text())   # shared with the client runner test
+GOOD, BAD = _FIXTURES["good"], _FIXTURES["bad"]
 
 
 @pytest.mark.parametrize("t,content", GOOD)
