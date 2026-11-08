@@ -165,3 +165,11 @@ def test_type_in_clue_that_copies_the_answer_is_rejected():
     assert code_error(item("I like sports the most.", "最 (the most)"), ids)                    # the clue gives it
     assert code_error(item("I like sports the most.", "the most"), ids) is None                 # a meaning clue is fine
     assert code_error(item("Fill the gap.", "最, 很, 太"), ids) is None                          # a word bank lists it among others
+
+
+def test_judge_checks_answerability_and_sees_the_clue(model):
+    model.replies = [{"verdicts": [{"ok": False, "reason": "很 also fits"}]}]
+    item = {"exercise_type": "type_in_the_blank", "question": "q", "answer": "最", "text_support": "the most", "linked": []}
+    assert gen.judge_batch([item], API, "Chinese") == ["很 also fits"]
+    assert "ANSWERABILITY" in model.calls[0][0]["content"]
+    assert json.loads(model.calls[0][1]["content"])["exercises"][0]["text_support"] == "the most"
