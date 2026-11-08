@@ -267,9 +267,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                         <p className="text-center text-lg font-medium">{t("listenPrompt")}</p>
                                         {/* on the card, front side only (the back side asks for the word, the clip would give it away); playing must not flip the card */}
                                         <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} /></div>
-                                        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                                            <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5" onClick={() => setCantHear(true)}><EarOff size={14} aria-hidden />{t("cantHearCard")}</button>
-                                        </div>
                                     </> : <>
                                         <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} showPhonetic={showDetail} />
                                         {example && <SentenceCard sentence={example} hiddenTranslation={true} />}
@@ -302,6 +299,13 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
 
                     )}
                     </div>
+
+                    {/* a listen-first card: the escape sits below the card, like the skip buttons under an exercise */}
+                    {listenFirst && hiddenTranslation && !graded && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={() => setCantHear(true)}><EarOff size={16} aria-hidden />{t("cantHearCard")}</button>
+                        </div>
+                    )}
 
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
