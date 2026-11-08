@@ -184,5 +184,14 @@
   "noSource": "No source",
   "noTag": "No tag",
   "generateFailedShort": "Generation failed (details)",
-  "generateRunningShort": "Generating {done}/{total}… (open)"
+  "generateRunningShort": "Generating {done}/{total}… (open)",
+  "generateMixPlaced": "{placed} of {total} placed",
+  "generateMixFree": "{free, plural, one {# free} other {# free}}",
+  "generateMixRemoveOne": "Remove one {type}",
+  "generateMixAddOne": "Add one {type}",
+  "generateMixAddType": "Add a type",
+  "generateMixAdd": "Add",
+  "generateMixReset": "Reset",
+  "generateMixNeedRoom": "To add more, remove one from another type first.",
+  "generateMixPlaceFree": "Place the free exercises or lower the total to generate."
 }

@@ -36,7 +36,7 @@ describe("generate exercises dialog", () => {
     await userEvent.clear(field);
     await userEvent.type(field, "1");
     expect(screen.getByText("Essay").closest("li")).toHaveTextContent("1");
-    expect(screen.queryByText("Quizz")).toBeNull();
+    expect(screen.queryByText("Quizz", { selector: "span.truncate" })).toBeNull();
     expect(api.suggestGeneration).toHaveBeenCalledTimes(1);
   });
 
@@ -79,7 +79,7 @@ describe("generate exercises dialog", () => {
     await userEvent.clear(count);
     await userEvent.type(count, "9");
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
-    expect(api.startGeneration).toHaveBeenCalledWith("lesson_1", 9);
+    expect(api.startGeneration).toHaveBeenCalledWith("lesson_1", 9, expect.any(Object));
     await tick();
     expect(await screen.findByRole("status")).toHaveTextContent("3 / 12");
   });
@@ -116,5 +116,63 @@ describe("generate exercises dialog", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Generate" }));
     await tick();
     expect(await screen.findByText("too hard")).toBeInTheDocument();
+  });
+});
+
+describe("generate dialog: editable planned mix", () => {
+  const all = ["essay", "quizz", "dictation", "translate"];
+  beforeEach(() => api.suggestGeneration.mockResolvedValue({ count: 6, mix: { essay: 4, quizz: 2 }, pool: 20, types: all }));
+  const row = (name: string) => screen.getByText(name).closest("li")!;
+
+  it("+ is disabled when every slot is placed and says why", async () => {
+    await open();
+    await screen.findByLabelText("Number of exercises");
+    expect(screen.getByRole("button", { name: "Add one Essay" })).toBeDisabled();
+    expect(screen.getByText(/remove one from another type first/i)).toBeInTheDocument();
+    expect(screen.getByText("6 of 6 placed")).toBeInTheDocument();
+  });
+
+  it("removing one then adding a dictation sends exactly that mix", async () => {
+    await open();
+    await screen.findByLabelText("Number of exercises");
+    await userEvent.click(screen.getByRole("button", { name: "Remove one Essay" }));
+    expect(screen.getByText(/5 of 6 placed/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();        // a slot is still free
+    await userEvent.selectOptions(screen.getByLabelText("Add a type"), "dictation");
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(row("Dictation")).toHaveTextContent("1");
+    await userEvent.click(screen.getByRole("button", { name: "Generate" }));
+    expect(api.startGeneration).toHaveBeenCalledWith("lesson_1", 6, { essay: 3, quizz: 2, dictation: 1 });
+  });
+
+  it("removing the last unit of a type removes its row and offers the type again", async () => {
+    await open();
+    await screen.findByLabelText("Number of exercises");
+    await userEvent.click(screen.getByRole("button", { name: "Remove one Quizz" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove one Quizz" }));
+    expect(screen.queryByText("Quizz", { selector: "span.truncate" })).toBeNull();
+    expect(screen.getByRole("option", { name: "Quizz" })).toBeInTheDocument();
+  });
+
+  it("only offers the types the server allows", async () => {
+    api.suggestGeneration.mockResolvedValue({ count: 6, mix: { essay: 4, quizz: 2 }, pool: 20, types: ["essay", "quizz", "translate"] });
+    await open();
+    await screen.findByLabelText("Number of exercises");
+    expect(screen.queryByRole("option", { name: "Dictation" })).toBeNull();
+    expect(screen.getByRole("option", { name: "Translate" })).toBeInTheDocument();
+  });
+
+  it("changing the total rescales the edited mix; Reset restores the suggestion", async () => {
+    await open();
+    const field = await screen.findByLabelText("Number of exercises");
+    await userEvent.click(screen.getByRole("button", { name: "Remove one Essay" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove one Essay" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove one Essay" }));        // essay 1, quizz 2: 3 of 6
+    await userEvent.clear(field);
+    await userEvent.type(field, "3");
+    expect(screen.getByText(/3 of 3 placed/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(row("Essay")).toHaveTextContent("2");                                           // the suggestion (4/2) scaled to 3
+    expect(screen.getByRole("button", { name: "Generate" })).toBeEnabled();
   });
 });

@@ -184,5 +184,14 @@
   "noSource": "Sans source",
   "noTag": "Sans tag",
   "generateFailedShort": "Échec de la génération (détails)",
-  "generateRunningShort": "Génération {done}/{total}… (ouvrir)"
+  "generateRunningShort": "Génération {done}/{total}… (ouvrir)",
+  "generateMixPlaced": "{placed} sur {total} placés",
+  "generateMixFree": "{free, plural, one {# libre} other {# libres}}",
+  "generateMixRemoveOne": "Retirer un exercice « {type} »",
+  "generateMixAddOne": "Ajouter un exercice « {type} »",
+  "generateMixAddType": "Ajouter un type",
+  "generateMixAdd": "Ajouter",
+  "generateMixReset": "Réinitialiser",
+  "generateMixNeedRoom": "Pour en ajouter, retirez d'abord un exercice d'un autre type.",
+  "generateMixPlaceFree": "Placez les exercices libres ou baissez le total pour générer."
 }
