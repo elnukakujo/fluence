@@ -117,7 +117,7 @@ def _split_prompt(target: str) -> str:
         "- A printed word bank, list of words to use or \"choose from\" box ALWAYS goes in `support_text` so the learner can answer; never drop it.\n"
         "- `items` are the numbered tasks or questions, copied verbatim, one string each. `answer_key` is the answers the page gives, in item order, else null.\n"
         f"- `type_hint` MUST be exactly one of: {TYPE_RULES}\n"
-        "- Invent no exercises that are not on the page.\n"
+        "- Invent no exercises that are not on the page. When a gap-fill has no printed clue (no word bank, base form or translation), do not invent one: leave `support_text` null.\n"
         '- Reply with ONLY a JSON array of {"instruction": str, "support_text": str|null, "items": [str], "answer_key": [str]|null, "type_hint": str}. '
         "If there are none, reply []."
     )
@@ -469,6 +469,8 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
                 question = f"{consigne}\n{question}"
         if _type_suspect(exercise_type, raw.get("question") or ""):
             flag("type_suspect", "The exercise type may be wrong for this item - check it (gaps need a fill-in type, choices a select type)")
+        if exercise_type == "type_in_the_blank" and not (raw.get("text_support") or "").strip() and not re.search(r"[(（][^()（）]+[)）]", raw.get("question") or ""):
+            flag("needs_clue", "A gap with no word bank, base form or translation is a guess - add a clue to the support text")
 
         if exercise_type == "dictation":
             flag("needs_audio", "A dictation needs a clip for every line: generate or upload them after adding it", "info")

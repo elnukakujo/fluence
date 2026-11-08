@@ -175,5 +175,9 @@
   "generateRetry": "重试",
   "groupBy": "分组方式",
   "originManual": "手动添加",
-  "need_content": "内容"
+  "need_content": "内容",
+  "filterSource": "来源",
+  "filterTag": "标签",
+  "noSource": "无来源",
+  "noTag": "无标签"
 }

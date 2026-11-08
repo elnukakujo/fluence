@@ -14,7 +14,7 @@ describe("exercise grouping choice", () => {
         render(<ExerciseFilter types={["essay"]} />);
         const select = screen.getByLabelText("Group by");
         expect(select).toHaveValue("category");
-        await userEvent.selectOptions(select, "origin");
-        expect(nav.replace).toHaveBeenLastCalledWith("/ex?status=ready&group=origin");
+        await userEvent.selectOptions(select, "source");
+        expect(nav.replace).toHaveBeenLastCalledWith("/ex?status=ready&group=source");
     });
 });

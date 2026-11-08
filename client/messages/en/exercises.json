@@ -175,5 +175,9 @@
   "generateRetry": "Try again",
   "groupBy": "Group by",
   "originManual": "Added by hand",
-  "need_content": "content"
+  "need_content": "content",
+  "filterSource": "Source",
+  "filterTag": "Tag",
+  "noSource": "No source",
+  "noTag": "No tag"
 }

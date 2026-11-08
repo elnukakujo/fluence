@@ -153,3 +153,25 @@ def test_the_job_passes_the_source_language_and_the_known_words_and_links_every_
     assert seen["source"] == "English" and {"w0", "w7"} <= set(seen["known"])
     [made] = c.get("/api/exercise/lesson/lesson_L1").get_json()
     assert set(made["related_vocabulary"]) == {"voc_V0", "voc_V3", "voc_V5"}
+
+
+def test_generated_exercises_share_one_ai_source_across_runs(app, db, stub):
+    _user(db, "user_U1")
+    _lesson(db)
+    c = _client(app, "user_U1")
+    for _ in range(2):
+        _wait(c, c.post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6}).get_json()["job_id"])
+    exercises = c.get("/api/exercise/lesson/lesson_L1").get_json()
+    assert len(exercises) == 6
+    ids = {s["id"] for e in exercises for s in e["sources"]}
+    assert len(ids) == 1 and all([s["source_type"] for s in e["sources"]] == ["ai"] for e in exercises)
+
+
+def test_older_generated_exercises_are_linked_when_the_list_is_read(app, db):
+    _user(db, "user_U1")
+    _lesson(db)
+    with db.session_scope() as s:
+        db.insert(Exercise(id="ex_E1", lesson_id="lesson_L1", exercise_type="essay", question="q", answer="a", generation_batch_id="batch_old"), session=s, commit=False)
+        db.insert(Exercise(id="ex_E2", lesson_id="lesson_L1", exercise_type="essay", question="q2", answer="a"), session=s, commit=False)
+    got = {e["id"]: e for e in _client(app, "user_U1").get("/api/exercise/lesson/lesson_L1").get_json()}
+    assert [s["source_type"] for s in got["ex_E1"]["sources"]] == ["ai"] and got["ex_E2"]["sources"] == []

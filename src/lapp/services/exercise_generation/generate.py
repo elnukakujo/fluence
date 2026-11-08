@@ -35,6 +35,7 @@ def _generation_system(etype: str, target: str, source: str | None) -> str:
         + READING_RULE.get(etype, "") +
         f"- Write `question` (the instruction or prompt the learner reads) in {learner}, never in {target}. Only the material being practised (sentences, options, blanks, dialogue and reading lines, matching pairs) is in {target}. "
         f"For true_false write the statement in {learner} unless it is a {target} sentence to judge.\n"
+        "- The exercise must be answerable from what it shows: a gap whose answer is a free choice (\"I like to drink __\") is forbidden. For type_in_the_blank put a word bank, the base form or the translation of each missing word in `text_support`; a gap must have exactly one right answer.\n"
         "- The exercise must be answerable and test the slot's elements. `answer` is a correct answer (never empty for essay, answering, translate; for speaking it is not used, leave it empty).\n"
         "- Use only words from the slot's elements and the known words listed in the user message, plus very basic words; never introduce other new words: the learner has not seen them.\n"
         f"- `content` is {content}.\n"
@@ -60,7 +61,7 @@ def _build(etype: str, raw, slot: Slot) -> tuple[dict | None, str | None]:
     question = s(raw.get("question"))
     if not question and etype in ("reading", "dictation") and content and isinstance(content.get("lines"), list) and content["lines"] and isinstance(content["lines"][0], dict):
         question = s(content["lines"][0].get("text"))[:60]      # no instruction: the first line stands in, as in the exercise form
-    cand = {"exercise_type": etype, "question": question, "answer": s(raw.get("answer")),
+    cand = {"exercise_type": etype, "question": question, "answer": s(raw.get("answer")), "text_support": s(raw.get("text_support")),
             "content": content, "links": links}
     if (err := code_error(cand, {i.id for i in slot.items})):
         return None, err

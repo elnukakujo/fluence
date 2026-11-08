@@ -132,7 +132,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const scaffolds = tier ? scaffoldsFor(tier) : null;
     const showDetail = scaffolds?.detail === "shown";                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
     const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date());        // hear the clip before seeing the word
-    const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
+    const example = isVocabulary(card) && scaffolds?.example && card.side !== "back" ? card.example_sentences?.[0] : undefined;   // never on the back side: the sentence contains the answer
     const effectiveLevel = Math.min(2, hintLevel);
     const choiceActive = isVocabulary(card) && !!card.leech?.confusable && !choiceDone && hiddenTranslation && !graded;
     const pickChoice = (correct: boolean) => {
@@ -208,9 +208,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         </section>
                     )}
                     {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
-                    <div className="relative">
+                    <div className="flex flex-col gap-2">
                     {tier && hiddenTranslation && !showPractice && !choiceActive && (
-                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} shown={{ detail: showDetail, example: !!example }}
+                            onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
                     )}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />

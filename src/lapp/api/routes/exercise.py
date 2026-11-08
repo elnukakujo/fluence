@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 
 from ...services import ExerciseService
-from ...services.system_data import ScoreService, ExerciseUserPrefService
+from ...services.system_data import ScoreService, ExerciseUserPrefService, SourceService
 from ...schemas import ExerciseDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...services.system_data import UserPreferencesService
@@ -65,6 +65,7 @@ def get_all_exercise_from_lesson(lesson_id: str):
                     description: Exercise object
     """
     require_write(lesson_id)
+    SourceService().link_generated_exercises(current_user_id(), lesson_id)   # exercises generated before the shared AI source existed
     exercise = exercise_service.get_all(lesson_id=lesson_id, as_dict=True)
     return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise)))
 

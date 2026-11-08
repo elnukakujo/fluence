@@ -19,6 +19,8 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
         return error
     if etype in ANSWER_REQUIRED and not (item.get("answer") or "").strip():
         return "the answer is empty"
+    if etype == "type_in_the_blank" and not (item.get("text_support") or "").strip():
+        return "a type-in gap needs a clue in `text_support` (a word bank, the base form or the translation of each missing word), otherwise the answer is a guess"
     if etype == "matching":
         pairs = [tuple(normalise(x) for x in p) for p in item["content"]["pairs"]]
         if len({p[0] for p in pairs}) != len(pairs) or len({p[1] for p in pairs}) != len(pairs):

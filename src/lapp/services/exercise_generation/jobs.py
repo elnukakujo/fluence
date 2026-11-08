@@ -10,7 +10,7 @@ from ...schemas import ExerciseDict
 from ...utils import get_language_by_iso2t
 from ...utils.llm_providers import resolve_api
 from ..features.exercise import ExerciseService
-from ..system_data import UserPreferencesService
+from ..system_data import SourceService, UserPreferencesService
 from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch
 from .planner import plan_slots
 from .pool import lesson_pool
@@ -62,6 +62,8 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
                     made = ExerciseService().create(ExerciseDict(lesson_id=lesson_id, generation_batch_id=batch_id, review_reason=reason, **fields),
                                                     session=s, as_dict=True)
                     created.append((made["id"], reason))
+            with db_manager.session_scope() as s:
+                SourceService().link_generated_exercises(user_id, lesson_id, session=s)    # one shared "AI generated" source per user
             job.update(state="done", done=job["total"], result={
                 "batch_id": batch_id, "saved": sum(1 for _, r in created if not r), "flagged": [i for i, r in created if r]})
         except Exception as e:   # reported to the poller; the save is one transaction, so nothing half-saved

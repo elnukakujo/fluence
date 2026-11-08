@@ -24,8 +24,14 @@ describe("groupExercises", () => {
     const ex = (id: string, type: string, extra: Partial<Exercise> = {}) => ({ id, exercise_type: type, question: "", answer: "", ...extra }) as Exercise;
     const list = [ex("a", "essay", { generation_batch_id: "b1" }), ex("b", "quizz", { needs: ["audio"] }), ex("c", "essay")];
 
-    it("by origin: AI-generated first, then added by hand", () => {
-        expect(groupExercises(list, "origin", []).map((g) => [g.key, g.exercises.length])).toEqual([["ai", 1], ["manual", 2]]);
+    it("by source: one group per source (titled), an exercise with none last", () => {
+        const withSources = [ex("a", "essay", { sources: [{ id: "s2", title: "AI generated" }] }), ex("b", "essay", { sources: [{ id: "s1", title: "Book" }] }), ex("c", "essay")];
+        expect(groupExercises(withSources, "source", []).map((g) => [g.key, g.label, g.exercises.map((e) => e.id)]))
+            .toEqual([["s2", "AI generated", ["a"]], ["s1", "Book", ["b"]], [null, undefined, ["c"]]]);
+    });
+    it("by tag: an exercise appears under each of its tags, untagged last", () => {
+        const tagged = [ex("a", "essay", { tags: [{ id: "t1", name: "Food" }, { id: "t2", name: "Travel" }] }), ex("b", "essay", { tags: [{ id: "t2", name: "Travel" }] }), ex("c", "essay")];
+        expect(groupExercises(tagged, "tag", []).map((g) => [g.key, g.exercises.map((e) => e.id)])).toEqual([["t1", ["a"]], ["t2", ["a", "b"]], [null, ["c"]]]);
     });
     it("by status: ready before not ready", () => {
         expect(groupExercises(list, "status", []).map((g) => [g.key, g.exercises.length])).toEqual([["ready", 2], ["notready", 1]]);
