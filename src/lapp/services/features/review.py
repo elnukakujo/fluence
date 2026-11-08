@@ -18,7 +18,7 @@ from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from .card_time import estimate_seconds, pace_ratios
 from .side_pattern import make_side_picker
-from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW)
+from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW, SPARE_EXERCISES)
 from .study_goal import StudyGoalService, TYPES
 from ..system_data.score import SIDES, side_id
 
@@ -221,7 +221,10 @@ class ReviewService:
                     break
 
         if as_dict:
-            return [{**self._card_dict(card, lesson_title_by_id), "section": sec, "est_seconds": round(est(card), 1)} for card, sec in zip(queue, sections)]
+            # A few more ready exercises ride along (not part of the queue) to replace a card the learner can't do.
+            spares = buckets[Exercise][:SPARE_EXERCISES]
+            return [{**self._card_dict(card, lesson_title_by_id), "section": sec, "spare": spare, "est_seconds": round(est(card), 1)}
+                    for card, sec, spare in [*((c, s, False) for c, s in zip(queue, sections)), *((c, "ex", True) for c in spares)]]
         return queue
 
     @transactional
