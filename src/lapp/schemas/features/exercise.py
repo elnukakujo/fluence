@@ -23,7 +23,7 @@ VALID_EXERCISE_TYPES = [
 class ExerciseDict(BaseFeatureDict):
     exercise_type: Optional[str] = None         # e.g., "type_in_the_blank", "multiple_choice"
     question: str
-    answer: str
+    answer: Optional[str] = None                # blank is stored as "" (an open-ended essay has none); the base schema turns "" into None
     text_support: Optional[str] = None          # e.g., additional text information
     content: Optional[dict] = None              # structured data for the structured types below
     category: Optional[str] = None              # exam-section slug; free text on purpose (the client owns the table)

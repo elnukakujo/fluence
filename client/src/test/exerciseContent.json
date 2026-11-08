@@ -1,0 +1,19 @@
+{
+  "good": [
+    ["reading", {"speakers": [{"id": "s1", "name": "A"}], "lines": [{"speakerId": "s1", "text": "a", "translation": null, "audioIndex": null}]}],
+    ["essay", null], ["answering", null], ["translate", null], ["speaking", null],
+    ["matching", {"pairs": [["a", "b"]]}],
+    ["quizz", {"options": ["a", "b"], "correct": [0]}],
+    ["true_false", {"statement": "s", "answer": true}],
+    ["organize", {"items": ["a", "b"], "answer_order": [1, 0]}],
+    ["type_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x"}]}],
+    ["select_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x", "options": ["x", "y"]}]}]
+  ],
+  "bad": [
+    ["matching", {"pairs": []}], ["matching", {}], ["quizz", {}], ["quizz", {"options": ["a"], "correct": [0]}],
+    ["true_false", {"statement": "s"}], ["organize", {"items": ["a"], "answer_order": []}],
+    ["type_in_the_blank", {"segments": ["a"], "blanks": [{"answer": "x"}]}],
+    ["select_in_the_blank", {"segments": ["a ", " b"], "blanks": [{"answer": "x"}]}],
+    ["reading", {"lines": []}], ["matching", "oops"]
+  ]
+}

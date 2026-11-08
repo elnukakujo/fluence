@@ -34,8 +34,8 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
     const wanted = (typeParam ?? "").split(",").filter(Boolean);
     const shown = filterExercises(exercises, { types: wanted, status: status ?? "", category: category ?? "", origin: origin ?? "" }, categories);
     const groups = groupExercises(shown, groupBy, categories);
-    const groupLabel = (key: string | null) => !key ? tEx("uncategorized") : groupBy === "category" ? categoryLabel(tEx, key)
-        : groupBy === "origin" ? tEx(key === "ai" ? "originAi" : "originManual") : groupBy === "status" ? tEx(key === "ready" ? "statusReady" : "statusNotReady")
+    const groupLabel = (key: string | null, label?: string) => !key ? tEx(groupBy === "source" ? "noSource" : groupBy === "tag" ? "noTag" : "uncategorized") : groupBy === "category" ? categoryLabel(tEx, key)
+        : groupBy === "source" || groupBy === "tag" ? (label ?? key) : groupBy === "status" ? tEx(key === "ready" ? "statusReady" : "statusNotReady")
         : EXERCISE_TYPE_KEY[key] ? tEx(EXERCISE_TYPE_KEY[key]) : key;
 
     return(
@@ -45,10 +45,10 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
             <LessonItems isOwner={userId === lesson.user_id} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="flex flex-col space-y-4">
                 {exercises.length > 0 && <div className="flex flex-col items-start gap-2"><div className="flex flex-wrap items-center gap-2"><SelectToggle kind="ex" /><ExerciseFilter types={allTypes} categories={categoriesWithDerived(exercises, categories)} /></div><div className="w-full max-w-sm"><SelectAllRow kind="ex" entries={shown.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div></div>}
                 {exercises.length > 0 && shown.length === 0 && <p className="text-muted">{tEx("filterNoMatch")}</p>}
-                {groups.map(({ key, exercises }) => (
+                {groups.map(({ key, exercises, label }) => (
                     <section key={key ?? "none"}>
-                        <h3>{groupLabel(key)} <span className="text-muted">({exercises.length})</span></h3>
-                        <div className="w-full max-w-sm"><SelectAllRow kind="ex" suffix={groupLabel(key)} entries={exercises.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div>
+                        <h3>{groupLabel(key, label)} <span className="text-muted">({exercises.length})</span></h3>
+                        <div className="w-full max-w-sm"><SelectAllRow kind="ex" suffix={groupLabel(key, label)} entries={exercises.map((e) => [e.id!, e.exercise_type ?? "exercise"])} /></div>
                         <ul className="list-none">
                             {exercises.map((exercise, index) => (
                                 <li key={index} className="card ex-card">

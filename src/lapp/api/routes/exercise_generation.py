@@ -82,6 +82,21 @@ def generate(lesson_id: str):
     return jsonify({"job_id": job_id}), 202
 
 
+@bp.route("/api/lesson/<lesson_id>/exercises/generate", methods=["GET"])
+@login_required
+def active(lesson_id: str):
+    """The generation job left running (or just failed) for this lesson, so the page can show where it is at.
+    ---
+    tags:
+        - Exercise generation
+    parameters:
+        - {name: lesson_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "{job_id, state, done, total[, error]} or null"}
+    """
+    return jsonify(jobs.active_job(current_user_id(), lesson_id))
+
+
 @bp.route("/api/exercise-generation/<job_id>", methods=["GET"])
 @login_required
 def progress(job_id: str):

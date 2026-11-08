@@ -117,7 +117,7 @@ def _split_prompt(target: str) -> str:
         "- A printed word bank, list of words to use or \"choose from\" box ALWAYS goes in `support_text` so the learner can answer; never drop it.\n"
         "- `items` are the numbered tasks or questions, copied verbatim, one string each. `answer_key` is the answers the page gives, in item order, else null.\n"
         f"- `type_hint` MUST be exactly one of: {TYPE_RULES}\n"
-        "- Invent no exercises that are not on the page.\n"
+        "- Invent no exercises that are not on the page. When a gap-fill has no printed clue (no word bank, base form or translation), do not invent one: leave `support_text` null.\n"
         '- Reply with ONLY a JSON array of {"instruction": str, "support_text": str|null, "items": [str], "answer_key": [str]|null, "type_hint": str}. '
         "If there are none, reply []."
     )
@@ -299,7 +299,7 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
         return isinstance(lines, list) and len(lines) >= 1 and all(isinstance(l, dict) and isinstance(l.get("text"), str) and l["text"].strip() for l in lines)
     elif exercise_type == "matching":
         return (isinstance(content, dict) and not isinstance(content, bool) and "pairs" in content and
-                isinstance(content.get("pairs"), list) and
+                isinstance(content.get("pairs"), list) and len(content["pairs"]) >= 1 and
                 all(isinstance(p, list) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str)
                     for p in content["pairs"]))
     else:
@@ -335,6 +335,14 @@ def reading_content(content: dict) -> dict:
     tr = lambda v: v.strip() if isinstance(v, str) and v.strip() else None
     return {"speakers": speakers, "lines": [{"speakerId": ids[l["speaker"].strip()], "text": l["text"].strip(),
                                              "translation": tr(l.get("translation")), "audioIndex": None} for l in content["lines"]]}
+
+
+def reading_stored_ok(content) -> bool:
+    """Is a STORED reading (speakers with ids, lines by `speakerId`, see reading_content) usable by the runner?"""
+    if not (isinstance(content, dict) and isinstance(content.get("speakers"), list) and isinstance(content.get("lines"), list) and content["lines"]):
+        return False
+    ids = {sp.get("id") for sp in content["speakers"] if isinstance(sp, dict) and isinstance(sp.get("name"), str) and sp["name"].strip()}
+    return bool(ids) and all(isinstance(l, dict) and l.get("speakerId") in ids and isinstance(l.get("text"), str) and l["text"].strip() for l in content["lines"])
 
 
 def dictation_content(content: dict) -> dict:
@@ -469,6 +477,8 @@ def verify_element(kind: Kind, raw: dict, chunk: Chunk, iso1: str | None) -> Ele
                 question = f"{consigne}\n{question}"
         if _type_suspect(exercise_type, raw.get("question") or ""):
             flag("type_suspect", "The exercise type may be wrong for this item - check it (gaps need a fill-in type, choices a select type)")
+        if exercise_type == "type_in_the_blank" and not (raw.get("text_support") or "").strip() and not re.search(r"[(（][^()（）]+[)）]", raw.get("question") or ""):
+            flag("needs_clue", "A gap with no word bank, base form or translation is a guess - add a clue to the support text")
 
         if exercise_type == "dictation":
             flag("needs_audio", "A dictation needs a clip for every line: generate or upload them after adding it", "info")

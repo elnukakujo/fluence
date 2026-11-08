@@ -117,9 +117,9 @@ export default function EssayExercise({ exercise }: { exercise: Exercise }) {
                             <p>
                                 {t("correct")}
                             </p>
-                            <p>
+                            {answer && <p>
                                 {t("correctAnswer")}{answer}
-                            </p>
+                            </p>}
                         </>
                     ) : <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>}
                     <p>
@@ -132,7 +132,7 @@ export default function EssayExercise({ exercise }: { exercise: Exercise }) {
 
                         {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
-                    {attempts >= 3 && !isCorrect && (
+                    {attempts >= 3 && !isCorrect && answer && (
                         <div className="mt-2">
                             <p className="font-medium">{t("providedExampleAnswer")} {answer}</p>
                         </div>

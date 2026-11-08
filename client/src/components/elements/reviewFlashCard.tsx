@@ -18,11 +18,13 @@ import ElementTagsCard from "./elementTagsCard";
 import ElementSourcesCard from "./elementSourcesCard";
 import ElementPerformanceCard from "./elementPerformanceCard";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
+import RunnerBoundary from "@/components/exercises/runnerBoundary";
 import ReviewHeader from "./reviewHeader";
 import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
+import { PenLine } from "lucide-react";
 import HintLadder from "./hintLadder";
 import TypeAnswer from "./typeAnswer";
 import LeechPanel from "./leechPanel";
@@ -131,7 +133,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const scaffolds = tier ? scaffoldsFor(tier) : null;
     const showDetail = scaffolds?.detail === "shown";                        // phonetic (vocabulary) / strokes and radical (calligraphy) on the front
     const listenFirst = !!tier && isVocabulary(card) && isListenFirst(card, tier, new Date());        // hear the clip before seeing the word
-    const example = isVocabulary(card) && scaffolds?.example ? card.example_sentences?.[0] : undefined;
+    const example = isVocabulary(card) && scaffolds?.example && card.side !== "back" ? card.example_sentences?.[0] : undefined;   // never on the back side: the sentence contains the answer
     const effectiveLevel = Math.min(2, hintLevel);
     const choiceActive = isVocabulary(card) && !!card.leech?.confusable && !choiceDone && hiddenTranslation && !graded;
     const pickChoice = (correct: boolean) => {
@@ -173,11 +175,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
-                    <ExerciseRunner key={card.id} exercise={card} />
+                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={handleGoNext} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <SkipButtons exercise={card} onSkip={handleGoNext} />
+                        <SkipButtons exercise={card} onSkip={handleGoNext} onNext={handleGoNext} />
                         {remaining.length > 1 ? (
-                            <button className="btn btn-primary ml-auto" onClick={handleGoNext}>
+                            <button className="btn btn-primary min-h-11 ml-auto" onClick={handleGoNext}>
                                 {t("nextButton")}
                             </button>
                         ) : (
@@ -189,7 +191,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 <>
                     {/* ── Calligraphy: draw the character (stroke order + similarity) ── */}
                     {isCalligraphy(card) && !showPractice && (
-                        <button className="btn self-end" onClick={() => setShowPractice(true)}>{tCal("practiceButton")}</button>
+                        <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5 self-end" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{tCal("practiceButton")}</button>
                     )}
                     {isCalligraphy(card) && practiceResult && (
                         <section className="card flex flex-col gap-2.5">
@@ -207,9 +209,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         </section>
                     )}
                     {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
-                    <div className="relative">
+                    <div className="flex flex-col gap-2">
                     {tier && hiddenTranslation && !showPractice && !choiceActive && (
-                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
+                        <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} shown={{ detail: showDetail, example: !!example }}
+                            onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} />
                     )}
                     {isCalligraphy(card) && showPractice ? (
                         <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
@@ -246,7 +249,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 }}
                             >
                                 {isVocabulary(card) && (
-                                    listenFirst ? <p className="text-center text-lg font-medium">{t("listenPrompt")}</p> : <>
+                                    listenFirst ? <>
+                                        <p className="text-center text-lg font-medium">{t("listenPrompt")}</p>
+                                        {/* on the card, front side only (the back side asks for the word, the clip would give it away); playing must not flip the card */}
+                                        <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} /></div>
+                                    </> : <>
                                         <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} showPhonetic={showDetail} />
                                         {example && <SentenceCard sentence={example} hiddenTranslation={true} />}
                                     </>
@@ -279,10 +286,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     )}
                     </div>
 
-                    {listenFirst && isVocabulary(card) && hiddenTranslation && !choiceActive && (
-                        <AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} />
-                    )}
-
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
                         <RecallGradeButtons onGrade={handleGrade} suggested={tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
@@ -291,6 +294,14 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     {/* ── Post-grade content ───────────────────────── */}
                     {graded && (
                         <>
+                            {/* next first: the details below can be long, the action must stay in view */}
+                            {remaining.length > 1 ? (
+                                <button className="btn btn-primary min-h-11 w-full" onClick={handleGoNext} autoFocus>
+                                    {t("nextButton")}
+                                </button>
+                            ) : (
+                                <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
+                            )}
                             {isVocabulary(card) && card.example_sentences && card.example_sentences.length > 0 && (
                                 <section className="flex flex-col space-y-4">
                                     <h3 className="font-serif">{t("exampleSentences", { ns: "vocabulary" })}</h3>
@@ -318,13 +329,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                             <ElementTagsCard element={card} />
                             <ElementSourcesCard element={card} />
                             <ElementPerformanceCard element={card} />
-                            {remaining.length > 1 ? (
-                                <button className="btn btn-primary" onClick={handleGoNext}>
-                                    {t("nextButton")}
-                                </button>
-                            ) : (
-                                <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
-                            )}
                         </>
                     )}
                 </>

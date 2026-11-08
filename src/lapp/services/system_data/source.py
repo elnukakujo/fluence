@@ -140,6 +140,30 @@ class SourceService:
         return db_manager.delete(existing, session=session, commit=False)
 
     @transactional
+    def ensure_ai_source(self, user_id: str, session: Optional[Session] = None) -> str:
+        """Id of the user's single "AI generated" source (shared by every language), created on first use."""
+        existing = session.query(Source).filter(Source.user_id == user_id, Source.source_type == "ai").order_by(Source.created_at).first()
+        if existing:
+            return existing.id
+        return self.create(SourceDict(user_id=user_id, title="AI generated", source_type="ai"), session=session).id
+
+    @transactional
+    def link_generated_exercises(self, user_id: str, lesson_id: str, session: Optional[Session] = None) -> None:
+        """Link the lesson's AI-generated exercises (made before the AI source existed, or just now) to the owner's AI source."""
+        from ...models.containers import Lesson
+        from ...models.features import Exercise
+        lesson = session.get(Lesson, lesson_id)
+        if not lesson or lesson.user_id != user_id:
+            return
+        exercises = session.query(Exercise).filter(Exercise.lesson_id == lesson_id, Exercise.generation_batch_id.isnot(None)).all()
+        todo = [e for e in exercises if not any(src.source_type == "ai" for src in e.sources)]
+        if not todo:
+            return
+        ai_id = self.ensure_ai_source(user_id, session=session)
+        for e in todo:
+            self.add_source_to_element(ai_id, e.id, session=session)
+
+    @transactional
     def add_source_to_element(
         self,
         source_id: str,

@@ -111,6 +111,8 @@
   "readingDoneMessage": "✓ Terminé",
   "ttsFailed": "Le service de synthèse vocale a échoué. Vérifiez-le dans les paramètres, ou téléversez un clip.",
   "audioPlayFailed": "Impossible de lire l'audio.",
+  "acceptFailed": "Impossible d'accepter l'exercice.",
+  "acceptExercise": "Accepter cet exercice",
   "generateAudio": "Générer l'audio",
   "generatingAudio": "Génération…",
   "dictationNeedsAudio": "Cette dictée a besoin d'un clip pour chaque ligne avant de pouvoir être pratiquée.",
@@ -132,6 +134,7 @@
   "cat_writing": "Production écrite",
   "cat_speaking": "Production orale",
   "cat_language_knowledge": "Connaissances linguistiques",
+  "dontKnow": "Je ne sais pas",
   "cantHear": "Je ne peux pas écouter",
   "cantSpeak": "Je ne peux pas parler",
   "skippedCount": "{count, plural, one {# exercice passé} other {# exercices passés}}",
@@ -174,5 +177,12 @@
   "generateSuggested": "Suggestion : {count} (max {max})",
   "generateRetry": "Réessayer",
   "groupBy": "Grouper par",
-  "originManual": "Ajouté à la main"
+  "originManual": "Ajouté à la main",
+  "need_content": "contenu",
+  "filterSource": "Source",
+  "filterTag": "Tag",
+  "noSource": "Sans source",
+  "noTag": "Sans tag",
+  "generateFailedShort": "Échec de la génération (détails)",
+  "generateRunningShort": "Génération {done}/{total}… (ouvrir)"
 }

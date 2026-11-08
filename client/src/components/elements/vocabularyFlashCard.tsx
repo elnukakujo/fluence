@@ -86,6 +86,14 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
             {/* ── Post-grade content ───────────────────────────────── */}
             {graded && (
                 <>
+                    {/* next first: the details below can be long, the action must stay in view */}
+                    {currentIndex < vocabularies.length - 1 ? (
+                        <button className="btn btn-primary min-h-11 w-full" autoFocus onClick={handleGoNext}>
+                            {t("nextButton")}
+                        </button>
+                    ) : (
+                        <BackButton>{t("backToLesson")}</BackButton>
+                    )}
                     {vocabulary.example_sentences && vocabulary.example_sentences.length > 0 && (
                         <section className="flex flex-col space-y-4">
                             <h3 className="font-serif">{t("exampleSentences")}</h3>
@@ -98,13 +106,6 @@ export default function VocabularyFlashCard({ vocabularies }: { vocabularies: Vo
                     <ElementSourcesCard element={vocabulary} />
                     <ElementPerformanceCard element={vocabulary} />
 
-                    {currentIndex < vocabularies.length - 1 ? (
-                        <button className="btn btn-primary" onClick={handleGoNext}>
-                            {t("nextButton")}
-                        </button>
-                    ) : (
-                        <BackButton>{t("backToLesson")}</BackButton>
-                    )}
                 </>
             )}
         </article>

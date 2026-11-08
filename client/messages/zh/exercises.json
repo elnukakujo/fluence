@@ -111,6 +111,8 @@
   "readingDoneMessage": "✓ 完成",
   "ttsFailed": "语音合成端点出错。请在设置中检查，或上传音频。",
   "audioPlayFailed": "无法播放音频。",
+  "acceptFailed": "无法接受该练习。",
+  "acceptExercise": "接受此练习",
   "generateAudio": "生成音频",
   "generatingAudio": "生成中…",
   "dictationNeedsAudio": "听写需要每一行都有音频才能练习。",
@@ -132,6 +134,7 @@
   "cat_writing": "写作",
   "cat_speaking": "口语",
   "cat_language_knowledge": "语言知识",
+  "dontKnow": "我不知道",
   "cantHear": "我现在听不了",
   "cantSpeak": "我现在说不了",
   "skippedCount": "已跳过 {count} 个练习",
@@ -174,5 +177,12 @@
   "generateSuggested": "建议：{count}（最多 {max}）",
   "generateRetry": "重试",
   "groupBy": "分组方式",
-  "originManual": "手动添加"
+  "originManual": "手动添加",
+  "need_content": "内容",
+  "filterSource": "来源",
+  "filterTag": "标签",
+  "noSource": "无来源",
+  "noTag": "无标签",
+  "generateFailedShort": "生成失败（详情）",
+  "generateRunningShort": "正在生成 {done}/{total}…（打开）"
 }

@@ -607,6 +607,14 @@
   .flashcard-face-back {
     transform: rotateY(180deg);
   }
+  /* the face turned away takes no room: the card is as tall as what is visible, not as the taller face */
+  .flashcard-inner:not(.is-flipped) > .flashcard-face-back,
+  .flashcard-inner.is-flipped > .flashcard-face:not(.flashcard-face-back) { height: 0; min-height: 0; overflow: hidden; padding-block: 0; border-width: 0; visibility: hidden; }
+  @media (prefers-reduced-motion: reduce) {
+    .flashcard-inner { transition: none; }
+    .grade-btn { transition: none; }
+    .grade-btn:active { transform: none; }
+  }
   /* Language proficiency level — progression ramp, cool → warm → deep */
   .level-0 { color: #b0a898; }                      /* light warm grey: absent/trace */
   .level-1 { color: #8fa67a; }                      /* sage: emerging */
@@ -776,6 +784,7 @@
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
     flex: 1 1 7rem;
+    min-height: 2.75rem;      /* 44px touch target */
   }
   .grade-btn:active { transform: scale(0.97); }
 
@@ -789,7 +798,7 @@
     font-weight: 500;
   }
   .grade-hint {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: var(--color-muted);
   }
 

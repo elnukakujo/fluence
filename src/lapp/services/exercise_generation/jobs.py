@@ -10,7 +10,7 @@ from ...schemas import ExerciseDict
 from ...utils import get_language_by_iso2t
 from ...utils.llm_providers import resolve_api
 from ..features.exercise import ExerciseService
-from ..system_data import UserPreferencesService
+from ..system_data import SourceService, UserPreferencesService
 from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch
 from .planner import plan_slots
 from .pool import lesson_pool
@@ -24,14 +24,27 @@ _lock = threading.Lock()
 def start_job(app: Flask, user_id: str, lesson_id: str, count: int, api: dict, target: str, source: str | None = None) -> str:
     job_id = "gen_" + uuid.uuid4().hex[:12]
     with _lock:
-        _jobs[job_id] = {"user_id": user_id, "state": "running", "done": 0, "total": count}
+        _jobs[job_id] = {"user_id": user_id, "lesson_id": lesson_id, "state": "running", "done": 0, "total": count}
     threading.Thread(target=_run, args=(app, job_id, user_id, lesson_id, count, api, target, source), daemon=True).start()
     return job_id
 
 
 def get_job(job_id: str, user_id: str) -> dict | None:
     job = _jobs.get(job_id)
-    return {k: v for k, v in job.items() if k != "user_id"} if job and job["user_id"] == user_id else None
+    return {k: v for k, v in job.items() if k not in ("user_id", "lesson_id")} if job and job["user_id"] == user_id else None
+
+
+def active_job(user_id: str, lesson_id: str) -> dict | None:
+    """The lesson's job a user left behind: still running, or failed (reported once, then forgotten). {job_id, ...job} or None."""
+    with _lock:
+        for job_id, job in reversed(list(_jobs.items())):
+            if job["user_id"] == user_id and job["lesson_id"] == lesson_id and job["state"] in ("running", "failed"):
+                found = {"job_id": job_id, **get_job(job_id, user_id)}
+                if job["state"] == "failed":      # reported once, with any older failures of the lesson
+                    for old in [j for j, v in _jobs.items() if v["user_id"] == user_id and v["lesson_id"] == lesson_id and v["state"] == "failed"]:
+                        del _jobs[old]
+                return found
+    return None
 
 
 def target_name(iso2t: str | None) -> str:
@@ -62,6 +75,8 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
                     made = ExerciseService().create(ExerciseDict(lesson_id=lesson_id, generation_batch_id=batch_id, review_reason=reason, **fields),
                                                     session=s, as_dict=True)
                     created.append((made["id"], reason))
+            with db_manager.session_scope() as s:
+                SourceService().link_generated_exercises(user_id, lesson_id, session=s)    # one shared "AI generated" source per user
             job.update(state="done", done=job["total"], result={
                 "batch_id": batch_id, "saved": sum(1 for _, r in created if not r), "flagged": [i for i, r in created if r]})
         except Exception as e:   # reported to the poller; the save is one transaction, so nothing half-saved

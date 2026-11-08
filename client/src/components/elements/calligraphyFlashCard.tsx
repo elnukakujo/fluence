@@ -4,6 +4,7 @@ import { updateScoreById } from "@/api/process";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { PenLine } from "lucide-react";
 import Calligraphy from "@/interface/features/Calligraphy";
 import BackButton from "@/components/ui/buttons/backButton";
 import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
@@ -107,7 +108,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                 <div className="flex items-baseline justify-between">
                     <h1>{t("sheet")}</h1>
                     {!showPractice && (
-                        <button className="btn" onClick={() => setShowPractice(true)}>{t("practiceButton")}</button>
+                        <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{t("practiceButton")}</button>
                     )}
                 </div>
                 {showPractice ? (
@@ -124,7 +125,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                         >
                             <h3 className="font-serif">{t("character")}</h3>
                             <CharacterCard character={calligraphy.character} hiddenTranslation={true} hiddenAdditionalInformations={true} />
-                            <p className="text-sm opacity-60">{t("flashcardTitle")}</p>
+                            <p className="text-sm text-muted text-center">{t("flashcardTitle")}</p>
                         </div>
                         <div className="flashcard-face flashcard-face-back flex flex-col space-y-4">
                             <div className="card flex flex-col space-y-4">
@@ -141,6 +142,16 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             )}
             {graded && (
                 <>
+                    {/* next first: the details below can be long, the action must stay in view */}
+                    {currentIndex < calligraphies.length - 1 ? (
+                        <button className="btn btn-primary min-h-11 w-full" autoFocus onClick={() => handleGoNext()}>
+                            <p>{t("nextButton")}</p>
+                        </button>
+                    ) : (
+                        <BackButton>
+                            <p>{t("backToLesson")}</p>
+                        </BackButton>
+                    )}
                     {calligraphy.example_words && (
                         <section className="flex flex-col space-y-4 items-baseline">
                             <h3 className="font-serif">{t("exampleWords")}</h3>
@@ -160,15 +171,6 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                     <ElementTagsCard element={calligraphy} />
                     <ElementSourcesCard element={calligraphy} />
                     <ElementPerformanceCard element={calligraphy} />
-                    {currentIndex < calligraphies.length - 1 ? (
-                        <button className="btn btn-primary" onClick={() => handleGoNext()}>
-                            <p>{t("nextButton")}</p>
-                        </button>
-                    ) : (
-                        <BackButton>
-                            <p>{t("backToLesson")}</p>
-                        </BackButton>
-                    )}
                 </>
             )}
         </article>

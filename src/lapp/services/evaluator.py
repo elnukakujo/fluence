@@ -224,6 +224,19 @@ class EvaluatorService:
         common_tokens = correct_tokens.intersection(user_tokens)
         return min(1, len(common_tokens) / len(user_tokens))
     
+    def _open_ended_scores(self, user_text: str, prompt: str, vocab_words: list[str], target_lang_iso2t: Optional[str] = None) -> dict[str, float | str]:
+        """Score a text that has no reference answer (an essay about one's day, built with given words), locally:
+        relevance to the prompt (multilingual embeddings), grammar (LanguageTool) and the share of the linked words used.
+        Same weights as a reference essay; TODO(user): own weights/threshold for open-ended writing."""
+        x, y, z = self.exercises_scales["essay"]
+        similarity = max(0.0, self._compute_cosine_similarity(self.text_embedding_model.encode(user_text), self.text_embedding_model.encode(prompt)))
+        grammar = self._compute_grammar_error_rate(user_translation=user_text, correct_translation=prompt, target_lang_iso2t=target_lang_iso2t)
+        lowered = user_text.lower()
+        words = [w.lower() for w in vocab_words if w]
+        usage = sum(w in lowered for w in words) / len(words) if words else 1.0
+        return {"score": x * similarity + y * grammar + z * usage, "similarity": similarity, "grammar_error_rate": grammar,
+                "token_difference_rate": usage, "user_answer": user_text, "correct_answer": ""}
+
     def _evaluate_text(
         self,
         ex_id: str,
@@ -231,6 +244,10 @@ class EvaluatorService:
         target_lang_iso2t: Optional[str] = None,
         session: Optional[Session] = None,
     ) -> dict[str, float | str]:
+        exercise = exercise_service.get_by_id(ex_id, session=session)
+        if exercise and exercise.exercise_type == "essay" and not (exercise.answer or "").strip():     # open-ended: nothing to compare with
+            prompt = "\n".join(p for p in (exercise.question, exercise.text_support) if p)
+            return self._open_ended_scores(user_text, prompt, [v.word.word for v in exercise.related_vocabulary if v.word], target_lang_iso2t)
         correct_text, exercise_type = self._get_correct_text_and_type(ex_id, session=session)
         if not correct_text:
             logger.warning(f"Could not retrieve correct text for Exercise {ex_id}. Returning score of 0.")

@@ -19,14 +19,22 @@ export function categoryLabel(t: (key: string) => string, slug: string): string 
     return LABELLED.includes(slug) ? t(`cat_${slug}`) : slug;
 }
 
-export type GroupBy = "category" | "origin" | "status" | "type";
-export const GROUP_BYS: GroupBy[] = ["category", "origin", "status", "type"];
-export interface ExerciseGroup { key: string | null; exercises: Exercise[] }
+export type GroupBy = "category" | "source" | "tag" | "status" | "type";
+export const GROUP_BYS: GroupBy[] = ["category", "source", "tag", "status", "type"];
+export interface ExerciseGroup { key: string | null; exercises: Exercise[]; label?: string }
 
-/** Groups the list the way the user picked. Keys: the exam section slug (null = unknown type), "ai"/"manual", "ready"/"notready", or the exercise type. Empty groups are omitted. */
+/** Groups the list the way the user picked. Keys: the exam section slug (null = unknown type), a source or tag id (null = none; `label` is its title / name; an exercise is listed under each of its tags), "ready"/"notready", or the exercise type. Empty groups are omitted. */
 export function groupExercises(exercises: Exercise[], by: GroupBy, categories: ExamCategory[]): ExerciseGroup[] {
     if (by === "category") return groupByCategory(exercises, categories).map((g) => ({ key: g.slug, exercises: g.exercises }));
-    const keyOf = (e: Exercise) => by === "origin" ? (e.generation_batch_id ? "ai" : "manual") : by === "status" ? (e.needs?.length ? "notready" : "ready") : (e.exercise_type || "unknown");
-    const order = by === "origin" ? ["ai", "manual"] : by === "status" ? ["ready", "notready"] : [...new Set(exercises.map(keyOf))].sort();
+    if (by === "source" || by === "tag") {
+        const labels = new Map<string, string | undefined>();
+        const of = (e: Exercise) => (by === "source" ? e.sources : e.tags)?.filter((x) => x.id).map((x) => { labels.set(x.id!, (x as { title?: string; name?: string }).title ?? (x as { name?: string }).name); return x.id!; }) ?? [];
+        const keys = [...new Set(exercises.flatMap(of))].sort((a, b) => (labels.get(a) ?? a).localeCompare(labels.get(b) ?? b));
+        const groups: ExerciseGroup[] = keys.map((key) => ({ key, label: labels.get(key), exercises: exercises.filter((e) => of(e).includes(key)) }));
+        const none = exercises.filter((e) => of(e).length === 0);
+        return none.length ? [...groups, { key: null, exercises: none }] : groups;
+    }
+    const keyOf = (e: Exercise) => by === "status" ? (e.needs?.length ? "notready" : "ready") : (e.exercise_type || "unknown");
+    const order = by === "status" ? ["ready", "notready"] : [...new Set(exercises.map(keyOf))].sort();
     return order.map((key) => ({ key, exercises: exercises.filter((e) => keyOf(e) === key) })).filter((g) => g.exercises.length > 0);
 }

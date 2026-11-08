@@ -111,6 +111,8 @@
   "readingDoneMessage": "✓ Done",
   "ttsFailed": "The text-to-speech endpoint failed. Check it in Settings, or upload a clip.",
   "audioPlayFailed": "The audio could not be played.",
+  "acceptFailed": "Could not accept the exercise.",
+  "acceptExercise": "Accept this exercise",
   "generateAudio": "Generate audio",
   "generatingAudio": "Generating…",
   "dictationNeedsAudio": "This dictation needs a clip for every line before it can be practised.",
@@ -132,6 +134,7 @@
   "cat_writing": "Writing",
   "cat_speaking": "Speaking",
   "cat_language_knowledge": "Language knowledge",
+  "dontKnow": "I don't know",
   "cantHear": "I can't hear",
   "cantSpeak": "I can't speak",
   "skippedCount": "{count, plural, one {# exercise skipped} other {# exercises skipped}}",
@@ -174,5 +177,12 @@
   "generateSuggested": "Suggested: {count} (max {max})",
   "generateRetry": "Try again",
   "groupBy": "Group by",
-  "originManual": "Added by hand"
+  "originManual": "Added by hand",
+  "need_content": "content",
+  "filterSource": "Source",
+  "filterTag": "Tag",
+  "noSource": "No source",
+  "noTag": "No tag",
+  "generateFailedShort": "Generation failed (details)",
+  "generateRunningShort": "Generating {done}/{total}… (open)"
 }

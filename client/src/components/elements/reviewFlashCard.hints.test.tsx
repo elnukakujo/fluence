@@ -72,4 +72,32 @@ describe("review card: hint ladder", () => {
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
         expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
     });
+
+    it("the hints appear above the card, in the flow, where the user is looking", async () => {
+        render(<ReviewFlashCard cards={[voc()]} />);
+        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        const hint = screen.getByText("Starts with: c _ _");
+        expect(hint.compareDocumentPosition(screen.getByText("Click to reveal")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(hint.closest(".absolute")).toBeNull();
+    });
+
+    it("a learning card already shows its example, so the ladder does not repeat it", async () => {
+        render(<ReviewFlashCard cards={[voc({ score: 10, front_score: 10 })]} />);
+        expect(screen.getByText("猫在睡觉")).toBeInTheDocument();
+        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        expect(screen.getByRole("button", { name: "Hint" })).toBeDisabled();
+        expect(screen.queryByText(/^Example:/)).toBeNull();
+    });
+
+    it("the back side never shows the example sentence on the front: it contains the answer", () => {
+        render(<ReviewFlashCard cards={[voc({ side: "back", card_id: "voc_1#back", score: 10, back_score: 10 })]} />);
+        expect(screen.queryByText("猫在睡觉")).toBeNull();
+    });
+
+    it("a learning back card still offers the blanked example as a hint", async () => {
+        render(<ReviewFlashCard cards={[voc({ side: "back", card_id: "voc_1#back", score: 10, back_score: 10 })]} />);
+        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
+    });
 });

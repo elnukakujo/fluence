@@ -4,7 +4,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ getExercisesByLesson: vi.fn().mockResolvedValue([{ id: "ex_f", lesson_id: "lesson_1", exercise_type: "essay", question: "Q", answer: "A", review_reason: "too hard" }]), suggestGeneration: vi.fn(), startGeneration: vi.fn(), getGeneration: vi.fn(), undoGenerationBatch: vi.fn() }));
+const api = vi.hoisted(() => ({ getExercisesByLesson: vi.fn().mockResolvedValue([{ id: "ex_f", lesson_id: "lesson_1", exercise_type: "essay", question: "Q", answer: "A", review_reason: "too hard" }]), suggestGeneration: vi.fn(), startGeneration: vi.fn(), getGeneration: vi.fn(), getActiveGeneration: vi.fn().mockResolvedValue(null), undoGenerationBatch: vi.fn() }));
 vi.mock("@/api/exercise", () => api);
 const nav = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
@@ -54,6 +54,13 @@ describe("generate exercises dialog", () => {
     expect(screen.getByText(/keeps running/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Run in background" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("picks up a job left running and shows where it is at on the button", async () => {
+    api.getActiveGeneration.mockResolvedValueOnce({ job_id: "gen_1", state: "running", done: 4, total: 10 });
+    api.getGeneration.mockResolvedValue({ state: "running", done: 4, total: 10 });
+    render(<GenerateDialog lessonId="lesson_1" />);
+    expect(await screen.findByRole("button", { name: /4\/10/ })).toBeInTheDocument();
   });
 
   it("an error can be retried from the start", async () => {

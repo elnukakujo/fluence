@@ -37,7 +37,7 @@ export default function ExerciseFilter({ types, categories = [] }: { types: stri
         set("type", (selectedTypes.includes(type) ? selectedTypes.filter((x) => x !== type) : [...selectedTypes, type]).join(","));
 
     const groupBy = params.get("group") ?? "category";
-    const groupNames: Record<string, string> = { category: t("filterCategory"), origin: t("filterOrigin"), status: t("filterStatus"), type: t("filterType") };
+    const groupNames: Record<string, string> = { category: t("filterCategory"), source: t("filterSource"), tag: t("filterTag"), status: t("filterStatus"), type: t("filterType") };
 
     return (<>
         <label className="inline-flex items-center gap-2 text-sm">

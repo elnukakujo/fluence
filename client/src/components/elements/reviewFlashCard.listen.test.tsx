@@ -28,8 +28,7 @@ describe("review card: listen first", () => {
         render(<ReviewFlashCard cards={[voc("voc_listen")]} />);
         expect(front().getByText("Listen and recall")).toBeInTheDocument();
         expect(front().queryByText("猫")).toBeNull();
-        expect(front().queryByTestId("player")).toBeNull();                       // the face is a click target: the player sits beside it
-        expect(screen.getAllByTestId("player").some((p) => p.textContent === "/media/mao.mp3" && !p.closest('[role="button"]'))).toBe(true);
+        expect(front().getByTestId("player")).toHaveTextContent("/media/mao.mp3");   // the clip is on the card itself, not below it
         await userEvent.click(screen.getByText("Click to reveal"));
         expect(screen.getAllByText("猫").length).toBeGreaterThan(0);
     });

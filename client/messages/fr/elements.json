@@ -96,5 +96,7 @@
   "leechNotePlaceholder": "Écrivez un moyen mnémotechnique, une image, une histoire…",
   "chooseMeaning": "Quel sens va avec {word} ?",
   "chooseWord": "Quel mot signifie {translation} ?",
-  "listenPrompt": "Écoutez et rappelez-vous"
+  "listenPrompt": "Écoutez et rappelez-vous",
+  "exerciseBroken": "Cet exercice est cassé et ne peut pas s'afficher.",
+  "skipBroken": "Le passer"
 }

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 
 export type RecallGrade = "again" | "hard" | "good" | "easy";
@@ -25,6 +26,18 @@ type RecallGradeButtonsProps = {
 export default function RecallGradeButtons({ onGrade, suggested }: RecallGradeButtonsProps) {
     const t = useTranslations("ui");
 
+    // keys 1-4 grade without the mouse (not while typing in a field)
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            const el = e.target as HTMLElement | null;
+            if (e.ctrlKey || e.metaKey || e.altKey || el?.closest?.("input, textarea, select, [contenteditable]")) return;
+            const grade = GRADES_CONFIG[Number(e.key) - 1];
+            if (grade) onGrade(grade.score);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [onGrade]);
+
     const GRADES = GRADES_CONFIG.map(g => ({
         ...g,
         label: t(g.labelKey),
@@ -37,11 +50,12 @@ export default function RecallGradeButtons({ onGrade, suggested }: RecallGradeBu
                 {t("howWellRemember")}
             </p>
             <div className="btn-row flex-wrap">
-                {GRADES.map(({ value, label, hint, score }) => (
+                {GRADES.map(({ value, label, hint, score }, i) => (
                     <button
                         key={value}
                         onClick={() => onGrade(score)}
                         className={`grade-btn grade-${value}`}
+                        aria-keyshortcuts={String(i + 1)}
                     >
                         <span className="grade-dot" />
                         <span className="grade-label">{label}</span>

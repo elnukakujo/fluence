@@ -12,7 +12,7 @@ def item(t, content=None, question="Q?", answer="A", links=("voc_V1",)):
 
 GOOD = [
     item("essay"), item("answering"), item("translate"), item("speaking", answer=""),
-    item("type_in_the_blank", {"segments": ["He ", " tall."], "blanks": [{"answer": "is"}]}),
+    {**item("type_in_the_blank", {"segments": ["He ", " tall."], "blanks": [{"answer": "is"}]}), "text_support": "be"},
     item("select_in_the_blank", {"segments": ["He ", " tall."], "blanks": [{"answer": "is", "options": ["is", "are"]}]}),
     item("quizz", {"options": ["a", "b"], "correct": [1]}),
     item("matching", {"pairs": [["a", "1"], ["b", "2"]]}),
@@ -61,3 +61,14 @@ def test_stored_content_matches_what_verify_element_stores():
     assert el.stored_content("dictation", {"lines": [{"text": " x "}]}) == {"lines": [{"text": "x", "audioIndex": None}]}
     assert el.stored_content("conversation", {"speakers": []}) is None
     assert el.stored_content("quizz", {"options": ["a"], "correct": [0]}) == {"options": ["a"], "correct": [0]}
+
+
+def test_a_type_in_gap_without_a_clue_is_rejected():
+    bare = item("type_in_the_blank", {"segments": ["I like to drink ", "."], "blanks": [{"answer": "water"}]})
+    assert "clue" in code_error(bare, IDS)
+    assert code_error({**bare, "text_support": "water, coke, beer"}, IDS) is None
+
+
+def test_an_open_ended_essay_needs_no_answer_but_a_translation_does():
+    assert code_error(item("essay", answer=""), IDS) is None
+    assert code_error(item("translate", answer=""), IDS) == "the answer is empty"
