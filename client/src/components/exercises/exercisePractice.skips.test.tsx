@@ -46,6 +46,6 @@ describe("practice skips", () => {
         expect(updateScoreById).toHaveBeenCalledWith("e1", 0, expect.any(Number), false, 1);
         expect(current()).toBe("e2");
         await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(screen.getByRole("status")).not.toHaveTextContent("skipped");
+        expect(screen.queryByRole("status")).toBeNull();
     });
 });
