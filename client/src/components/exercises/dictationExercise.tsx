@@ -9,8 +9,8 @@ import { evaluateText, updateScoreById } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import { getLevelForScore } from "@/utils/speech_levels";
-import { Volume2 } from "lucide-react";
 import { useLineAudio } from "./lineAudio";
+import LineAudioButton from "./lineAudioButton";
 import GenerateAudioButton from "./generateAudioButton";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
@@ -55,15 +55,11 @@ export default function DictationExercise({ exercise }: { exercise: Exercise }) 
     return (
         <div className="card flex flex-col space-y-4">
             <h3>{exercise.question}</h3>
-            <ElementMediaCard element={exercise} />
+            <ElementMediaCard element={{ ...exercise, audio_files: [] }} />   {/* the per-line control is the only audio */}
             {!done ? (
                 <section className="flex flex-col gap-3">
                     <p className="text-xs">{t("lineOf", { current: index + 1, total: lines.length })}</p>
-                    <button type="button" className="btn btn-secondary self-start inline-flex items-center gap-2"
-                        onClick={() => audio.play(lines[index])}>
-                        <Volume2 size={16} aria-hidden />
-                        {t("play")}
-                    </button>
+                    <LineAudioButton audio={audio} line={lines[index]} label={t("readingLinePlay", { n: index + 1 })} />
                     <AutoSizeTextArea value={typed[index] ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("dictationPlaceholder")} />
                     {last ? (
                         <button type="button" className="btn btn-primary" disabled={loading} onClick={submit}>
