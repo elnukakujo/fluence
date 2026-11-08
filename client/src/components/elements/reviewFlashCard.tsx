@@ -18,6 +18,7 @@ import ElementTagsCard from "./elementTagsCard";
 import ElementSourcesCard from "./elementSourcesCard";
 import ElementPerformanceCard from "./elementPerformanceCard";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
+import RunnerBoundary from "@/components/exercises/runnerBoundary";
 import ReviewHeader from "./reviewHeader";
 import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
@@ -173,7 +174,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
-                    <ExerciseRunner key={card.id} exercise={card} />
+                    <RunnerBoundary key={card.id} onSkip={handleGoNext} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <SkipButtons exercise={card} onSkip={handleGoNext} />
                         {remaining.length > 1 ? (

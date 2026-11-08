@@ -174,5 +174,6 @@
   "generateSuggested": "建议：{count}（最多 {max}）",
   "generateRetry": "重试",
   "groupBy": "分组方式",
-  "originManual": "手动添加"
+  "originManual": "手动添加",
+  "need_content": "内容"
 }

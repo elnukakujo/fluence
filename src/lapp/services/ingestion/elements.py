@@ -299,7 +299,7 @@ def exercise_content_ok(exercise_type: str, content) -> bool:
         return isinstance(lines, list) and len(lines) >= 1 and all(isinstance(l, dict) and isinstance(l.get("text"), str) and l["text"].strip() for l in lines)
     elif exercise_type == "matching":
         return (isinstance(content, dict) and not isinstance(content, bool) and "pairs" in content and
-                isinstance(content.get("pairs"), list) and
+                isinstance(content.get("pairs"), list) and len(content["pairs"]) >= 1 and
                 all(isinstance(p, list) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str)
                     for p in content["pairs"]))
     else:

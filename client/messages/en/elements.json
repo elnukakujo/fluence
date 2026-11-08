@@ -96,5 +96,7 @@
   "leechNotePlaceholder": "Write a mnemonic, a picture, a story…",
   "chooseMeaning": "Which meaning goes with {word}?",
   "chooseWord": "Which word means {translation}?",
-  "listenPrompt": "Listen and recall"
+  "listenPrompt": "Listen and recall",
+  "exerciseBroken": "This exercise is broken and cannot be shown.",
+  "skipBroken": "Skip it"
 }

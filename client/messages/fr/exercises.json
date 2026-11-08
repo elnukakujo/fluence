@@ -174,5 +174,6 @@
   "generateSuggested": "Suggestion : {count} (max {max})",
   "generateRetry": "Réessayer",
   "groupBy": "Grouper par",
-  "originManual": "Ajouté à la main"
+  "originManual": "Ajouté à la main",
+  "need_content": "contenu"
 }

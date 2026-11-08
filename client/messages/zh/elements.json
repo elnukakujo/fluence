@@ -96,5 +96,7 @@
   "leechNotePlaceholder": "写下助记法、画面或小故事…",
   "chooseMeaning": "哪个意思对应 {word}？",
   "chooseWord": "哪个词的意思是 {translation}？",
-  "listenPrompt": "先听，再回忆"
+  "listenPrompt": "先听，再回忆",
+  "exerciseBroken": "此练习已损坏，无法显示。",
+  "skipBroken": "跳过"
 }
