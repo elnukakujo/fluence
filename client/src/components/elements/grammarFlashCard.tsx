@@ -65,7 +65,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); reveal(); } }}
                         >
                             <h3 className="font-serif">{grammar.title}</h3>
-                            <p className="text-sm opacity-60">{t("flashcardTitle")}</p>
+                            <p className="text-sm text-muted text-center">{t("flashcardTitle")}</p>
                         </div>
                         <div className="flashcard-face flashcard-face-back flex flex-col space-y-4">
                             <GrammarCard grammar={grammar} />
@@ -78,6 +78,16 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
             )}
             {graded && (
                 <>
+                    {/* next first: the details below can be long, the action must stay in view */}
+                    {currentIndex < grammars.length - 1 ? (
+                        <button className="btn btn-primary min-h-11 self-start" autoFocus onClick={() => handleGoNext()}>
+                            <p>{t("nextButton")}</p>
+                        </button>
+                    ) : (
+                        <BackButton>
+                            <p>{t("backToLesson")}</p>
+                        </BackButton>
+                    )}
                     {grammar.example_words && grammar.example_words.length > 0 && (
                         <section className="flex flex-col space-y-4 items-baseline">
                             <h3 className="font-serif">{t("exampleWords")}</h3>
@@ -97,15 +107,6 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                     <ElementTagsCard element={grammar} />
                     <ElementSourcesCard element={grammar} />
                     <ElementPerformanceCard element={grammar} />
-                    {currentIndex < grammars.length - 1 ? (
-                        <button className="btn btn-primary" onClick={() => handleGoNext()}>
-                            <p>{t("nextButton")}</p>
-                        </button>
-                    ) : (
-                        <BackButton>
-                            <p>{t("backToLesson")}</p>
-                        </BackButton>
-                    )}
                 </>
             )}
         </article>
