@@ -16,9 +16,9 @@ from ...models.system_data import UserPreferences
 from ...utils import review_priority
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
+from .card_time import estimate_seconds, pace_ratios
 from .side_pattern import make_side_picker
-from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW,
-                              SECONDS_PER_CARD_BY_TYPE)
+from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW)
 from .study_goal import StudyGoalService, TYPES
 from ..system_data.score import SIDES, side_id
 
@@ -30,14 +30,19 @@ FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy, Exercise)
 VOC_SIDE_GAP = 3
 
 
+EMPTY_MEAN = {Vocabulary: 8.0, Grammar: 30.0, Calligraphy: 15.0, Exercise: 10.0}   # only used for a type with no cards
 SECTION_MODELS = {"voc": Vocabulary, "gram": Grammar, "ex": Exercise, "call": Calligraphy}
-CARD_SECONDS = {m: SECONDS_PER_CARD_BY_TYPE[sec] for sec, m in SECTION_MODELS.items()}
 
 
-def section_budgets(layout: list[dict], daily_goal_minutes: int) -> dict[str, int]:
-    """Cards per section: its own minutes, else an equal share of the daily goal, over that type's seconds per card (at least 1)."""
+def section_minutes(layout: list[dict], daily_goal_minutes: int) -> dict[str, float]:
+    """Minutes per section: its own, else an equal share of the daily goal."""
     share = daily_goal_minutes / max(len(layout), 1)
-    return {sec["type"]: max(1, round((sec.get("minutes") or share) * 60 / SECONDS_PER_CARD_BY_TYPE[sec["type"]])) for sec in layout}
+    return {sec["type"]: sec.get("minutes") or share for sec in layout}
+
+
+def section_budgets(layout: list[dict], daily_goal_minutes: int, mean_seconds: dict[str, float]) -> dict[str, int]:
+    """Cards per section: its minutes over that type's mean seconds per card (at least 1)."""
+    return {t: max(1, round(minutes * 60 / mean_seconds[t])) for t, minutes in section_minutes(layout, daily_goal_minutes).items()}
 
 
 def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set) -> list:
@@ -50,16 +55,16 @@ def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set) ->
     return sorted(items, key=key, reverse=True)
 
 
-def quotas(lengths: dict, cap_seconds: float) -> dict:
+def quotas(lengths: dict, cap_seconds: float, mean_seconds: dict) -> dict:
     """How many cards each type contributes to a round-robin queue costing at most `cap_seconds` (always at least one card)."""
     left, out, spent, added = dict(lengths), {m: 0 for m in lengths}, 0.0, True
     while added:
         added = False
         for m in FEATURE_MODELS:
-            if left.get(m, 0) > 0 and (spent == 0 or spent + CARD_SECONDS[m] <= cap_seconds):
+            if left.get(m, 0) > 0 and (spent == 0 or spent + mean_seconds[m] <= cap_seconds):
                 out[m] += 1
                 left[m] -= 1
-                spent += CARD_SECONDS[m]
+                spent += mean_seconds[m]
                 added = True
     return out
 
@@ -158,15 +163,21 @@ class ReviewService:
         modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in exercises}
         exercises = [c for c in exercises if modes[c.id] != "ban"]
 
+        # What a card costs: its content-based estimate pulled toward this learner's measured pace.
+        paces = pace_ratios(user_id, session)
+        est = lambda c: estimate_seconds(c[0] if isinstance(c, tuple) else c, paces)
+        mean_model = {m: sum(map(est, pool)) / len(pool) if pool else EMPTY_MEAN[m] for m, pool in {**buckets, Exercise: exercises}.items()}
+        mean_sec = {sec: mean_model[m] for sec, m in SECTION_MODELS.items()}
+
         # Cards per type, to know which lessons are in play and how far "all front, then all back" can go.
-        budgets = section_budgets(layout, daily_goal_minutes) if layout else None
+        budgets = section_budgets(layout, daily_goal_minutes, mean_sec) if layout else None
         if budgets:
             quota = {m: 0 for m in FEATURE_MODELS}
             for sec, left in budgets.items():
                 m = SECTION_MODELS[sec]
                 quota[m] = min(len(exercises) if m is Exercise else len(buckets[m]), left)
         else:
-            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}, cap_seconds)
+            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}, cap_seconds, mean_model)
         buckets[Vocabulary] = pair_vocabulary(buckets[Vocabulary], quota[Vocabulary], split=bool(pattern and pattern.get("mode") == "split"))
 
         # Exercises come from the lessons of the elements being reviewed (all of them when no element is).
@@ -186,28 +197,31 @@ class ReviewService:
         queue: list = []
         sections: list = []
         if layout:
+            seconds = {t: m * 60 for t, m in section_minutes(layout, daily_goal_minutes).items()}
             for sec in layout:
-                model, left = SECTION_MODELS[sec["type"]], budgets[sec["type"]]
-                while left > 0 and buckets[model]:
-                    queue.append(self._pop(buckets[model], queue, model, picker))
+                model, left = SECTION_MODELS[sec["type"]], seconds[sec["type"]]
+                while buckets[model] and (left == seconds[sec["type"]] or est(buckets[model][0]) <= left):   # a section always serves its first card
+                    card = self._pop(buckets[model], queue, model, picker)
+                    queue.append(card)
                     sections.append(sec["type"])
-                    left -= 1
+                    left -= est(card)
         else:
             # Round-robin across the types so one type can't crowd out the rest.
             spent = 0.0
             while any(buckets[m] for m in FEATURE_MODELS):
                 took = False
                 for model in FEATURE_MODELS:
-                    if buckets[model] and (not queue or spent + CARD_SECONDS[model] <= cap_seconds):
-                        queue.append(self._pop(buckets[model], queue, model, picker))
+                    if buckets[model] and (not queue or spent + est(buckets[model][0]) <= cap_seconds):
+                        card = self._pop(buckets[model], queue, model, picker)
+                        queue.append(card)
                         sections.append(None)
-                        spent += CARD_SECONDS[model]
+                        spent += est(card)
                         took = True
                 if not took:
                     break
 
         if as_dict:
-            return [{**self._card_dict(card, lesson_title_by_id), "section": sec} for card, sec in zip(queue, sections)]
+            return [{**self._card_dict(card, lesson_title_by_id), "section": sec, "est_seconds": round(est(card), 1)} for card, sec in zip(queue, sections)]
         return queue
 
     @transactional
