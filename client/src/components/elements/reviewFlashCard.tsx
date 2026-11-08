@@ -24,6 +24,7 @@ import SkipButtons from "@/components/exercises/skipButtons";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
+import { PenLine } from "lucide-react";
 import HintLadder from "./hintLadder";
 import TypeAnswer from "./typeAnswer";
 import LeechPanel from "./leechPanel";
@@ -190,7 +191,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 <>
                     {/* ── Calligraphy: draw the character (stroke order + similarity) ── */}
                     {isCalligraphy(card) && !showPractice && (
-                        <button className="btn self-end" onClick={() => setShowPractice(true)}>{tCal("practiceButton")}</button>
+                        <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5 self-end" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{tCal("practiceButton")}</button>
                     )}
                     {isCalligraphy(card) && practiceResult && (
                         <section className="card flex flex-col gap-2.5">

@@ -4,6 +4,7 @@ import { updateScoreById } from "@/api/process";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { PenLine } from "lucide-react";
 import Calligraphy from "@/interface/features/Calligraphy";
 import BackButton from "@/components/ui/buttons/backButton";
 import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
@@ -107,7 +108,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                 <div className="flex items-baseline justify-between">
                     <h1>{t("sheet")}</h1>
                     {!showPractice && (
-                        <button className="btn" onClick={() => setShowPractice(true)}>{t("practiceButton")}</button>
+                        <button type="button" className="btn btn-secondary btn-sm min-h-11 inline-flex items-center gap-1.5" onClick={() => setShowPractice(true)}><PenLine size={14} aria-hidden />{t("practiceButton")}</button>
                     )}
                 </div>
                 {showPractice ? (
