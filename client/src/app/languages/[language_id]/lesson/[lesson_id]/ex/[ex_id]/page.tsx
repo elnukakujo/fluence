@@ -21,6 +21,7 @@ import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ExerciseStatus from "@/components/exercises/exerciseStatus";
 import GenerateAudioButton from "@/components/exercises/generateAudioButton";
+import AcceptExerciseButton from "@/components/exercises/acceptExerciseButton";
 import { getExerciseById } from "@/api/exercise";
 import { getTranslations } from "next-intl/server";
 
@@ -69,6 +70,7 @@ export default async function ExercisePage( { params } : { params: Promise<{ lan
             {exercise.exercise_type === 'reading' && <GenerateAudioButton exercise={exercise} />}
             {exercise.exercise_type === 'dictation' && <DictationExercise exercise={exercise} />}
 
+            <AcceptExerciseButton exercise={exercise} />
             <ElementTagsCard element={exercise} />
             <ElementSourcesCard element={exercise} />
             <ElementPerformanceCard element={exercise}/>

@@ -111,6 +111,8 @@
   "readingDoneMessage": "✓ 完成",
   "ttsFailed": "语音合成端点出错。请在设置中检查，或上传音频。",
   "audioPlayFailed": "无法播放音频。",
+  "acceptFailed": "无法接受该练习。",
+  "acceptExercise": "接受此练习",
   "generateAudio": "生成音频",
   "generatingAudio": "生成中…",
   "dictationNeedsAudio": "听写需要每一行都有音频才能练习。",

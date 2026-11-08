@@ -111,6 +111,8 @@
   "readingDoneMessage": "✓ Done",
   "ttsFailed": "The text-to-speech endpoint failed. Check it in Settings, or upload a clip.",
   "audioPlayFailed": "The audio could not be played.",
+  "acceptFailed": "Could not accept the exercise.",
+  "acceptExercise": "Accept this exercise",
   "generateAudio": "Generate audio",
   "generatingAudio": "Generating…",
   "dictationNeedsAudio": "This dictation needs a clip for every line before it can be practised.",
