@@ -59,7 +59,7 @@ def test_a_near_duplicate_of_a_kept_item_is_dropped(model):
 
 
 def test_structured_items_are_stored_the_way_the_app_form_stores_them(model):
-    blank = {"question": "x", "answer": "", "text_support": None, "links": ["voc_V1"],
+    blank = {"question": "x", "answer": "", "text_support": "cat (neko)", "links": ["voc_V1"],
              "content": {"segments": ["The ", " sleeps."], "blanks": [{"answer": "cat"}]}}
     model.replies = [[blank]]
     [out] = gen.generate_batch([Slot("type_in_the_blank", [V1])], API, "Japanese")
@@ -146,3 +146,10 @@ def test_the_reading_prompt_asks_for_a_short_passage_using_the_elements(model):
     model.replies = [[], []]       # nothing usable twice: the slot is dropped, we only read the prompt
     gen.generate_batch([Slot("reading", [V1])], API, "Chinese")
     assert "short passage" in model.calls[0][0]["content"]
+
+
+def test_a_gap_without_a_clue_is_retried_with_the_reason(model):
+    bare = {"question": "x", "answer": "", "text_support": None, "links": ["voc_V1"], "content": {"segments": ["The ", " sleeps."], "blanks": [{"answer": "cat"}]}}
+    model.replies = [[bare], [{**bare, "text_support": "cat, dog"}]]
+    [out] = gen.generate_batch([Slot("type_in_the_blank", [V1])], API, "Japanese")
+    assert out["text_support"] == "cat, dog"

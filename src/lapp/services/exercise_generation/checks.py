@@ -5,7 +5,7 @@ from ..features.study_constants import GEN_DUPLICATE_RATIO
 from ..ingestion.elements import EXERCISE_TYPES, exercise_content_error
 from ..ingestion.verify import normalise
 
-ANSWER_REQUIRED = ("essay", "answering", "translate")   # the other types derive their answer from `content`
+ANSWER_REQUIRED = ("answering", "translate")   # the other types derive their answer from `content`; an essay may be open-ended (no answer)
 
 
 def code_error(item: dict, allowed_ids: set[str]) -> str | None:

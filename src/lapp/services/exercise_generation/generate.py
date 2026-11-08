@@ -36,7 +36,7 @@ def _generation_system(etype: str, target: str, source: str | None) -> str:
         f"- Write `question` (the instruction or prompt the learner reads) in {learner}, never in {target}. Only the material being practised (sentences, options, blanks, dialogue and reading lines, matching pairs) is in {target}. "
         f"For true_false write the statement in {learner} unless it is a {target} sentence to judge.\n"
         "- The exercise must be answerable from what it shows: a gap whose answer is a free choice (\"I like to drink __\") is forbidden. For type_in_the_blank put a word bank, the base form or the translation of each missing word in `text_support`; a gap must have exactly one right answer.\n"
-        "- The exercise must be answerable and test the slot's elements. `answer` is a correct answer (never empty for essay, answering, translate; for speaking it is not used, leave it empty).\n"
+        "- The exercise must be answerable and test the slot's elements. `answer` is a correct answer (never empty for answering, translate; an essay is OPEN-ENDED writing about the learner's own life or ideas (their day, a plan, an opinion) built with the slot's elements: say in `question` which words or grammar to use and the topic, and leave `answer` empty; for speaking it is not used, leave it empty).\n"
         "- Use only words from the slot's elements and the known words listed in the user message, plus very basic words; never introduce other new words: the learner has not seen them.\n"
         f"- `content` is {content}.\n"
         "- `links` lists the ids (copied exactly) of the slot's elements the exercise is about; at least one.\n"

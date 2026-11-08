@@ -67,3 +67,8 @@ def test_a_type_in_gap_without_a_clue_is_rejected():
     bare = item("type_in_the_blank", {"segments": ["I like to drink ", "."], "blanks": [{"answer": "water"}]})
     assert "clue" in code_error(bare, IDS)
     assert code_error({**bare, "text_support": "water, coke, beer"}, IDS) is None
+
+
+def test_an_open_ended_essay_needs_no_answer_but_a_translation_does():
+    assert code_error(item("essay", answer=""), IDS) is None
+    assert code_error(item("translate", answer=""), IDS) == "the answer is empty"
