@@ -12,7 +12,7 @@ export type Leech = {
 };
 
 export type ReviewCard = (Vocabulary | Grammar | Calligraphy | Exercise) & {
-  lesson_title?: string; section?: "voc" | "gram" | "ex" | "call" | null; leech?: Leech; note?: string | null;
+  lesson_title?: string; spare?: boolean; est_seconds?: number; section?: "voc" | "gram" | "ex" | "call" | null; leech?: Leech; note?: string | null;
 };
 
 /** Saves the user's own memory trick on a card (empty clears it). */

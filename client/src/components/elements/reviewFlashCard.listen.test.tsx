@@ -38,4 +38,11 @@ describe("review card: listen first", () => {
         expect(front().getByText("猫")).toBeInTheDocument();
         expect(screen.queryByText("Listen and recall")).toBeNull();
     });
+
+    it("'I can't hear' swaps the clip for the word without flipping the card", async () => {
+        render(<ReviewFlashCard cards={[voc("voc_listen")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(front().getByText("猫")).toBeInTheDocument();
+        expect(screen.queryByText("Listen and recall")).toBeNull();
+    });
 });

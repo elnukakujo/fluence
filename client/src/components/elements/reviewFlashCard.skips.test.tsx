@@ -33,4 +33,23 @@ describe("review: skips", () => {
         expect(screen.queryByTestId("runner")).toBeNull();
         expect(api.updateScoreById).not.toHaveBeenCalled();
     });
+
+    it("swaps an exercise the learner can't do for a ready spare, keeping the queue length", async () => {
+        const spare = { ...ex("ex_s", "translate"), spare: true } as unknown as ReviewCard;
+        render(<ReviewFlashCard cards={[ex("ex_1", "dictation"), ex("ex_2", "essay"), spare]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(screen.getByTestId("runner")).toHaveTextContent("ex_s");
+        expect(screen.getByText(/1 \/ 2|1\/2/)).toBeInTheDocument();
+        expect(api.updateScoreById).not.toHaveBeenCalled();
+    });
+
+    it("uses a spare only once and never one the learner can't do", async () => {
+        const spares = [{ ...ex("ex_d", "dictation"), spare: true }, { ...ex("ex_s", "translate"), spare: true }] as unknown as ReviewCard[];
+        render(<ReviewFlashCard cards={[ex("ex_1", "dictation"), ex("ex_2", "dictation"), ...spares]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(screen.getByTestId("runner")).toHaveTextContent("ex_s");
+        await userEvent.click(screen.getByRole("button", { name: "Next" }));
+        await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
+        expect(screen.queryByTestId("runner")).toBeNull();      // no usable spare left: skipped as before
+    });
 });

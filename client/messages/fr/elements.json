@@ -97,6 +97,7 @@
   "chooseMeaning": "Quel sens va avec {word} ?",
   "chooseWord": "Quel mot signifie {translation} ?",
   "listenPrompt": "Écoutez et rappelez-vous",
+  "cantHearCard": "Je ne peux pas écouter",
   "exerciseBroken": "Cet exercice est cassé et ne peut pas s'afficher.",
   "skipBroken": "Le passer"
 }
