@@ -182,7 +182,7 @@ def test_null_prefs_keep_round_robin(db):
 
 
 def test_all_banned_returns_empty(db):
-    _seed(db, exs=("translate",))
+    _seed(db, exs=("essay",))
     _prefs(exercise_type_prefs={"essay": "ban"})
     assert _cards() == []
 
