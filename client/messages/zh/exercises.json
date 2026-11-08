@@ -134,6 +134,7 @@
   "cat_writing": "写作",
   "cat_speaking": "口语",
   "cat_language_knowledge": "语言知识",
+  "dontKnow": "我不知道",
   "cantHear": "我现在听不了",
   "cantSpeak": "我现在说不了",
   "skippedCount": "已跳过 {count} 个练习",

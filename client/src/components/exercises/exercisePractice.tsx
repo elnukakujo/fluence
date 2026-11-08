@@ -50,7 +50,7 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
             </>) : null}
             {currentExercise && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                    <SkipButtons exercise={currentExercise} onSkip={() => finish(true)} />
+                    <SkipButtons exercise={currentExercise} onSkip={() => finish(true)} onNext={() => finish(false)} />
                     {!isLastExercise && <button className="btn btn-primary ml-auto" onClick={() => finish(false)}>{t("nextExercise")}</button>}
                 </div>
             )}

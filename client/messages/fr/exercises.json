@@ -134,6 +134,7 @@
   "cat_writing": "Production écrite",
   "cat_speaking": "Production orale",
   "cat_language_knowledge": "Connaissances linguistiques",
+  "dontKnow": "Je ne sais pas",
   "cantHear": "Je ne peux pas écouter",
   "cantSpeak": "Je ne peux pas parler",
   "skippedCount": "{count, plural, one {# exercice passé} other {# exercices passés}}",

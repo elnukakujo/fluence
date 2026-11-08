@@ -134,6 +134,7 @@
   "cat_writing": "Writing",
   "cat_speaking": "Speaking",
   "cat_language_knowledge": "Language knowledge",
+  "dontKnow": "I don't know",
   "cantHear": "I can't hear",
   "cantSpeak": "I can't speak",
   "skippedCount": "{count, plural, one {# exercise skipped} other {# exercises skipped}}",

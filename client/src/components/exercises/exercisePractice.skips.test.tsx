@@ -8,6 +8,9 @@ import type Exercise from "@/interface/features/Exercise";
 vi.mock("./exerciseRunner", () => ({ default: ({ exercise }: { exercise: Exercise }) => <div data-testid="runner">{exercise.id}</div> }));
 vi.mock("@/components/ui/buttons/backButton", () => ({ default: ({ children }: { children: React.ReactNode }) => <button>{children}</button> }));
 
+vi.mock("@/api/process", () => ({ updateScoreById: vi.fn(() => Promise.resolve()) }));
+
+import { updateScoreById } from "@/api/process";
 import ExercisePractice from "./exercisePractice";
 
 const ex = (id: string, exercise_type: Exercise["exercise_type"], audio_files: string[] = []) => ({ id, exercise_type, audio_files, question: "q", answer: "a" }) as Exercise;
@@ -35,5 +38,14 @@ describe("practice skips", () => {
         await userEvent.click(screen.getByRole("button", { name: "I can't speak" }));
         expect(screen.queryByTestId("runner")).toBeNull();
         expect(screen.getByRole("status")).toHaveTextContent("1 exercise skipped");
+    });
+
+    it("I don't know scores 0 on any exercise and moves on, not counted as skipped", async () => {
+        render(<ExercisePractice exercise_lists={[ex("e1", "essay"), ex("e2", "quizz")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
+        expect(updateScoreById).toHaveBeenCalledWith("e1", 0, expect.any(Number), false, 1);
+        expect(current()).toBe("e2");
+        await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
+        expect(screen.getByRole("status")).not.toHaveTextContent("skipped");
     });
 });

@@ -177,7 +177,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                 <>
                     <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={handleGoNext} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <SkipButtons exercise={card} onSkip={handleGoNext} />
+                        <SkipButtons exercise={card} onSkip={handleGoNext} onNext={handleGoNext} />
                         {remaining.length > 1 ? (
                             <button className="btn btn-primary min-h-11 ml-auto" onClick={handleGoNext}>
                                 {t("nextButton")}
