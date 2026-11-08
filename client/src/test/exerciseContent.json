@@ -1,6 +1,6 @@
 {
   "good": [
-    ["reading", {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": "a"}]}],
+    ["reading", {"speakers": [{"id": "s1", "name": "A"}], "lines": [{"speakerId": "s1", "text": "a", "translation": null, "audioIndex": null}]}],
     ["essay", null], ["answering", null], ["translate", null], ["speaking", null],
     ["matching", {"pairs": [["a", "b"]]}],
     ["quizz", {"options": ["a", "b"], "correct": [0]}],

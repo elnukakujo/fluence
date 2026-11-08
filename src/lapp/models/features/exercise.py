@@ -25,10 +25,11 @@ class Exercise(BaseFeatureModel):
         """What the user still has to provide before this exercise can be practised ([] = ready).
         A generated exercise waits for review; its content must fit its type (else the runner would crash);
         a dictation needs a clip for every line."""
-        from ...services.ingestion.elements import conversation_json_ok, exercise_content_ok   # local: services import models
+        from ...services.ingestion.elements import conversation_json_ok, exercise_content_ok, reading_stored_ok   # local: services import models
         needs = ["review"] if self.review_reason else []
         try:
             fits = (conversation_json_ok(self.question, self.answer) if self.exercise_type == "conversation"   # the runner reads question/answer
+                    else reading_stored_ok(self.content) if self.exercise_type == "reading"   # stored shape differs from the model's
                     else exercise_content_ok(self.exercise_type, self.content))
         except Exception:   # a malformed shape is "not ready", never an error
             fits = False

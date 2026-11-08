@@ -44,3 +44,10 @@ def test_conversation_reads_question_and_answer_not_content():
 
 def test_review_and_content_are_both_reported():
     assert _needs("matching", {"pairs": []}, review_reason="doubt") == ["review", "content"]
+
+
+def test_a_reading_built_by_the_app_is_ready():
+    from lapp.services.ingestion.elements import reading_content
+    stored = reading_content({"speakers": [{"name": "A"}, {"name": "B"}], "lines": [{"speaker": "A", "text": "hi"}, {"speaker": "B", "text": "yo"}]})
+    assert _needs("reading", stored) == []
+    assert _needs("reading", {**stored, "lines": [{**stored["lines"][0], "speakerId": "zz"}]}) == ["content"]

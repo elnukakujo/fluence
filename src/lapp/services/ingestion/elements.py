@@ -337,6 +337,14 @@ def reading_content(content: dict) -> dict:
                                              "translation": tr(l.get("translation")), "audioIndex": None} for l in content["lines"]]}
 
 
+def reading_stored_ok(content) -> bool:
+    """Is a STORED reading (speakers with ids, lines by `speakerId`, see reading_content) usable by the runner?"""
+    if not (isinstance(content, dict) and isinstance(content.get("speakers"), list) and isinstance(content.get("lines"), list) and content["lines"]):
+        return False
+    ids = {sp.get("id") for sp in content["speakers"] if isinstance(sp, dict) and isinstance(sp.get("name"), str) and sp["name"].strip()}
+    return bool(ids) and all(isinstance(l, dict) and l.get("speakerId") in ids and isinstance(l.get("text"), str) and l["text"].strip() for l in content["lines"])
+
+
 def dictation_content(content: dict) -> dict:
     return {"lines": [{"text": l["text"].strip(), "audioIndex": None} for l in content["lines"]]}
 
