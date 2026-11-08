@@ -175,3 +175,26 @@ def test_older_generated_exercises_are_linked_when_the_list_is_read(app, db):
         db.insert(Exercise(id="ex_E2", lesson_id="lesson_L1", exercise_type="essay", question="q2", answer="a"), session=s, commit=False)
     got = {e["id"]: e for e in _client(app, "user_U1").get("/api/exercise/lesson/lesson_L1").get_json()}
     assert [s["source_type"] for s in got["ex_E1"]["sources"]] == ["ai"] and got["ex_E2"]["sources"] == []
+
+
+def test_an_open_ended_essay_with_no_answer_is_saved(app, db, stub, monkeypatch):
+    _user(db, "user_U1")
+    _lesson(db)
+    monkeypatch.setattr(jobs, "generate_batch", lambda slots, api, target, progress=lambda: None, **kw: [progress() or {**_item(0), "answer": ""}])
+    monkeypatch.setattr(jobs, "judge_batch", lambda items, api, target, **kw: [None])
+    c = _client(app, "user_U1")
+    job = _wait(c, c.post("/api/lesson/lesson_L1/exercises/generate", json={"count": 1}).get_json()["job_id"])
+    assert job["state"] == "done", job.get("error")
+    assert job["result"]["saved"] == 1
+
+
+def test_the_lesson_remembers_a_failed_job_once(app, db, monkeypatch):
+    _user(db, "user_U1")
+    _lesson(db)
+    def boom(*a, **k): raise RuntimeError("no model")
+    monkeypatch.setattr(jobs, "generate_batch", boom)
+    c = _client(app, "user_U1")
+    _wait(c, c.post("/api/lesson/lesson_L1/exercises/generate", json={"count": 1}).get_json()["job_id"])
+    first = c.get("/api/lesson/lesson_L1/exercises/generate").get_json()
+    assert first["state"] == "failed" and "no model" in first["error"]
+    assert c.get("/api/lesson/lesson_L1/exercises/generate").get_json() is None

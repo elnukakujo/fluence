@@ -607,6 +607,9 @@
   .flashcard-face-back {
     transform: rotateY(180deg);
   }
+  /* the face turned away takes no room: the card is as tall as what is visible, not as the taller face */
+  .flashcard-inner:not(.is-flipped) > .flashcard-face-back,
+  .flashcard-inner.is-flipped > .flashcard-face:not(.flashcard-face-back) { height: 0; min-height: 0; overflow: hidden; padding-block: 0; border-width: 0; visibility: hidden; }
   @media (prefers-reduced-motion: reduce) {
     .flashcard-inner { transition: none; }
     .grade-btn { transition: none; }

@@ -101,6 +101,13 @@ export async function getGeneration(jobId: string): Promise<GenerationJob> {
   return res.json();
 }
 
+/** The lesson's job left running (or just failed) while the user was elsewhere, or null. */
+export async function getActiveGeneration(lessonId: string): Promise<(GenerationJob & { job_id: string }) | null> {
+  const res = await fetch(`${BASE_URL}/api/lesson/${lessonId}/exercises/generate`, { headers: await getAuthHeaders() });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 /** Deletes every exercise of one generation batch. */
 export async function undoGenerationBatch(batchId: string): Promise<{ deleted: number }> {
   const res = await fetch(`${BASE_URL}/api/exercise-batch/${batchId}`, { method: "DELETE", headers: await getAuthHeaders() });

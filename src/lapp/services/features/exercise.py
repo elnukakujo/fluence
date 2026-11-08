@@ -166,7 +166,7 @@ class ExerciseService:
             lesson_id=lesson.id,
             exercise_type=exercise_data.get("exercise_type"),
             question=exercise_data.get("question"),
-            answer=exercise_data.get("answer"),
+            answer=exercise_data.get("answer") or "",
             text_support=exercise_data.get("text_support", ""),
             content=exercise_data.get("content"),
             category=exercise_data.get("category"),
@@ -211,6 +211,8 @@ class ExerciseService:
             setattr(existing, key, value)
         if "category" in data.model_fields_set and data.category is None:
             existing.category = None     # exclude_none above would otherwise make a category impossible to clear
+        if "answer" in data.model_fields_set and data.answer is None:
+            existing.answer = ""         # the column is NOT NULL: a cleared answer is ""
         if "review_reason" in data.model_fields_set and data.review_reason is None:
             existing.review_reason = None   # accepting a generated exercise clears its reason
 

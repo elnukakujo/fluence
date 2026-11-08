@@ -179,5 +179,7 @@
   "filterSource": "Source",
   "filterTag": "Tag",
   "noSource": "Sans source",
-  "noTag": "Sans tag"
+  "noTag": "Sans tag",
+  "generateFailedShort": "Échec de la génération (détails)",
+  "generateRunningShort": "Génération {done}/{total}… (ouvrir)"
 }

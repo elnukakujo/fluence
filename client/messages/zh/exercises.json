@@ -179,5 +179,7 @@
   "filterSource": "来源",
   "filterTag": "标签",
   "noSource": "无来源",
-  "noTag": "无标签"
+  "noTag": "无标签",
+  "generateFailedShort": "生成失败（详情）",
+  "generateRunningShort": "正在生成 {done}/{total}…（打开）"
 }

@@ -58,7 +58,7 @@ export default function RecallGradeButtons({ onGrade, suggested }: RecallGradeBu
                         aria-keyshortcuts={String(i + 1)}
                     >
                         <span className="grade-dot" />
-                        <span className="grade-label">{label} <kbd className="text-xs text-muted">{i + 1}</kbd></span>
+                        <span className="grade-label">{label}</span>
                         <span className="grade-hint">{hint}</span>
                         {suggested === value && <span className="badge">{t("suggested")}</span>}
                     </button>

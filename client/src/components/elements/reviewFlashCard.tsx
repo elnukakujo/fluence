@@ -248,7 +248,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                                 }}
                             >
                                 {isVocabulary(card) && (
-                                    listenFirst ? <p className="text-center text-lg font-medium">{t("listenPrompt")}</p> : <>
+                                    listenFirst ? <>
+                                        <p className="text-center text-lg font-medium">{t("listenPrompt")}</p>
+                                        {/* on the card, front side only (the back side asks for the word, the clip would give it away); playing must not flip the card */}
+                                        <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}><AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} /></div>
+                                    </> : <>
                                         <WordCard word={card.word} hiddenTranslation={true} hiddenAdditionalInformations={false} reverse={card.side === "back"} showPhonetic={showDetail} />
                                         {example && <SentenceCard sentence={example} hiddenTranslation={true} />}
                                     </>
@@ -281,10 +285,6 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     )}
                     </div>
 
-                    {listenFirst && isVocabulary(card) && hiddenTranslation && !choiceActive && (
-                        <AudioPlayer src={PUBLIC_BASE_URL + card.word.audio_files![0]} />
-                    )}
-
                     {/* ── Grade buttons ────────────────────────────── */}
                     {!hiddenTranslation && !graded && (
                         <RecallGradeButtons onGrade={handleGrade} suggested={tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
@@ -295,7 +295,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                         <>
                             {/* next first: the details below can be long, the action must stay in view */}
                             {remaining.length > 1 ? (
-                                <button className="btn btn-primary min-h-11 self-start" onClick={handleGoNext} autoFocus>
+                                <button className="btn btn-primary min-h-11 w-full" onClick={handleGoNext} autoFocus>
                                     {t("nextButton")}
                                 </button>
                             ) : (

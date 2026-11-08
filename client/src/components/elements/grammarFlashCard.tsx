@@ -80,7 +80,7 @@ export default function GrammarFlashCard({ grammars }: { grammars: Grammar[] }) 
                 <>
                     {/* next first: the details below can be long, the action must stay in view */}
                     {currentIndex < grammars.length - 1 ? (
-                        <button className="btn btn-primary min-h-11 self-start" autoFocus onClick={() => handleGoNext()}>
+                        <button className="btn btn-primary min-h-11 w-full" autoFocus onClick={() => handleGoNext()}>
                             <p>{t("nextButton")}</p>
                         </button>
                     ) : (
