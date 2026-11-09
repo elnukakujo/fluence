@@ -33,7 +33,8 @@ import AudioPlayer from "@/components/media/audioPlayer";
 import { PUBLIC_BASE_URL } from "@/api";
 import { pickReplacement } from "@/utils/replaceCard";
 import { isListenFirst } from "@/utils/listenFirst";
-import { gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
+import { gradeForTyped, gradeFromCloseness, matchesAnswer } from "@/utils/typedAnswer";
+import { scoreTypedAnswer } from "@/api/process";
 import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 
@@ -54,7 +55,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [graded, setGraded] = useState<boolean>(false);
     const [finishedId, setFinishedId] = useState<string>();   // exercise whose answer is final (solved, out of attempts or given up); a replacing spare has another id
     const [gaveUpId, setGaveUpId] = useState<string>();
-    const [typed, setTyped] = useState<{ correct: boolean } | null>(null);        // the result of a typed answer
+    const [typed, setTyped] = useState<{ correct: boolean; diff?: number[] } | null>(null);
+    const [typedPending, setTypedPending] = useState(false);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
     const [choiceDone, setChoiceDone] = useState<boolean>(false);          // the leech "which one is it" step
     const [hintLevel, setHintLevel] = useState<number>(0);   // hints taken from the ladder (0-2)
@@ -160,13 +162,23 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         else { setHiddenTranslation(false); handleGrade(0); }
     };
     const typedMode = tier === "maintaining" && isVocabulary(card) && card.side === "back" && !flipInstead;
-    const answerTyped = (value: string | null) => {          // null = gave up
+    const answerTyped = async (value: string | null) => {          // null = gave up
         if (!isVocabulary(card)) return;
         const correct = value !== null && matchesAnswer(value, card.word);
-        const ms = Math.round(performance.now() - startTimeRef.current);
-        setTyped({ correct });
+        const ms = Math.round(performance.now() - startTimeRef.current);        // taken at submit: the request's latency never changes the speed bonus
+        let grade = gradeForTyped(correct, ms), diff: number[] | undefined;
+        if (value !== null && !correct && card.word.word) {            // a miss may still be close: graded by character closeness (a failed request keeps the exact-match grade)
+            setTypedPending(true);
+            try {
+                const r = await scoreTypedAnswer(value, card.word.word, languageId);
+                grade = gradeFromCloseness(r.closeness, ms);
+                diff = r.diff;
+            } catch { /* exact-match grade */ }
+            setTypedPending(false);
+        }
+        setTyped({ correct, diff: grade > 0 ? diff : undefined });
         setHiddenTranslation(false);
-        handleGrade(Math.min(gradeForTyped(correct, ms), HINT_CAPS[effectiveLevel]));
+        handleGrade(Math.min(grade, HINT_CAPS[effectiveLevel]));
     };
 
     return (
@@ -237,9 +249,18 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     <section className="flex flex-col gap-3">
                         <WordCard word={card.word} hiddenTranslation={hiddenTranslation} hiddenAdditionalInformations={false} reverse showPhonetic={showDetail} />
                         {hiddenTranslation ? (
-                            <TypeAnswer onSubmit={answerTyped} onGiveUp={() => answerTyped(null)} onFlip={() => setFlipInstead(true)} />
+                            <TypeAnswer pending={typedPending} onSubmit={answerTyped} onGiveUp={() => answerTyped(null)} onFlip={() => setFlipInstead(true)} />
                         ) : typed && (
-                            <p role="status" className="font-medium">{typed.correct ? t("typeRight") : t("typeWrong", { word: card.word.word ?? "" })}</p>
+                            typed.diff ? (
+                                <p role="status" className="font-medium">
+                                    {t("typeClose")}{" "}
+                                    <span aria-label={t("typeDiffLabel", { chars: [...(card.word.word ?? "")].filter((_, i) => typed.diff!.includes(i)).join(" ") })}>
+                                        {[...(card.word.word ?? "")].map((c, i) => typed.diff!.includes(i) ? <u key={i} className="font-bold">{c}</u> : c)}
+                                    </span>
+                                </p>
+                            ) : (
+                                <p role="status" className="font-medium">{typed.correct ? t("typeRight") : t("typeWrong", { word: card.word.word ?? "" })}</p>
+                            )
                         )}
                     </section>
                     ) : (

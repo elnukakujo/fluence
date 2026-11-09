@@ -90,6 +90,8 @@
   "typeFlipInstead": "Flip instead",
   "typeRight": "Right!",
   "typeWrong": "Not quite. The word is {word}",
+  "typeClose": "Almost! The word is",
+  "typeDiffLabel": "different: {chars}",
   "leechBanner": "This one keeps slipping ({count} misses)",
   "leechParts": "What it is made of",
   "leechNote": "Your memory trick",

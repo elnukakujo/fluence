@@ -90,6 +90,8 @@
   "typeFlipInstead": "改为翻卡",
   "typeRight": "正确！",
   "typeWrong": "不太对。这个词是 {word}",
+  "typeClose": "差一点！这个词是",
+  "typeDiffLabel": "不同：{chars}",
   "leechBanner": "这张卡总是记不住（错了 {count} 次）",
   "leechParts": "它由什么组成",
   "leechNote": "你的记忆窍门",
