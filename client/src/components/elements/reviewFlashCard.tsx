@@ -20,7 +20,7 @@ import ElementPerformanceCard from "./elementPerformanceCard";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
 import RunnerBoundary from "@/components/exercises/runnerBoundary";
 import ReviewHeader from "./reviewHeader";
-import SkipButtons from "@/components/exercises/skipButtons";
+import ExerciseFooter from "@/components/exercises/exerciseFooter";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
@@ -52,6 +52,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
+    const [finishedId, setFinishedId] = useState<string>();   // exercise whose answer is final (solved, out of attempts or given up); a replacing spare has another id
+    const [gaveUpId, setGaveUpId] = useState<string>();
     const [typed, setTyped] = useState<{ correct: boolean } | null>(null);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
     const [choiceDone, setChoiceDone] = useState<boolean>(false);          // the leech "which one is it" step
@@ -191,17 +193,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
-                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={() => handleReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <SkipButtons exercise={card} onSkip={handleReplace} onNext={handleGoNext} />
-                        {remaining.length > 1 ? (
-                            <button className="btn btn-primary min-h-11 ml-auto" onClick={handleGoNext}>
-                                {t("nextButton")}
-                            </button>
-                        ) : (
-                            <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
-                        )}
-                    </div>
+                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={() => handleReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} gaveUp={gaveUpId === card.id} onFinished={() => setFinishedId(card.id)} /></RunnerBoundary>
+                    <ExerciseFooter exercise={card} finished={gaveUpId === card.id || finishedId === card.id} isLast={remaining.length <= 1}
+                        onGiveUp={() => setGaveUpId(card.id)} onSkip={handleReplace} onNext={handleGoNext}
+                        last={<BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>} />
                 </>
             ) : (
                 <>
