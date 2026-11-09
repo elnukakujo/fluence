@@ -81,3 +81,7 @@ EXERCISE_MIN_LINKED_AVG = 20.0       # an exercise appears once its linked eleme
 
 # Typed target-language answers are graded by character closeness. TODO(user): stand-ins.
 PHONETIC_SUB_COST = 0.3     # edit cost of replacing a character by one that sounds the same (a full wrong character costs 1)
+
+# A vocabulary entry that is a whole sentence (a "passage"): no example sentence, no single-word steps. TODO(user): stand-ins.
+PASSAGE_MIN_WORDS = 5          # space-separated words
+PASSAGE_MIN_CJK_CHARS = 8      # characters of an unspaced script
