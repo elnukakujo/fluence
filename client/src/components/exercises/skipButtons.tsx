@@ -7,9 +7,9 @@ import { CircleHelp, EarOff, MicOff } from "lucide-react";
 import type Exercise from "@/interface/features/Exercise";
 import { needsHearing, needsSpeaking } from "@/utils/exerciseSkills";
 
-/** "I don't know" on every exercise: records a 0 score then moves on (counted, not skipped). Only for review and practice, never the single-exercise page.
+/** "I don't know" on every exercise: records a 0 score then reveals the answer (counted, not skipped; the footer then offers Next). Only for review and practice, never the single-exercise page.
  *  "I can't hear" on exercises that play audio, "I can't speak" on exercises that record you: each swaps this exercise for another the learner can do (or skips it, unscored). Nothing for other exercises. */
-export default function SkipButtons({ exercise, onSkip, onNext }: { exercise: Exercise; onSkip: (lacks: "hearing" | "speaking") => void; onNext: () => void }) {
+export default function SkipButtons({ exercise, onSkip, onGiveUp }: { exercise: Exercise; onSkip: (lacks: "hearing" | "speaking") => void; onGiveUp: () => void }) {
     const t = useTranslations("exercises");
     const hear = needsHearing(exercise);
     const speak = needsSpeaking(exercise);
@@ -17,7 +17,7 @@ export default function SkipButtons({ exercise, onSkip, onNext }: { exercise: Ex
     const Icon = hear ? EarOff : MicOff;
     const dontKnow = () => {
         updateScoreById(exercise.id!, 0, Math.round(performance.now() - start.current), false, 1).catch(console.error);
-        onNext();
+        onGiveUp();
     };
     return (
         <div className="flex flex-wrap items-center gap-2">
