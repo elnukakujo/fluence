@@ -179,6 +179,7 @@ describe("ReviewPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     const type = screen.getByRole("combobox", { name: /type/i });
     expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("classifier");
+    expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("sentence");
     await userEvent.selectOptions(type, "verb");
     await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));

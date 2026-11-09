@@ -1,5 +1,5 @@
 """Spare ready exercises sent along with the review queue."""
-from conftest import link_all_exercises
+from review_helpers import link_all_exercises
 from lapp.core.database import db_manager
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson

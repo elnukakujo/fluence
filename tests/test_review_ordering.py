@@ -1,7 +1,7 @@
 """Daily review (exercises included, lesson title attached) and stable lesson ordering."""
 from datetime import datetime, timedelta
 
-from conftest import link_all_exercises
+from review_helpers import link_all_exercises
 from lapp.core.database import db_manager
 from lapp.models.containers import Language, Lesson
 from lapp.models.features import Exercise

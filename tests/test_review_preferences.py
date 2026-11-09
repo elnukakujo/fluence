@@ -1,7 +1,7 @@
 """Review queue honoring layout sections, goals, boost/ban and the vocabulary side pattern."""
 import pytest
 
-from conftest import link_all_exercises
+from review_helpers import link_all_exercises
 from lapp.core.database import db_manager
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
