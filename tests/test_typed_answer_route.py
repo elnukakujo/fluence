@@ -22,3 +22,12 @@ def test_requires_login(app, db):
 
 def test_400_without_expected(app, db):
     assert _client(app, db).post('/api/evaluate/typed-answer', json={'text': 'a'}).status_code == 400
+
+
+def test_language_id_gives_phonetic_leniency(app, db):
+    from lapp.models.containers import Language
+    client = _client(app, db)
+    with db.session_scope() as s:
+        db.insert(Language(id="lang_L1", user_id="user_U1", name="Chinese", target_iso639_2t="zho"), session=s, commit=False)
+    body = client.post('/api/evaluate/typed-answer', json={'text': '事', 'expected': '是', 'language_id': 'lang_L1'}).get_json()
+    assert abs(body['closeness'] - 0.7) < 1e-6          # same pinyin: PHONETIC_SUB_COST, not a full miss

@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify
 import traceback
 import logging
 
-from ...services import EvaluatorService
+from ...services import EvaluatorService, LanguageService
+from ...utils import get_language_by_iso2t
 from ...core.auth import login_required, require_owns, require_write
 from ...utils.typed_similarity import closeness, diff
 
@@ -129,6 +130,9 @@ def score_typed_answer():
                 iso1:
                     type: string
                     description: "ISO 639-1 code of the target language (enables phonetic leniency)"
+                language_id:
+                    type: string
+                    description: "Alternative to iso1: the user's language, whose target ISO code is used"
     responses:
         200:
             description: closeness in 0..1 and the indices of `expected` that differ
@@ -139,4 +143,7 @@ def score_typed_answer():
     if not isinstance(data.get("expected"), str) or not data["expected"]:
         return jsonify({"error": "expected is required"}), 400
     text, expected, iso1 = data.get("text") or "", data["expected"], data.get("iso1")
+    if not iso1 and data.get("language_id"):         # the client knows the language id, not its ISO code
+        require_owns(data["language_id"])
+        iso1 = get_language_by_iso2t(LanguageService().get_by_id(data["language_id"]).target_iso639_2t).iso1
     return jsonify({"closeness": closeness(text, expected, iso1=iso1), "diff": diff(text, expected, iso1=iso1)})
