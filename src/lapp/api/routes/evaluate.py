@@ -4,6 +4,7 @@ import logging
 
 from ...services import EvaluatorService
 from ...core.auth import login_required, require_owns, require_write
+from ...utils.typed_similarity import closeness, diff
 
 bp = Blueprint('evaluate', __name__, url_prefix='/api/evaluate')
 evaluator_service = EvaluatorService()
@@ -103,3 +104,39 @@ def evaluate_speech():
     except Exception:
         logger.error("evaluate_speech failed:\n%s", traceback.format_exc())
         return jsonify({"correct": False, "score": 0.0, "feedback": "Evaluation unavailable. Please try again."}), 200
+
+@bp.route('/typed-answer', methods=['POST'])
+@login_required
+def score_typed_answer():
+    """Character-level closeness of a typed target-language answer to the expected text.
+    ---
+    tags:
+        - Evaluation
+    parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+                text:
+                    type: string
+                    description: "What the user typed"
+                expected:
+                    type: string
+                    description: "The expected text"
+                    required: true
+                iso1:
+                    type: string
+                    description: "ISO 639-1 code of the target language (enables phonetic leniency)"
+    responses:
+        200:
+            description: closeness in 0..1 and the indices of `expected` that differ
+        400:
+            description: expected is missing
+    """
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data.get("expected"), str) or not data["expected"]:
+        return jsonify({"error": "expected is required"}), 400
+    text, expected, iso1 = data.get("text") or "", data["expected"], data.get("iso1")
+    return jsonify({"closeness": closeness(text, expected, iso1=iso1), "diff": diff(text, expected, iso1=iso1)})
