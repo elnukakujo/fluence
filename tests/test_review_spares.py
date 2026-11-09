@@ -1,4 +1,6 @@
 """Spare ready exercises sent along with the review queue."""
+from conftest import link_all_exercises
+from lapp.core.database import db_manager
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
 from lapp.models.features import Exercise
@@ -20,7 +22,9 @@ def _seed(db, n=12, broken=0):
     UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", daily_goal_minutes=1))
 
 
-def _cards(): return ReviewService().get_review_cards(language_id="lang_L1", user_id="user_U1", as_dict=True)
+def _cards():
+    link_all_exercises(db_manager)
+    return ReviewService().get_review_cards(language_id="lang_L1", user_id="user_U1", as_dict=True)
 
 
 def test_spares_are_ready_disjoint_and_not_in_the_queue(db):

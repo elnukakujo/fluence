@@ -1,6 +1,7 @@
 """Daily review (exercises included, lesson title attached) and stable lesson ordering."""
 from datetime import datetime, timedelta
 
+from conftest import link_all_exercises
 from lapp.core.database import db_manager
 from lapp.models.containers import Language, Lesson
 from lapp.models.features import Exercise
@@ -20,6 +21,7 @@ def test_review_includes_exercises_and_lesson_title(db):
     with db.session_scope() as s:
         db.insert(Exercise(id="ex_E1", lesson_id="lesson_L1", exercise_type="quizz", question="Q?", answer="A"), session=s, commit=False)
 
+    link_all_exercises(db_manager)
     cards = ReviewService().get_review_cards(language_id="lang_L1", as_dict=True)
     assert any(c.get("exercise_type") == "quizz" for c in cards)
     assert all(c.get("lesson_title") == "Basics" for c in cards)
