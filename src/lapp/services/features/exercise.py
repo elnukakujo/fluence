@@ -327,8 +327,4 @@ class ExerciseService:
             )
             logger.info(f"Updated calligraphy {calligraphy.id} score due to exercise {ex_id}")
 
-        if updated.score != previous_score:
-            lesson_service.update_score(exercise.lesson_id, user_id=user_id, session=session)
-            logger.info(f"Updated lesson {exercise.lesson_id} score due to exercise {ex_id}")
-
         return updated

@@ -86,10 +86,6 @@ export default async function ExercisesPage({ params, searchParams }: { params: 
                                             </span>
                                         );
                                     })()}
-                                    <div className="ex-stats">
-                                        <span>{t("score", { score: exercise.score?.toFixed(2) })}</span>
-                                        <span>{t("difficulty", { difficulty: exercise.difficulty?.toFixed(1) })}</span>
-                                    </div>
                                     <nav className="ex-actions">
                                         <NavButton path={`/languages/${language_id}/lesson/${lesson_id}/ex/${exercise.id}`}>
                                             <span className="inline-flex items-center gap-2"><Play size={14} aria-hidden />{t("practiceThisExercise")}</span>
