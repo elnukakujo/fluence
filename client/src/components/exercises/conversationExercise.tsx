@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
 import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
@@ -96,7 +97,7 @@ function SpeechLine({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ConversationExercise({ exercise }: { exercise: Exercise }) {
+export default function ConversationExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const audioFiles = exercise.audio_files!;
     const textSupport = exercise.text_support || "";
@@ -134,6 +135,7 @@ export default function ConversationExercise({ exercise }: { exercise: Exercise 
     const previousLineIndexRef = useRef<number>(currentLineIndex);
     const skipRevealEffectRef = useRef(true);
     const isSequencePlayingRef = useRef(false);
+    useFinished(isFinished, onFinished);
 
     // Reset when exercise changes
     useEffect(() => {

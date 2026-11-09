@@ -19,6 +19,7 @@ from ..schemas import GrammarDict, CalligraphyDict, VocabularyDict
 from ..services import TextGeneratorService, GrammarService, VocabularyService, CalligraphyService
 from ..services.system_data import UserPreferencesService
 from ..utils.llm_providers import resolve_api
+from ..utils.passage import is_passage
 
 logger = logging.getLogger(__name__)
 
@@ -156,6 +157,9 @@ def generate_missing_texts(app: Flask):
                             progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [ai example sentence gen disabled for user]")
                             continue
                         text = feature.word.word
+                        if is_passage(text, feature.word.word_type):         # the entry is its own example sentence
+                            progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [passage: no example]")
+                            continue
                         progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [{lang_codes}]: {text[:40]!r}")
                         generated_text = text_gen_service.generate_example_sentence(
                             text,

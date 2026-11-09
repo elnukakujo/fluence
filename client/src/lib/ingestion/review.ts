@@ -36,7 +36,7 @@ export type Candidate = {
 
 // Same list as the server's WordDict validator; "" means not given.
 export const WORD_TYPES = ["", "noun", "verb", "adjective", "adverb", "pronoun", "article", "preposition", "conjunction",
-  "particle", "interjection", "numeral", "classifier", "auxiliary", "modal"] as const;
+  "particle", "interjection", "numeral", "classifier", "auxiliary", "modal", "sentence"] as const;
 
 export type ConflictMode = "keep" | "merge" | "overwrite";
 

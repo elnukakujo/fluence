@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
 
-vi.mock("./exerciseRunner", () => ({ default: ({ exercise }: { exercise: Exercise }) => <div data-testid="runner">{exercise.id}</div> }));
+vi.mock("./exerciseRunner", () => ({ default: ({ exercise, onFinished, gaveUp }: { exercise: Exercise; onFinished?: () => void; gaveUp?: boolean }) => <div><span data-testid="runner">{exercise.id}</span>{gaveUp && <span>answer shown</span>}<button onClick={onFinished}>solve</button></div> }));
 vi.mock("@/components/ui/buttons/backButton", () => ({ default: ({ children }: { children: React.ReactNode }) => <button>{children}</button> }));
 
 vi.mock("@/api/process", () => ({ updateScoreById: vi.fn(() => Promise.resolve()) }));
@@ -40,12 +40,34 @@ describe("practice skips", () => {
         expect(screen.getByRole("status")).toHaveTextContent("1 exercise skipped");
     });
 
-    it("I don't know scores 0 on any exercise and moves on, not counted as skipped", async () => {
+    it("I don't know scores 0, reveals the answer and offers Next instead of advancing", async () => {
         render(<ExercisePractice exercise_lists={[ex("e1", "essay"), ex("e2", "quizz")]} />);
         await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
         expect(updateScoreById).toHaveBeenCalledWith("e1", 0, expect.any(Number), false, 1);
+        expect(current()).toBe("e1");
+        expect(screen.getByText("answer shown")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "I don't know" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "Next Exercise" }));
         expect(current()).toBe("e2");
-        await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(screen.queryByRole("status")).toBeNull();
+        expect(screen.queryByRole("status")).toBeNull();   // given up, not skipped
+    });
+
+    it("Next is hidden until the exercise is finished, then replaces the skip buttons", async () => {
+        render(<ExercisePractice exercise_lists={[ex("e1", "essay"), ex("e2", "quizz")]} />);
+        expect(screen.queryByRole("button", { name: "Next Exercise" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "solve" }));
+        expect(screen.queryByRole("button", { name: "I don't know" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "Next Exercise" }));
+        expect(current()).toBe("e2");
+        expect(screen.queryByRole("button", { name: "Next Exercise" })).toBeNull();   // the next one starts unfinished
+    });
+
+    it("Next on the last exercise shows the completion card", async () => {
+        render(<ExercisePractice exercise_lists={[ex("e1", "essay")]} />);
+        expect(screen.queryByText(/completed/i)).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "solve" }));
+        await userEvent.click(screen.getByRole("button", { name: "Next Exercise" }));
+        expect(screen.queryByTestId("runner")).toBeNull();
+        expect(screen.getByRole("button")).toBeInTheDocument();
     });
 });

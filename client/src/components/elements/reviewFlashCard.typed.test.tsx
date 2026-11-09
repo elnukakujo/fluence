@@ -5,12 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReviewCard } from "@/api/review";
 
-const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}) }));
+const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), scoreTypedAnswer: vi.fn().mockRejectedValue(new Error("down")) }));
 vi.mock("@/api/process", () => api);
 vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));
 vi.mock("@/components/exercises/exerciseRunner", () => ({ default: () => <div /> }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
-vi.mock("./calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" /> }));
+vi.mock("./calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" />, guidanceFor: () => "none" }));
+vi.mock("@/lib/calligraphy/strokeData", () => ({ loadStrokeData: vi.fn().mockResolvedValue([[]]) }));
+vi.mock("@/utils/drawFirst", () => ({ isDrawFirst: () => false }));
 
 import ReviewFlashCard from "./reviewFlashCard";
 
@@ -39,6 +41,24 @@ describe("review card: type the word", () => {
         await userEvent.click(screen.getByRole("button", { name: "Check" }));
         expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0, expect.any(Number), false, undefined, "back");
         expect(screen.getByText("Not quite. The word is 猫")).toBeInTheDocument();
+    });
+
+    it("a near miss earns partial credit and underlines the differing character", async () => {
+        api.scoreTypedAnswer.mockResolvedValueOnce({ closeness: 0.65, diff: [0] });
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.type(screen.getByLabelText("Type the word"), "狗");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        const grade = api.updateScoreById.mock.calls[0][1];
+        expect(grade).toBeGreaterThan(0);
+        expect(grade).toBeLessThan(0.75);
+        expect(await screen.findByLabelText("different: 猫")).toBeInTheDocument();
+    });
+
+    it("a failed request keeps the exact-match grade", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.type(screen.getByLabelText("Type the word"), "狗");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0, expect.any(Number), false, undefined, "back");
     });
 
     it("I don't know is graded again", async () => {

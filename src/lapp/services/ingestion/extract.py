@@ -68,6 +68,7 @@ def _system_prompt(target: str, source: str | None) -> str:
         "word-and-phrase summary). Skip words that only occur inside example sentences, dialogues, grammar notes or exercises, and skip contents pages, headings, section titles and page headers.\n"
         f"{translate}"
         "- Invent nothing else: no extra entries, no corrections.\n"
+        "- An entry that is a whole sentence (not a word or a short phrase) is still extracted, with `word_type` \"sentence\".\n"
         "- For every item give a `quote`: a short span copied verbatim from the text that contains the word.\n"
         "- Reply with ONLY a JSON array, no prose. Each item: "
         f'{{"word": str, "translation": {tr}, "phonetic": str|null, "word_type": str|null, "quote": str}}.\n'

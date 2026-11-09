@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { evaluateText, updateScoreById } from "@/api/process";
 import type Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
@@ -15,7 +16,7 @@ import 'ldrs/react/Ring.css';
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
-export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercise }) {
+export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const content = exercise.content as { segments: string[]; blanks: { options?: string[]; answer: string }[] } | null;
     const text_support = exercise.text_support || "";
@@ -31,6 +32,7 @@ export default function TypeInTheBlankExercise({ exercise }: { exercise: Exercis
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setFilledAnswers(Array(blanks.length).fill(null));

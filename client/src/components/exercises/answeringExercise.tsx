@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -15,7 +16,7 @@ import { getLevelForScore } from "@/utils/speech_levels";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { useRef } from "react";
 
-export default function AnsweringExercise({ exercise }: { exercise: Exercise }) {
+export default function AnsweringExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const question = exercise.question || "";
     const answer = exercise.answer || "";
@@ -30,6 +31,7 @@ export default function AnsweringExercise({ exercise }: { exercise: Exercise }) 
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const hasFeedback = isCorrect || attempts > 0;
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setUserAnswer('');

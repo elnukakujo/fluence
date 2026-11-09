@@ -300,7 +300,7 @@ class LessonService:
             return None
 
         components = db_manager.find_all(
-            model_class=[Vocabulary, Grammar, Calligraphy, Exercise],
+            model_class=[Vocabulary, Grammar, Calligraphy],  # exercises are tools, not scored items
             filters={'lesson_id': lesson_id},
             session=session
         )

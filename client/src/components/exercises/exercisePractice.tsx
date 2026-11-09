@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import ExerciseRunner from "./exerciseRunner";
 import BackButton from "@/components/ui/buttons/backButton";
 import ProgressBar from "../ui/progressBar";
-import SkipButtons from "./skipButtons";
+import ExerciseFooter from "./exerciseFooter";
 
 const EXERCISE_TYPE_LABELS: Record<string, string> = {
     essay: "essay",
@@ -31,7 +31,10 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
     const [skipped, setSkipped] = useState(0);
     const remaining = exercise_lists.filter((e) => !done.includes(e.id!));
     const currentExercise: Exercise | undefined = remaining[0];
-    const isLastExercise = remaining.length <= 1;
+    const [finishedId, setFinishedId] = useState<string>();   // the exercise whose answer is final (solved, out of attempts or given up)
+    const [gaveUpId, setGaveUpId] = useState<string>();
+    const gaveUp = !!currentExercise && gaveUpId === currentExercise.id;
+    const finished = gaveUp || (!!currentExercise && finishedId === currentExercise.id);
     const finish = (skip: boolean) => { setDone([...done, currentExercise!.id!]); if (skip) setSkipped(skipped + 1); };
 
     return (
@@ -45,16 +48,13 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
                 <span className="badge">{EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""] ? t(EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""]) : currentExercise.exercise_type}</span>
             </div>
             <div key={currentExercise.id} className="animate-fade-in">
-                <ExerciseRunner exercise={currentExercise} />
+                <ExerciseRunner exercise={currentExercise} gaveUp={gaveUp} onFinished={() => setFinishedId(currentExercise.id)} />
             </div>
             </>) : null}
             {currentExercise && (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <SkipButtons exercise={currentExercise} onSkip={() => finish(true)} onNext={() => finish(false)} />
-                    {!isLastExercise && <button className="btn btn-primary ml-auto" onClick={() => finish(false)}>{t("nextExercise")}</button>}
-                </div>
+                <ExerciseFooter exercise={currentExercise} finished={finished} isLast={false} onGiveUp={() => setGaveUpId(currentExercise.id)} onSkip={() => finish(true)} onNext={() => finish(false)} />
             )}
-            {(!currentExercise || isLastExercise) && (
+            {!currentExercise && (
                 <section className="card index-divider flex flex-col items-center gap-3 text-center">
                     <p className="font-medium">{t("completedAll")}</p>
                     {skipped > 0 && <p role="status" className="text-sm text-muted">{t("skippedCount", { count: skipped })}</p>}

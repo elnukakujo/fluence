@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
 import { Ring } from "ldrs/react";
 import { useTranslations } from "next-intl";
@@ -15,7 +16,7 @@ import GenerateAudioButton from "./generateAudioButton";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
 
-export default function DictationExercise({ exercise }: { exercise: Exercise }) {
+export default function DictationExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const lines = (exercise.content as DictationContent | undefined)?.lines ?? [];
     const [index, setIndex] = useState(0);
@@ -24,6 +25,7 @@ export default function DictationExercise({ exercise }: { exercise: Exercise }) 
     const [loading, setLoading] = useState(false);
     const [feedback, setFeedback] = useState<{ message: string | null; level: string; correct: boolean } | null>(null);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(done, onFinished);
     const audio = useLineAudio(exercise);
 
     useEffect(() => { setIndex(0); setTyped([]); setDone(false); setFeedback(null); startTimeRef.current = performance.now(); }, [exercise]);

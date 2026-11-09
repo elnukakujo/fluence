@@ -1,10 +1,7 @@
 import type { Tier } from "./cardTier";
+import { dayOf, hash } from "./stableDaily";
 
 export const LISTEN_EVERY = 3;     // TODO(user): one eligible card in this many is listened to before it is seen
-
-// FNV-1a: a small, well-spread string hash (the same card gets the same answer all day)
-const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
-const dayOf = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 
 type Card = { id?: string; card_id?: string; side?: string; word?: { audio_files?: string[] } };
 

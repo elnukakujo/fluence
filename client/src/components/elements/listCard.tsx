@@ -31,9 +31,9 @@ export default function ListCard({ icon: Icon, title, count, score, difficulty, 
         {selectKind && count > 0 && <SelectToggle kind={selectKind} />}
       </header>
 
-      {count > 0 && (
+      {count > 0 && score !== undefined && (
         <div className="flex flex-col gap-1 rounded-xl bg-background px-3 py-2">
-          <ScoreDisplay score={score ?? 0} />
+          <ScoreDisplay score={score} />
           <DifficultyDisplay difficulty={difficulty ?? 0} />
         </div>
       )}
