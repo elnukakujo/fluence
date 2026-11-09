@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
-import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
+import CalligraphyPracticeCanvas, { guidanceFor } from "./calligraphyPracticeCanvas";
+import { loadStrokeData } from "@/lib/calligraphy/strokeData";
+import { isDrawFirst } from "@/utils/drawFirst";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
@@ -24,7 +26,7 @@ import ExerciseFooter from "@/components/exercises/exerciseFooter";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
-import { EarOff, PenLine } from "lucide-react";
+import { EarOff, PenLine, PenOff } from "lucide-react";
 import HintLadder from "./hintLadder";
 import TypeAnswer from "./typeAnswer";
 import LeechPanel from "./leechPanel";
@@ -84,7 +86,9 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const card = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
     const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
-    const autoDraw = !!card && isCalligraphy(card) && tierOf(card as unknown as Parameters<typeof tierOf>[0]) === "maintaining";   // a strong character is drawn, not flipped
+    const calTier = card && isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
+    // A strong character is always drawn; on other days a stable third of the weaker ones is, instead of the flip card.
+    const autoDraw = !!card && !!calTier && (calTier === "maintaining" || isDrawFirst(card, calTier, new Date()));
 
     useEffect(() => {
         startTimeRef.current = performance.now();
@@ -99,6 +103,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setShowPractice(autoDraw);
         setPracticeResult(null);
         setCantHear(false);
+        if (autoDraw && card && isCalligraphy(card)) {        // no stroke data for this character: flip it, never a blank canvas
+            let stale = false;
+            loadStrokeData(card.character.character ?? "").then((s) => { if (!s && !stale) setShowPractice(false); }).catch(() => { if (!stale) setShowPractice(false); });
+            return () => { stale = true; };
+        }
     }, [currentIndex, card?.id]);
 
     if (!card) {
@@ -119,7 +128,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const handleDrawingResult = async (r: { similarity: number; strokeOrderErrors: number }) => {
         const duration_ms = Math.round(performance.now() - startTimeRef.current);
         try {
-            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms);
+            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms, hintUsed || guidanceFor(card.difficulty) !== "none");      // a shown guide counts as a hint
             setPracticeResult(r);
             setGraded(true);
             setShowPractice(false);
@@ -320,6 +329,13 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     {listenFirst && hiddenTranslation && !graded && (
                         <div className="flex flex-wrap items-center gap-2">
                             <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={() => setCantHear(true)}><EarOff size={16} aria-hidden />{t("cantHearCard")}</button>
+                        </div>
+                    )}
+
+                    {/* a drawn calligraphy card: the escape sits below the card, like "I can't hear" */}
+                    {isCalligraphy(card) && showPractice && !graded && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={() => setShowPractice(false)}><PenOff size={16} aria-hidden />{tCal("cantDraw")}</button>
                         </div>
                     )}
 

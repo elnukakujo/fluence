@@ -10,7 +10,9 @@ vi.mock("@/api/process", () => api);
 vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));
 vi.mock("@/components/exercises/exerciseRunner", () => ({ default: () => <div /> }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
-vi.mock("./calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" /> }));
+vi.mock("./calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" />, guidanceFor: () => "none" }));
+vi.mock("@/lib/calligraphy/strokeData", () => ({ loadStrokeData: vi.fn().mockResolvedValue([[]]) }));
+vi.mock("@/utils/drawFirst", () => ({ isDrawFirst: () => false }));
 
 import ReviewFlashCard from "./reviewFlashCard";
 

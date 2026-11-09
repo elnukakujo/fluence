@@ -478,7 +478,7 @@ def score_calligraphy():
 def draw_calligraphy():
     """Score a calligraphy drawing (shape similarity + stroke-order errors).
 
-    Body: { calligraphy_id, similarity (0..1), stroke_order_errors (int), duration_ms (float) }.
+    Body: { calligraphy_id, similarity (0..1), stroke_order_errors (int), duration_ms (float), hint_used (bool, optional) }.
     """
     data = request.json
     calligraphy_id = data['calligraphy_id']
@@ -486,6 +486,7 @@ def draw_calligraphy():
     similarity = float(data['similarity'])
     stroke_order_errors = int(data['stroke_order_errors'])
     duration_ms = float(data.get('duration_ms', 0))
+    hint_used = bool(data.get('hint_used', False))      # a guide was shown while drawing
 
     score = score_drawing(similarity, stroke_order_errors)
 
@@ -493,7 +494,7 @@ def draw_calligraphy():
         calligraphy_id,
         score,
         duration_ms=duration_ms,
-        hint_used=False,
+        hint_used=hint_used,
         user_id=current_user_id(),
     )
 
