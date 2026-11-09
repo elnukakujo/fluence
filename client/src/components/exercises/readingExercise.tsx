@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Languages } from "lucide-react";
@@ -12,12 +13,13 @@ import LineAudioButton, { ICON_BTN } from "./lineAudioButton";
 
 type ReadingContent = { speakers: { id: string; name: string }[]; lines: { speakerId: string; text: string; translation?: string | null; audioIndex: number | null }[] };
 
-export default function ReadingExercise({ exercise }: { exercise: Exercise }) {
+export default function ReadingExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const content = exercise.content as ReadingContent | undefined;
     const [shown, setShown] = useState<Record<number, boolean>>({});
     const [done, setDone] = useState(false);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(done, onFinished);
     const audio = useLineAudio(exercise);
 
     useEffect(() => { setShown({}); setDone(false); startTimeRef.current = performance.now(); }, [exercise]);

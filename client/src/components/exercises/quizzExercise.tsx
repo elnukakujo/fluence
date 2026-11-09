@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useState, useEffect } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
@@ -11,7 +12,7 @@ import { updateScoreById } from "@/api/process";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
-export default function QuizzExercise({ exercise }: { exercise: Exercise }) {
+export default function QuizzExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const content = exercise.content as { options: string[]; correct: number[] } | null;
     const text_support = exercise.text_support || "";
@@ -21,6 +22,7 @@ export default function QuizzExercise({ exercise }: { exercise: Exercise }) {
     const [attempts, setAttempts] = useState<number>(0);
     const hasFeedback = isCorrect || attempts > 0;
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts > 0, onFinished);
 
     useEffect(() => {
         setSelected([]);

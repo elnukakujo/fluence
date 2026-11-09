@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useState } from "react";
 import { useRef } from "react";
 import { Ring } from 'ldrs/react';
@@ -15,7 +16,7 @@ import { updateScoreById, evaluateText } from "@/api/process";
 import { getLevelForScore } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 
-export default function TranslateExercise({ exercise }: {exercise: Exercise}){
+export default function TranslateExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">){
     const t = useTranslations("exercises");
     const question = exercise.question || "";
     const answer = exercise.answer || "";
@@ -31,6 +32,7 @@ export default function TranslateExercise({ exercise }: {exercise: Exercise}){
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setAttempts(0);

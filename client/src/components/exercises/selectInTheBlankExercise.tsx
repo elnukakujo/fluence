@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { updateScoreById } from "@/api/process";
 import type Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import shuffle from 'lodash/shuffle';
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
-export default function SelectInTheBlankExercise({ exercise }: { exercise: Exercise }) {
+export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const content = exercise.content as { segments: string[]; blanks: { options?: string[]; answer: string }[] } | null;
     const text_support = exercise.text_support || "";
@@ -28,6 +29,7 @@ export default function SelectInTheBlankExercise({ exercise }: { exercise: Exerc
     const [isCorrect, setIsCorrect] = useState<boolean>(false);
     const [attempts, setAttempts] = useState(0);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setWordBank(shuffle(allOptions));
