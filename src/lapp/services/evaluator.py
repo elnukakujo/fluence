@@ -22,8 +22,12 @@ from ..utils import (
     get_audio_embedding_processor,
     get_stt_pipe,
 )
+from ..utils.typed_similarity import closeness
 from .features import ExerciseService
 from .feedback import FeedbackService
+
+# Exercises answered by typing target-language text against one reference answer (free-form types are excluded).
+TYPED_REFERENCE_TYPES = {"translate", "type_in_the_blank", "organize", "dictation"}
 
 exercise_service = ExerciseService()
 feedback_service = FeedbackService()
@@ -274,6 +278,9 @@ class EvaluatorService:
             correct_translation=correct_text,
             target_lang_iso2t=target_lang_iso2t,
         )
+        if exercise_type in TYPED_REFERENCE_TYPES:       # a near miss earns partial credit; never lowers the word-overlap signal
+            language = get_language_by_iso2t(target_lang_iso2t) if target_lang_iso2t else None
+            token_difference_rate = max(token_difference_rate, closeness(user_text, correct_text, iso1=language.iso1 if language else None))
         logger.info(f"Token difference rate for Exercise {ex_id} between user: '{user_text}' and correct answer: '{correct_text}' is {token_difference_rate:.4f}")
 
         return {
