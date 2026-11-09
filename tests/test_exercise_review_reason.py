@@ -1,3 +1,5 @@
+from review_helpers import link_all_exercises
+from lapp.core.database import db_manager
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
 from lapp.models.features import Exercise
@@ -36,5 +38,6 @@ def test_daily_review_skips_exercises_waiting_for_review(db):
     with db.session_scope() as s:
         db.insert(Exercise(id="ex_ok", lesson_id="lesson_L1", exercise_type="essay", question="q", answer="a"), session=s, commit=False)
         db.insert(Exercise(id="ex_wait", lesson_id="lesson_L1", exercise_type="essay", question="q", answer="a", review_reason="check"), session=s, commit=False)
+    link_all_exercises(db_manager)
     ids = [c["id"] for c in ReviewService().get_review_cards(language_id="lang_L1", user_id="user_U1", as_dict=True)]
     assert ids == ["ex_ok"]

@@ -72,3 +72,16 @@ GEN_GUARANTEE_READING_FROM = 4   # a batch of at least this many always has a re
 LEECH_LAPSES = 4             # score drops after which a card gets leech help
 LEECH_CONFUSABLE_RATIO = 0.6 # spelling similarity (difflib) for a confusable word
 LEECH_CANDIDATES = 2000      # words of the language compared at most
+
+# Exercises in the daily review: their share of the time rises with the learner's knowledge. TODO(user): stand-ins.
+EXERCISE_MIN_SHARE = 0.1             # share of the review time at knowledge 0
+EXERCISE_MAX_SHARE = 0.5             # share at EXERCISE_FULL_KNOWLEDGE_SCORE and above
+EXERCISE_FULL_KNOWLEDGE_SCORE = 80.0 # mean element score at which the share is maximal
+EXERCISE_MIN_LINKED_AVG = 20.0       # an exercise appears once its linked elements average at least this
+
+# Typed target-language answers are graded by character closeness. TODO(user): stand-ins.
+PHONETIC_SUB_COST = 0.3     # edit cost of replacing a character by one that sounds the same (a full wrong character costs 1)
+
+# A vocabulary entry that is a whole sentence (a "passage"): no example sentence, no single-word steps. TODO(user): stand-ins.
+PASSAGE_MIN_WORDS = 5          # space-separated words
+PASSAGE_MIN_CJK_CHARS = 8      # characters of an unspaced script

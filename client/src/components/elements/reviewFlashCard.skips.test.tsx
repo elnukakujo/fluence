@@ -8,7 +8,7 @@ import type { ReviewCard } from "@/api/review";
 const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}) }));
 vi.mock("@/api/process", () => api);
 vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));
-vi.mock("@/components/exercises/exerciseRunner", () => ({ default: ({ exercise }: { exercise: { id: string } }) => <div data-testid="runner">{exercise.id}</div> }));
+vi.mock("@/components/exercises/exerciseRunner", () => ({ default: ({ exercise, onFinished, gaveUp }: { exercise: { id: string }; onFinished?: () => void; gaveUp?: boolean }) => <div><span data-testid="runner">{exercise.id}</span>{gaveUp && <span>answer shown</span>}<button onClick={onFinished}>solve</button></div> }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
 vi.mock("@/api/language", () => ({ getLanguageById: vi.fn().mockResolvedValue({ target_iso639_2t: "jpn" }) }));
 
@@ -48,9 +48,27 @@ describe("review: skips", () => {
         render(<ReviewFlashCard cards={[ex("ex_1", "dictation"), ex("ex_2", "dictation"), ...spares]} />);
         await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
         expect(screen.getByTestId("runner")).toHaveTextContent("ex_s");
-        await userEvent.click(screen.getByRole("button", { name: "Next" }));
+        await userEvent.click(screen.getByRole("button", { name: "solve" }));
+        await userEvent.click(screen.getByRole("button", { name: "Next Exercise" }));
         await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
         expect(screen.queryByTestId("runner")).toBeNull();      // no usable spare left: skipped as before
+    });
+
+    it("Next is hidden until the exercise is finished", async () => {
+        render(<ReviewFlashCard cards={[ex("ex_1", "essay"), ex("ex_2", "essay")]} />);
+        expect(screen.queryByRole("button", { name: "Next Exercise" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "solve" }));
+        expect(screen.queryByRole("button", { name: "I don't know" })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "Next Exercise" }));
+        expect(screen.getByTestId("runner")).toHaveTextContent("ex_2");
+    });
+
+    it("I don't know reveals the answer and offers Next instead of advancing", async () => {
+        render(<ReviewFlashCard cards={[ex("ex_1", "essay"), ex("ex_2", "essay")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
+        expect(screen.getByTestId("runner")).toHaveTextContent("ex_1");
+        expect(screen.getByText("answer shown")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Next Exercise" })).toBeInTheDocument();
     });
 
     it("the section total does not count the spares", () => {

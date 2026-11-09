@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
@@ -14,7 +15,7 @@ import { getLevelForScore } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
-export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
+export default function SpeakingExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const question = exercise.question || "";
     const text_support = exercise.text_support || "";
@@ -26,6 +27,7 @@ export default function SpeakingExercise({ exercise }: { exercise: Exercise }) {
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const hasFeedback = isCorrect || attempts > 0;
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     // Lifted state from AudioRecorder via onStatusChange
     const [audioUrl, setAudioUrl] = useState<string | null>(null);

@@ -17,6 +17,7 @@ from ...utils import review_priority
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from .card_time import estimate_seconds, pace_ratios
+from .exercise_share import exercise_quota, exercise_share, is_eligible, knowledge
 from .side_pattern import make_side_picker
 from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW, SPARE_EXERCISES)
 from .study_goal import StudyGoalService, TYPES
@@ -163,6 +164,11 @@ class ReviewService:
         modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in exercises}
         exercises = [c for c in exercises if modes[c.id] != "ban"]
 
+        # An exercise appears once the elements it trains are known a little (their scores, never the exercise's own).
+        linked = {c.id: [e.id for e in (*c.related_vocabulary, *c.related_grammar, *c.related_calligraphy)] for c in exercises}
+        element_scores = ScoreService().get_many(user_id, sorted({i for ids in linked.values() for i in ids}), session=session)
+        exercises = [c for c in exercises if is_eligible([element_scores[i].score or 0.0 if i in element_scores else 0.0 for i in linked[c.id]])]
+
         # What a card costs: its content-based estimate pulled toward this learner's measured pace.
         paces = pace_ratios(user_id, session)
         est = lambda c: estimate_seconds(c[0] if isinstance(c, tuple) else c, paces)
@@ -171,13 +177,21 @@ class ReviewService:
 
         # Cards per type, to know which lessons are in play and how far "all front, then all back" can go.
         budgets = section_budgets(layout, daily_goal_minutes, mean_sec) if layout else None
+        ex_quota = None     # only the free (no menu) queue is capped by the rising share
         if budgets:
             quota = {m: 0 for m in FEATURE_MODELS}
             for sec, left in budgets.items():
                 m = SECTION_MODELS[sec]
                 quota[m] = min(len(exercises) if m is Exercise else len(buckets[m]), left)
         else:
-            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}, cap_seconds, mean_model)
+            # Flashcards first on their own budget to read the learner's knowledge, then the exercises take their rising share of the time.
+            flash = quotas({m: len(b) for m, b in buckets.items()}, cap_seconds, mean_model)
+            chosen = {i[0].id if isinstance(i, tuple) else i.id: None for m in buckets for i in buckets[m][:flash[m]]}
+            shown = ScoreService().get_many(user_id, list(chosen), session=session)
+            share = exercise_share(knowledge([shown[i].score or 0.0 if i in shown else 0.0 for i in chosen]))
+            ex_quota = exercise_quota(share, cap_seconds, mean_model[Exercise], len(exercises))
+            quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: 0}, cap_seconds - ex_quota * mean_model[Exercise], mean_model)
+            quota[Exercise] = ex_quota
         buckets[Vocabulary] = pair_vocabulary(buckets[Vocabulary], quota[Vocabulary], split=bool(pattern and pattern.get("mode") == "split"))
 
         # Exercises come from the lessons of the elements being reviewed (all of them when no element is).
@@ -207,16 +221,23 @@ class ReviewService:
                     left -= est(card)
         else:
             # Round-robin across the types so one type can't crowd out the rest.
-            spent = 0.0
+            spent, taken_ex = 0.0, 0
+            turns = {m: 1 for m in FEATURE_MODELS}
+            if ex_quota is not None:
+                turns[Exercise] = max(1, -(-ex_quota // max(1, *(quota[m] for m in FEATURE_MODELS if m is not Exercise))))
             while any(buckets[m] for m in FEATURE_MODELS):
                 took = False
                 for model in FEATURE_MODELS:
-                    if buckets[model] and (not queue or spent + est(buckets[model][0]) <= cap_seconds):
-                        card = self._pop(buckets[model], queue, model, picker)
-                        queue.append(card)
-                        sections.append(None)
-                        spent += est(card)
-                        took = True
+                    for _ in range(turns[model]):
+                        if model is Exercise and ex_quota is not None and taken_ex >= ex_quota:
+                            break
+                        if buckets[model] and (not queue or spent + est(buckets[model][0]) <= cap_seconds):
+                            card = self._pop(buckets[model], queue, model, picker)
+                            queue.append(card)
+                            sections.append(None)
+                            spent += est(card)
+                            taken_ex += model is Exercise
+                            took = True
                 if not took:
                     break
 

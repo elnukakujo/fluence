@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useState } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
@@ -17,7 +18,7 @@ import { getLevelForScore } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
-export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
+export default function OrganizeExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const content = exercise.content as { items: string[]; answer_order: number[] } | null;
     const items = content?.items ?? [];
@@ -37,6 +38,7 @@ export default function OrganizeExercise({ exercise }: { exercise: Exercise }) {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setWordsToOrganize(shuffle(items));

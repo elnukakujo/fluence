@@ -10,7 +10,7 @@ const STROKE_MATCH_THRESHOLD = 150; // max centroid distance (1024-space) for a 
 
 type Guidance = "none" | "guide" | "order";
 
-function guidanceFor(difficulty: number): Guidance {
+export function guidanceFor(difficulty: number): Guidance {
   // Fade the scaffold as the element gets easier: numbered order → outline → nothing.
   if (difficulty >= 0.6) return "order";
   if (difficulty >= 0.3) return "guide";

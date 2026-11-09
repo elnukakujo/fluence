@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
-import CalligraphyPracticeCanvas from "./calligraphyPracticeCanvas";
+import CalligraphyPracticeCanvas, { guidanceFor } from "./calligraphyPracticeCanvas";
+import { loadStrokeData } from "@/lib/calligraphy/strokeData";
+import { isDrawFirst } from "@/utils/drawFirst";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
@@ -20,11 +22,11 @@ import ElementPerformanceCard from "./elementPerformanceCard";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
 import RunnerBoundary from "@/components/exercises/runnerBoundary";
 import ReviewHeader from "./reviewHeader";
-import SkipButtons from "@/components/exercises/skipButtons";
+import ExerciseFooter from "@/components/exercises/exerciseFooter";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
 import TierBadge from "./tierBadge";
-import { EarOff, PenLine } from "lucide-react";
+import { EarOff, PenLine, PenOff } from "lucide-react";
 import HintLadder from "./hintLadder";
 import TypeAnswer from "./typeAnswer";
 import LeechPanel from "./leechPanel";
@@ -33,7 +35,8 @@ import AudioPlayer from "@/components/media/audioPlayer";
 import { PUBLIC_BASE_URL } from "@/api";
 import { pickReplacement } from "@/utils/replaceCard";
 import { isListenFirst } from "@/utils/listenFirst";
-import { gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
+import { gradeForTyped, gradeFromCloseness, matchesAnswer } from "@/utils/typedAnswer";
+import { scoreTypedAnswer } from "@/api/process";
 import { HINT_CAPS, suggestedGrade } from "@/utils/cardHints";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 
@@ -52,7 +55,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const [hintUsed, setHintUsed] = useState<boolean>(false);
     const [hiddenTranslation, setHiddenTranslation] = useState<boolean>(true);
     const [graded, setGraded] = useState<boolean>(false);
-    const [typed, setTyped] = useState<{ correct: boolean } | null>(null);        // the result of a typed answer
+    const [finishedId, setFinishedId] = useState<string>();   // exercise whose answer is final (solved, out of attempts or given up); a replacing spare has another id
+    const [gaveUpId, setGaveUpId] = useState<string>();
+    const [typed, setTyped] = useState<{ correct: boolean; diff?: number[] } | null>(null);
+    const [typedPending, setTypedPending] = useState(false);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
     const [choiceDone, setChoiceDone] = useState<boolean>(false);          // the leech "which one is it" step
     const [hintLevel, setHintLevel] = useState<number>(0);   // hints taken from the ladder (0-2)
@@ -80,7 +86,9 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const card = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
     const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
-    const autoDraw = !!card && isCalligraphy(card) && tierOf(card as unknown as Parameters<typeof tierOf>[0]) === "maintaining";   // a strong character is drawn, not flipped
+    const calTier = card && isCalligraphy(card) ? tierOf(card as unknown as Parameters<typeof tierOf>[0]) : null;
+    // A strong character is always drawn; on other days a stable third of the weaker ones is, instead of the flip card.
+    const autoDraw = !!card && !!calTier && (calTier === "maintaining" || isDrawFirst(card, calTier, new Date()));
 
     useEffect(() => {
         startTimeRef.current = performance.now();
@@ -95,6 +103,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         setShowPractice(autoDraw);
         setPracticeResult(null);
         setCantHear(false);
+        if (autoDraw && card && isCalligraphy(card)) {        // no stroke data for this character: flip it, never a blank canvas
+            let stale = false;
+            loadStrokeData(card.character.character ?? "").then((s) => { if (!s && !stale) setShowPractice(false); }).catch(() => { if (!stale) setShowPractice(false); });
+            return () => { stale = true; };
+        }
     }, [currentIndex, card?.id]);
 
     if (!card) {
@@ -115,7 +128,7 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const handleDrawingResult = async (r: { similarity: number; strokeOrderErrors: number }) => {
         const duration_ms = Math.round(performance.now() - startTimeRef.current);
         try {
-            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms);
+            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms, hintUsed || guidanceFor(card.difficulty) !== "none");      // a shown guide counts as a hint
             setPracticeResult(r);
             setGraded(true);
             setShowPractice(false);
@@ -158,13 +171,23 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
         else { setHiddenTranslation(false); handleGrade(0); }
     };
     const typedMode = tier === "maintaining" && isVocabulary(card) && card.side === "back" && !flipInstead;
-    const answerTyped = (value: string | null) => {          // null = gave up
+    const answerTyped = async (value: string | null) => {          // null = gave up
         if (!isVocabulary(card)) return;
         const correct = value !== null && matchesAnswer(value, card.word);
-        const ms = Math.round(performance.now() - startTimeRef.current);
-        setTyped({ correct });
+        const ms = Math.round(performance.now() - startTimeRef.current);        // taken at submit: the request's latency never changes the speed bonus
+        let grade = gradeForTyped(correct, ms), diff: number[] | undefined;
+        if (value !== null && !correct && card.word.word) {            // a miss may still be close: graded by character closeness (a failed request keeps the exact-match grade)
+            setTypedPending(true);
+            try {
+                const r = await scoreTypedAnswer(value, card.word.word, languageId);
+                grade = gradeFromCloseness(r.closeness, ms);
+                diff = r.diff;
+            } catch { /* exact-match grade */ }
+            setTypedPending(false);
+        }
+        setTyped({ correct, diff: grade > 0 ? diff : undefined });
         setHiddenTranslation(false);
-        handleGrade(Math.min(gradeForTyped(correct, ms), HINT_CAPS[effectiveLevel]));
+        handleGrade(Math.min(grade, HINT_CAPS[effectiveLevel]));
     };
 
     return (
@@ -191,17 +214,10 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
             {isExercise(card) ? (
                 // Exercises are interactive practice, not flip-cards.
                 <>
-                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={() => handleReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} /></RunnerBoundary>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <SkipButtons exercise={card} onSkip={handleReplace} onNext={handleGoNext} />
-                        {remaining.length > 1 ? (
-                            <button className="btn btn-primary min-h-11 ml-auto" onClick={handleGoNext}>
-                                {t("nextButton")}
-                            </button>
-                        ) : (
-                            <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
-                        )}
-                    </div>
+                    <RunnerBoundary key={card.id} exerciseId={card.id} onSkip={() => handleReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}><ExerciseRunner exercise={card} gaveUp={gaveUpId === card.id} onFinished={() => setFinishedId(card.id)} /></RunnerBoundary>
+                    <ExerciseFooter exercise={card} finished={gaveUpId === card.id || finishedId === card.id} isLast={remaining.length <= 1}
+                        onGiveUp={() => setGaveUpId(card.id)} onSkip={handleReplace} onNext={handleGoNext}
+                        last={<BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>} />
                 </>
             ) : (
                 <>
@@ -242,9 +258,18 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     <section className="flex flex-col gap-3">
                         <WordCard word={card.word} hiddenTranslation={hiddenTranslation} hiddenAdditionalInformations={false} reverse showPhonetic={showDetail} />
                         {hiddenTranslation ? (
-                            <TypeAnswer onSubmit={answerTyped} onGiveUp={() => answerTyped(null)} onFlip={() => setFlipInstead(true)} />
+                            <TypeAnswer pending={typedPending} onSubmit={answerTyped} onGiveUp={() => answerTyped(null)} onFlip={() => setFlipInstead(true)} />
                         ) : typed && (
-                            <p role="status" className="font-medium">{typed.correct ? t("typeRight") : t("typeWrong", { word: card.word.word ?? "" })}</p>
+                            typed.diff ? (
+                                <p role="status" className="font-medium">
+                                    {t("typeClose")}{" "}
+                                    <span aria-label={t("typeDiffLabel", { chars: [...(card.word.word ?? "")].filter((_, i) => typed.diff!.includes(i)).join(" ") })}>
+                                        {[...(card.word.word ?? "")].map((c, i) => typed.diff!.includes(i) ? <u key={i} className="font-bold">{c}</u> : c)}
+                                    </span>
+                                </p>
+                            ) : (
+                                <p role="status" className="font-medium">{typed.correct ? t("typeRight") : t("typeWrong", { word: card.word.word ?? "" })}</p>
+                            )
                         )}
                     </section>
                     ) : (
@@ -304,6 +329,13 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                     {listenFirst && hiddenTranslation && !graded && (
                         <div className="flex flex-wrap items-center gap-2">
                             <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={() => setCantHear(true)}><EarOff size={16} aria-hidden />{t("cantHearCard")}</button>
+                        </div>
+                    )}
+
+                    {/* a drawn calligraphy card: the escape sits below the card, like "I can't hear" */}
+                    {isCalligraphy(card) && showPractice && !graded && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={() => setShowPractice(false)}><PenOff size={16} aria-hidden />{tCal("cantDraw")}</button>
                         </div>
                     )}
 

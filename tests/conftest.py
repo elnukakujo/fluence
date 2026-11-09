@@ -43,3 +43,4 @@ def db(app):
         db_manager.engine.dispose()
         yield db_manager
         db_manager.close_session()
+

@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useState } from "react";
 import { useRef } from "react";
 import Markdown from "react-markdown";
@@ -15,7 +16,7 @@ import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { getLevelForScore } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 
-export default function EssayExercise({ exercise }: { exercise: Exercise }) {
+export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const question = exercise.question || "";
     const answer = exercise.answer || "";
@@ -28,6 +29,7 @@ export default function EssayExercise({ exercise }: { exercise: Exercise }) {
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string, stars: string } | null>(null);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const startTimeRef = useRef<number>(performance.now());
+    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setUserAnswer('');

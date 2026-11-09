@@ -12,6 +12,17 @@ export async function evaluateText(exerciseId: string, userText: string) {
   return res.json();
 }
 
+/** Character closeness (0..1) of a typed answer to the expected text, and the indices of `expected` that differ. */
+export async function scoreTypedAnswer(text: string, expected: string, languageId?: string): Promise<{ closeness: number; diff: number[] }> {
+  const res = await fetch(`${BASE_URL}/api/evaluate/typed-answer`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ text, expected, language_id: languageId }),
+  });
+  if (!res.ok) throw new Error("Failed to score typed answer");
+  return res.json();
+}
+
 export async function evaluateSpeech(exerciseId: string, user_audio_url: string, correct_audio_index: number = 0) {
   const res = await fetch(`${BASE_URL}/api/evaluate/speech`, {
     method: "POST",

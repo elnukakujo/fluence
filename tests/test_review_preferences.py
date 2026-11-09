@@ -1,6 +1,8 @@
 """Review queue honoring layout sections, goals, boost/ban and the vocabulary side pattern."""
 import pytest
 
+from review_helpers import link_all_exercises
+from lapp.core.database import db_manager
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
 from lapp.models.components import Word, Character
@@ -73,7 +75,9 @@ def _prefs(**kw):
     UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", **kw))
 
 
-def _cards(): return ReviewService().get_review_cards(language_id="lang_L1", user_id="user_U1", as_dict=True)
+def _cards():
+    link_all_exercises(db_manager)
+    return ReviewService().get_review_cards(language_id="lang_L1", user_id="user_U1", as_dict=True)
 
 
 def test_layout_orders_and_omits_sections(db):

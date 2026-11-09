@@ -121,3 +121,10 @@ def test_prompt_has_translation_rules_and_injection_guard():
 def test_unknown_word_type_such_as_v_dot_is_dropped_not_kept(monkeypatch):
     _stub(monkeypatch, json.dumps([{**ITEM, "word_type": "v."}, ITEM]))
     assert [i.word_type for i in _run()] == [None, "noun"]
+
+
+def test_sentence_entry_keeps_its_sentence_type_and_prompt_asks_for_it(monkeypatch):
+    calls = _stub(monkeypatch, json.dumps([{**ITEM, "word": "我喜欢吃苹果。", "word_type": "sentence"}]))
+    items = _run()
+    assert [(i.word, i.word_type) for i in items] == [("我喜欢吃苹果。", "sentence")]
+    assert '"sentence"' in calls[0]["messages"][0]["content"]

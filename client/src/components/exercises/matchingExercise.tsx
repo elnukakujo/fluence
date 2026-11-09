@@ -1,5 +1,6 @@
 "use client";
 
+import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import type Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
 import { useRef } from "react";
@@ -16,7 +17,7 @@ type Item = {
     column: number;
 };
 
-export default function MatchingExercise({ exercise }: { exercise: Exercise }) {
+export default function MatchingExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
     const content = exercise.content as { pairs: [string, string][] } | null;
     const text_support = exercise.text_support || "";
@@ -106,6 +107,7 @@ export default function MatchingExercise({ exercise }: { exercise: Exercise }) {
     };
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
+    useFinished(isSuccess || attempts < 0, onFinished);
 
     useEffect(() => {
         if (isSuccess) {

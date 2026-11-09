@@ -3,7 +3,7 @@ from pydantic import model_validator
 
 from ..base import BaseComponentDict
 
-WORD_TYPES = ("noun", "verb", "adjective", "adverb", "pronoun", "article", "preposition", "conjunction", "particle", "interjection", "numeral", "classifier", "auxiliary", "modal", "")  # "" = not given
+WORD_TYPES = ("noun", "verb", "adjective", "adverb", "pronoun", "article", "preposition", "conjunction", "particle", "interjection", "numeral", "classifier", "auxiliary", "modal", "sentence", "")  # "" = not given; "sentence" = a whole sentence kept as vocabulary
 
 
 class WordDict(BaseComponentDict):

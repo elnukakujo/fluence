@@ -59,6 +59,7 @@ export async function submitCalligraphyDrawing(
   similarity: number,
   strokeOrderErrors: number,
   durationMs: number,
+  hintUsed = false,
 ) {
   const res = await fetch(`${BASE_URL}/api/calligraphy/draw`, {
     method: "POST",
@@ -68,6 +69,7 @@ export async function submitCalligraphyDrawing(
       similarity,
       stroke_order_errors: strokeOrderErrors,
       duration_ms: durationMs,
+      hint_used: hintUsed,
     }),
   });
   if (!res.ok) throw new Error("Failed to submit calligraphy drawing");
