@@ -4,6 +4,7 @@ from .tokenize import get_content_words, get_characters
 from .translate import translate
 from .word_type import get_word_type
 from .word_gender import get_gender
+from .passage import is_passage
 
 def enrich_character(character_text: str, target_iso1: str, source_iso1: str) -> dict:
     """
@@ -65,11 +66,12 @@ def enrich_word(word_text: str, source_iso1: str, target_iso1: str, target_spacy
           "characters":  ["北", "京"],
         }
     """
+    passage = is_passage(word_text)         # a whole sentence has no part of speech or gender of its own
     return {
         "phonetic":    get_phonetic(word_text, target_iso1),
         "translation": translate(word_text, target_iso1, source_iso1),
-        "word_type":   get_word_type(word_text, target_iso1),
-        "word_gender": get_gender(word_text, target_iso1),
+        "word_type":   "sentence" if passage else get_word_type(word_text, target_iso1),
+        "word_gender": "" if passage else get_gender(word_text, target_iso1),
         "characters":  get_characters(word_text, target_spacy_model),
     }
  
