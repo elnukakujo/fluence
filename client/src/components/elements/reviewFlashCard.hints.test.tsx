@@ -68,8 +68,8 @@ describe("review card: hint ladder", () => {
     it("on the back side the hints are about the word and the example is blanked", async () => {
         render(<ReviewFlashCard cards={[voc({ side: "back", card_id: "voc_1#back" })]} />);
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
-        expect(screen.getByText("Starts with: 猫")).toBeInTheDocument();
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        // a one-character word has no shape hint (it would be the answer): the example is the only hint
+        expect(screen.queryByText(/Starts with/)).toBeNull();
         expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
     });
 

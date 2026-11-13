@@ -29,6 +29,10 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
             # a word bank ("cat, dog") legitimately lists the answer; "answer (gloss)" or the bare answer is a copy
             if a and (a in question or support == a or re.match(rf"{re.escape(a)}\s*[(（:：=-]", support)):
                 return "the question or `text_support` gives the answer itself: give its translation or base form, never the answer word"
+    if etype == "organize":
+        items = [str(i) for i in item["content"]["items"]]
+        if len(items) < 3 or all(re.fullmatch(r"[A-Za-zÀ-ÿ]", i) for i in items):
+            return "organize must put at least 3 whole words of a sentence in order, never the letters of one word"
     if etype == "matching":
         pairs = [tuple(normalise(x) for x in p) for p in item["content"]["pairs"]]
         if len({p[0] for p in pairs}) != len(pairs) or len({p[1] for p in pairs}) != len(pairs):

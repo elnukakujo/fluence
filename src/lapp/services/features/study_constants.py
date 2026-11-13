@@ -66,6 +66,8 @@ GEN_THIN_POOL = 6            # a lesson with fewer elements borrows same-level o
 GEN_DUPLICATE_RATIO = 0.9    # two generated questions at least this similar count as the same exercise
 GEN_READING_WEIGHT = 2.0     # TODO(user): reading is a core exercise, so it is drawn more often than a plain type
 GEN_MULTI_ITEM = {"matching": (2, 4), "reading": (3, 5), "conversation": (2, 4)}   # TODO(user): elements per slot (low, high)
+GEN_KNOWN_SCORE = 40.0          # TODO(user): score at which a word counts as known when writing exercises
+GEN_ADVANCED_FROM = 30          # TODO(user): known words a learner needs before free writing (essay, conversation) is generated
 GEN_GUARANTEE_READING_FROM = 4   # a batch of at least this many always has a reading (unless banned)
 
 # Leech cards (a card that keeps slipping). TODO(user): stand-ins.

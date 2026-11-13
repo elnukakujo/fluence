@@ -252,10 +252,10 @@ def test_attach_existing_shows_the_saved_word(monkeypatch):
     from lapp.services.ingestion.types import Candidate, Flag
     cand = Candidate(id="1", word="水", quote="水", page=0, chunk_id="c", status="verified",
                      flags=[Flag(code="already_in_language", message="m", severity="info")])
-    saved = NS(word="水", translation="water", phonetic="shuǐ", word_type="noun")
+    saved = NS(word="水", translation="water", phonetic="shuǐ", word_type="noun", word_gender=None)
     monkeypatch.setattr("lapp.services.components.WordService.get_by_word", lambda self, w, language_id=None: saved)
     jobs._attach_existing({"language_id": "L1"}, NS(candidates=[cand], elements=[]))
-    assert cand.existing == {"word": "水", "translation": "water", "phonetic": "shuǐ", "word_type": "noun"}
+    assert cand.existing == {"word": "水", "translation": "water", "phonetic": "shuǐ", "word_type": "noun", "word_gender": None}
 
 
 def test_parser_progress_is_saved_on_the_job_so_the_ui_can_show_it(app, db, media_root, monkeypatch):

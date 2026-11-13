@@ -846,6 +846,7 @@ def accept(job_id: str):
                               translation: {type: string}
                               phonetic: {type: string}
                               word_type: {type: string}
+                              word_gender: {type: string, enum: [m, f, n, c]}
                               on_conflict: {type: string, enum: [keep, merge, overwrite]}
                   elements:
                       type: array
@@ -927,6 +928,7 @@ def _add_vocabulary(session, job: dict, lesson_id: str, items: list, progress=No
             word=str(item["word"]).strip(), translation=item.get("translation") or None,
             phonetic=item.get("phonetic") or None,
             word_type=item["word_type"] if item.get("word_type") in WORD_TYPES else None,
+            word_gender=item.get("word_gender") if item.get("word_gender") in ("m", "f", "n", "c") else None,
         )
         vocabulary = vocabulary_service.create(VocabularyDict(lesson_id=lesson_id, word=word), session=session,
                                                on_conflict=item.get("on_conflict", "keep"))

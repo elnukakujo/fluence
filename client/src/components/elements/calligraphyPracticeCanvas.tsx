@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
+import type { ReactNode } from "react";
+import type { Tier } from "@/utils/cardTier";
 import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
@@ -10,25 +12,25 @@ const STROKE_MATCH_THRESHOLD = 150; // max centroid distance (1024-space) for a 
 
 type Guidance = "none" | "guide" | "order";
 
-export function guidanceFor(difficulty: number): Guidance {
-  // Fade the scaffold as the element gets easier: numbered order → outline → nothing.
-  if (difficulty >= 0.6) return "order";
-  if (difficulty >= 0.3) return "guide";
-  return "none";
+export function guidanceFor(tier: Tier): Guidance {
+  // Fade the scaffold as the character gets known: numbered order → outline → nothing.
+  return tier === "learning" ? "order" : tier === "practising" ? "guide" : "none";
 }
 
 export default function CalligraphyPracticeCanvas({
   character,
-  difficulty,
+  tier,
+  info,
   onResult,
 }: {
   character: string;
-  difficulty: number;
+  tier: Tier;
+  info?: ReactNode; // the card's details, kept in view while drawing (learning tier)
   onResult: (r: { similarity: number; strokeOrderErrors: number }) => void;
 }) {
   const t = useTranslations("calligraphy");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [referenceStrokes, setReferenceStrokes] = useState<Stroke[] | null>(null);
+  const [referenceStrokes, setReferenceStrokes] = useState<Stroke[] | null | undefined>(undefined); // undefined = still loading, null = none exists
   const [userStrokes, setUserStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke>([]);
   const [lastStrokeWrong, setLastStrokeWrong] = useState(false);
@@ -37,13 +39,14 @@ export default function CalligraphyPracticeCanvas({
   const correctCountRef = useRef(0);
   const submittedRef = useRef(false);
 
-  const guidance = guidanceFor(difficulty);
+  const guidance = guidanceFor(tier);
 
   useEffect(() => {
     let cancelled = false;
     setUserStrokes([]);
     setCurrentStroke([]);
     setLastStrokeWrong(false);
+    setReferenceStrokes(undefined);
     currentStrokeRef.current = [];
     correctCountRef.current = 0;
     submittedRef.current = false;
@@ -74,6 +77,12 @@ export default function CalligraphyPracticeCanvas({
       ctx.lineCap = "round";
       for (const stroke of referenceStrokes) {
         drawPolyline(ctx, stroke, scale);
+      }
+      const next = referenceStrokes[userStrokes.length]; // the stroke to draw now stands out from the rest
+      if (next) {
+        ctx.strokeStyle = "rgba(37,99,235,0.6)";
+        ctx.lineWidth = 22;
+        drawPolyline(ctx, next, scale);
       }
       if (guidance === "order") {
         ctx.fillStyle = "rgba(0,0,0,0.55)";
@@ -162,12 +171,16 @@ export default function CalligraphyPracticeCanvas({
     setLastStrokeWrong(false);
   }
 
+  if (referenceStrokes === undefined) {
+    return <p className="text-sm text-muted" role="status">{t("loadingStrokeData")}</p>;
+  }
   if (referenceStrokes === null) {
     return <p className="text-sm text-muted">{t("noStrokeData")}</p>;
   }
 
   return (
     <div className="flex flex-col gap-3 items-center">
+      {info}
       <canvas
         ref={canvasRef}
         width={300}

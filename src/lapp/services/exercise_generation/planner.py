@@ -31,19 +31,22 @@ def suggest_count(n_vocabulary: int, n_grammar: int, n_calligraphy: int) -> int:
     return max(GEN_MIN, min(GEN_MAX, int(n + 0.5)))
 
 
-def _type_weights(type_prefs: Optional[dict], tts_enabled: bool) -> dict[str, float]:
+ADVANCED_TYPES = ("essay", "conversation")     # free production: only for a learner who knows enough words
+
+
+def _type_weights(type_prefs: Optional[dict], tts_enabled: bool, advanced: bool = True) -> dict[str, float]:
     weights = {}
     for t in EXERCISE_TYPES:
         mode = effective_mode(type_prefs, t, None)
-        if mode == "ban" or (t == "dictation" and not tts_enabled):
+        if mode == "ban" or (t == "dictation" and not tts_enabled) or (t in ADVANCED_TYPES and not advanced):
             continue
         weights[t] = (BOOST_FACTOR if mode == "boost" else 1.0) * (GEN_READING_WEIGHT if t == "reading" else 1.0)
     return weights
 
 
-def offerable_types(type_prefs: Optional[dict], tts_enabled: bool) -> list[str]:
-    """The exercise types the user may ask for: not banned, and dictation only with a TTS endpoint."""
-    return list(_type_weights(type_prefs, tts_enabled))
+def offerable_types(type_prefs: Optional[dict], tts_enabled: bool, advanced: bool = True) -> list[str]:
+    """The exercise types the user may ask for: not banned, dictation only with a TTS endpoint, essay and conversation only once advanced."""
+    return list(_type_weights(type_prefs, tts_enabled, advanced))
 
 
 def plan_slots_from_mix(pool: list[PoolItem], mix: dict[str, int], rng: Optional[random.Random] = None) -> list[Slot]:
@@ -68,10 +71,10 @@ def plan_slots_from_mix(pool: list[PoolItem], mix: dict[str, int], rng: Optional
 
 
 def plan_slots(pool: list[PoolItem], count: int, type_prefs: Optional[dict], tts_enabled: bool,
-               rng: Optional[random.Random] = None) -> list[Slot]:
+               rng: Optional[random.Random] = None, advanced: bool = True) -> list[Slot]:
     """`count` slots: every pool item first (weakest first), then weakest-weighted picks; types weighted by the user's boost/ban."""
     rng = rng or random.Random()
-    weights = _type_weights(type_prefs, tts_enabled)
+    weights = _type_weights(type_prefs, tts_enabled, advanced)
     if not pool or not weights or count <= 0:
         return []
     primaries = sorted(pool, key=lambda p: p.score)[:count]

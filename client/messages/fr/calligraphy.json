@@ -40,6 +40,7 @@
   "strokeOrderErrors": "{n, plural, one {# erreur} other {# erreurs}}",
   "mastery": "Maîtrise",
   "noStrokeData": "Pas de données de trait disponibles pour ce caractère.",
+  "loadingStrokeData": "Chargement…",
   "wrongStroke": "Mauvais trait — réessayez",
   "clearButton": "Effacer",
   "backToLesson": "Retour à la leçon",

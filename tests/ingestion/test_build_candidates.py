@@ -271,3 +271,9 @@ def test_grammar_explanation_with_examples_stripped_is_flagged(monkeypatch):
     result = _build(_doc(section), None, page_kinds={1: ["grammar"]})
     e = result.elements[0]
     assert "explanation_incomplete" in {x.code for x in e.flags} and e.fields["example_sentences"] == []
+
+
+def test_word_gender_is_normalised_or_dropped():
+    from lapp.services.ingestion.extract import RawItem
+    mk = lambda g: RawItem(word="Tisch", quote="Tisch", word_gender=g).word_gender
+    assert (mk("Masculine"), mk("f"), mk("x"), mk(None)) == ("m", "f", None, None)

@@ -258,7 +258,7 @@ def _attach_existing(job: dict, result) -> None:
         if any(f.code.startswith("already_in_") for f in c.flags):
             w = words.get_by_word(c.word, language_id=job["language_id"])
             if w:
-                c.existing = {"word": w.word, "translation": w.translation, "phonetic": w.phonetic, "word_type": w.word_type}
+                c.existing = {"word": w.word, "translation": w.translation, "phonetic": w.phonetic, "word_type": w.word_type, "word_gender": w.word_gender}
     for e in result.elements:
         if e.kind == "calligraphy":
             ch = chars.get_by_character(e.fields["character"], language_id=job["language_id"])
