@@ -40,6 +40,7 @@
   "strokeOrderErrors": "{n, plural, one {# error} other {# errors}}",
   "mastery": "Mastery",
   "noStrokeData": "No stroke data available for this character.",
+  "loadingStrokeData": "Loading…",
   "wrongStroke": "Wrong stroke — try again",
   "clearButton": "Clear",
   "backToLesson": "Back to Lesson",

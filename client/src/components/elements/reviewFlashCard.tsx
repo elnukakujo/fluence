@@ -128,10 +128,11 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
     const handleDrawingResult = async (r: { similarity: number; strokeOrderErrors: number }) => {
         const duration_ms = Math.round(performance.now() - startTimeRef.current);
         try {
-            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms, hintUsed || guidanceFor(card.difficulty) !== "none");      // a shown guide counts as a hint
+            await submitCalligraphyDrawing(card.id, r.similarity, r.strokeOrderErrors, duration_ms, hintUsed || guidanceFor(tier!) !== "none");      // a shown guide counts as a hint
             setPracticeResult(r);
             setGraded(true);
             setShowPractice(false);
+            setHiddenTranslation(false);        // after a drawing the card shows everything, not its front
         } catch (e) {
             console.error("Failed to submit drawing", e);
         }
@@ -245,7 +246,8 @@ export default function ReviewFlashCard({ cards, languageId }: { cards: ReviewCa
                             onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }}>{isCalligraphy(card) && practiceButton}</HintLadder>
                     )}
                     {isCalligraphy(card) && showPractice ? (
-                        <CalligraphyPracticeCanvas character={card.character.character ?? ""} difficulty={card.difficulty} onResult={handleDrawingResult} />
+                        <CalligraphyPracticeCanvas character={card.character.character ?? ""} tier={tier!} onResult={handleDrawingResult}
+                            info={tier === "learning" ? <CharacterCard character={card.character} hiddenTranslation={false} hiddenAdditionalInformations={false} /> : undefined} />
                     ) : choiceActive && isVocabulary(card) && card.leech?.confusable ? (
                     (() => {
                         const other = card.leech!.confusable!, back = card.side === "back";

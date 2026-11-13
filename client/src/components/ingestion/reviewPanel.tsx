@@ -24,7 +24,7 @@ import ReviewCard from "./reviewCard";
 
 const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
-  vocabulary: ["translation", "phonetic", "word_type"], calligraphy: ["meaning", "phonetic", "radical", "strokes"],
+  vocabulary: ["translation", "phonetic", "word_type", "word_gender"], calligraphy: ["meaning", "phonetic", "radical", "strokes"],
 };
 const SELECT_KIND: Record<RowKind, Kind> = { vocabulary: "voc", grammar: "gram", calligraphy: "call", exercise: "ex" };
 const rowLabel = (r: Row) => r.title || r.word || r.character || r.question?.slice(0, 40) || r.candidate.quote;
@@ -299,7 +299,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     const exists = c.flags.some((f) => f.code.startsWith("already_in_")) && c.existing ? c.existing : null;
     return (
       <ReviewCard {...common} existing={exists}
-        summary={<><strong>{row.word}</strong> {row.phonetic && <span className="opacity-70">{row.phonetic} </span>}— {row.translation}{row.word_type && <span className="opacity-60"> ({row.word_type})</span>}</>}
+        summary={<><strong>{row.word}</strong> {row.phonetic && <span className="opacity-70">{row.phonetic} </span>}— {row.translation}{row.word_type && <span className="opacity-60"> ({row.word_type}{row.word_gender && `, ${row.word_gender}`})</span>}</>}
         badge={generated ? t("generatedTranslation") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
         badgeTitle={generated ? t("generatedTranslationTitle") : confirmedTitle}>
         <div className="flex flex-wrap gap-3">
@@ -313,6 +313,12 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
             <span className="field-label">{t("field_type")}</span>
             <select className="input" value={row.word_type || ""} onChange={(e) => patch(c.id, { word_type: e.target.value })}>
               {WORD_TYPES.map((w) => <option key={w} value={w}>{w || "—"}</option>)}
+            </select>
+          </label>
+          <label className="flex min-w-24 flex-col gap-1">
+            <span className="field-label">{t("field_word_gender")}</span>
+            <select className="input" value={row.word_gender || ""} onChange={(e) => patch(c.id, { word_gender: e.target.value })}>
+              {["", "m", "f", "n", "c"].map((g) => <option key={g} value={g}>{g || "—"}</option>)}
             </select>
           </label>
         </div>

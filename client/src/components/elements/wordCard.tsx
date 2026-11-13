@@ -18,8 +18,9 @@ export default function WordCard({
   showPhonetic?: boolean;
 }) {
   const t = useTranslations("elements");
+  // the hidden face of a back card asks for the word: its phonetic, type and gender would give the answer away (Japanese)
   const showExtras =
-    (((hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation) && !(reverse && hiddenTranslation)) || !!showPhonetic;
+    !(reverse && hiddenTranslation) && ((hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation || !!showPhonetic);
   const hasMedia =
     (word.image_files && word.image_files.length > 0) ||
     (word.audio_files && word.audio_files.length > 0);

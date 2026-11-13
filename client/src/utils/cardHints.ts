@@ -5,10 +5,11 @@ export const HINT_CAPS = [1, 0.75, 0.5];
 export const FAST_MS = 3000;     // TODO(user): recalled this quickly with no hint = easy
 export const SLOW_MS = 10000;    // TODO(user): slower than this = hard
 
-/** The shape of an answer: its first character and one blank per other character (spaces ignored). */
+/** The shape of an answer: its first character and one blank per other character (spaces ignored).
+ *  Empty for a one-character answer: showing its first character would be the answer itself (猫). */
 export function shapeHint(answer: string): string {
     const chars = [...answer.replace(/\s+/g, "")];
-    return chars.length ? [chars[0], ...chars.slice(1).map(() => "_")].join(" ") : "";
+    return chars.length > 1 ? [chars[0], ...chars.slice(1).map(() => "_")].join(" ") : "";
 }
 
 /** An example sentence as a hint. The answer being the translation, the sentence is shown as written; the answer being the word,

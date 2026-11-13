@@ -173,3 +173,18 @@ def test_judge_checks_answerability_and_sees_the_clue(model):
     assert gen.judge_batch([item], API, "Chinese") == ["很 also fits"]
     assert "ANSWERABILITY" in model.calls[0][0]["content"]
     assert json.loads(model.calls[0][1]["content"])["exercises"][0]["text_support"] == "the most"
+
+
+def test_organize_of_letters_is_rejected_and_words_pass():
+    from lapp.services.exercise_generation.checks import code_error
+    mk = lambda items: {"exercise_type": "organize", "question": "q", "answer": "", "links": ["a"],
+                        "content": {"items": items, "answer_order": list(range(len(items)))}}
+    assert "letters" in code_error(mk(["T", "i", "s", "c", "h"]), {"a"})
+    assert code_error(mk(["Ich", "trinke", "Wasser"]), {"a"}) is None
+
+
+def test_beginner_prompt_and_gated_types():
+    from lapp.services.exercise_generation.planner import offerable_types
+    assert "BEGINNER" in gen._generation_system("essay", "German", None, advanced=False)
+    assert "BEGINNER" not in gen._generation_system("essay", "German", None)
+    assert not {"essay", "conversation"} & set(offerable_types(None, True, advanced=False))

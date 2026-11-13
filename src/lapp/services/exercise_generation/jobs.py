@@ -13,7 +13,7 @@ from ..features.exercise import ExerciseService
 from ..system_data import SourceService, UserPreferencesService
 from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch
 from .planner import plan_slots, plan_slots_from_mix
-from .pool import lesson_pool
+from .pool import is_advanced, known_words, lesson_pool
 
 logger = logging.getLogger(__name__)
 # ponytail: in-process state (lost on restart, not shared between workers); a multi-worker deployment needs a shared store
@@ -58,14 +58,16 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
         try:
             with db_manager.session_scope() as s:
                 pool = lesson_pool(lesson_id, user_id, s)
+                well_known = known_words(lesson_id, user_id, s)
+                advanced = is_advanced(well_known)
                 prefs = UserPreferencesService().get_by_user_id(user_id, session=s)
                 tts = prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None
-                slots = plan_slots_from_mix(pool, mix) if mix else plan_slots(pool, count, prefs.exercise_type_prefs, tts)
+                slots = plan_slots_from_mix(pool, mix) if mix else plan_slots(pool, count, prefs.exercise_type_prefs, tts, advanced=advanced)
             job["total"] = len(slots)
-            known = [p.label for p in pool][:KNOWN_MAX]
-            items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1), source=source, known=known)
+            known = list(dict.fromkeys(well_known + [p.label for p in pool]))[:KNOWN_MAX]       # what the learner knows, then this lesson's own elements
+            items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1), source=source, known=known, advanced=advanced)
             add_mentioned_links(items, pool)
-            reasons = judge_batch(items, api, target, known=known)
+            reasons = judge_batch(items, api, target, known=known, advanced=advanced)
             batch_id = "batch_" + uuid.uuid4().hex[:12]
             created: list[tuple[str, str | None]] = []
             with db_manager.session_scope() as s:

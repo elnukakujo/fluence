@@ -2,6 +2,7 @@
 
 import { updateScoreById } from "@/api/process";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
+import { tierOf } from "@/utils/cardTier";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PenLine } from "lucide-react";
@@ -22,6 +23,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
     const tElements = useTranslations("elements");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const calligraphy: Calligraphy = calligraphies[currentIndex];
+    const tier = tierOf(calligraphy as unknown as Parameters<typeof tierOf>[0]);
     const startTimeRef = useRef<number>(performance.now());
     const [hintUsed, setHintUsed] = useState<boolean>(false);
 
@@ -65,6 +67,7 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
             setPracticeResult({ similarity: r.similarity, strokeOrderErrors: r.strokeOrderErrors });
             setGraded(true);
             setShowPractice(false);
+            setHiddenTranslation(false);
         } catch (e) {
             console.error("Failed to submit drawing", e);
         }
@@ -112,7 +115,8 @@ export default function CalligraphyFlashCard({ calligraphies }: { calligraphies:
                     )}
                 </div>
                 {showPractice ? (
-                    <CalligraphyPracticeCanvas character={calligraphy.character.character ?? ""} difficulty={calligraphy.difficulty} onResult={handleDrawingResult} />
+                    <CalligraphyPracticeCanvas character={calligraphy.character.character ?? ""} tier={tier} onResult={handleDrawingResult}
+                        info={tier === "learning" ? <CharacterCard character={calligraphy.character} hiddenTranslation={false} hiddenAdditionalInformations={false} /> : undefined} />
                 ) : (
                 <div className="flashcard">
                     <div className={`flashcard-inner ${!hiddenTranslation ? "is-flipped" : ""}`}>
