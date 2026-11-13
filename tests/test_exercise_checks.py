@@ -17,7 +17,7 @@ GOOD = [
     item("quizz", {"options": ["a", "b"], "correct": [1]}),
     item("matching", {"pairs": [["a", "1"], ["b", "2"]]}),
     item("true_false", {"statement": "s", "answer": True}),
-    item("organize", {"items": ["a", "b"], "answer_order": [1, 0]}),
+    item("organize", {"items": ["I", "drink", "water"], "answer_order": [0, 1, 2]}),
 ]
 
 
