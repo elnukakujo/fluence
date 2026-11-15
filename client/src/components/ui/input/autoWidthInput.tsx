@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 
 export default function AutoWidthInput({
   value,
@@ -29,6 +29,8 @@ export default function AutoWidthInput({
   required?: boolean;
   type?: string;
 }) {
+  const generatedId = useId();
+  const id = (props as { id?: string }).id ?? generatedId;   // a label must point at its own input: two rows can share a label text
   const spanRef = useRef<HTMLSpanElement>(null);
   const [resizeWidth, setResizeWidth] = useState<number>(minWidth);
 
@@ -52,7 +54,7 @@ export default function AutoWidthInput({
     <span className="flex flex-col space-y-2">
       {label && 
         <label 
-          htmlFor={label.toLowerCase().replace(/\s+/g, '-')} 
+          htmlFor={id}
           className="text-sm font-medium text-foreground"
         >
           {label} {required && "*"}
@@ -67,6 +69,7 @@ export default function AutoWidthInput({
 
       <input
         {...props}
+        id={id}
         type={type}
         value={value ?? ""}
         onChange={(e) => onChange(e)}

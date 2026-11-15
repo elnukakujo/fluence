@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
-import { useRouter } from "next/navigation";
 import NumberField from "@/components/ui/input/numberField";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import TagSelector from "@/components/tags/tagSelector";
@@ -15,13 +14,12 @@ import Word from "@/interface/components/Word";
 import Passage from "@/interface/components/Passage";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faAdd } from "@fortawesome/free-solid-svg-icons";
-import ConflictError from "@/api/conflictError";
 import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
+import ExampleSentencesEditor from "./exampleSentencesEditor";
+import { useElementForm } from "./useElementForm";
 
 export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?: Partial<Calligraphy>; lesson_id: string}) {
     const t = useTranslations("calligraphy");
-    const router = useRouter();
-    const isUpdate = Boolean(calligraphy?.id);
     let calligraphyData: Partial<Calligraphy>;
     if (!calligraphy) {
         calligraphyData = {
@@ -52,80 +50,28 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
 
     const [exampleWords, setExampleWords] = useState<Partial<Word>[]>(calligraphyData.example_words ? calligraphyData.example_words : []);
     const [exampleSentences, setExampleSentences] = useState<Partial<Passage>[]>(calligraphyData.example_sentences ? calligraphyData.example_sentences : []);
-    const [selectedTagIds, setSelectedTagIds] = useState<string[]>(calligraphyData.tags ? calligraphyData.tags.map(tag => tag.id!) : []);
-    const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>(calligraphyData.sources ? calligraphyData.sources.map(source => source.id!) : []);
-    const [conflict, setConflict] = useState<ConflictError | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const buildElement = (): Partial<Calligraphy> => ({
-        character: {
-            character: character,
-            phonetic: phonetic,
-            meaning: meaning,
-            radical: radical,
-            strokes: strokes,
-            image_files: imageUrl,
-            audio_files: audioUrl
-        },
-        example_words: exampleWords,
-        example_sentences: exampleSentences,
-        lesson_id: lesson_id,
-        tags: selectedTagIds.map(id => ({ id })),
-        sources: selectedSourceIds.map(id => ({ id }))
+    const shell = useElementForm<Calligraphy>({
+        existing: calligraphyData, lessonId: lesson_id, noun: "calligraphy",
+        messages: { createFailure: t("createFailure"), updateFailure: t("updateFailure"), resolveConflictError: t("resolveConflictError") },
+        build: (shared) => ({
+            character: {
+                character: character,
+                phonetic: phonetic,
+                meaning: meaning,
+                radical: radical,
+                strokes: strokes,
+                image_files: imageUrl,
+                audio_files: audioUrl
+            },
+            example_words: exampleWords,
+            example_sentences: exampleSentences,
+            ...shared,
+        }),
+        create: createCalligraphy, update: updateCalligraphy,
+        mergeInto: (element, resolved) => Object.assign(element.character!, resolved),
     });
 
-    // Extract language_id from current URL
-    const languageIdFromPath = () => window.location.pathname.split('/')[2]; // From /languages/LANG_ID/...
-
-    const submit = async (element: Partial<Calligraphy>, onConflict?: "keep" | "overwrite" | "merge") => {
-        if (isUpdate) {
-            await updateCalligraphy(calligraphyData.id!, element);
-        } else {
-            await createCalligraphy(element, onConflict);
-        }
-        router.push(`/languages/${languageIdFromPath()}/lesson/${lesson_id}`);
-        router.refresh();
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const element = buildElement();
-
-        setIsSubmitting(true);
-        try {
-            await submit(element);
-        } catch (error) {
-            if (error instanceof ConflictError) {
-                setConflict(error);
-                return;
-            }
-            console.error(`Failed to ${isUpdate ? "update" : "create"} calligraphy:`, error);
-            alert(isUpdate ? t("updateFailure") : t("createFailure"));
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const resolveConflict = async (element: Partial<Calligraphy>, onConflict: "keep" | "overwrite" | "merge") => {
-        setConflict(null);
-        setIsSubmitting(true);
-        try {
-            await submit(element, onConflict);
-        } catch (error) {
-            console.error("Failed to resolve calligraphy conflict:", error);
-            alert(t("resolveConflictError"));
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleKeepExisting = () => resolveConflict(buildElement(), "keep");
-    const handleOverwrite = () => resolveConflict(buildElement(), "overwrite");
-    const handleManualResolve = (resolvedFields: Record<string, string>) => {
-        const element = buildElement();
-        Object.assign(element.character!, resolvedFields);
-        resolveConflict(element, "merge");
-    };
     const handleExampleWordChange = (index: number, field: "word" | "translation" | "word_type" | "word_gender" | "image_files" | "audio_files", value: string | string[]) => {
         setExampleWords(prevWords => {
             const updatedWords = [...prevWords];
@@ -142,34 +88,10 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
         });
     };
 
-    const handleExampleSentenceChange = (index: number, field: "text" | "translation" | "image_files" | "audio_files", value: string | string[]) => {
-        setExampleSentences(prevSentences => {
-            const updatedSentences = [...prevSentences];
-            const sentenceToUpdate = updatedSentences[index] || { text: "", translation: "", image_files: [], audio_files: [] };
-            
-            if (field === "text" || field === "translation") {
-                (sentenceToUpdate as { [key: string]: string | string[] })[field] = value as string;
-            } else if (field === "image_files" || field === "audio_files") {
-                (sentenceToUpdate as { [key: string]: string | string[] })[field] = value as string[];
-            }
-            
-            updatedSentences[index] = sentenceToUpdate;
-            return updatedSentences;
-        });
-    };
-
     return (
         <>
-        {conflict && (
-            <ConflictDialog
-                error={conflict}
-                onKeep={handleKeepExisting}
-                onOverwrite={handleOverwrite}
-                onManualResolve={handleManualResolve}
-                onCancel={() => setConflict(null)}
-            />
-        )}
-        <form className="flex flex-col space-y-12" onSubmit={handleSubmit}>
+        {shell.conflictProps && <ConflictDialog {...shell.conflictProps} />}
+        <form className="flex flex-col space-y-12" onSubmit={shell.handleSubmit}>
             <article className="flex flex-col space-y-2 items-center">
                 <h3>{t("formHeading")}</h3>
                 <AutoWidthInput
@@ -200,13 +122,13 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                 <MediaLoader imageUrl={imageUrl} setImageUrl={setImageUrl} audioUrl={audioUrl} setAudioUrl={setAudioUrl} />
             </article>
             <TagSelector
-                selectedTagIds={selectedTagIds}
-                onTagsChange={setSelectedTagIds}
+                selectedTagIds={shell.selectedTagIds}
+                onTagsChange={shell.setSelectedTagIds}
                 elementId={calligraphyData.id!}
             />
             <SourceSelector
-                selectedSourceIds={selectedSourceIds}
-                onSourcesChange={setSelectedSourceIds}
+                selectedSourceIds={shell.selectedSourceIds}
+                onSourcesChange={shell.setSelectedSourceIds}
                 elementId={calligraphyData.id!}
             />
             <article className="flex flex-col space-y-2 items-center">
@@ -269,49 +191,10 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                     <FontAwesomeIcon icon={faAdd}/> {t("addExampleWordButton")}
                 </button>
             </article>
-            <article className="flex flex-col space-y-2 items-center">
-                <h3>{t("exampleSentencesHeading")}</h3>
-                {exampleSentences.map((exampleSentence, key) => (
-                    <section key={key} className="card flex flex-col space-y-2 items-center w-full">
-                        <button
-                            type="button"
-                            className="btn btn-danger h-fit px-2 py-1"
-                            onClick={() => {
-                                setExampleSentences(prev => prev.filter((_, index) => index !== key));
-                            }}
-                        >
-                            <FontAwesomeIcon icon={faTrash}/>
-                        </button>
-                        <AutoWidthInput
-                            value={exampleSentence.text || ""}
-                            onChange={(e) => handleExampleSentenceChange(key, "text", e.target.value)}
-                            label={t("exampleSentenceLabel")}
-                            required
-                        />
-                        <AutoWidthInput
-                            value={exampleSentence.translation || ""}
-                            onChange={(e) => handleExampleSentenceChange(key, "translation", e.target.value)}
-                            label={t("exampleSentenceTranslationLabel")}
-                        />
-                        <MediaLoader 
-                            imageUrl={exampleSentence.image_files || []} 
-                            setImageUrl={(files) => handleExampleSentenceChange(key, "image_files", files)} 
-                            audioUrl={exampleSentence.audio_files || []} 
-                            setAudioUrl={(files) => handleExampleSentenceChange(key, "audio_files", files)}
-                        />
-                    </section>
-                ))}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setExampleSentences(prev => [...prev, { text: "", translation: "", image_files: [], audio_files: [] }]);
-                    }}
-                    className="btn btn-primary"
-                >
-                    <FontAwesomeIcon icon={faAdd}/> {t("addExampleSentenceButton")}
-                </button>
-            </article>
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addButton")}</SubmitButton>}
+            <ExampleSentencesEditor heading={t("exampleSentencesHeading")} labels={{ sentence: t("exampleSentenceLabel"), translation: t("exampleSentenceTranslationLabel") }}
+                sentences={exampleSentences} setSentences={setExampleSentences}
+                itemClassName="card flex flex-col space-y-2 items-center w-full" addLabel={t("addExampleSentenceButton")} />
+            {shell.isUpdate ? <SubmitButton isLoading={shell.isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={shell.isSubmitting}>{t("addButton")}</SubmitButton>}
         </form>
         </>
     );

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Pins what the vocabulary, grammar and calligraphy forms do today, so the shared-shell extraction (Task 14, option B) cannot change it.
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ConflictError from "@/api/conflictError";
@@ -94,6 +94,16 @@ describe("vocabulary form", () => {
         expect(m.createVocabulary.mock.calls[0][0].example_sentences).toEqual([{ text: "水を飲む", translation: "", image_files: [], audio_files: [] }]);
     });
 
+    it("deleting an example sentence does not submit the form", async () => {
+        const { container } = render(<VocabularyForm lesson_id="lesson_1" />);
+        await userEvent.type(field("Word *"), "水");
+        await userEvent.click(container.querySelector("button.btn-primary:not([type=submit])") as HTMLElement);
+        await userEvent.type(field("Example Sentence *"), "水を飲む");
+        await userEvent.click(container.querySelector("button.btn-danger") as HTMLElement);
+        expect(screen.queryByText("Example Sentence *", { selector: "label" })).toBeNull();
+        expect(m.createVocabulary).not.toHaveBeenCalled();
+    });
+
     it("a failed save alerts and stays on the page", async () => {
         m.createVocabulary.mockRejectedValue(new Error("boom"));
         render(<VocabularyForm lesson_id="lesson_1" />);
@@ -182,6 +192,16 @@ describe("grammar form", () => {
         await submitByName(/Add Grammar/);
         await waitFor(() => expect(m.createGrammar).toHaveBeenCalled());
         expect(m.createGrammar.mock.calls[0][0]).toMatchObject({ tags: [{ id: "tag_1" }], sources: [{ id: "src_1" }], example_sentences: [{ text: "食べて", translation: "", image_files: [], audio_files: [] }] });
+    });
+
+    it("deleting an example sentence does not submit the form", async () => {
+        const { container } = render(<GrammarForm lesson_id="lesson_1" />);
+        await fill();
+        await userEvent.click(container.querySelector("button.btn-primary:not([type=submit])") as HTMLElement);
+        await userEvent.type(field("Example Sentence *"), "食べて");
+        await userEvent.click(container.querySelector("button.btn-danger") as HTMLElement);
+        expect(screen.queryByText("Example Sentence *", { selector: "label" })).toBeNull();
+        expect(m.createGrammar).not.toHaveBeenCalled();
     });
 
     it("a failed save alerts and stays on the page", async () => {
