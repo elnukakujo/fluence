@@ -101,5 +101,6 @@
   "listenPrompt": "Listen and recall",
   "cantHearCard": "I can't hear",
   "exerciseBroken": "This exercise is broken and cannot be shown.",
-  "skipBroken": "Skip it"
+  "skipBroken": "Skip it",
+  "backToLesson": "Back to lesson"
 }

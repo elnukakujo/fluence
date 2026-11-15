@@ -101,5 +101,6 @@
   "listenPrompt": "先听，再回忆",
   "cantHearCard": "我现在听不了",
   "exerciseBroken": "此练习已损坏，无法显示。",
-  "skipBroken": "跳过"
+  "skipBroken": "跳过",
+  "backToLesson": "返回课程"
 }

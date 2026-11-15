@@ -1,24 +1,18 @@
-import Vocabulary from "@/interface/features/Vocabulary";
 import { getVocabularyByLesson } from "@/api/vocabulary";
-import VocabularyFlashCard from "@/components/elements/vocabularyFlashCard";
+import ReviewSession from "@/components/review/ReviewSession";
+import { frontsThenBacks } from "@/lib/lessonStudy";
 import { getTranslations } from "next-intl/server";
 
-export default async function VocabularyFlashCardPage({ params }: { params: Promise<{ language_id: string; lesson_id: string; voc_id: string }>}) {
+export default async function VocabularyFlashCardPage({ params }: { params: Promise<{ language_id: string; lesson_id: string }>}) {
     const t = await getTranslations("languages");
-    const { lesson_id } = await params;
+    const { language_id, lesson_id } = await params;
 
-    const vocabularies: Vocabulary[] = await getVocabularyByLesson(lesson_id);
-    // every vocabulary on both sides: all fronts, then all backs (each shuffled)
-    const shuffled = () => [...vocabularies].sort(() => Math.random() - 0.5);
-    const items: Vocabulary[] = [
-        ...shuffled().map((v) => ({ ...v, side: "front" as const })),
-        ...shuffled().map((v) => ({ ...v, side: "back" as const })),
-    ];
+    const vocabularies = await getVocabularyByLesson(lesson_id);
 
     return (
         <main>
             <h1>{t("vocabularyFlashcard")}</h1>
-            <VocabularyFlashCard vocabularies={items} />
+            <ReviewSession items={frontsThenBacks(vocabularies)} options={{ languageId: language_id, completeOnFinish: false, finishAction: "lesson" }} />
         </main>
     );
 }

@@ -8,6 +8,8 @@ export type SessionOptions = {
     languageId?: string;
     /** Validate the streak day when the queue's last card is answered. Default: on whenever `languageId` is given (today's daily review). */
     completeOnFinish?: boolean;
+    /** Where the last card leads: back to the language (daily review, default) or back to the lesson (lesson study). */
+    finishAction?: "language" | "lesson";
 };
 
 export type TypedState = { correct: boolean; diff?: number[] } | null;
@@ -65,6 +67,7 @@ export type RendererCtx<T extends SessionItem = SessionItem> = ShellState & Item
     onReplace(lacks: "hearing" | "speaking" | null): void;
     onNext(): void;
     onBackFinish(): void;
+    backLabel: string;            // the finish button's label (back to the language / the lesson)
 };
 
 /** One element kind's presentation. `whole` replaces the flip-card layout (exercises); the other slots keep the flip-card's DOM order. */

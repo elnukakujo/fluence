@@ -16,7 +16,7 @@ function ExerciseBody({ c }: { c: RendererCtx<Exercise> }) {
             </RunnerBoundary>
             <ExerciseFooter exercise={c.item} finished={c.gaveUp || c.finished} isLast={c.isLast}
                 onGiveUp={c.onGiveUp} onSkip={c.onReplace} onNext={c.onNext}
-                last={<BackButton onBefore={c.onBackFinish}>{t("backToLanguage")}</BackButton>} />
+                last={<BackButton onBefore={c.onBackFinish}>{c.backLabel}</BackButton>} />
         </>
     );
 }

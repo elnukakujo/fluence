@@ -30,6 +30,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const languageId = options?.languageId;
     const t = useTranslations("elements");
     const tStudy = useTranslations("study");
+    const backLabel = options?.finishAction === "lesson" ? t("backToLesson") : t("backToLanguage");
     const [done, setDone] = useState<string[]>([]);   // finished or skipped cards
     const startTimeRef = useRef<number>(performance.now());
     const [hintUsed, setHintUsed] = useState<boolean>(false);
@@ -91,7 +92,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
                 <p className="text-muted">{t("nothingToReview")}</p>
-                <BackButton>{t("backToLanguage")}</BackButton>
+                <BackButton>{backLabel}</BackButton>
             </article>
         );
     }
@@ -151,6 +152,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         onReplace: handleReplace,
         onNext: handleGoNext,
         onBackFinish: finish,
+        backLabel,
     };
 
     return (
@@ -202,7 +204,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                                     {t("nextButton")}
                                 </button>
                             ) : (
-                                <BackButton onBefore={finish}>{t("backToLanguage")}</BackButton>
+                                <BackButton onBefore={finish}>{backLabel}</BackButton>
                             )}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
