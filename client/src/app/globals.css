@@ -1333,3 +1333,9 @@
     .btn { min-height: 2.75rem; }
   }
 }
+
+  /* Spinner: the animated ring gives way to a still icon for users who ask for less motion */
+  @media (prefers-reduced-motion: reduce) {
+    .spinner-motion { display: none; }
+    .spinner-static { display: inline-flex; }
+  }

@@ -2,9 +2,7 @@
 
 import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
-import { Ring } from "ldrs/react";
 import { useTranslations } from "next-intl";
-import "ldrs/react/Ring.css";
 import Exercise from "@/interface/features/Exercise";
 import { evaluateText, updateScoreById } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
@@ -13,6 +11,7 @@ import { getExerciseLevel } from "@/utils/speech_levels";
 import { useLineAudio } from "./lineAudio";
 import LineAudioButton from "./lineAudioButton";
 import GenerateAudioButton from "./generateAudioButton";
+import Spinner from "@/components/ui/spinner";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
 
@@ -65,7 +64,7 @@ export default function DictationExercise({ exercise, onFinished }: Omit<Exercis
                     <AutoSizeTextArea value={typed[index] ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("dictationPlaceholder")} />
                     {last ? (
                         <button type="button" className="btn btn-primary" disabled={loading} onClick={submit}>
-                            {loading ? <Ring size="24" stroke="2" bgOpacity="0" speed="3" color="white" /> : <p>{t("checkAnswer")}</p>}
+                            {loading ? <Spinner size={24} /> : <p>{t("checkAnswer")}</p>}
                         </button>
                     ) : (
                         <button type="button" className="btn btn-primary" onClick={() => setIndex(index + 1)}>{t("nextLine")}</button>

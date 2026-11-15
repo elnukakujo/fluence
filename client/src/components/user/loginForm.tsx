@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Ring } from "ldrs/react";
-import "ldrs/react/Ring.css";
 import { login, updateUserPassword } from "@/api/user";
+import Spinner from "@/components/ui/spinner";
 
 export default function LoginForm() {
     const router = useRouter();
@@ -143,7 +142,7 @@ export default function LoginForm() {
 
                     <button type="submit" className="btn btn-primary w-full" disabled={submitting}>
                         {submitting ? (
-                            <Ring size={18} color="#fff" />
+                            <Spinner size={18} />
                         ) : needsPassword ? (
                             t("setAndSignIn")
                         ) : (

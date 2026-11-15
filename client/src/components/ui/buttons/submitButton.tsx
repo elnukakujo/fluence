@@ -1,6 +1,5 @@
-import { Ring } from "ldrs/react";
-import "ldrs/react/Ring.css";
 import { useTranslations } from "next-intl";
+import Spinner from "@/components/ui/spinner";
 
 type SubmitButtonProps = {
   children?: React.ReactNode;
@@ -12,7 +11,7 @@ export default function SubmitButton({ children, isLoading }: SubmitButtonProps)
 
   return (
     <button type="submit" className="btn btn-primary" disabled={isLoading}>
-      {isLoading ? <Ring size={16} color="#fff" /> : children || t("save")}
+      {isLoading ? <Spinner /> : children || t("save")}
     </button>
   );
 }

@@ -3,10 +3,7 @@
 import { type ExerciseRunnerProps } from "./exerciseFinish";
 import { useAttemptScoring } from "./useAttemptScoring";
 import { useEffect, useState } from "react";
-import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
-//@ts-ignore
-import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -14,6 +11,7 @@ import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { evaluateText } from "@/api/process";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
+import Spinner from "@/components/ui/spinner";
 
 export default function TranslateExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">){
     const t = useTranslations("exercises");
@@ -84,13 +82,7 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
                     disabled={correct || attempts >= 3 || isLoading}
                 >
                     {isLoading ? (
-                        <Ring
-                            size="24"
-                            stroke="2"
-                            bgOpacity="0"
-                            speed="3"
-                            color="white"
-                        />
+                        <Spinner size={24} />
                     )
                     : (
                         <p>{t("checkAnswers")}</p>

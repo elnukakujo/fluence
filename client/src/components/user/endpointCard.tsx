@@ -3,10 +3,8 @@
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Copy, Check, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
-import { Ring } from "ldrs/react";
-//@ts-ignore
-import "ldrs/react/Ring.css";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
+import Spinner from "@/components/ui/spinner";
 
 export type ProviderOption = {
   value: string;
@@ -383,7 +381,7 @@ export default function EndpointCard({
                     disabled={disabled || testDisabled || testing}
                   >
                     {testing ? (
-                      <Ring size={14} stroke={2} bgOpacity={0} speed={3} color="var(--color-foreground)" />
+                      <Spinner size={14} />
                     ) : (
                       t("testConnection")
                     )}

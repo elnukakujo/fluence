@@ -2,10 +2,7 @@
 
 import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
-import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
-//@ts-ignore
-import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Image from 'next/image';
@@ -15,6 +12,7 @@ import { BASE_URL } from "@/api";
 import { getExerciseLevel } from "@/utils/speech_levels";
 
 import dynamic from 'next/dynamic';
+import Spinner from "@/components/ui/spinner";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -391,7 +389,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                                         onClick={() => handleEvaluation()}
                                         disabled={!lineStates[idx].audioUrl|| lineStates[idx].attempts >= 3}
                                     >
-                                        {isLoading ? <Ring size={20} color="#fff" /> : t("submit")}
+                                        {isLoading ? <Spinner size={20} /> : t("submit")}
                                     </button>
                                 </span>
                             )}

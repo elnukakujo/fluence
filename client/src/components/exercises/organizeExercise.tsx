@@ -8,14 +8,12 @@ import remarkGfm from "remark-gfm";
 import shuffle from 'lodash/shuffle';
 import { useTranslations } from "next-intl";
 
-import { Ring } from 'ldrs/react';
-//@ts-ignore
-import 'ldrs/react/Ring.css';
 
 import { evaluateText } from "@/api/process";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
+import Spinner from "@/components/ui/spinner";
 
 export default function OrganizeExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -124,13 +122,7 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
                             disabled={correct || attempts >= 3 || isLoading}
                         >
                             {isLoading ? (
-                                <Ring
-                                    size="24"
-                                    stroke="2"
-                                    bgOpacity="0"
-                                    speed="3"
-                                    color="white"
-                                />
+                                <Spinner size={24} />
                             )
                             : (
                                 <p>{t("checkAnswers")}</p>

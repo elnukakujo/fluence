@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Ring } from "ldrs/react";
-import "ldrs/react/Ring.css";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { nativeFromLocale, isLocale } from "@/i18n/locales";
@@ -12,6 +10,7 @@ import User from "@/interface/systemData/User";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
 import ProgressBar from "@/components/ui/progressBar";
+import Spinner from "@/components/ui/spinner";
 
 const DAILY_GOAL_OPTIONS = ["5", "10", "15", "20", "30", "45", "60"];
 
@@ -202,7 +201,7 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             {t("back")}
                         </button>
                         <button type="submit" className="btn btn-primary flex-1" disabled={isSubmitting}>
-                            {isSubmitting ? <Ring size={16} color="#fff" /> : isUpdate ? t("saveChanges") : t("createAccount")}
+                            {isSubmitting ? <Spinner /> : isUpdate ? t("saveChanges") : t("createAccount")}
                         </button>
                     </div>
                     {!isUpdate && (

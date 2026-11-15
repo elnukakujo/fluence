@@ -3,16 +3,14 @@
 import { type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useState, useCallback } from "react";
 import { useAttemptScoring } from "./useAttemptScoring";
-import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
-//@ts-ignore
-import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { evaluateSpeech } from "@/api/process";
 import dynamic from 'next/dynamic';
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
+import Spinner from "@/components/ui/spinner";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
 export default function SpeakingExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
@@ -108,7 +106,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
                         className="btn btn-primary"
                     >
                         {isLoading
-                            ? <Ring size="24" stroke="2" bgOpacity="0" speed="3" color="white" />
+                            ? <Spinner size={24} />
                             : <p>{t("checkAnswer")}</p>
                         }
                     </button>
