@@ -1,8 +1,8 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { useAttemptScoring } from "./useAttemptScoring";
 import { useEffect, useState } from "react";
-import { useRef } from "react";
 import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
 //@ts-ignore
@@ -10,9 +10,8 @@ import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import Exercise from "@/interface/features/Exercise";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
-import { updateScoreById, evaluateText } from "@/api/process";
+import { evaluateText } from "@/api/process";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 
@@ -22,23 +21,17 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
     const answer = exercise.answer || "";
     const text_support = exercise.text_support || "";
     
-    const [attempts, setAttempts] = useState<number>(0);
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
     const [userAnswer, setUserAnswer] = useState<string>('');
-    const hasFeedback = isCorrect || attempts > 0;
+    const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
+    const hasFeedback = correct || attempts > 0;
 
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string, stars: string } | null>(null);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
-        setAttempts(0);
-        setIsCorrect(false);
         setUserAnswer('');
-        startTimeRef.current = performance.now();
     }, [exercise]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -49,16 +42,11 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
             setFeedbackMessage(result.feedback);
             setCurrentLevel(getExerciseLevel("translate", result.score, t));
             if (result.correct === true) {
-                setIsCorrect(true);
-                const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                updateScoreById(exercise.id!, result.score, duration_ms, false, attempts + 1).catch(console.error);
+                submit(result.score, { final: true, correct: true });
+            } else if (attempts >= 2) {
+                submit(result.score, { final: true, correct: false }); // the third miss
             } else {
-                const newAttempts = attempts + 1;
-                setAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                    updateScoreById(exercise.id!, result.score, duration_ms, false, newAttempts).catch(console.error);
-                }
+                miss();
             }
             setIsLoading(false);
         }).catch((error) => {
@@ -85,15 +73,15 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
             <AutoSizeTextArea
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                className={`input ${hasFeedback ? (isCorrect ? 'border-success' : 'border-danger') : ''}`}
+                className={`input ${hasFeedback ? (correct ? 'border-success' : 'border-danger') : ''}`}
                 placeholder={t("referencePlaceholder")}
-                disabled={isCorrect || attempts >= 3}
+                disabled={correct || attempts >= 3}
             />
-            { !isCorrect && attempts < 3 ? (
+            { !correct && attempts < 3 ? (
                 <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={isCorrect || attempts >= 3 || isLoading}
+                    disabled={correct || attempts >= 3 || isLoading}
                 >
                     {isLoading ? (
                         <Ring
@@ -111,9 +99,9 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
             ) : null}
 
             {hasFeedback && currentLevel && (
-                <div className={`card mt-4 ${isCorrect ?
+                <div className={`card mt-4 ${correct ?
                     'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? (
+                    {correct ? (
                         <>
                             <p>
                                 {t("correct")}
@@ -132,7 +120,7 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
                     <p>
                         {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
-                    {attempts >= 3 && !isCorrect && (
+                    {attempts >= 3 && !correct && (
                         <div className="mt-2">
                             <p className="font-medium">{t("correctAnswerWas")}</p>
                             <p>{answer}</p>

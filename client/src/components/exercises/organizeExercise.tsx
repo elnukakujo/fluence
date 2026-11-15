@@ -1,8 +1,8 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { useAttemptScoring } from "./useAttemptScoring";
 import { useEffect, useState } from "react";
-import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import shuffle from 'lodash/shuffle';
@@ -12,8 +12,7 @@ import { Ring } from 'ldrs/react';
 //@ts-ignore
 import 'ldrs/react/Ring.css';
 
-import Exercise from "@/interface/features/Exercise";
-import { updateScoreById, evaluateText } from "@/api/process";
+import { evaluateText } from "@/api/process";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
@@ -26,9 +25,8 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
     const answer = correctOrder.join(' ');
     const text_support = exercise.text_support || "";
 
-    const [attempts, setAttempts] = useState<number>(0);
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const hasFeedback = isCorrect || attempts > 0;
+    const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
+    const hasFeedback = correct || attempts > 0;
 
     const [wordsToOrganize, setWordsToOrganize] = useState<string[]>([]);
 
@@ -37,16 +35,11 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string, stars: string } | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts >= 3, onFinished);
 
     useEffect(() => {
         setWordsToOrganize(shuffle(items));
-        setAttempts(0);
-        setIsCorrect(false);
         setUserAnswer([]);
         setFeedbackMessage(null);
-        startTimeRef.current = performance.now();
     }, [exercise]);
 
     if (!content) return <MissingContentNotice />;
@@ -59,16 +52,11 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
             setFeedbackMessage(result.feedback);
             setCurrentLevel(getExerciseLevel("organize", result.score, t));
             if (result.correct === true) {
-                setIsCorrect(true);
-                const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                updateScoreById(exercise.id!, result.score, duration_ms, false, attempts + 1).catch(console.error);
+                submit(result.score, { final: true, correct: true });
+            } else if (attempts >= 2) {
+                submit(result.score, { final: true, correct: false }); // the third miss
             } else {
-                const newAttempts = attempts + 1;
-                setAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                    updateScoreById(exercise.id!, result.score, duration_ms, false, newAttempts).catch(console.error);
-                }
+                miss();
             }
             setIsLoading(false);
         }).catch((error) => {
@@ -80,7 +68,7 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
 
     return (
         <form className="card flex flex-col space-y-4" onSubmit={handleSubmit}>
-            {(!isCorrect && attempts < 3) && (
+            {(!correct && attempts < 3) && (
                 <>
                     {text_support.trim() !== "" && (
                         <section>
@@ -129,11 +117,11 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
                             ))}
                         </div>
                     </section>
-                    { !isCorrect && attempts < 3 ? (
+                    { !correct && attempts < 3 ? (
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={isCorrect || attempts >= 3 || isLoading}
+                            disabled={correct || attempts >= 3 || isLoading}
                         >
                             {isLoading ? (
                                 <Ring
@@ -152,9 +140,9 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
                 </>
             )}
             {hasFeedback && currentLevel && (
-                <div className={`card mt-4 ${isCorrect ?
+                <div className={`card mt-4 ${correct ?
                     'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? (
+                    {correct ? (
                         <>
                             <p>
                                 {t("correct")}
@@ -170,7 +158,7 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
                     <p>
                         {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
-                    {attempts >= 3 && !isCorrect && (
+                    {attempts >= 3 && !correct && (
                         <div className="mt-2">
                             <p className="font-medium">{t("correctAnswer")} {answer}</p>
                         </div>

@@ -1,15 +1,15 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { useEffect, useState, useCallback } from "react";
+import { useAttemptScoring } from "./useAttemptScoring";
 import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
 //@ts-ignore
 import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Exercise from "@/interface/features/Exercise";
-import { updateScoreById, evaluateSpeech } from "@/api/process";
+import { evaluateSpeech } from "@/api/process";
 import dynamic from 'next/dynamic';
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
@@ -20,14 +20,11 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
     const question = exercise.question || "";
     const text_support = exercise.text_support || "";
 
-    const [attempts, setAttempts] = useState<number>(0);
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
+    const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string } | null>(null);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const hasFeedback = isCorrect || attempts > 0;
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts >= 3, onFinished);
+    const hasFeedback = correct || attempts > 0;
 
     // Lifted state from AudioRecorder via onStatusChange
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -38,13 +35,10 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
 
     // Reset everything when the exercise changes
     useEffect(() => {
-        setAttempts(0);
-        setIsCorrect(false);
         setCurrentLevel(null);
         setAudioUrl(null);
         setFeedbackMessage(null);
         setResetKey((k) => k + 1); // remount AudioRecorder to clear its state
-        startTimeRef.current = performance.now();
     }, [exercise]);
 
     // AudioRecorder calls this after a successful upload, giving us the server URL
@@ -63,16 +57,11 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
             setCurrentLevel(getExerciseLevel("speaking", result.score, t));
 
             if (result.correct) {
-                setIsCorrect(true);
-                const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                updateScoreById(exercise.id!, 1, duration_ms, false, attempts + 1).catch(console.error);
+                submit(1, { correct: true });
+            } else if (attempts >= 2) {
+                submit(0, { final: true }); // the third miss
             } else {
-                const newAttempts = attempts + 1;
-                setAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                    updateScoreById(exercise.id!, 0, duration_ms, false, newAttempts).catch(console.error);
-                }
+                miss();
             }
 
         } catch (error) {
@@ -96,7 +85,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
 
             <ElementMediaCard element={exercise}/>
 
-            {!isCorrect && attempts < 3 && (
+            {!correct && attempts < 3 && (
                 <section className="index-divider flex flex-col space-y-4">
                     <div className="flex flex-row space-x-2">
                         <button
@@ -127,7 +116,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
             )}
 
             {hasFeedback && currentLevel && (
-                <div className={`card mt-4 ${isCorrect
+                <div className={`card mt-4 ${correct
                     ? "border-success/30 bg-success/10 text-success"
                     : "border-danger/30 bg-danger/10 text-danger"}`}
                 >

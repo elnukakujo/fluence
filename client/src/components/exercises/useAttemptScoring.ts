@@ -7,8 +7,8 @@ export type AttemptScoring = {
     attempts: number;
     finished: boolean;
     correct: boolean;
-    /** Post `score` for this attempt and advance `attempts`. Marks finished when `score === 1` or `final`. */
-    submit(score: number, opts?: { hintUsed?: boolean; final?: boolean }): void;
+    /** Post `score` for this attempt and advance `attempts`. Marks finished when `score === 1` or `final`; `correct` overrides the `score === 1` default (for evaluated runners whose score is 0..1). */
+    submit(score: number, opts?: { hintUsed?: boolean; final?: boolean; correct?: boolean }): void;
     /** Advance `attempts` without posting (a miss that is not yet final). */
     miss(): void;
     /** New start time, attempts 0 (called automatically on exercise change). */
@@ -24,13 +24,13 @@ export function useAttemptScoring(exercise: Exercise, onFinished?: () => void): 
 
     useFinished(finished, onFinished);
 
-    const submit = (score: number, opts?: { hintUsed?: boolean; final?: boolean }) => {
+    const submit = (score: number, opts?: { hintUsed?: boolean; final?: boolean; correct?: boolean }) => {
         if (finished) return; // double-submit after finishing posts nothing
         const attempt = attempts + 1;
         setAttempts(attempt);
         updateScoreById(exercise.id!, score, Math.round(performance.now() - startRef.current), opts?.hintUsed ?? false, attempt).catch(console.error);
         if (score === 1 || opts?.final) {
-            setCorrect(score === 1);
+            setCorrect(opts?.correct ?? score === 1);
             setFinished(true);
         }
     };
