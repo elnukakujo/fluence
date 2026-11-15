@@ -10,7 +10,7 @@ import { getWordById } from "./word";
 
 const fetchMock = vi.fn();
 beforeEach(() => {
-  fetchMock.mockReset().mockResolvedValue({ ok: true, json: async () => ({}) });
+  fetchMock.mockReset().mockResolvedValue({ ok: true, status: 200, json: async () => ({}), text: async () => "{}" });
   vi.stubGlobal("fetch", fetchMock);
 });
 

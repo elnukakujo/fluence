@@ -1,24 +1,18 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
 import Language from "@/interface/containers/Language";
 import Lesson from "@/interface/containers/Lesson";
 
 export async function getAvailableLanguages(userId: string) {
-  const res = await fetch(`${BASE_URL}/api/languages/all/${userId}`, { headers: await getAuthHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch available languages');
-  return res.json();
+  return apiFetch(`/api/languages/all/${userId}`, { errorMessage: "Failed to fetch available languages" });
 }
 
 export async function getLanguageById(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/languages/${languageId}`, { headers: await getAuthHeaders() });
-  if (!res.ok) throw new Error(`Failed to fetch language ${languageId}`);
-  return res.json();
+  return apiFetch(`/api/languages/${languageId}`, { errorMessage: `Failed to fetch language ${languageId}` });
 }
 
 export async function getLanguageData(languageId: string) {
   const language: Language = await getLanguageById(languageId);
-  const lessons = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`, { headers: await getAuthHeaders() });
-  if (!lessons.ok) throw new Error(`Failed to fetch lessons for language ${languageId}`);
-  const lessonsData: Lesson[] = await lessons.json();
+  const lessonsData: Lesson[] = await apiFetch(`/api/lessons/all/${languageId}`, { errorMessage: `Failed to fetch lessons for language ${languageId}` });
   return {
     language,
     lessons: lessonsData,
@@ -29,38 +23,18 @@ export async function createLanguage(data: Partial<Language>) {
   if (data.id) {
     data.id = undefined;
   }
-  const res = await fetch(`${BASE_URL}/api/languages/`, {
-    method: "POST",
-    headers: await getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to create language");
-  return res.json();
+  return apiFetch("/api/languages/", { method: "POST", body: data, errorMessage: "Failed to create language" });
 }
 
 export async function updateLanguage(languageId: string, data: Partial<Language>) {
-  const res = await fetch(`${BASE_URL}/api/languages/${languageId}`, {
-    method: "PUT",
-    headers: await getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to update language");
-  return res.json();
+  return apiFetch(`/api/languages/${languageId}`, { method: "PUT", body: data, errorMessage: "Failed to update language" });
 }
 
 export async function deleteLanguage(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/languages/${languageId}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) throw new Error("Failed to delete language");
-}
-async function postJson(path: string, body: unknown, fallback: string) {
-  const res = await fetch(`${BASE_URL}/api/languages/${path}`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body) });
-  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? fallback);
-  return res.json();
+  await apiFetch(`/api/languages/${languageId}`, { method: "DELETE", errorMessage: "Failed to delete language" });
 }
 
 /** `ids`: every language the user owns, in the new order. */
-export const reorderLanguages = (ids: string[]) => postJson("reorder", { ids }, "Failed to reorder languages");
+export const reorderLanguages = (ids: string[]) => apiFetch("/api/languages/reorder", { method: "POST", body: { ids }, errorMessage: "Failed to reorder languages" });
 
-export const bulkDeleteLanguages = (ids: string[]): Promise<{ deleted: number }> => postJson("bulk-delete", { ids }, "Failed to delete languages");
+export const bulkDeleteLanguages = (ids: string[]): Promise<{ deleted: number }> => apiFetch("/api/languages/bulk-delete", { method: "POST", body: { ids }, errorMessage: "Failed to delete languages" });

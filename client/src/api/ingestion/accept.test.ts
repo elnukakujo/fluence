@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("..", () => ({ BASE_URL: "", getAuthHeaders: async () => ({}) }));
-const json = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body });
+const json = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body, text: async () => JSON.stringify(body) });
 
 describe("acceptLesson", () => {
   afterEach(() => vi.useRealTimers());

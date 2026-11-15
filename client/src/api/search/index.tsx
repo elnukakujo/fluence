@@ -1,4 +1,4 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
 
 export type SearchCategory = "container" | "feature" | "component";
 
@@ -16,17 +16,9 @@ export interface SearchResponse {
 }
 
 export async function searchElements(query: string, userId: string, signal?: AbortSignal): Promise<SearchResponse> {
-  const response = await fetch(`${BASE_URL}/api/search?q=${encodeURIComponent(query)}`, {
-    method: "GET",
-    headers: {
-      "X-User-Id": userId,
-    },
+  return apiFetch(`/api/search?q=${encodeURIComponent(query)}`, {
     signal,
+    headers: { "X-User-Id": userId },
+    errorMessage: "Failed to search elements",
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to search elements");
-  }
-
-  return response.json();
 }

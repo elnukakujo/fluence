@@ -25,6 +25,8 @@ export type ApiOptions = {
   raw?: boolean;
   signal?: AbortSignal;
   cache?: RequestCache;
+  /** Extra headers merged over the auth headers. */
+  headers?: Record<string, string>;
 };
 
 /** The only place that calls fetch. `path` is `/api/…`, `/media/…` or an absolute URL (sent without auth headers). */
@@ -36,6 +38,7 @@ export async function apiFetch<T = any>(path: string, opts: ApiOptions): Promise
   if (!absolute) {
     headers = await getAuthHeaders();
     if (isForm) delete headers["Content-Type"];
+    if (opts.headers) headers = { ...headers, ...opts.headers };
   }
   const res = await fetch(absolute ? path : `${BASE_URL}${path}`, {
     method: opts.method,

@@ -1,9 +1,13 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch, ApiError } from "../apiFetch";
 
 async function post<T>(path: string, body: unknown, fallback: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}/api/elements/${path}`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body) });
-  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? fallback);
-  return res.json();
+  try {
+    return await apiFetch<T>(`/api/elements/${path}`, { method: "POST", body, errorMessage: fallback });
+  } catch (err) {
+    // Today's element bulk throws the server's own {error} text as the message (see element.test.ts).
+    if (err instanceof ApiError && err.serverMessage) throw new Error(err.serverMessage);
+    throw err;
+  }
 }
 
 export const bulkDeleteElements = (ids: string[]) => post<{ deleted: number }>("bulk-delete", { ids }, "Failed to delete the items");
