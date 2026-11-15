@@ -53,55 +53,8 @@ def require_owner(user_id: str) -> None:
 
 def owner_user_id(element_id: str):
     """Resolve the owning user_id for any element by its id prefix; None if not found."""
-    from ..services import (
-        LanguageService, LessonService,
-        VocabularyService, GrammarService, CalligraphyService, ExerciseService,
-        TagService, SourceService,
-    )
-    from ..services.system_data import UserPreferencesService
-    from ..models.components import Word, Passage, Character
-
-    if element_id.startswith("lang_"):
-        lang = LanguageService().get_by_id(element_id, as_dict=True)
-        return lang["user_id"] if lang else None
-    if element_id.startswith("lesson_"):
-        lesson = LessonService().get_by_id(element_id, as_dict=True)
-        if not lesson:
-            return None
-        lang = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
-        return lang["user_id"] if lang else None
-    for prefix, service in (
-        ("voc_", VocabularyService()),
-        ("gram_", GrammarService()),
-        ("call_", CalligraphyService()),
-        ("ex_", ExerciseService()),
-    ):
-        if element_id.startswith(prefix):
-            feature = service.get_by_id(element_id, as_dict=True)
-            if not feature:
-                return None
-            lesson = LessonService().get_by_id(feature["lesson_id"], as_dict=True)
-            if not lesson:
-                return None
-            lang = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
-            return lang["user_id"] if lang else None
-    for prefix, model in (("word_", Word), ("pass_", Passage), ("char_", Character)):
-        if element_id.startswith(prefix):
-            comp = db_manager.find_by_attr(model, {"id": element_id})
-            if not comp:
-                return None
-            lang = LanguageService().get_by_id(comp.language_id, as_dict=True)
-            return lang["user_id"] if lang else None
-    if element_id.startswith("tag_"):
-        tag = TagService().get_by_id(element_id, as_dict=True)
-        return tag["user_id"] if tag else None
-    if element_id.startswith("src_"):
-        source = SourceService().get_by_id(element_id, as_dict=True)
-        return source["user_id"] if source else None
-    if element_id.startswith("pref_"):
-        pref = UserPreferencesService().get_by_id(element_id, as_dict=True)
-        return pref["user_id"] if pref else None
-    return None
+    from ..utils.element_kinds import owner_of
+    return owner_of(element_id)
 
 
 def require_owns(element_id: str) -> None:
@@ -120,32 +73,8 @@ def require_self_or_admin(user_id: str) -> None:
 
 def _resolve_containers(element_id: str):
     """Resolve (language_id, lesson_id) for a shareable element; (None, None) otherwise."""
-    from ..services import (
-        LanguageService, LessonService,
-        VocabularyService, GrammarService, CalligraphyService, ExerciseService,
-    )
-    from ..models.components import Word, Passage, Character
-
-    if element_id.startswith("lang_"):
-        return element_id, None
-    if element_id.startswith("lesson_"):
-        lesson = LessonService().get_by_id(element_id, as_dict=True)
-        return (lesson["language_id"], element_id) if lesson else (None, None)
-    for prefix, service in (
-        ("voc_", VocabularyService()), ("gram_", GrammarService()),
-        ("call_", CalligraphyService()), ("ex_", ExerciseService()),
-    ):
-        if element_id.startswith(prefix):
-            feature = service.get_by_id(element_id, as_dict=True)
-            if not feature:
-                return None, None
-            lesson = LessonService().get_by_id(feature["lesson_id"], as_dict=True)
-            return (lesson["language_id"], feature["lesson_id"]) if lesson else (None, None)
-    for prefix, model in (("word_", Word), ("pass_", Passage), ("char_", Character)):
-        if element_id.startswith(prefix):
-            comp = db_manager.find_by_attr(model, {"id": element_id})
-            return (comp.language_id, None) if comp else (None, None)
-    return None, None
+    from ..utils.element_kinds import containers_of
+    return containers_of(element_id)
 
 
 def can_write(user_id: str, element_id: str) -> bool:
