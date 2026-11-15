@@ -1,14 +1,12 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
-import { useState, useEffect } from "react";
-import { useRef } from "react";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslations } from "next-intl";
 
-import Exercise from "@/interface/features/Exercise";
-import { updateScoreById } from "@/api/process";
+import { useAttemptScoring } from "./useAttemptScoring";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
@@ -18,23 +16,13 @@ export default function QuizzExercise({ exercise, onFinished }: Omit<ExerciseRun
     const text_support = exercise.text_support || "";
 
     const [selected, setSelected] = useState<number[]>([]);
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const [attempts, setAttempts] = useState<number>(0);
-    const hasFeedback = isCorrect || attempts > 0;
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts > 0, onFinished);
-
-    useEffect(() => {
-        setSelected([]);
-        setIsCorrect(false);
-        setAttempts(0);
-        startTimeRef.current = performance.now();
-    }, [exercise]);
+    const { attempts, correct, finished, submit } = useAttemptScoring(exercise, onFinished);
+    const hasFeedback = finished;
 
     if (!content) return <MissingContentNotice />;
 
     const toggleOption = (i: number) => {
-        if (isCorrect) return;
+        if (correct) return;
         setSelected(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
     };
 
@@ -44,15 +32,8 @@ export default function QuizzExercise({ exercise, onFinished }: Omit<ExerciseRun
         const b = [...content.correct].sort();
         const matches = a.length === b.length && a.every((v, i) => v === b[i]);
 
-        const duration_ms = Math.round(performance.now() - startTimeRef.current);
-        if (matches) {
-            setIsCorrect(true);
-            updateScoreById(exercise.id!, 1, duration_ms, false, attempts + 1).catch(console.error);
-        } else {
-            const newAttempts = attempts + 1;
-            setAttempts(newAttempts);
-            updateScoreById(exercise.id!, 0, duration_ms, false, newAttempts).catch(console.error);
-        }
+        if (matches) submit(1);
+        else submit(0, { final: true }); // a wrong quiz answer is final
     };
 
     return (
@@ -94,8 +75,8 @@ export default function QuizzExercise({ exercise, onFinished }: Omit<ExerciseRun
             )}
 
             {hasFeedback && (
-                <div className={`card mt-4 ${isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? (
+                <div className={`card mt-4 ${correct ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
+                    {correct ? (
                         <p>{t("wellDone")}</p>
                     ) : (
                         <p>{`✗ Wrong answer (Attempt ${attempts}). The correct answers were: ${content.correct.map(i => content.options[i]).join(", ")}.`}</p>
