@@ -7,6 +7,7 @@ import SectionCard from "@/components/ui/sectionCard";
 import BackupRow, { Backup } from "./backupRow";
 import { createBackup, deleteBackup, listBackups, restoreBackup } from "@/api/backup";
 import EmptyState from "@/components/ui/emptyState";
+import Field from "@/components/ui/field";
 
 export default function BackupSection() {
   const t = useTranslations("settingsAdmin.backups");
@@ -81,8 +82,7 @@ export default function BackupSection() {
       {/* Create backup form */}
       {showCreateForm && (
         <div className="flex flex-col gap-2 p-3 border border-dashed border-[var(--color-border)] rounded-lg">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("backupNameLabel")}</span>
+          <Field label={t("backupNameLabel")}>
             <input
               className="input"
               type="text"
@@ -91,7 +91,7 @@ export default function BackupSection() {
               placeholder={t("backupNamePlaceholder")}
               disabled={creating}
             />
-          </label>
+          </Field>
 
           {creating && (
             <ProgressBar current={0} total={1} indeterminate showLabel={false} showPercent={false} ariaLabel={t("creating")} />

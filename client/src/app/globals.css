@@ -356,7 +356,7 @@
   }
 
   /* Import review: field label, kind section header, and the side-by-side "already saved" box */
-  .field-label { font-size: 0.75rem; opacity: 0.6; }
+  .field-label { font-size: 0.75rem; color: var(--color-muted); }   /* was opacity .6, ~3.6:1; the muted token holds AA */
   .review-section { font-size: 1rem; font-weight: 600; margin-top: 0.5rem; }
   .existing-box {
     border: 1px dashed var(--color-border);

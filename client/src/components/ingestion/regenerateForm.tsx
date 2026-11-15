@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
+import Field from "@/components/ui/field";
 
 /** Asks which type to rebuild an exercise as (blank = the model chooses) and, for a single card, an optional request. */
 export default function RegenerateForm({ withRequest, withType = true, goLabel, hint, busy, onSubmit, onCancel }: {
@@ -20,18 +21,16 @@ export default function RegenerateForm({ withRequest, withType = true, goLabel, 
   const [request, setRequest] = useState("");
   return (
     <form className="card flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); onSubmit({ exercise_type: type || undefined, request: request.trim() || undefined }); }}>
-      {withType && <label className="flex flex-col gap-1">
-        <span className="field-label">{withRequest ? t("regenerateType") : t("mergeType")}</span>
+      {withType && <Field label={withRequest ? t("regenerateType") : t("mergeType")}>
         <select className="input min-h-11" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="">{t("regenerateAuto")}</option>
           {Object.entries(EXERCISE_TYPE_KEY).map(([id, key]) => <option key={id} value={id}>{tEx(key)}</option>)}
         </select>
-      </label>}
+      </Field>}
       {withRequest && (
-        <label className="flex flex-col gap-1">
-          <span className="field-label">{t("regenerateRequest")}</span>
+        <Field label={t("regenerateRequest")}>
           <textarea className="input input-grow" value={request} placeholder={hint ?? t("regenerateRequestHint")} onChange={(e) => setRequest(e.target.value)} />
-        </label>
+        </Field>
       )}
       <div className="btn-row flex-wrap">
         <button type="submit" className="btn btn-primary min-h-11" disabled={busy}>{busy ? t("reloading") : goLabel ?? t("regenerateGo")}</button>

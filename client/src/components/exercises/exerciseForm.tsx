@@ -23,6 +23,7 @@ import { type ReadingRow, type DictationRow, readingContent, readingRows, dictat
 import {
     type BlankRow, BlankContentEditor, QuizzContentEditor, MatchingContentEditor, ReadingContentEditor, DictationContentEditor, OrganizeContentEditor,
 } from "./contentEditors";
+import InlineError from "@/components/ui/inlineError";
 
 const STRUCTURED_TYPES: NonNullable<Exercise["exercise_type"]>[] = [
     "type_in_the_blank", "select_in_the_blank", "matching", "organize", "true_false", "quizz",
@@ -422,7 +423,7 @@ export default function ExerciseForm({
                             setSelectedElements={setRelatedCalligraphies}
                             label={t("associatedCalligraphies")}
                         />
-                        {linkError && <p role="alert" className="text-sm text-red-600">{t("linkRequired")}</p>}
+                        {linkError && <InlineError>{t("linkRequired")}</InlineError>}
                     </section>
 
                     <TagSelector

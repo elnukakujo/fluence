@@ -10,6 +10,7 @@ import { updateUserPreferences } from "@/api/userPreferences";
 import { apiFetch } from "@/api/apiFetch";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
 import EmptyState from "@/components/ui/emptyState";
+import InlineError from "@/components/ui/inlineError";
 
 type EndpointTestResult = { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string };
 
@@ -168,9 +169,9 @@ export default function ApiEndpointsSection({
         ))}
 
         {saveError && (
-          <p className="text-sm" style={{ color: "var(--color-danger)" }} role="alert">
-            ✗ {saveError}
-          </p>
+          <InlineError>
+            {saveError}
+          </InlineError>
         )}
 
         {endpoints.length > 0 && (

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Copy, Check, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
 import Spinner from "@/components/ui/spinner";
+import Field from "@/components/ui/field";
 
 export type ProviderOption = {
   value: string;
@@ -195,8 +196,7 @@ export default function EndpointCard({
         <div className="flex flex-col gap-3 pt-3 mt-3 border-t border-dashed border-[var(--color-border)]">
 
           {/* Step 1: Purpose */}
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("purpose")}</span>
+          <Field label={t("purpose")}>
             <select
               className="input"
               value={endpoint.api_type ?? ""}
@@ -220,12 +220,11 @@ export default function EndpointCard({
               {/* Legacy: "Both" can no longer be chosen, but saved endpoints keep it until changed */}
               {endpoint.api_type === "both" && <option value="both">{t("testResults.legacy")}</option>}
             </select>
-          </label>
+          </Field>
 
           {/* Step 2: Provider (appears after purpose is selected) */}
           {endpoint.api_type && (
-            <label className="flex flex-col gap-1">
-              <span className="text-sm opacity-70">{t("provider")}</span>
+            <Field label={t("provider")}>
               <select
                 className="input"
                 value={endpoint.provider ?? ""}
@@ -248,7 +247,7 @@ export default function EndpointCard({
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
-            </label>
+            </Field>
           )}
 
           {/* Step 3: Connection (appears after provider is selected) */}
@@ -310,8 +309,9 @@ export default function EndpointCard({
               )}
 
               {/* Base URL */}
-              <label className="flex flex-col gap-1">
-                <span className="text-sm opacity-70">{t("baseUrl")}</span>
+              <Field label={t("baseUrl")} hint={<>{t("baseUrlHelp")}{baseUrlWarning && (
+                <span className="block" style={{ color: "var(--color-warning, #e6a817)" }}>⚠ {baseUrlWarning}</span>
+              )}</>}>
                 <input
                   className="input"
                   type="url"
@@ -320,11 +320,7 @@ export default function EndpointCard({
                   placeholder={t("baseUrlPlaceholder")}
                   disabled={disabled}
                 />
-                <span className="text-xs opacity-40">{t("baseUrlHelp")}</span>
-                {baseUrlWarning && (
-                  <span className="text-xs" style={{ color: "var(--color-warning, #e6a817)" }}>⚠ {baseUrlWarning}</span>
-                )}
-              </label>
+              </Field>
 
               {/* API Key */}
               <label className="flex flex-col gap-1">
@@ -446,8 +442,7 @@ export default function EndpointCard({
           )}
 
           {/* Display Name */}
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("displayName")}</span>
+          <Field label={t("displayName")}>
             <input
               className="input"
               type="text"
@@ -456,7 +451,7 @@ export default function EndpointCard({
               placeholder={t("displayNamePlaceholder")}
               disabled={disabled}
             />
-          </label>
+          </Field>
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-1">

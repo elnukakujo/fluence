@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Layers, Merge, Users } from "lucide-react";
 import { listInvites, accept, reject } from "@/api/collaboration";
 import Modal from "@/components/ui/dialogs/modal";
+import InlineError from "@/components/ui/inlineError";
 
 type Invite = Awaited<ReturnType<typeof listInvites>>[number];
 type Mode = "full" | "partial";
@@ -184,7 +185,7 @@ export default function Invites() {
             </fieldset>
           )}
 
-          {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+          {error && <InlineError>{error}</InlineError>}
         </Modal>
       )}
     </section>

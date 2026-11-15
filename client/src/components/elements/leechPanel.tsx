@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertCircle } from "lucide-react";
 import { saveCardNote, type Leech } from "@/api/review";
+import Field from "@/components/ui/field";
 
 /** Help for a card that keeps slipping: how often it was missed, what the word is made of, and a memory trick of the user's own. */
 export default function LeechPanel({ id, leech, note }: { id: string; leech: Leech; note?: string | null }) {
@@ -31,10 +32,9 @@ export default function LeechPanel({ id, leech, note }: { id: string; leech: Lee
                     </ul>
                 </div>
             )}
-            <label className="flex flex-col gap-1 text-sm">
-                {t("leechNote")}
-                <textarea className="input" rows={2} maxLength={500} value={text} placeholder={t("leechNotePlaceholder")} onChange={(e) => setText(e.target.value)} onBlur={save} />
-            </label>
+            <Field label={t("leechNote")}>
+              <textarea className="input" rows={2} maxLength={500} value={text} placeholder={t("leechNotePlaceholder")} onChange={(e) => setText(e.target.value)} onBlur={save} />
+            </Field>
         </section>
     );
 }

@@ -22,6 +22,8 @@ import {
 import PagePanel from "./pagePanel";
 import ReviewCard from "./reviewCard";
 import EmptyState from "@/components/ui/emptyState";
+import Field from "@/components/ui/field";
+import InlineError from "@/components/ui/inlineError";
 
 const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
@@ -234,14 +236,12 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           preview={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("title")}</span>
+          <Field label={t("title")}>
             <input className="input" value={row.title || ""} onChange={(e) => patch(c.id, { title: e.target.value })} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("explanation")}</span>
+          </Field>
+          <Field label={t("explanation")}>
             <textarea className="input input-grow min-h-40" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
-          </label>
+          </Field>
           {row.original_text && (
             <details className="text-sm">
               <summary className="cursor-pointer">{t("originalPageText")}</summary>
@@ -382,7 +382,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         </SelectionScope>
 
         {counts.undecided > 0 && <p role="status" className="text-sm">{t("undecidedNotice", { count: counts.undecided })}</p>}
-        {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+        {error && <InlineError>{error}</InlineError>}
         <div className="btn-row flex-wrap">
           <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>
             {saving ? t("addingButton") : addLabel(counts.selected)}

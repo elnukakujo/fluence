@@ -6,6 +6,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 import { useTranslations } from "next-intl";
+import InlineError from "@/components/ui/inlineError";
 
 export default function StopSharingButton({ lesson_id }: { lesson_id: string }) {
     const [confirming, setConfirming] = useState(false);
@@ -28,7 +29,7 @@ export default function StopSharingButton({ lesson_id }: { lesson_id: string }) 
             <button type="button" onClick={() => setConfirming(true)} className="btn btn-secondary">
                 <LogOut size={16} aria-hidden /> {t("leaveLesson")}
             </button>
-            {error && <p role="alert" className="text-xs" style={{ color: "var(--color-danger)" }}>{error}</p>}
+            {error && <InlineError>{error}</InlineError>}
             {confirming && (
                 <ConfirmDialog
                     danger

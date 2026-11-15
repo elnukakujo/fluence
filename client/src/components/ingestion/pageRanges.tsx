@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { type RangeDraft, countPages, parsePageRanges } from "@/lib/ingestion/ranges";
+import InlineError from "@/components/ui/inlineError";
 
 type Props = {
   rows: RangeDraft[];
@@ -41,7 +42,7 @@ export default function PageRanges({ rows, onChange, first = 1, last, errorRow, 
               <button type="button" className="btn btn-secondary min-h-11 min-w-11" disabled={disabled || rows.length === 1}
                 aria-label={t("removeRangeAria", { n: i + 1 })} onClick={() => onChange(rows.filter((_, n) => n !== i))}>×</button>
             </div>
-            {error && errorRow === i && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+            {error && errorRow === i && <InlineError>{error}</InlineError>}
           </li>
         ))}
       </ul>

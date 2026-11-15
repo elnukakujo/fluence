@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import type Lesson from "@/interface/containers/Lesson";
 import { mergeLessons } from "@/api/lesson";
 import { itemCount } from "@/lib/lessonOrder";
+import Field from "@/components/ui/field";
+import InlineError from "@/components/ui/inlineError";
 
 // Two lessons side by side (read-only) and the merged lesson's editable title, description and level.
 // A survives (keeps its id, shares and collaborators); B's items move into it and B is deleted.
@@ -70,28 +72,25 @@ export default function MergeLessons({ languageId, a, b, levelOptions }: {
         {panel("B", b)}
         <fieldset className="card flex flex-col gap-3">
           <legend className="font-serif text-lg">{t("mergedLesson")}</legend>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{t("lessonTitle")}</span>
+          <Field label={t("lessonTitle")}>
             <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </label>
+          </Field>
           <div className="flex gap-2">{use("title", labels.title, "A", a)}{use("title", labels.title, "B", b)}</div>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{t("description")}</span>
+          <Field label={t("description")}>
             <textarea className="input min-h-24" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </label>
+          </Field>
           <div className="flex gap-2">{use("description", labels.description, "A", a)}{use("description", labels.description, "B", b)}</div>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{t("level")}</span>
+          <Field label={t("level")}>
             <select className="input" value={String(level)} onChange={(e) => setLevel(Number(e.target.value))}>
               {levelOptions.map((code, i) => <option key={code} value={String(i)}>{code}</option>)}
             </select>
-          </label>
+          </Field>
           <div className="flex gap-2">{use("level", labels.level, "A", a)}{use("level", labels.level, "B", b)}</div>
         </fieldset>
       </div>
       <div className="card sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex flex-col gap-2 md:bottom-4">
         <p className="text-sm">{t("mergeSummary", { n: itemCount(b), other: b.title })}</p>
-        {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+        {error && <InlineError>{error}</InlineError>}
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" className="btn btn-secondary min-h-11" disabled={busy} onClick={() => router.push(`/languages/${languageId}`)}>{tUi("cancel")}</button>
           <button type="submit" className="btn btn-primary min-h-11" disabled={busy || !title.trim()}>{busy ? t("merging") : t("mergeConfirm")}</button>

@@ -12,6 +12,7 @@ import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import { MAX_RATIO, joinPattern, splitPattern, type SideOrder } from "@/utils/sidePattern";
 import type UserPreferences from "@/interface/systemData/UserPreferences";
 import type { ReviewSection } from "@/interface/systemData/UserPreferences";
+import InlineError from "@/components/ui/inlineError";
 
 const SECTION_TYPES: ReviewSection["type"][] = ["voc", "gram", "ex", "call"];
 const ORDERS: SideOrder[] = ["random", "alternate", "blocks"];
@@ -165,7 +166,7 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
           <div className="grid gap-4 sm:grid-cols-2">{typeList("boost")}{typeList("ban")}</div>
         </Group>
 
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {error && <InlineError>{error}</InlineError>}
         <div><SaveButton isLoading={saving} /></div>
       </SectionCard>
     </form>
