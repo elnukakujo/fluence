@@ -3,7 +3,9 @@ import json
 from typing import Callable
 
 from ...utils.model_api import chat_completion
-from ..ingestion.elements import FREE_TEXT, _TYPE_CONTENT, app_form, stored_content
+from ..exercises.registry import FREE_TEXT
+from ..exercises.content import _TYPE_CONTENT
+from ..ingestion.elements import app_form, stored_content
 from ..ingestion.exercises import link_to_elements
 from ..ingestion.extract import MAX_TOKENS, _parse_json
 from .checks import code_error, is_near_duplicate

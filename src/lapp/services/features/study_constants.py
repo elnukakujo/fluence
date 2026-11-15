@@ -7,8 +7,6 @@ from pathlib import Path
 _SHARED = json.loads((Path(__file__).resolve().parents[4] / "shared" / "study-constants.json").read_text(encoding="utf-8"))
 
 GOAL_MASTERED_SCORE = _SHARED["goalMasteredScore"]  # TODO(user): score at which a goal item counts as mastered
-EXERCISE_SCALES = {k: tuple(v) for k, v in _SHARED["exerciseScales"].items()}  # evaluator scoring weights, shared
-
 BOOST_FACTOR = 1.5          # TODO(user): review-priority multiplier for boosted exercises
 STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review to validate the day
 
@@ -16,25 +14,10 @@ STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review t
 # ones of each type (lesson order); seen elements come back by review priority. TODO(user): stand-ins.
 NO_GOAL_NEW = {"vocabulary": 10, "grammar": 5, "calligraphy": 10}
 
-# Seconds one review card takes. TODO(user): stand-ins for every number below.
-# Exercises are estimated per type: base + reading (question, text support, content) + interaction + listening.
-# per_item: seconds per list entry of the content (options, blanks, pairs...); typed: the learner types the answer.
-EXERCISE_TIME = {
-    "true_false": {"base": 4.0, "per_item": 0.0, "typed": False},
-    "select_in_the_blank": {"base": 5.0, "per_item": 1.5, "typed": False},
-    "quizz": {"base": 5.0, "per_item": 1.5, "typed": False},
-    "matching": {"base": 6.0, "per_item": 2.0, "typed": False},
-    "organize": {"base": 6.0, "per_item": 1.5, "typed": False},
-    "type_in_the_blank": {"base": 6.0, "per_item": 2.0, "typed": True},
-    "translate": {"base": 5.0, "per_item": 0.0, "typed": True},
-    "answering": {"base": 6.0, "per_item": 0.0, "typed": True},
-    "essay": {"base": 45.0, "per_item": 0.0, "typed": True},
-    "speaking": {"base": 15.0, "per_item": 0.0, "typed": False},
-    "conversation": {"base": 15.0, "per_item": 5.0, "typed": False},
-    "reading": {"base": 15.0, "per_item": 0.0, "typed": False},
-    "dictation": {"base": 10.0, "per_item": 0.0, "typed": True},
-}
-EXERCISE_TIME_DEFAULT = {"base": 10.0, "per_item": 1.0, "typed": False}   # an unknown exercise type
+# Per-type exercise time moved to the exercise registry (services/exercises/registry.py).
+# Re-imported here for the time-estimate tests that still read study_constants.
+from ..exercises.registry import EXERCISE_TIME, EXERCISE_TIME_DEFAULT
+
 READ_CHARS_PER_S = 15.0     # reading speed for CJK text (characters)
 READ_WORDS_PER_S = 3.5      # reading speed for other scripts (words)
 TYPE_CHARS_PER_S = 4.0      # typing speed
