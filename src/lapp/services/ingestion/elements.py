@@ -8,8 +8,9 @@ from .grammar import GRAMMAR_COVERAGE_MIN, MAX_EXAMPLES, clean_corrections
 from .types import Chunk, ElementCandidate, Flag, Kind
 from .verify import _phonetic_flag, _source_flags, _words_present, normalise
 from ..exercises.registry import EXERCISE_TYPES, FREE_TEXT, WHOLE_BLOCK
-from ..exercises.content import (_TYPE_CONTENT, conversation_json_ok, exercise_content_error,
-                                  exercise_content_ok, reading_content, reading_stored_ok)
+# conversation_json_ok / exercise_content_ok / reading_stored_ok are re-exported on purpose: api/routes/ingestion.py and tests import them from here
+from ..exercises.content import (_TYPE_CONTENT, conversation_json_ok, exercise_content_error,  # noqa: F401
+                                  exercise_content_ok, reading_content, reading_stored_ok)  # noqa: F401
 
 # kind -> (key field, shape shown to the model, extra rule)
 _SHAPES = {

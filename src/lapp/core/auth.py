@@ -2,7 +2,6 @@ from functools import wraps
 from flask import g, jsonify, request, abort
 
 from ..services.auth import AuthService
-from .database import db_manager
 
 _auth_service = AuthService()
 
