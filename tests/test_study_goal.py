@@ -112,9 +112,9 @@ def test_review_slots_take_seen_elements_and_are_done_once_reviewed_in_the_perio
     _goal(svc, n_vocabulary=1, n_grammar=0, n_calligraphy=0, r_vocabulary=1)
     items = {i.element_id: i.kind for i in svc.ensure_cycle("user_U1", "lang_L1", today=D0)}
     assert items == {"voc_V0": "new", "voc_V3": "review"}
-    ScoreService().record_side("user_U1", "voc_V3", "front", 1.0)
+    ScoreService().record_side("user_U1", "voc_V3", "front", "recognition", 1.0, "typed")
     assert "voc_V3" in {i.element_id for i in svc.ensure_cycle("user_U1", "lang_L1", today=D0)}   # one side is not enough
-    ScoreService().record_side("user_U1", "voc_V3", "back", 1.0)
+    ScoreService().record_side("user_U1", "voc_V3", "back", "recall", 1.0, "typed")
     assert "voc_V3" not in {i.element_id for i in svc.ensure_cycle("user_U1", "lang_L1", today=D0)}
     t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
     assert (t["r"], t["review_picked"], t["review_done"]) == (1, 1, 1)
@@ -285,8 +285,8 @@ def test_reviewed_review_item_does_not_carry(db):
     ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
     _goal(svc, n_vocabulary=0, n_grammar=0, n_calligraphy=0, r_vocabulary=1)
     svc.ensure_cycle("user_U1", "lang_L1", today=date.today())      # reviews below are stamped "now"
-    ScoreService().record_side("user_U1", "voc_V3", "front", 1.0)
-    ScoreService().record_side("user_U1", "voc_V3", "back", 1.0)
+    ScoreService().record_side("user_U1", "voc_V3", "front", "recognition", 1.0, "typed")
+    ScoreService().record_side("user_U1", "voc_V3", "back", "recall", 1.0, "typed")
     p = svc.progress("user_U1", "lang_L1", today=date.today() + timedelta(days=7))
     assert all(not i["carried"] for i in p["items"])
 

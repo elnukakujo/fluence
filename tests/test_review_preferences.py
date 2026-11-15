@@ -105,8 +105,8 @@ def test_side_pattern_cycle(db):
 
 def test_goal_items_are_served_first(db):
     _seed(db, vocs=3)
-    ScoreService().record_side("user_U1", "voc_V0", "front", 1.0)      # V0 is reviewed, so not "new"
-    ScoreService().record_side("user_U1", "voc_V0", "back", 1.0)
+    ScoreService().record_side("user_U1", "voc_V0", "front", "recall", 1.0, "typed")      # V0 is reviewed, so not "new" (recall: the skill `set` below overwrites)
+    ScoreService().record_side("user_U1", "voc_V0", "back", "recall", 1.0, "typed")
     StudyGoalService().upsert("user_U1", "lang_L1", "week", 1, 0, 0)
     first = _cards()[0]
     assert first["id"] == "voc_V1"                                     # the one picked new vocabulary

@@ -14,6 +14,8 @@ from ..components import WordService, PassageService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
 from ..system_data.score import SIDES
+
+SIDE_SKILL = {"front": "recognition", "back": "recall"}   # a face tests one skill
 from ...core.database import db_manager, transactional, resolve_related, stack_related
 from ...utils import update_score, update_difficulty, stack_lists, status_for
 
@@ -285,6 +287,7 @@ class VocabularyService:
         hint_used: bool = False,
         user_id: Optional[str] = None,
         side: Optional[str] = None,
+        evidence_type: str = "self_grade",  # TODO(spec 2 Task 4): the client sends the real evidence
         session: Optional[Session] = None,
     ) -> Score | None:
         if side is not None and side not in SIDES:
@@ -296,9 +299,9 @@ class VocabularyService:
 
         previous = score_service.get(user_id, voc_id, session=session)
         previous_score = previous.score if previous else 0.0
-        # no side (old clients): one old step on each side
+        # no side (old clients): both sides; a face tests one skill (front recognition, back recall)
         for sd in ([side] if side else SIDES):
-            updated = score_service.record_side(user_id, voc_id, sd, score, step=1 if side is None else 2, session=session)
+            updated = score_service.record_side(user_id, voc_id, sd, SIDE_SKILL[sd], score, evidence_type, session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

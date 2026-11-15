@@ -230,6 +230,7 @@ class GrammarService:
         duration_ms: float,
         hint_used: bool = False,
         user_id: Optional[str] = None,
+        evidence_type: str = "self_grade",  # TODO(spec 2 Task 4): the client sends the real evidence
         session: Optional[Session] = None,
     ) -> Score | None:
         grammar = self.get_by_id(grammar_id, session=session)
@@ -238,9 +239,9 @@ class GrammarService:
             logger.warning(f"Grammar item not found: {grammar_id}")
             return None
 
-        previous = score_service.get(user_id, grammar_id, session=session)
+        previous = score_service.get(user_id, grammar_id, skill="recognition", session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, grammar_id, score, session=session)
+        updated = score_service.record(user_id, grammar_id, "recognition", score, evidence_type, session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

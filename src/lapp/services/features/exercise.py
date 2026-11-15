@@ -285,9 +285,9 @@ class ExerciseService:
             logger.warning(f"Exercise not found: {ex_id}")
             return None
 
-        previous = score_service.get(user_id, ex_id, session=session)
+        previous = score_service.get(user_id, ex_id, skill="recall", session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, ex_id, score, session=session)
+        updated = score_service.record(user_id, ex_id, "recall", score, "typed", session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

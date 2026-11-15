@@ -28,14 +28,14 @@ def _ids(db):
 def test_side_writes_only_that_side(db):
     _seed(db)
     VocabularyService().update_score("voc_V1", 0.8, duration_ms=10, user_id="user_U1", side="front")
-    assert _ids(db) == ["voc_V1", "voc_V1#front"]
+    assert _ids(db) == ["voc_V1#front"]      # the parent is computed from its sides, never stored
 
 
-def test_no_side_updates_both_sides_one_old_step(db):
+def test_no_side_updates_both_sides(db):
     _seed(db)
     VocabularyService().update_score("voc_V1", 0.8, duration_ms=10, user_id="user_U1")
-    assert _ids(db) == ["voc_V1", "voc_V1#back", "voc_V1#front"]
-    twin = ScoreService().record("user_U1", "voc_twin", 0.8).score
+    assert _ids(db) == ["voc_V1#back", "voc_V1#front"]
+    twin = ScoreService().record("user_U1", "voc_twin", "recall", 0.8, "self_grade").score    # one card, same answer
     assert ScoreService().get("user_U1", "voc_V1").score == pytest.approx(twin, abs=1e-3)
 
 

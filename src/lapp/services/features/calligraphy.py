@@ -353,6 +353,7 @@ class CalligraphyService:
         duration_ms: float,
         hint_used: bool = False,
         user_id: Optional[str] = None,
+        evidence_type: str = "self_grade",  # TODO(spec 2 Task 4): the client sends the real evidence
         session: Optional[Session] = None,
     ) -> Score | None:
         """
@@ -373,9 +374,9 @@ class CalligraphyService:
             logger.warning(f"Calligraphy item not found: {calligraphy_id}")
             return None
 
-        previous = score_service.get(user_id, calligraphy_id, session=session)
+        previous = score_service.get(user_id, calligraphy_id, skill="recall", session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, calligraphy_id, score, session=session)
+        updated = score_service.record(user_id, calligraphy_id, "recall", score, evidence_type, session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

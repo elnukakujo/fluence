@@ -11,6 +11,7 @@ from ...models.system_data import StudyGoal, StudyGoalItem, Score
 from ...utils import review_priority
 from ...models.system_data import UserPreferences
 from ...utils.scoring import KNOWN_FROM
+from ..system_data import ScoreService
 from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
@@ -280,8 +281,8 @@ class StudyGoalService:
     def _scores(user_id, element_ids, session) -> dict[str, float]:
         if not element_ids:
             return {}
-        rows = session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(element_ids)).all()
-        return {r.element_id: r.score for r in rows}
+        # effective scores; a vocabulary is computed from its sides (no stored parent row)
+        return {eid: r.score for eid, r in ScoreService().get_many(user_id, list(element_ids), session=session).items()}
 
     def _done(self, items, user_id, session) -> set[str]:
         """Ids of the finished items: a new one once mastered, a review one once reviewed since its own period
@@ -293,7 +294,10 @@ class StudyGoalService:
         sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
         rows = session.query(Score.element_id, Score.last_seen_at).filter(
             Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
-        seen = {element_id: last for element_id, last in rows}
+        seen: dict = {}
+        for element_id, last in rows:       # a side has one row per skill: its latest answer counts
+            if last and (seen.get(element_id) is None or last > seen[element_id]):
+                seen[element_id] = last
         for i in reviews:
             since = datetime.combine(i.cycle_start, time.min)
             if all((seen.get(x) or datetime.min) >= since for x in sides[i.id]):
@@ -331,6 +335,6 @@ class StudyGoalService:
         ids = [i for i in StudyGoalService._language_elements(model, language_id, session) if i not in taken]
         if not ids:
             return []
-        rows = session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(ids)).all()
+        rows = list(ScoreService().get_many(user_id, ids, session=session).values())
         rows.sort(key=lambda r: review_priority(r.created_at, r.last_seen_at or r.created_at, r.difficulty or 0.0, r.score or 0), reverse=True)
         return [r.element_id for r in rows][:n]

@@ -132,13 +132,11 @@ def test_collaborator_practice_writes_progress(app, db):
     res = _client_for_user(app, db, "user_U2").post(
         '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'score': 1.0, 'duration_ms': 100})
     assert res.status_code == 200
-    with db.session_scope() as s:
-        sc = s.query(Score).filter(
-            Score.user_id == "user_U2", Score.element_id == "voc_V1").one()
-        assert sc.score > 0
-        # owner's Score row untouched (per-user isolation)
-        assert s.query(Score).filter(
-            Score.user_id == "user_U1", Score.element_id == "voc_V1").first() is None
+    from lapp.services.system_data import ScoreService
+    # the parent is computed from its side rows (no stored parent row)
+    assert ScoreService().get("user_U2", "voc_V1").score > 0
+    # owner's score untouched (per-user isolation)
+    assert ScoreService().get("user_U1", "voc_V1") is None
 
 
 def test_remove_forks_content(app, db):
