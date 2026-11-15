@@ -5,6 +5,7 @@ import { getLanguageById } from "@/api/language";
 import { getLessonById } from "@/api/lesson";
 import type Lesson from "@/interface/containers/Lesson";
 import { languageProficiencySystems } from "@/utils/language_iso639";
+import InlineError from "@/components/ui/inlineError";
 
 const DEFAULT_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -18,7 +19,7 @@ export default async function MergePage({ params, searchParams }: {
   const load = (id?: string): Promise<Lesson | null> => (id ? getLessonById(id).catch(() => null) : Promise.resolve(null));
   const [first, second] = await Promise.all([load(a), load(b)]);
   if (!first || !second || first.id === second.id || first.language_id !== language_id || second.language_id !== language_id) {
-    return <main className="card max-w-2xl"><p role="alert">{t("mergeInvalid")}</p>{back}</main>;
+    return <main className="card max-w-2xl"><InlineError>{t("mergeInvalid")}</InlineError>{back}</main>;
   }
   const language = await getLanguageById(language_id);
   const levelOptions = languageProficiencySystems[language.target_iso639_2t ?? ""]?.levels.map((l) => l.code) ?? DEFAULT_LEVELS;

@@ -4,7 +4,7 @@
   --background: #f5efe3;
   --surface: #fffbf3;
   --foreground: #362b22;
-  --muted: #8a7a64;
+  --muted: #796b58;   /* 4.52:1 on --background, 5.01:1 on --surface (was #8a7a64: 3.63 / 4.03) */
   --border: #e3d6be;
 
   --primary: #4b5d45;
@@ -176,6 +176,7 @@
     gap: 0.5rem;
     border-radius: var(--radius-full);
     padding: 0.5rem 1.125rem;
+    min-height: 2.75rem;   /* 44px touch target (RD-24) */
     font-size: 0.875rem;
     font-weight: 500;
     white-space: nowrap;
@@ -356,7 +357,7 @@
   }
 
   /* Import review: field label, kind section header, and the side-by-side "already saved" box */
-  .field-label { font-size: 0.75rem; opacity: 0.6; }
+  .field-label { font-size: 0.75rem; color: var(--color-muted); }   /* was opacity .6, ~3.6:1; the muted token holds AA */
   .review-section { font-size: 1rem; font-weight: 600; margin-top: 0.5rem; }
   .existing-box {
     border: 1px dashed var(--color-border);
@@ -1327,9 +1328,14 @@
     background: var(--color-accent-soft);
   }
 
-  /* ── Small-phone tightening: tighter card padding, 44px touch targets ── */
+  /* ── Small-phone tightening: tighter card padding ── */
   @media (max-width: 480px) {
     .card { padding: 1rem; }
-    .btn { min-height: 2.75rem; }
   }
 }
+
+  /* Spinner: the animated ring gives way to a still icon for users who ask for less motion */
+  @media (prefers-reduced-motion: reduce) {
+    .spinner-motion { display: none; }
+    .spinner-static { display: inline-flex; }
+  }

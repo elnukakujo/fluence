@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { GitMerge } from "lucide-react";
 import { listAwaitingConsent, consent, decline } from "@/api/collaboration";
+import InlineError from "@/components/ui/inlineError";
 
 type Request = Awaited<ReturnType<typeof listAwaitingConsent>>[number];
 
@@ -39,7 +40,7 @@ export default function ConsentRequests() {
   return (
     <section className="flex flex-col gap-2" aria-label={t("mergeRequests")}>
       <h2 className="font-serif">{t("mergeRequests")}</h2>
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+      {error && <InlineError>{error}</InlineError>}
       <ul className="flex flex-col gap-2">
         {requests.map((r) => (
           <li key={r.id} className="card flex items-center justify-between gap-3">

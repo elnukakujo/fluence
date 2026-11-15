@@ -1,85 +1,44 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
 import Lesson from "@/interface/containers/Lesson";
 
 export async function getLessonById(lesson_id: string) {
-  const res = await fetch(`${BASE_URL}/api/lessons/${lesson_id}`, { headers: await getAuthHeaders() });
-  if (!res.ok) throw new Error(`Failed to fetch data for lesson ${lesson_id}`);
-  return res.json();
+  return apiFetch(`/api/lessons/${lesson_id}`, { errorMessage: `Failed to fetch data for lesson ${lesson_id}` });
 }
 
 export async function getAllLessons(languageId: string) {
-  const res = await fetch(`${BASE_URL}/api/lessons/all/${languageId}`, { headers: await getAuthHeaders() });
-  if (!res.ok) throw new Error(`Failed to fetch lessons for language ${languageId}`);
-  return res.json();
+  return apiFetch(`/api/lessons/all/${languageId}`, { errorMessage: `Failed to fetch lessons for language ${languageId}` });
 }
 
 export async function createLesson(data: Partial<Lesson>) {
   if (data.id) {
     data.id = undefined;
   }
-  const res = await fetch(`${BASE_URL}/api/lessons/`, {
-    method: "POST",
-    headers: await getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to create lesson");
-  return res.json();
+  return apiFetch("/api/lessons/", { method: "POST", body: data, errorMessage: "Failed to create lesson" });
 }
 
 export async function updateLesson(lessonId: string, data: Partial<Lesson>) {
-  const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}`, {
-    method: "PUT",
-    headers: await getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to update lesson");
-  return res.json();
+  return apiFetch(`/api/lessons/${lessonId}`, { method: "PUT", body: data, errorMessage: "Failed to update lesson" });
 }
 
 export async function deleteLesson(lessonId: string) {
-  const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) throw new Error("Failed to delete lesson");
+  await apiFetch(`/api/lessons/${lessonId}`, { method: "DELETE", errorMessage: "Failed to delete lesson" });
 }
 export async function getSharedLessons(): Promise<Lesson[]> {
-  const res = await fetch(`${BASE_URL}/api/lessons/shared`, { headers: await getAuthHeaders() });
-  if (!res.ok) throw new Error("Failed to fetch shared lessons");
-  return res.json();
+  return apiFetch("/api/lessons/shared", { errorMessage: "Failed to fetch shared lessons" });
 }
 
 export async function leaveSharedLesson(lessonId: string) {
-  const res = await fetch(`${BASE_URL}/api/lessons/${lessonId}/leave`, {
-    method: "DELETE",
-    headers: await getAuthHeaders(),
-  });
-  if (!res.ok) throw new Error("Failed to stop sharing");
-  return res.json();
-}
-
-
-async function failWith(res: Response, fallback: string): Promise<never> {
-  const body = await res.json().catch(() => null);
-  throw new Error(body?.error ?? fallback);
+  return apiFetch(`/api/lessons/${lessonId}/leave`, { method: "DELETE", errorMessage: "Failed to stop sharing" });
 }
 
 export async function reorderLessons(languageId: string, ids: string[]) {
-  const res = await fetch(`${BASE_URL}/api/lessons/reorder`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ language_id: languageId, ids }),
-  });
-  if (!res.ok) await failWith(res, "Failed to reorder lessons");
+  await apiFetch("/api/lessons/reorder", { method: "POST", body: { language_id: languageId, ids }, errorMessage: "Failed to reorder lessons" });
 }
 
 export async function bulkDeleteLessons(ids: string[]): Promise<{ deleted: number }> {
-  const res = await fetch(`${BASE_URL}/api/lessons/bulk-delete`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ ids }),
-  });
-  if (!res.ok) return failWith(res, "Failed to delete lessons");
-  return res.json();
+  return apiFetch("/api/lessons/bulk-delete", { method: "POST", body: { ids }, errorMessage: "Failed to delete lessons" });
 }
 
 export async function mergeLessons(data: { first_id: string; second_id: string; title: string; description?: string; level?: number }): Promise<Lesson> {
-  const res = await fetch(`${BASE_URL}/api/lessons/merge`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(data) });
-  if (!res.ok) return failWith(res, "Failed to merge the lessons");
-  return res.json();
+  return apiFetch("/api/lessons/merge", { method: "POST", body: data, errorMessage: "Failed to merge the lessons" });
 }

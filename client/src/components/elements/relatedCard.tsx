@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import type Word from "@/interface/components/Word";
 import type Character from "@/interface/components/Character";
 import type Passage from "@/interface/components/Passage";
+import EmptyState from "@/components/ui/emptyState";
 
 type RelatedCardProps = {
   languageId: string;
@@ -72,7 +73,7 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
           ))}
         </div>
       ) : (
-        <p className="index-divider pt-3 text-sm text-muted">{t("noRelatedComponents")}</p>
+        <EmptyState className="index-divider pt-3 text-sm">{t("noRelatedComponents")}</EmptyState>
       )}
     </section>
   );

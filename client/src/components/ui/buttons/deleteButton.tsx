@@ -3,8 +3,8 @@
 import { deleteElement } from "@/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 
 export default function DeleteButton({ element_id, children }: { element_id: string, children?: React.ReactNode }) {
     const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -32,19 +32,9 @@ export default function DeleteButton({ element_id, children }: { element_id: str
             <button type="button" onClick={() => setIsDeleting(true)} className="btn btn-danger">
                 {children || t("deleteElement")}
             </button>
-            {isDeleting && createPortal(
-                <div className="fixed inset-0 z-50 flex flex-col gap-3 items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <p className="text-white">{t("areYouSureDelete")}</p>
-                    <div className="flex flex-row gap-2">
-                        <button type="button" onClick={handleDelete} className="btn btn-danger">
-                            {t("confirmDelete")}
-                        </button>
-                        <button type="button" onClick={() => setIsDeleting(false)} className="btn btn-secondary">
-                            {t("cancel")}
-                        </button>
-                    </div>
-                </div>,
-                document.body
+            {isDeleting && (
+                <ConfirmDialog danger message={t("areYouSureDelete")} confirmLabel={t("confirmDelete")}
+                    onConfirm={handleDelete} onCancel={() => setIsDeleting(false)} />
             )}
         </div>
     );

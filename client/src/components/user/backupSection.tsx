@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import ProgressBar from "@/components/ui/progressBar";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import BackupRow, { Backup } from "./backupRow";
 import { createBackup, deleteBackup, listBackups, restoreBackup } from "@/api/backup";
+import EmptyState from "@/components/ui/emptyState";
+import Field from "@/components/ui/field";
 
 export default function BackupSection() {
   const t = useTranslations("settingsAdmin.backups");
@@ -80,8 +82,7 @@ export default function BackupSection() {
       {/* Create backup form */}
       {showCreateForm && (
         <div className="flex flex-col gap-2 p-3 border border-dashed border-[var(--color-border)] rounded-lg">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("backupNameLabel")}</span>
+          <Field label={t("backupNameLabel")}>
             <input
               className="input"
               type="text"
@@ -90,7 +91,7 @@ export default function BackupSection() {
               placeholder={t("backupNamePlaceholder")}
               disabled={creating}
             />
-          </label>
+          </Field>
 
           {creating && (
             <ProgressBar current={0} total={1} indeterminate showLabel={false} showPercent={false} ariaLabel={t("creating")} />
@@ -133,10 +134,7 @@ export default function BackupSection() {
       ) : (
         <div className="flex flex-col items-center gap-3 py-10 text-center" role="status">
           <span className="text-4xl opacity-25" aria-hidden="true">📦</span>
-          <div>
-            <p className="text-sm opacity-50">{t("noBackups")}</p>
-            <p className="text-xs opacity-30 mt-1">{t("noBackupsSubtext")}</p>
-          </div>
+          <EmptyState className="items-center text-sm" hint={t("noBackupsSubtext")}>{t("noBackups")}</EmptyState>
           <button
             type="button"
             className="btn btn-primary mt-2"

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bulkDeleteElements, bulkEditTags, bulkMoveElements } from ".";
 
-const reply = (ok: boolean, body: unknown) => vi.fn().mockResolvedValue({ ok, json: async () => body });
+const reply = (ok: boolean, body: unknown) => vi.fn().mockResolvedValue({ ok, status: ok ? 200 : 400, json: async () => body, text: async () => JSON.stringify(body) });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("element bulk API", () => {

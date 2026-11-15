@@ -7,7 +7,11 @@
     "build": "node --env-file=../.env node_modules/.bin/next build",
     "start": "node --env-file=../.env node_modules/.bin/next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync-constants": "cp ../shared/study-constants.json src/shared/study-constants.json && cp ../shared/exercise-types.json src/shared/exercise-types.json",
+    "predev": "npm run sync-constants",
+    "prebuild": "npm run sync-constants",
+    "pretest": "npm run sync-constants"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.2.0",

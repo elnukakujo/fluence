@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { BookOpen, Brush, Lock, LockOpen, PenLine, Sparkles } from "lucide-react";
-import SectionCard from "@/components/user/sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
 import NumberField from "@/components/ui/input/numberField";
@@ -11,6 +11,7 @@ import RebuildMenuDialog from "./rebuildMenuDialog";
 import { getAvailableLanguages } from "@/api/language";
 import { getStudyGoal, resetStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
 import type Language from "@/interface/containers/Language";
+import InlineError from "@/components/ui/inlineError";
 
 const PERIODS: StudyGoal["period"][] = ["week", "biweek", "month"];
 type Draft = Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "active" | "auto">;
@@ -175,7 +176,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                     <summary>{t("goalHowTitle")}</summary>
                     <p className="mt-1">{t("goalHowBody")}</p>
                 </details>
-                {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+                {error && <InlineError>{error}</InlineError>}
             </SectionCard>
         </form>
     );

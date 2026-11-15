@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import SaveButton from "./saveButton";
 import PasswordStrengthBar from "./passwordStrengthBar";
 import { updateUserPassword } from "@/api/user";
 import { Eye, EyeOff } from "lucide-react";
+import InlineError from "@/components/ui/inlineError";
 
 export default function PasswordSection({ userId }: { userId: string }) {
   const t = useTranslations("settings.password");
@@ -77,9 +78,9 @@ export default function PasswordSection({ userId }: { userId: string }) {
       <p className="text-sm opacity-60">{t("helpText")}</p>
 
       {error && (
-        <p className="text-sm" style={{ color: "var(--color-danger)" }} role="alert">
+        <InlineError>
           {error}
-        </p>
+        </InlineError>
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">

@@ -9,6 +9,7 @@ import BackButton from "@/components/ui/buttons/backButton";
 import SearchBar from "@/components/layout/searchBar";
 import AccountMenu from "@/components/layout/accountMenu";
 import LocaleSwitcher from "@/components/layout/localeSwitcher";
+import { recordVisit } from "@/lib/navHistory";
 import ImportsIndicator from "@/components/ingestion/importsIndicator";
 
 const primaryLinks = [
@@ -23,6 +24,7 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 	const [searchOpen, setSearchOpen] = useState(false);
 
 	useEffect(() => setSearchOpen(false), [pathname]);
+	useEffect(() => recordVisit(pathname), [pathname]);
 
 	const isActive = (href: string) =>
 		href === "/" ? pathname === "/" || pathname.startsWith("/languages") : pathname === href || pathname.startsWith(`${href}/`);
@@ -35,7 +37,7 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 				<div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6 lg:px-8">
 					{/* Brand cluster */}
 					<div className="flex min-w-0 shrink-0 items-center gap-2">
-						{!hideBack && <BackButton ariaLabel={t("back")} />}
+						{!hideBack && <BackButton ariaLabel={t("back")} fromHistory />}
 						<Link href="/" className="flex items-center gap-1" aria-label="Fluence">
 							<img src="/fluence-mark.svg" alt="" aria-hidden="true" className="-my-3 h-12 w-12 shrink-0 sm:h-14 sm:w-14" />
 							<span className="font-serif text-2xl font-semibold tracking-tight text-foreground max-sm:hidden">Fluence</span>

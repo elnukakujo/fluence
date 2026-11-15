@@ -18,12 +18,15 @@ vi.mock("@/lib/calligraphy/strokeData", () => ({ loadStrokeData: m.loadStrokeDat
 vi.mock("@/utils/drawFirst", () => ({ isDrawFirst: m.isDrawFirst }));
 vi.mock("@/components/exercises/exerciseRunner", () => ({ default: () => <div /> }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
-vi.mock("./calligraphyPracticeCanvas", () => ({
+vi.mock("@/components/elements/calligraphyPracticeCanvas", () => ({
     default: (p: { onResult: typeof m.onResult }) => { m.onResult = p.onResult; return <div data-testid="canvas" />; },
     guidanceFor: () => m.guidance,
 }));
 
-import ReviewFlashCard from "./reviewFlashCard";
+import ReviewSession from "./ReviewSession";
+
+// the render calls below predate the shell's items/options props: this adapter keeps them (and every assertion) as they were
+const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof ReviewSession>[0]["items"]; languageId?: string }) => <ReviewSession items={cards} options={{ languageId }} />;
 
 const call = (score: number) => ({ id: "call_1", created_at: "2026-01-01T00:00:00", score, difficulty: 0.5, character: { character: "日", phonetic: "rì", strokes: 4 } }) as unknown as ReviewCard;
 

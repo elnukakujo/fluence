@@ -101,5 +101,8 @@
   "listenPrompt": "Écoutez et rappelez-vous",
   "cantHearCard": "Je ne peux pas écouter",
   "exerciseBroken": "Cet exercice est cassé et ne peut pas s'afficher.",
-  "skipBroken": "Le passer"
+  "skipBroken": "Le passer",
+  "backToLesson": "Retour à la leçon",
+  "addExampleSentence": "Ajouter une phrase d'exemple",
+  "removeExampleSentence": "Supprimer la phrase d'exemple"
 }

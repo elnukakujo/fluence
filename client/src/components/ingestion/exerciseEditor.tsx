@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import Field from "@/components/ui/field";
 import type { Row } from "@/lib/ingestion/review";
 import {
   BlankContentEditor, DictationContentEditor, MatchingContentEditor, OrganizeContentEditor, QuizzContentEditor, ReadingContentEditor,
@@ -58,11 +59,10 @@ export default function ExerciseEditor({ row, onChange }: { row: Row; onChange: 
   }, [key]);
 
   const field = (label: string, value: string, set: (v: string) => void, area = true) => (
-    <label className="flex flex-col gap-1">
-      <span className="field-label">{label}</span>
+    <Field label={label}>
       {area ? <textarea className="input input-grow" value={value} onChange={(e) => set(e.target.value)} />
         : <input className="input" value={value} onChange={(e) => set(e.target.value)} />}
-    </label>
+    </Field>
   );
   const support = field(t("supportText"), row.text_support ?? "", (v) => onChange({ text_support: v || null }));
   const derived = DERIVED.includes(type);

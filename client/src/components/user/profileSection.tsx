@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import SaveButton from "./saveButton";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { updateUser } from "@/api/user";
@@ -10,6 +10,8 @@ import { updateUserPreferences } from "@/api/userPreferences";
 import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
 import type UserPreferences from "@/interface/systemData/UserPreferences";
 import User from "@/interface/systemData/User";
+import Field from "@/components/ui/field";
+import InlineError from "@/components/ui/inlineError";
 
 function getInitials(user: User): string {
   const name = user.display_name || user.username || "";
@@ -91,15 +93,14 @@ export default function ProfileSection({ user, preferences = {} }: { user: User;
       </div>
 
       {error && (
-        <p className="text-sm" style={{ color: "var(--color-danger)" }} role="alert">
+        <InlineError>
           {error}
-        </p>
+        </InlineError>
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {/* Username */}
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">{t("username")}</span>
+        <Field label={t("username")}>
           <input
             className="input"
             type="text"
@@ -109,11 +110,10 @@ export default function ProfileSection({ user, preferences = {} }: { user: User;
             autoComplete="username"
             disabled={saving}
           />
-        </label>
+        </Field>
 
         {/* Display Name */}
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">{t("displayName")}</span>
+        <Field label={t("displayName")}>
           <input
             className="input"
             type="text"
@@ -123,11 +123,10 @@ export default function ProfileSection({ user, preferences = {} }: { user: User;
             autoComplete="name"
             disabled={saving}
           />
-        </label>
+        </Field>
 
         {/* Email */}
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">{t("email")}</span>
+        <Field label={t("email")}>
           <input
             className="input"
             type="email"
@@ -137,12 +136,11 @@ export default function ProfileSection({ user, preferences = {} }: { user: User;
             autoComplete="email"
             disabled={saving}
           />
-        </label>
+        </Field>
 
-        {/* Email confirmation — only shown when email changed */}
+        {/* Email confirmation — only shown when email changed. TODO: replace with API call — backend email verification */}
         {emailChanged && (
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("confirmNewEmail")}</span>
+          <Field label={t("confirmNewEmail")}>
             <input
               className="input"
               type="email"
@@ -152,10 +150,7 @@ export default function ProfileSection({ user, preferences = {} }: { user: User;
               autoComplete="email"
               disabled={saving}
             />
-            <span className="text-xs opacity-50">
-              {// TODO: replace with API call — backend email verification
-            }</span>
-          </label>
+          </Field>
         )}
 
         <ClassicSelectMenu

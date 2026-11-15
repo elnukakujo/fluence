@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Download, RotateCcw, Trash2 } from "lucide-react";
-import ConfirmDialog from "./confirmDialog";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 
 export type Backup = {
   filename: string;

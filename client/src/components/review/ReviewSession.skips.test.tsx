@@ -12,7 +12,10 @@ vi.mock("@/components/exercises/exerciseRunner", () => ({ default: ({ exercise, 
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
 vi.mock("@/api/language", () => ({ getLanguageById: vi.fn().mockResolvedValue({ target_iso639_2t: "jpn" }) }));
 
-import ReviewFlashCard from "./reviewFlashCard";
+import ReviewSession from "./ReviewSession";
+
+// the render calls below predate the shell's items/options props: this adapter keeps them (and every assertion) as they were
+const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof ReviewSession>[0]["items"]; languageId?: string }) => <ReviewSession items={cards} options={{ languageId }} />;
 
 const ex = (id: string, exercise_type: string) => ({ id, exercise_type, question: "q", answer: "a", created_at: "2026-01-01T00:00:00" }) as unknown as ReviewCard;
 beforeEach(() => vi.clearAllMocks());

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import SourceStep from "./sourceStep";
@@ -51,9 +51,7 @@ describe("SourceStep", () => {
     await user.type(descriptionTextarea, "A test description");
 
     // Select level 5 from the level select
-    const levelLabel = screen.getByText("Level");
-    const levelContainer = levelLabel.closest("label")!;
-    const levelSelect = within(levelContainer).getByRole("combobox") as HTMLSelectElement;
+    const levelSelect = screen.getByRole("combobox", { name: /level/i }) as HTMLSelectElement;
     await user.selectOptions(levelSelect, "5");
 
     // The onChange should be called with all the values

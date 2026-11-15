@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from ..features.study_constants import (BOOST_FACTOR, GEN_CALL_PER_EXERCISE, GEN_GRAMMAR_EXERCISES, GEN_GUARANTEE_READING_FROM, GEN_MAX,
                                         GEN_MIN, GEN_MULTI_ITEM, GEN_READING_WEIGHT, GEN_VOC_PER_EXERCISE)
-from ..ingestion.elements import EXERCISE_TYPES
+from ..exercises.registry import EXERCISE_TYPES
 from ..system_data.exercise_user_pref import effective_mode
 
 Kind = Literal["vocabulary", "grammar", "calligraphy"]

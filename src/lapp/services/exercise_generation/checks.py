@@ -3,7 +3,8 @@ import re
 from difflib import SequenceMatcher
 
 from ..features.study_constants import GEN_DUPLICATE_RATIO
-from ..ingestion.elements import EXERCISE_TYPES, exercise_content_error
+from ..exercises.registry import EXERCISE_TYPES
+from ..exercises.content import exercise_content_error
 from ..ingestion.verify import normalise
 
 ANSWER_REQUIRED = ("answering", "translate")   # the other types derive their answer from `content`; an essay may be open-ended (no answer)

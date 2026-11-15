@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { getLevelLabel, languageProficiencySystems } from "@/utils/language_iso639";
+import Field from "@/components/ui/field";
 
 export type SourceStepData = {
   source_title: string;
@@ -54,26 +55,22 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
   return (
     <fieldset className="flex flex-col gap-4">
       <legend className="mb-1 text-base font-semibold">{t("sourceStepHeading")}</legend>
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{t("sourceTitleLabel")}</span>
+      <Field label={t("sourceTitleLabel")}>
         <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("sourceTitlePlaceholder")} required />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{t("sourceTypeLabel")}</span>
+      <Field label={t("sourceTypeLabel")}>
         <select className="input" value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
           {SOURCE_TYPES.map((s) => <option key={s} value={s}>{t(`sourceType_${s}`)}</option>)}
         </select>
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{t("sourceDescriptionLabel")}</span>
+      <Field label={t("sourceDescriptionLabel")}>
         <textarea className="input input-grow" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("sourceDescriptionPlaceholder")} />
-      </label>
+      </Field>
 
       {showLevel && levelOptions.length > 0 && (
-        <label className="flex flex-col gap-1">
-          <span className="field-label">{t("levelLabel")}</span>
+        <Field label={t("levelLabel")} hint={t("levelApplied")}>
           <select
             className="input"
             value={level}
@@ -85,8 +82,7 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
               </option>
             ))}
           </select>
-          <span className="text-xs opacity-70">{t("levelApplied")}</span>
-        </label>
+        </Field>
       )}
     </fieldset>
   );

@@ -3,21 +3,9 @@ from pydantic import field_validator, model_validator
 
 from ..base import BaseFeatureDict
 
-VALID_EXERCISE_TYPES = [
-    "essay",
-    "answering",
-    "translate",
-    "organize",
-    "type_in_the_blank",
-    "select_in_the_blank",
-    "matching",
-    "true_false",
-    "speaking",
-    "conversation",
-    "quizz",
-    "reading",
-    "dictation",
-]
+from ...services.exercises.registry import EXERCISE_TYPES
+
+VALID_EXERCISE_TYPES = list(EXERCISE_TYPES)
 
 
 class ExerciseDict(BaseFeatureDict):

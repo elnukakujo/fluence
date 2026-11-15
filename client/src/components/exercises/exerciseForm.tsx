@@ -23,6 +23,9 @@ import { type ReadingRow, type DictationRow, readingContent, readingRows, dictat
 import {
     type BlankRow, BlankContentEditor, QuizzContentEditor, MatchingContentEditor, ReadingContentEditor, DictationContentEditor, OrganizeContentEditor,
 } from "./contentEditors";
+import InlineError from "@/components/ui/inlineError";
+import { categoryOf, getExamCategories } from "@/utils/language_iso639";
+import { categoryLabel } from "@/utils/groupByCategory";
 
 const STRUCTURED_TYPES: NonNullable<Exercise["exercise_type"]>[] = [
     "type_in_the_blank", "select_in_the_blank", "matching", "organize", "true_false", "quizz",
@@ -54,6 +57,7 @@ export default function ExerciseForm({
     exercise,
     lesson_id,
     lessonElements,
+    languageIso,
 }: {
     exercise?: Exercise | Partial<Exercise>;
     lesson_id: string;
@@ -63,6 +67,13 @@ export default function ExerciseForm({
     const t = useTranslations("exercises");
     const router = useRouter();
     const isUpdate = Boolean(exercise?.id);
+    // The type dropdown lists the types under the language's exam sections (Reading, Listening...), in the exam's order.
+    const categories = getExamCategories(languageIso);
+    const slugOf = (o: string) => categoryOf(o, categories);
+    const extra = [...new Set(EXERCISE_TYPE_OPTIONS.map(slugOf).filter((c): c is string => !!c && !categories.some((k) => k.slug === c)))];   // sections the exam lacks (e.g. writing for JLPT)
+    const typeGroups = [...categories.map((c) => c.slug), ...extra, null]
+        .map((slug) => ({ label: slug ? categoryLabel(t, slug) : t("categoryOther"), options: EXERCISE_TYPE_OPTIONS.filter((o) => slugOf(o) === slug) }))
+        .filter((g) => g.options.length > 0);
 
     let exerciseData: Partial<Exercise>;
     if (!exercise) {
@@ -308,6 +319,7 @@ export default function ExerciseForm({
             <ClassicSelectMenu
                 label={t("exerciseType")}
                 options={EXERCISE_TYPE_OPTIONS}
+                groups={typeGroups}
                 optionLabel={(v) => (EXERCISE_TYPE_KEY[v] ? t(EXERCISE_TYPE_KEY[v]) : undefined)}
                 selectedOption={exerciseType || ""}
                 onChange={(value) => setExerciseType(value as Exercise["exercise_type"])}
@@ -422,7 +434,7 @@ export default function ExerciseForm({
                             setSelectedElements={setRelatedCalligraphies}
                             label={t("associatedCalligraphies")}
                         />
-                        {linkError && <p role="alert" className="text-sm text-red-600">{t("linkRequired")}</p>}
+                        {linkError && <InlineError>{t("linkRequired")}</InlineError>}
                     </section>
 
                     <TagSelector

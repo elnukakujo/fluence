@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Loader2, Volume2 } from "lucide-react";
 import { generateLineAudio } from "@/api/exercise";
 import type Exercise from "@/interface/features/Exercise";
+import InlineError from "@/components/ui/inlineError";
 
 /** Generates, with the user's TTS endpoint, the clip of every reading / dictation line that has none, then refreshes. */
 export default function GenerateAudioButton({ exercise }: { exercise: Exercise }) {
@@ -31,7 +32,7 @@ export default function GenerateAudioButton({ exercise }: { exercise: Exercise }
                 {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Volume2 size={16} aria-hidden />}
                 {busy ? t("generatingAudio") : t("generateAudio")}
             </button>
-            {error && <p role="alert" className="text-danger">{t("ttsFailed")}</p>}
+            {error && <InlineError>{t("ttsFailed")}</InlineError>}
         </div>
     );
 }

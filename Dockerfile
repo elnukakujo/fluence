@@ -19,6 +19,7 @@ COPY docker/prefetch_ocr_models.py /tmp/prefetch_ocr_models.py
 RUN uv run --frozen --no-dev python /tmp/prefetch_ocr_models.py && rm /tmp/prefetch_ocr_models.py
 
 COPY src/ ./src/
+COPY shared/ ./shared/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY docker/entrypoint.sh /entrypoint.sh

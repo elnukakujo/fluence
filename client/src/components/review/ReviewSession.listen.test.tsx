@@ -12,7 +12,10 @@ vi.mock("@/components/media/audioPlayer", () => ({ default: ({ src }: { src: str
 vi.mock("@/utils/listenFirst", () => ({ isListenFirst: (c: { id: string }) => c.id === "voc_listen" }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
 
-import ReviewFlashCard from "./reviewFlashCard";
+import ReviewSession from "./ReviewSession";
+
+// the render calls below predate the shell's items/options props: this adapter keeps them (and every assertion) as they were
+const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof ReviewSession>[0]["items"]; languageId?: string }) => <ReviewSession items={cards} options={{ languageId }} />;
 
 const voc = (id: string) => ({
     id, card_id: `${id}#front`, side: "front", created_at: "2026-01-01T00:00:00",

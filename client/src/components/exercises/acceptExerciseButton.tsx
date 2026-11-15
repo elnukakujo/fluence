@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 import { updateExercise } from "@/api/exercise";
 import type Exercise from "@/interface/features/Exercise";
+import InlineError from "@/components/ui/inlineError";
 
 /** Accepts a generated / imported exercise waiting for review (clears `review_reason`), then refreshes. */
 export default function AcceptExerciseButton({ exercise }: { exercise: Exercise }) {
@@ -28,7 +29,7 @@ export default function AcceptExerciseButton({ exercise }: { exercise: Exercise 
             <button type="button" className="btn btn-primary inline-flex items-center gap-2" disabled={busy} onClick={run}>
                 <Check size={16} aria-hidden />{t("acceptExercise")}
             </button>
-            {error && <p role="alert" className="text-danger">{t("acceptFailed")}</p>}
+            {error && <InlineError>{t("acceptFailed")}</InlineError>}
         </div>
     );
 }

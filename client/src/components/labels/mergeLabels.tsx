@@ -7,6 +7,7 @@ import type Tag from "@/interface/systemData/Tag";
 import type Source from "@/interface/systemData/Source";
 import { mergeTags } from "@/api/tag";
 import { mergeSources } from "@/api/source";
+import InlineError from "@/components/ui/inlineError";
 
 type Item = Tag | Source;
 const SOURCE_TYPES = ["original", "textbook", "class", "online", "media", "social", "other"];
@@ -75,7 +76,7 @@ export default function MergeLabels({ kind, a, b }: { kind: "tag" | "source"; a:
       </div>
       <div className="card sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex flex-col gap-2 md:bottom-4">
         <p className="text-sm">{t("mergeSummary", { count: countElements(a, b) })}</p>
-        {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+        {error && <InlineError>{error}</InlineError>}
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" className="btn btn-secondary min-h-11" disabled={busy} onClick={() => router.back()}>{tUi("cancel")}</button>
           <button type="submit" className="btn btn-primary min-h-11" disabled={busy}>{busy ? t("merging") : t("merge")}</button>

@@ -1,4 +1,4 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
 
 export type GoalKind = "vocabulary" | "grammar" | "calligraphy";
 /** Quantities are per period; the saved ones start with the NEXT period, the running period's menu is locked. */
@@ -16,20 +16,14 @@ export interface Suggested { n: Record<GoalKind, number>; r: Record<GoalKind, nu
 export interface StudyGoalState { goal: StudyGoal | null; progress: StudyGoalProgress | null; suggested?: Suggested }
 
 export async function getStudyGoal(languageId: string): Promise<StudyGoalState> {
-    const res = await fetch(`${BASE_URL}/api/study-goal/${languageId}`, { headers: await getAuthHeaders() });
-    if (!res.ok) throw new Error(`Failed to fetch the study goal (${res.status})`);
-    return res.json();
+    return apiFetch(`/api/study-goal/${languageId}`, { errorMessage: "Failed to fetch the study goal" });
 }
 
 export async function saveStudyGoal(languageId: string, goal: Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "active" | "auto">): Promise<StudyGoalState> {
-    const res = await fetch(`${BASE_URL}/api/study-goal/${languageId}`, { method: "PUT", headers: await getAuthHeaders(), body: JSON.stringify(goal) });
-    if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Failed to save the study goal (${res.status})`);
-    return res.json();
+    return apiFetch(`/api/study-goal/${languageId}`, { method: "PUT", body: goal, errorMessage: "Failed to save the study goal" });
 }
 
 /** Rebuild the running menu from the saved quantities; mastered / reviewed elements are kept unless `keepMastered` is false. */
 export async function resetStudyGoal(languageId: string, keepMastered = true): Promise<StudyGoalState> {
-    const res = await fetch(`${BASE_URL}/api/study-goal/${languageId}/reset`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ keep_mastered: keepMastered }) });
-    if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Failed to reset the study goal (${res.status})`);
-    return res.json();
+    return apiFetch(`/api/study-goal/${languageId}/reset`, { method: "POST", body: { keep_mastered: keepMastered }, errorMessage: "Failed to reset the study goal" });
 }

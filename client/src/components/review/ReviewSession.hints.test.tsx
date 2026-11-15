@@ -10,9 +10,12 @@ vi.mock("@/api/process", () => api);
 vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));
 vi.mock("@/components/exercises/exerciseRunner", () => ({ default: () => <div /> }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
-vi.mock("./calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" /> }));
+vi.mock("@/components/elements/calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" /> }));
 
-import ReviewFlashCard from "./reviewFlashCard";
+import ReviewSession from "./ReviewSession";
+
+// the render calls below predate the shell's items/options props: this adapter keeps them (and every assertion) as they were
+const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof ReviewSession>[0]["items"]; languageId?: string }) => <ReviewSession items={cards} options={{ languageId }} />;
 
 const voc = (extra: Record<string, unknown> = {}) => ({
     id: "voc_1", card_id: "voc_1#front", side: "front", created_at: "2026-01-01T00:00:00",

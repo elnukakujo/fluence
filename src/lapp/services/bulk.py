@@ -5,18 +5,17 @@ from sqlalchemy.orm import Session
 
 from ..core.database import transactional
 from .system_data.score import ScoreService
-from ..models.containers import Language, Lesson
-from ..models.features import Calligraphy, Exercise, Grammar, Vocabulary
-
-_MODELS = {"voc_": Vocabulary, "gram_": Grammar, "call_": Calligraphy, "ex_": Exercise}
-
-
-_CONTAINERS = {"lesson_": Lesson, "lang_": Language}   # only tags / sources apply to these
+from ..models.containers import Lesson
 
 
 def model_of(element_id: str, containers: bool = False):
-    models = {**_MODELS, **_CONTAINERS} if containers else _MODELS
-    return next((m for p, m in models.items() if isinstance(element_id, str) and element_id.startswith(p)), None)
+    from ..utils.element_kinds import kind_of
+    kind = kind_of(element_id)
+    if kind is None:
+        return None
+    if kind.bulkable or (containers and kind.container):
+        return kind.model()
+    return None
 
 
 class BulkElementService:

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import { fetchLogs } from "@/api/logs";
+import InlineError from "@/components/ui/inlineError";
 
 const LEVEL_CLASS: Record<string, string> = {
   ERROR: "text-danger",
@@ -68,9 +69,9 @@ export default function LogsSection() {
       </div>
 
       {error && (
-        <p className="text-sm text-danger" role="alert">
-          ✗ {error}
-        </p>
+        <InlineError>
+          {error}
+        </InlineError>
       )}
 
       <div

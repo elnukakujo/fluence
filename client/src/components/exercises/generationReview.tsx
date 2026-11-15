@@ -9,6 +9,7 @@ import ExerciseEditor from "@/components/ingestion/exerciseEditor";
 import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
 import type Exercise from "@/interface/features/Exercise";
 import type { Row } from "@/lib/ingestion/review";
+import InlineError from "@/components/ui/inlineError";
 
 type Entry = { id: string; reason: string; row: Row };
 
@@ -59,7 +60,7 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
                 <h2 id="review-title" className="text-lg font-semibold">{t("reviewTitle")}</h2>
                 <p className="text-sm text-muted">{t("reviewIntro")}</p>
                 {entries === null && !error && <p role="status">{t("generateLoading")}</p>}
-                {error && <p role="alert" className="text-red-600">{t("reviewFailed")}</p>}
+                {error && <InlineError>{t("reviewFailed")}</InlineError>}
                 {entries && entries.length > 0 && (
                     <>
                         <div className="flex flex-wrap gap-2">

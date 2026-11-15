@@ -7,6 +7,7 @@ import ItemActionBar from "@/components/elements/itemActionBar";
 import ManageList from "@/components/elements/manageList";
 import { SelectionScope, SelectToggle, useItemSelection } from "@/components/elements/itemSelection";
 import LanguageOverviewCard from "./languageOverviewCard";
+import EmptyState from "@/components/ui/emptyState";
 
 // Home page: the user's languages as a card grid, or (select mode) the shared select / reorder list with the action bar.
 export default function LanguageGrid({ languages, userId }: { languages: Language[]; userId: string }) {
@@ -35,7 +36,7 @@ function Languages({ languages, owned }: { languages: Language[]; owned: (l: Lan
                     items={languages.map((l) => ({ id: l.id!, title: `${l.name}${l.alias ? ` (${l.alias})` : ""}`, owned: owned(l) }))} />
             ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4">
-                    {languages.length === 0 && <p className="text-sm text-muted">{t("noAvailableLanguages")}</p>}
+                    {languages.length === 0 && <EmptyState className="text-sm">{t("noAvailableLanguages")}</EmptyState>}
                     {languages.map((lang) => <LanguageOverviewCard key={lang.id} language={lang} />)}
                 </div>
             )}

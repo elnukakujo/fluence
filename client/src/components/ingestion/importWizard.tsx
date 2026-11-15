@@ -20,6 +20,8 @@ import { PageKindsWithViewer } from "./pageKinds";
 import StepProgress from "./stepProgress";
 import FilePreview from "./filePreview";
 import SourceStep, { type SourceStepData } from "./sourceStep";
+import Field from "@/components/ui/field";
+import InlineError from "@/components/ui/inlineError";
 
 type Props = { languageId: string; lessonId: string; lessonTitle: string; settingsHref: string };
 
@@ -103,11 +105,10 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
         </div>
       )}
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm opacity-70">{t("documentLabel")}</span>
+      <Field label={t("documentLabel")}>
         <input className="input" type="file" accept=".pdf,image/*" disabled={blocked || busy}
           onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      </label>
+      </Field>
 
       {file && (
         <SourceStep
@@ -145,7 +146,7 @@ export function UploadStep({ languageId, lessonId, heading, settingsHref, base, 
         </p>
       )}
 
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+      {error && <InlineError>{error}</InlineError>}
       <div className="btn-row">
         <button type="submit" className="btn btn-primary" disabled={blocked || busy || !file}>{busy ? t("uploadingButton") : t("uploadButton")}</button>
         <Link href={cancelHref} className="btn btn-secondary">{t("cancelButton")}</Link>
@@ -285,7 +286,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
         {pagesData.warnings.length > 0 && (<ul className="list-disc pl-5 text-sm">{pagesData.warnings.map((w) => <li key={w}>{w}</li>)}</ul>)}
       </header>
       <PageKindsWithViewer pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>Error: {error}</p>}
+      {error && <InlineError>Error: {error}</InlineError>}
       <div className="btn-row flex-wrap">
         <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>{t("startAnotherDocument")}</button>
         <button type="button" className="btn btn-primary" disabled={saving} onClick={confirm}>{saving ? t("startingButton") : t("continueToExtraction")}</button>

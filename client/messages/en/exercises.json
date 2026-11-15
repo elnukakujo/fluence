@@ -129,6 +129,7 @@
   "categoryNone": "None",
   "uncategorized": "Uncategorized",
   "filterCategory": "Exam section",
+  "categoryOther": "Other",
   "cat_listening": "Listening comprehension",
   "cat_reading": "Reading comprehension",
   "cat_writing": "Writing",
@@ -193,5 +194,161 @@
   "generateMixAdd": "Add",
   "generateMixReset": "Reset",
   "generateMixNeedRoom": "To add more, remove one from another type first.",
-  "generateMixPlaceFree": "Place the free exercises or lower the total to generate."
+  "generateMixPlaceFree": "Place the free exercises or lower the total to generate.",
+  "levels": {
+    "speaking": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "Your repetition is still finding its way—keep practicing!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "You're getting there, but a few words slipped!"
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "You're repeating well, and that's a big win!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Impressive! Just a few tweaks and you'll nail it."
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! Spot-on repetition every time."
+      }
+    },
+    "type_in_the_blank": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "The blanks are still a mystery—keep at it!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "Some blanks filled, but a few gaps remain."
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "You're filling in the blanks with confidence!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Almost perfect—just a couple of blanks to go."
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! Every blank filled perfectly."
+      }
+    },
+    "organize": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "The sentence order is still a puzzle—keep practicing!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "Some words in place, but the order needs work."
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "Your sentence structure is coming together!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Nearly perfect order—just a little reshuffling needed."
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! Every word exactly where it should be."
+      }
+    },
+    "translate": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "The meaning is still getting lost—keep practicing!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "You're conveying some meaning, but locals might need to guess."
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "Your translation gets the message across!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Impressive! Just a few word choices to refine."
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! A translator would be proud."
+      }
+    },
+    "answering": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "Your answer is still finding its footing—keep going!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "You're on the right track, but the answer needs more."
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "Your answer makes sense—good job!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Great answer! Just a little more detail or accuracy."
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! A model answer through and through."
+      }
+    },
+    "conversation": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "The conversation is still a challenge—keep practicing!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "You're joining the conversation, but it's a bit bumpy."
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "You're holding your own in the conversation!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Natural and fluent—almost indistinguishable!"
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! You'd fit right into any conversation."
+      }
+    },
+    "essay": {
+      "0": {
+        "label": "Lost in Translation",
+        "description": "Your essay is still taking shape—keep writing!"
+      },
+      "1": {
+        "label": "Tourist Mode",
+        "description": "You're expressing ideas, but clarity needs work."
+      },
+      "2": {
+        "label": "Confident Speaker",
+        "description": "Your essay communicates well—nice work!"
+      },
+      "3": {
+        "label": "Almost Native",
+        "description": "Impressive writing! A few refinements and it'll shine."
+      },
+      "4": {
+        "label": "Native-like",
+        "description": "Flawless! A beautifully written, compelling essay."
+      }
+    }
+  }
 }

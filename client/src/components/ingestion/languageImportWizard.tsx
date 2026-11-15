@@ -22,6 +22,7 @@ import StepProgress from "./stepProgress";
 import { UploadStep } from "./importWizard";
 import ReviewPanel from "./reviewPanel";
 import { PageKindsWithViewer } from "./pageKinds";
+import InlineError from "@/components/ui/inlineError";
 
 type Props = { languageId: string; languageName: string; settingsHref: string };
 
@@ -213,7 +214,7 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
         <p aria-live="polite">
           {t("lessonsSummary", { included, calls })}
         </p>
-        {(problem || error) && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error ?? problem}</p>}
+        {(problem || error) && <InlineError>{error ?? problem}</InlineError>}
         <div className="btn-row flex-wrap">
           <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>{t("chooseAnotherDocument")}</button>
           <button type="button" className="btn btn-secondary" onClick={() => setDrafts((ds) => addDraft(ds, structure.last_page))}>{t("addALesson")}</button>
@@ -328,7 +329,7 @@ function LessonSection({ job, lesson: l, languageId, defaultOpen, added, onAdded
         </span>
       </summary>
       <div className="mt-4 border-t border-border pt-4">
-        {l.status === "failed" && <p role="alert">✗ {l.error ?? t("lessonCouldNotBeRead")}</p>}
+        {l.status === "failed" && <InlineError>{l.error ?? t("lessonCouldNotBeRead")}</InlineError>}
         {l.status === "pending" && <p className="opacity-70">{t("lessonNotReadYet")}</p>}
         {createdId && (
           <p role="status">

@@ -1,4 +1,4 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
@@ -17,19 +17,14 @@ export type ReviewCard = (Vocabulary | Grammar | Calligraphy | Exercise) & {
 
 /** Saves the user's own memory trick on a card (empty clears it). */
 export async function saveCardNote(elementId: string, note: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/review/note/${elementId}`, { method: "PUT", headers: await getAuthHeaders(), body: JSON.stringify({ note }) });
-  if (!res.ok) throw new Error(`Failed to save the note (${res.status})`);
+  await apiFetch(`/api/review/note/${elementId}`, { method: "PUT", body: { note }, errorMessage: "Failed to save the note" });
 }
 
 export async function getReviewCards(languageId: string): Promise<ReviewCard[]> {
-  const res = await fetch(`${BASE_URL}/api/review/${languageId}`, { headers: await getAuthHeaders() });
-  if (!res.ok) throw new Error(`Failed to fetch review cards for language ${languageId}`);
-  return res.json();
+  return apiFetch(`/api/review/${languageId}`, { errorMessage: `Failed to fetch review cards for language ${languageId}` });
 }
 
 /** The daily review queue was finished: validates today for the streak (once per day). */
 export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean }> {
-  const res = await fetch(`${BASE_URL}/api/review/${languageId}/complete`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ cards }) });
-  if (!res.ok) throw new Error(`Failed to complete the review (${res.status})`);
-  return res.json();
+  return apiFetch(`/api/review/${languageId}/complete`, { method: "POST", body: { cards }, errorMessage: "Failed to complete the review" });
 }

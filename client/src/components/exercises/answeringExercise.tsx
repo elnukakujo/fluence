@@ -1,20 +1,17 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { useAttemptScoring } from "./useAttemptScoring";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Ring } from "ldrs/react";
 import { useTranslations } from "next-intl";
-//@ts-ignore
-import 'ldrs/react/Ring.css';
 
-import type Exercise from "@/interface/features/Exercise";
-import { updateScoreById, evaluateText } from "@/api/process";
+import { evaluateText } from "@/api/process";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
-import { useRef } from "react";
+import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 
 export default function AnsweringExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -24,23 +21,17 @@ export default function AnsweringExercise({ exercise, onFinished }: Omit<Exercis
     
     const [userAnswer, setUserAnswer] = useState<string>('');
 
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const [attempts, setAttempts] = useState<number>(0);
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string, stars: string } | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const hasFeedback = isCorrect || attempts > 0;
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts >= 3, onFinished);
+    const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
+    const hasFeedback = correct || attempts > 0;
 
     useEffect(() => {
         setUserAnswer('');
         setCurrentLevel(null);
         setIsLoading(false);
-        setIsCorrect(false);
-        setAttempts(0);
         setFeedbackMessage(null);
-        startTimeRef.current = performance.now();
     }, [exercise]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -49,18 +40,13 @@ export default function AnsweringExercise({ exercise, onFinished }: Omit<Exercis
 
         evaluateText(exercise.id!, userAnswer).then((result) => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "answering"));
+            setCurrentLevel(getExerciseLevel("answering", result.score, t));
             if (result.correct === true) {
-                setIsCorrect(true);
-                const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                updateScoreById(exercise.id!, result.score, duration_ms, false, attempts + 1).catch(console.error);
+                submit(result.score, { final: true, correct: true });
+            } else if (attempts >= 2) {
+                submit(result.score, { final: true, correct: false }); // the third miss
             } else {
-                const newAttempts = attempts + 1;
-                setAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                    updateScoreById(exercise.id!, result.score, duration_ms, false, newAttempts).catch(console.error);
-                }
+                miss();
             }
             setIsLoading(false);
         }).catch((error) => {
@@ -88,33 +74,15 @@ export default function AnsweringExercise({ exercise, onFinished }: Omit<Exercis
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
                 className="input"
-                disabled={isLoading || isCorrect || attempts >= 3}
+                disabled={isLoading || correct || attempts >= 3}
             />
-            { !isCorrect && attempts < 3 ? (
-                <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={isCorrect || attempts >= 3 || isLoading}
-                >
-                    {isLoading ? (
-                        <Ring
-                            size="24"
-                            stroke="2"
-                            bgOpacity="0"
-                            speed="3"
-                            color="white"
-                        />
-                    )
-                    : (
-                        <p>{t("checkAnswers")}</p>
-                    )}
-                </button>
+            { !correct && attempts < 3 ? (
+                <CheckButton label={t("checkAnswers")} loading={isLoading} />
             ) : null}
 
             {hasFeedback && currentLevel && (
-                <div className={`card mt-4 ${isCorrect ?
-                    'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? (
+                <FeedbackPanel correct={correct}>
+                    {correct ? (
                         <>
                             <p>
                                 {feedbackMessage && (
@@ -134,12 +102,12 @@ export default function AnsweringExercise({ exercise, onFinished }: Omit<Exercis
 
                         {t("level")}{currentLevel!.label} ({currentLevel!.stars})
                     </p>
-                    {attempts >= 3 && !isCorrect && (
+                    {attempts >= 3 && !correct && (
                         <div className="mt-2">
                             <p className="font-medium">{t("correctAnswer")} {answer}</p>
                         </div>
                     )}
-                </div>
+                </FeedbackPanel>
             )}
         </form>
     );

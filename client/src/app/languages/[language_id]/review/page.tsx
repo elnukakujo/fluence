@@ -1,4 +1,4 @@
-import ReviewFlashCard from "@/components/elements/reviewFlashCard";
+import ReviewSession from "@/components/review/ReviewSession";
 import { getReviewCards } from "@/api/review";
 import { getTranslations } from "next-intl/server";
 
@@ -10,7 +10,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ languag
     return (
         <main>
             <h1>{t("dailyReview")}</h1>
-            <ReviewFlashCard cards={cards} languageId={language_id} />
+            <ReviewSession items={cards} options={{ languageId: language_id }} />
         </main>
     );
 }
