@@ -19,7 +19,7 @@ import ReviewSession from "./ReviewSession";
 // the render calls below predate the shell's items/options props: this adapter keeps them (and every assertion) as they were
 const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof ReviewSession>[0]["items"]; languageId?: string }) => <ReviewSession items={cards} options={{ languageId }} />;
 
-const voc = (side: "front" | "back", score = 80) => ({
+const voc = (side: "front" | "back", score = 90) => ({
     id: "voc_1", card_id: `voc_1#${side}`, side, created_at: "2026-01-01T00:00:00",
     word: { word: "猫", translation: "cat", phonetic: "māo" }, example_sentences: [{ text: "猫在睡觉", translation: "The cat sleeps." }],
     front_score: score, front_difficulty: 0.3, back_score: score, back_difficulty: 0.3, score, difficulty: 0.3,
@@ -89,15 +89,15 @@ describe("review card: type the word", () => {
         const a = render(<ReviewFlashCard cards={[voc("front")]} />);
         expect(screen.queryByLabelText("Type the word")).toBeNull();
         a.unmount();
-        render(<ReviewFlashCard cards={[voc("back", 40)]} />);
+        render(<ReviewFlashCard cards={[voc("back", 70)]} />);
         expect(screen.queryByLabelText("Type the word")).toBeNull();
     });
 
     it("a maintaining calligraphy card opens the drawing canvas by itself", () => {
-        const a = render(<ReviewFlashCard cards={[call(80)]} />);
+        const a = render(<ReviewFlashCard cards={[call(90)]} />);
         expect(screen.getByTestId("canvas")).toBeInTheDocument();
         a.unmount();
-        render(<ReviewFlashCard cards={[call(40)]} />);
+        render(<ReviewFlashCard cards={[call(70)]} />);
         expect(screen.queryByTestId("canvas")).toBeNull();
     });
 });

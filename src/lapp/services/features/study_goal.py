@@ -10,7 +10,8 @@ from ...models.features import Vocabulary, Grammar, Calligraphy
 from ...models.system_data import StudyGoal, StudyGoalItem, Score
 from ...utils import review_priority
 from ...models.system_data import UserPreferences
-from .study_constants import GOAL_MASTERED_SCORE, DEFAULT_GOAL_PERIOD, default_goal_quantities
+from ...utils.scoring import KNOWN_FROM
+from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
 # goal type -> (element model, "new" quantity column, "review" quantity column)
@@ -287,7 +288,7 @@ class StudyGoalService:
         began (both sides for vocabulary)."""
         new_ids = [i.element_id for i in items if i.kind == "new"]
         scores = self._scores(user_id, new_ids, session)
-        finished = {i.id for i in items if i.kind == "new" and scores.get(i.element_id, 0.0) >= GOAL_MASTERED_SCORE}
+        finished = {i.id for i in items if i.kind == "new" and scores.get(i.element_id, 0.0) >= KNOWN_FROM}
         reviews = [i for i in items if i.kind == "review"]
         sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
         rows = session.query(Score.element_id, Score.last_seen_at).filter(

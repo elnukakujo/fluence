@@ -1,10 +1,10 @@
 import { STUDY } from "@/shared/studyConstants";
-/** How well a flashcard is known, from the card's own score (0-100) and difficulty (0-1). The thresholds are TODO(user) stand-ins. */
+/** How well a flashcard is known, from the card's own score (0-100) and difficulty (0-1). The score cut-offs are the shared level cut-offs (learning < 60, practising 60-84, maintaining >= 85). */
 export type Tier = "learning" | "practising" | "maintaining";
 
-export const TIER_LEARNING_SCORE = STUDY.tier.learningScore;
+export const TIER_LEARNING_SCORE = STUDY.levels.knownFrom;
 export const TIER_LEARNING_DIFFICULTY = STUDY.tier.learningDifficulty;
-export const TIER_MAINTAINING_SCORE = STUDY.tier.maintainingScore;
+export const TIER_MAINTAINING_SCORE = STUDY.levels.masteredFrom;
 
 export function cardTier(score: number, difficulty: number): Tier {
     if (score < TIER_LEARNING_SCORE || difficulty > TIER_LEARNING_DIFFICULTY) return "learning";

@@ -21,7 +21,7 @@ const voc = (extra: Record<string, unknown> = {}) => ({
     id: "voc_1", card_id: "voc_1#front", side: "front", created_at: "2026-01-01T00:00:00",
     word: { word: "猫", translation: "cat", phonetic: "māo" },
     example_sentences: [{ text: "猫在睡觉", translation: "The cat sleeps." }],
-    front_score: 30, front_difficulty: 0.5, back_score: 30, back_difficulty: 0.5, score: 30, difficulty: 0.5, ...extra,
+    front_score: 70, front_difficulty: 0.5, back_score: 70, back_difficulty: 0.5, score: 70, difficulty: 0.5, ...extra,
 }) as unknown as ReviewCard;
 
 const flip = () => userEvent.click(screen.getByText("Click to reveal"));

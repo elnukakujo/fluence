@@ -1,32 +1,38 @@
 """Pure scoring engine (spec 2): decay on read, stability, evidence weights, day cap, levels, leech.
 
 No I/O, no database: every formula of the score model lives here so it can be unit-tested.
-Numbers come from the owner's decisions (see docs/superpowers/specs/2026-11-14-scoring-and-data-model-design.md);
-Task 1 moves them into shared/study-constants.json.
+Numbers come from the owner's decisions (docs/superpowers/specs/2026-11-14-scoring-and-data-model-design.md)
+and are read from shared/study-constants.json; only the TODO(owner) ones below live here.
 
 STEP = 7.5 is the audit's day-one number (simulation S1: one perfect answer on a fresh item = +7.5 today),
 so a perfect typed answer moves a new item by the same order as before.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, replace
 from datetime import date, datetime, tzinfo
+from pathlib import Path
 from typing import Literal
 
-INITIAL_STABILITY_DAYS = 2.0
-STABILITY_CAP_DAYS = 180.0
-DAY_GAIN_CAP = 15.0
-STEP = 7.5
-WEAK_BELOW = 40
-KNOWN_FROM = 60
-MASTERED_FROM = 85
-LEECH_WRONG, LEECH_WINDOW, LEECH_LEAVE_IN_ROW = 4, 8, 3
+# The one source for the numbers shared with the client (shared/study-constants.json).
+_SHARED = json.loads((Path(__file__).resolve().parents[3] / "shared" / "study-constants.json").read_text(encoding="utf-8"))
+
+INITIAL_STABILITY_DAYS = _SHARED["score"]["initialStabilityDays"]
+STABILITY_CAP_DAYS = _SHARED["score"]["stabilityCapDays"]
+DAY_GAIN_CAP = _SHARED["score"]["dayGainCap"]
+EVIDENCE_WEIGHTS = _SHARED["score"]["evidenceWeights"]
+WEAK_BELOW = _SHARED["levels"]["weakBelow"]
+KNOWN_FROM = _SHARED["levels"]["knownFrom"]
+MASTERED_FROM = _SHARED["levels"]["masteredFrom"]
+LEECH_WRONG = _SHARED["leech"]["enter"]["wrong"]
+LEECH_WINDOW = _SHARED["leech"]["enter"]["window"]
+LEECH_LEAVE_IN_ROW = _SHARED["leech"]["leaveCorrectInRow"]
+STEP = 7.5   # audit S1 day-one number (not a shared number: the client never computes deltas)
 # TODO(owner): quality at/above which an answer counts as correct (stability x2, leech streak). 0.5 = "hard" is a pass that earns nothing.
 CORRECT_AT = 0.5
 # TODO(owner): smallest stability after repeated wrong answers (÷2 each time); never reaches 0.
 MIN_STABILITY_DAYS = 0.5
-
-EVIDENCE_WEIGHTS = {"typed": 1.0, "spoken": 1.0, "self_grade": 0.8, "multiple_choice": 0.6, "matching": 0.6}
 
 Level = Literal["learning", "known", "mastered"]
 

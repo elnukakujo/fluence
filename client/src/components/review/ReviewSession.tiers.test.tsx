@@ -43,14 +43,14 @@ describe("review card: tiers and fading scaffolds", () => {
     });
 
     it("a practising card hides the phonetic and has no Peek button", () => {
-        render(<ReviewFlashCard cards={[voc(30)]} />);
+        render(<ReviewFlashCard cards={[voc(70)]} />);
         expect(screen.getByText("Practising")).toBeInTheDocument();
         expect(front().queryByText("/māo/")).toBeNull();
         expect(screen.queryByRole("button", { name: "Peek" })).toBeNull();
     });
 
     it("a maintaining card is bare", () => {
-        render(<ReviewFlashCard cards={[voc(70, 0.4)]} />);
+        render(<ReviewFlashCard cards={[voc(90, 0.4)]} />);
         expect(screen.getByText("Maintaining")).toBeInTheDocument();
         expect(front().queryByText("/māo/")).toBeNull();
         expect(front().queryByText("猫在睡觉")).toBeNull();
@@ -61,7 +61,7 @@ describe("review card: tiers and fading scaffolds", () => {
         const { unmount } = render(<ReviewFlashCard cards={[call(5)]} />);
         expect(front().getByText("/rì/")).toBeInTheDocument();
         unmount();
-        render(<ReviewFlashCard cards={[call(40)]} />);
+        render(<ReviewFlashCard cards={[call(70)]} />);
         expect(front().queryByText("/rì/")).toBeNull();
     });
 });

@@ -1,9 +1,31 @@
 {
+  "score": {
+    "initialStabilityDays": 2,
+    "stabilityCapDays": 180,
+    "dayGainCap": 15,
+    "evidenceWeights": {
+      "typed": 1.0,
+      "spoken": 1.0,
+      "self_grade": 0.8,
+      "multiple_choice": 0.6,
+      "matching": 0.6
+    }
+  },
+  "levels": {
+    "weakBelow": 40,
+    "knownFrom": 60,
+    "masteredFrom": 85
+  },
+  "leech": {
+    "enter": {
+      "wrong": 4,
+      "window": 8
+    },
+    "leaveCorrectInRow": 3
+  },
   "tier": {
-    "_todo": "TODO(user): flashcard-tier score/difficulty thresholds",
-    "learningScore": 20,
-    "learningDifficulty": 0.7,
-    "maintainingScore": 60
+    "_todo": "TODO(user): difficulty above which a card is still 'learning'. Score cut-offs now come from `levels`; this goes when difficulty becomes lapse-driven (spec 2, Task 8)",
+    "learningDifficulty": 0.7
   },
   "hints": {
     "_todo": "TODO(user): best grade allowed after 0/1/2 hints, and recall-time windows",
@@ -25,7 +47,6 @@
     "drawEvery": 3,
     "listenEvery": 3
   },
-  "goalMasteredScore": 60.0,
   "exerciseLevelThresholds": {
     "speaking": [
       0,

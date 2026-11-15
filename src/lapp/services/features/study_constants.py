@@ -1,12 +1,5 @@
 """Stand-in values for study preferences. Every one is a `TODO(user)`: ask before changing."""
 
-import json
-from pathlib import Path
-
-# The one source for study constants shared with the client (shared/study-constants.json).
-_SHARED = json.loads((Path(__file__).resolve().parents[4] / "shared" / "study-constants.json").read_text(encoding="utf-8"))
-
-GOAL_MASTERED_SCORE = _SHARED["goalMasteredScore"]  # TODO(user): score at which a goal item counts as mastered
 BOOST_FACTOR = 1.5          # TODO(user): review-priority multiplier for boosted exercises
 STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review to validate the day
 

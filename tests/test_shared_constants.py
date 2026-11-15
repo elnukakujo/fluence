@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from lapp.services.features.study_constants import GOAL_MASTERED_SCORE
+from lapp.utils import scoring
 
 SHARED = Path(__file__).resolve().parent.parent / "shared" / "study-constants.json"
 
@@ -17,17 +17,33 @@ def _strip_todo(d):
     return d
 
 
-def test_goal_mastered_score_reads_the_shared_file():
-    assert GOAL_MASTERED_SCORE == _load()["goalMasteredScore"]
+def test_engine_reads_the_shared_numbers():
+    d = _load()
+    assert scoring.INITIAL_STABILITY_DAYS == d["score"]["initialStabilityDays"]
+    assert scoring.STABILITY_CAP_DAYS == d["score"]["stabilityCapDays"]
+    assert scoring.DAY_GAIN_CAP == d["score"]["dayGainCap"]
+    assert scoring.EVIDENCE_WEIGHTS == d["score"]["evidenceWeights"]
+    assert (scoring.WEAK_BELOW, scoring.KNOWN_FROM, scoring.MASTERED_FROM) == (
+        d["levels"]["weakBelow"], d["levels"]["knownFrom"], d["levels"]["masteredFrom"])
+    assert (scoring.LEECH_WRONG, scoring.LEECH_WINDOW, scoring.LEECH_LEAVE_IN_ROW) == (
+        d["leech"]["enter"]["wrong"], d["leech"]["enter"]["window"], d["leech"]["leaveCorrectInRow"])
+
+
+def test_goal_item_is_finished_at_the_known_level():
+    from lapp.services.features import study_goal
+    assert study_goal.KNOWN_FROM == _load()["levels"]["knownFrom"]
 
 
 def test_shared_json_matches_the_literal_table():
     assert _strip_todo(_load()) == {
-        "tier": {"learningScore": 20, "learningDifficulty": 0.7, "maintainingScore": 60},
+        "score": {"initialStabilityDays": 2, "stabilityCapDays": 180, "dayGainCap": 15,
+                  "evidenceWeights": {"typed": 1.0, "spoken": 1.0, "self_grade": 0.8, "multiple_choice": 0.6, "matching": 0.6}},
+        "levels": {"weakBelow": 40, "knownFrom": 60, "masteredFrom": 85},
+        "leech": {"enter": {"wrong": 4, "window": 8}, "leaveCorrectInRow": 3},
+        "tier": {"learningDifficulty": 0.7},
         "hints": {"caps": [1, 0.75, 0.5], "fastMs": 3000, "slowMs": 10000},
         "typed": {"full": 0.9, "floor": 0.4},
         "cadence": {"drawEvery": 3, "listenEvery": 3},
-        "goalMasteredScore": 60.0,
         "exerciseLevelThresholds": {
             "speaking": [0, 0.50, 0.70, 0.85, 0.95],
             "type_in_the_blank": [0, 0.50, 0.70, 0.85, 0.95],
