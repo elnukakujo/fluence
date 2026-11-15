@@ -51,5 +51,6 @@
   "removeOption": "移除 {option}",
   "decrease": "减少",
   "increase": "增加",
-  "suggested": "建议"
+  "suggested": "建议",
+  "confirmTitle": "请确认"
 }

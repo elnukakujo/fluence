@@ -4,7 +4,7 @@ import { leaveSharedLesson } from "@/api/lesson";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
-import ConfirmDialog from "@/components/user/confirmDialog";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 import { useTranslations } from "next-intl";
 
 export default function StopSharingButton({ lesson_id }: { lesson_id: string }) {

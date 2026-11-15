@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { getAllUsers, deleteUser, setUserBlocked, setUserApproved } from "@/api/user";
 import SectionCard from "./sectionCard";
 import RoleBadge from "./roleBadge";
-import ConfirmDialog from "./confirmDialog";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 import type User from "@/interface/systemData/User";
 
 export default function UsersSection({ currentUserId }: { currentUserId: string }) {

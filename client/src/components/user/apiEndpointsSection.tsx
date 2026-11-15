@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import SectionCard from "./sectionCard";
 import EndpointCard, { ProviderOption, PROVIDER_OPTIONS as FALLBACK_PROVIDERS } from "./endpointCard";
 import SaveButton from "./saveButton";
-import ConfirmDialog from "./confirmDialog";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 import { updateUserPreferences } from "@/api/userPreferences";
 import { apiFetch } from "@/api/apiFetch";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";

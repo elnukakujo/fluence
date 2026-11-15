@@ -49,7 +49,7 @@ export default function Modal({ title, subtitle, onClose, children, footer }: {
             {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
           </div>
           <button type="button" onClick={onClose} aria-label={t("close")}
-            className="btn btn-secondary !p-2 !min-h-0 shrink-0">
+            className="btn btn-secondary !p-2 min-h-11 min-w-11 shrink-0">
             <X size={16} aria-hidden />
           </button>
         </div>

@@ -51,5 +51,6 @@
   "removeOption": "Retirer {option}",
   "decrease": "Diminuer",
   "increase": "Augmenter",
-  "suggested": "Suggéré"
+  "suggested": "Suggéré",
+  "confirmTitle": "Veuillez confirmer"
 }

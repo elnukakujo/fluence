@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Globe, Layers, Search, UserMinus, UserPlus, X } from "lucide-react";
 import { listUsers, listCollaborators, invite, remove, listLessonRecipients, unshareLesson, listLanguageLessons } from "@/api/collaboration";
-import ConfirmDialog from "@/components/user/confirmDialog";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 
 // `shared` = a lesson recipient (access is the share itself, there is no collaboration row to cancel)
 type Collab = { id: string; status: string; mode?: string | null; shared?: boolean };
