@@ -20,14 +20,14 @@ const flip = () => userEvent.click(screen.getByText("Click to reveal"));
 beforeEach(() => vi.clearAllMocks());
 
 describe("session as lesson study", () => {
-    it("finishes with the lesson action and never completes the daily review", async () => {
-        render(<ReviewSession items={[word("front")]} options={{ languageId: "lang1", completeOnFinish: false, finishAction: "lesson" }} />);
+    it("finishes with the lesson action and validates the streak day (RC-17, RD-3)", async () => {
+        render(<ReviewSession items={[word("front")]} options={{ languageId: "lang1", finishAction: "lesson" }} />);
         await flip();
         await userEvent.click(screen.getByText(/good/i));
         expect(screen.getByRole("button", { name: /Back to lesson/i })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /Back to Language/i })).toBeNull();
         await userEvent.click(screen.getByRole("button", { name: /Back to lesson/i }));
-        expect(m.completeReview).not.toHaveBeenCalled();
+        expect(m.completeReview).toHaveBeenCalledWith("lang1", 1);
     });
 
     it("the daily review still finishes with the language action and completes the day", async () => {
@@ -39,7 +39,7 @@ describe("session as lesson study", () => {
     });
 
     it("the two sides of one word are two cards: grading the front leads to the back", async () => {
-        render(<ReviewSession items={[word("front"), word("back")]} options={{ languageId: "lang1", completeOnFinish: false, finishAction: "lesson" }} />);
+        render(<ReviewSession items={[word("front"), word("back")]} options={{ languageId: "lang1", finishAction: "lesson" }} />);
         await flip();
         await userEvent.click(screen.getByText(/good/i));
         await userEvent.click(screen.getByRole("button", { name: /^Next$/ }));

@@ -13,14 +13,13 @@ export default async function GrammarFlashCardPage({ params }: { params: Promise
     const { language_id, lesson_id } = await params;
 
     const grammars: Grammar[] = await getGrammarByLesson(lesson_id);
-    grammars.sort(() => Math.random() - 0.5); // Shuffle the array randomly
 
     return (
         <main>
             <header>
                 <h2>{t("grammarFlashcard")}</h2>
             </header>
-            <ReviewSession items={grammars} options={{ languageId: language_id, completeOnFinish: false, finishAction: "lesson" }} />
+            <ReviewSession items={grammars} options={{ languageId: language_id, finishAction: "lesson" }} />
         </main>
     );
 }

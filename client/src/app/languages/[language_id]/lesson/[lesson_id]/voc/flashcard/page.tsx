@@ -12,7 +12,7 @@ export default async function VocabularyFlashCardPage({ params }: { params: Prom
     return (
         <main>
             <h1>{t("vocabularyFlashcard")}</h1>
-            <ReviewSession items={frontsThenBacks(vocabularies)} options={{ languageId: language_id, completeOnFinish: false, finishAction: "lesson" }} />
+            <ReviewSession items={frontsThenBacks(vocabularies)} options={{ languageId: language_id, finishAction: "lesson" }} />
         </main>
     );
 }
