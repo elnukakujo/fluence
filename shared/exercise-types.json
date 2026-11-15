@@ -1,0 +1,15 @@
+[
+  { "name": "essay", "i18nKey": "essay", "category": "writing" },
+  { "name": "answering", "i18nKey": "answering", "category": "reading" },
+  { "name": "translate", "i18nKey": "translate", "category": "writing" },
+  { "name": "speaking", "i18nKey": "speaking", "category": "speaking" },
+  { "name": "conversation", "i18nKey": "conversation", "category": "speaking" },
+  { "name": "organize", "i18nKey": "organize", "category": "language_knowledge" },
+  { "name": "type_in_the_blank", "i18nKey": "typeInTheBlank", "category": "language_knowledge" },
+  { "name": "select_in_the_blank", "i18nKey": "selectInTheBlank", "category": "language_knowledge" },
+  { "name": "matching", "i18nKey": "matching", "category": "language_knowledge" },
+  { "name": "true_false", "i18nKey": "trueFalse", "category": "language_knowledge" },
+  { "name": "quizz", "i18nKey": "quizz", "category": "language_knowledge" },
+  { "name": "reading", "i18nKey": "reading", "category": "reading" },
+  { "name": "dictation", "i18nKey": "dictation", "category": "listening" }
+]

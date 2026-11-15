@@ -62,3 +62,14 @@ def test_schema_rejects_unknown_type():
     from lapp.schemas.features.exercise import ExerciseDict
     with pytest.raises(ValueError):
         ExerciseDict(exercise_type="not_a_real_type", question="q")
+
+
+def test_exercise_types_json_matches_registry_order():
+    import json
+    from pathlib import Path
+    meta = json.loads((Path(__file__).resolve().parent.parent / "shared" / "exercise-types.json").read_text(encoding="utf-8"))
+    assert [m["name"] for m in meta] == list(EXERCISE_TYPES)
+    assert [m["i18nKey"] for m in meta] == [
+        "essay", "answering", "translate", "speaking", "conversation", "organize",
+        "typeInTheBlank", "selectInTheBlank", "matching", "trueFalse", "quizz", "reading", "dictation",
+    ]
