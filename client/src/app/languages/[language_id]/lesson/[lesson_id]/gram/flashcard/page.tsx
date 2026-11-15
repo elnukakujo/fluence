@@ -1,3 +1,5 @@
+import { orderSingleSided } from "@/lib/lessonStudy";
+import { getSidePattern } from "@/lib/lessonStudyPreferences";
 import ReviewSession from "@/components/review/ReviewSession";
 import type Grammar from "@/interface/features/Grammar";
 import { getGrammarByLesson } from "@/api/grammar";
@@ -19,7 +21,7 @@ export default async function GrammarFlashCardPage({ params }: { params: Promise
             <header>
                 <h2>{t("grammarFlashcard")}</h2>
             </header>
-            <ReviewSession items={grammars} options={{ languageId: language_id, finishAction: "lesson" }} />
+            <ReviewSession items={orderSingleSided(grammars, await getSidePattern())} options={{ languageId: language_id, finishAction: "lesson" }} />
         </main>
     );
 }

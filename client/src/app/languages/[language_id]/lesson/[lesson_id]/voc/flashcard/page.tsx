@@ -1,6 +1,7 @@
 import { getVocabularyByLesson } from "@/api/vocabulary";
 import ReviewSession from "@/components/review/ReviewSession";
-import { frontsThenBacks } from "@/lib/lessonStudy";
+import { orderVocabulary } from "@/lib/lessonStudy";
+import { getSidePattern } from "@/lib/lessonStudyPreferences";
 import { getTranslations } from "next-intl/server";
 
 export default async function VocabularyFlashCardPage({ params }: { params: Promise<{ language_id: string; lesson_id: string }>}) {
@@ -12,7 +13,7 @@ export default async function VocabularyFlashCardPage({ params }: { params: Prom
     return (
         <main>
             <h1>{t("vocabularyFlashcard")}</h1>
-            <ReviewSession items={frontsThenBacks(vocabularies)} options={{ languageId: language_id, finishAction: "lesson" }} />
+            <ReviewSession items={orderVocabulary(vocabularies, await getSidePattern())} options={{ languageId: language_id, finishAction: "lesson" }} />
         </main>
     );
 }

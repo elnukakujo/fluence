@@ -19,6 +19,7 @@ export default function ClassicSelectMenu({
   required = false,
   multiple = false,
   optionLabel,
+  groups,
 }: {
   label: string;
   options: string[];
@@ -28,6 +29,8 @@ export default function ClassicSelectMenu({
   multiple?: boolean;
   /** Optional display mapping for fixed enum-like options (value stays untouched). */
   optionLabel?: (value: string) => string | undefined;
+  /** Optional headings: the options are listed under these labels, in this order (`options` stays the full set). */
+  groups?: { label: string; options: string[] }[];
 }) {
   const t = useTranslations("ui");
   const tUi = useTranslations("ui");
@@ -162,26 +165,35 @@ export default function ClassicSelectMenu({
           {filteredOptions.length === 0 ? (
             <NoMatchingOptions />
           ) : (
-            filteredOptions.map((option) => {
-              const isSelected = !multiple && singleValue === option;
+            (groups ?? [{ label: "", options: filteredOptions }]).map((group) => {
+              const shown = groups ? group.options.filter((o) => filteredOptions.includes(o)) : group.options;
+              if (shown.length === 0) return null;
               return (
-                <button
-                  key={option}
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleSelect(option)}
-                  className={`
-                    flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors
-                    ${isSelected ? "bg-accent-soft text-accent font-medium" : "text-foreground hover:bg-accent-soft"}
-                  `}
-                >
-                  {formatLabel(option)}
-                  {isSelected && (
-                    <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0" />
-                  )}
-                </button>
+                <div key={group.label} role={groups ? "group" : undefined} aria-label={groups ? group.label : undefined}>
+                  {groups && <p aria-hidden="true" className="px-3 pt-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted">{group.label}</p>}
+                  {shown.map((option) => {
+                    const isSelected = !multiple && singleValue === option;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSelect(option)}
+                        className={`
+                          flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors
+                          ${isSelected ? "bg-accent-soft text-accent font-medium" : "text-foreground hover:bg-accent-soft"}
+                        `}
+                      >
+                        {formatLabel(option)}
+                        {isSelected && (
+                          <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })
           )}

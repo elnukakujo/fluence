@@ -1,5 +1,7 @@
 import Calligraphy from "@/interface/features/Calligraphy";
 import { getCalligraphyByLesson } from "@/api/calligraphy";
+import { orderSingleSided } from "@/lib/lessonStudy";
+import { getSidePattern } from "@/lib/lessonStudyPreferences";
 import ReviewSession from "@/components/review/ReviewSession";
 import { getTranslations } from "next-intl/server";
 
@@ -12,7 +14,7 @@ export default async function CalligraphyFlashCardPage({ params }: { params: Pro
     return (
         <main>
             <h1>{t("calligraphyFlashcard")}</h1>
-            <ReviewSession items={calligraphies} options={{ languageId: language_id, finishAction: "lesson" }} />
+            <ReviewSession items={orderSingleSided(calligraphies, await getSidePattern())} options={{ languageId: language_id, finishAction: "lesson" }} />
         </main>
     );
 }

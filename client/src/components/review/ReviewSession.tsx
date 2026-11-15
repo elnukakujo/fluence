@@ -174,7 +174,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                     card.last_seen_at ? `${t("lastSeen")}: ${new Date(card.last_seen_at).toLocaleDateString()}` : "",
                 ].filter(Boolean)}
                 progressLabel={t("reviewProgress")}
-                badges={view.tier && !showPractice ? <TierBadge tier={view.tier} /> : undefined}
+                badges={view.tier ? <TierBadge tier={view.tier} /> : undefined}
             />
 
             {renderer.whole ? renderer.whole(ctx) : (
