@@ -11,7 +11,7 @@ import { getExerciseLevel } from "@/utils/speech_levels";
 import { useLineAudio } from "./lineAudio";
 import LineAudioButton from "./lineAudioButton";
 import GenerateAudioButton from "./generateAudioButton";
-import Spinner from "@/components/ui/spinner";
+import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
 
@@ -63,19 +63,17 @@ export default function DictationExercise({ exercise, onFinished }: Omit<Exercis
                     <LineAudioButton audio={audio} line={lines[index]} label={t("readingLinePlay", { n: index + 1 })} />
                     <AutoSizeTextArea value={typed[index] ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("dictationPlaceholder")} />
                     {last ? (
-                        <button type="button" className="btn btn-primary" disabled={loading} onClick={submit}>
-                            {loading ? <Spinner size={24} /> : <p>{t("checkAnswer")}</p>}
-                        </button>
+                        <CheckButton label={t("checkAnswer")} loading={loading} type="button" onClick={submit} />
                     ) : (
                         <button type="button" className="btn btn-primary" onClick={() => setIndex(index + 1)}>{t("nextLine")}</button>
                     )}
                 </section>
             ) : feedback && (
-                <div className={`card ${feedback.correct ? "border-success/30 bg-success/10 text-success" : "border-danger/30 bg-danger/10 text-danger"}`}>
+                <FeedbackPanel correct={feedback.correct}>
                     <h3>{feedback.level}</h3>
                     {feedback.message && <p>{feedback.message}</p>}
                     <p>{t("correctAnswer")} {exercise.answer}</p>
-                </div>
+                </FeedbackPanel>
             )}
             {audio.toast}
         </div>

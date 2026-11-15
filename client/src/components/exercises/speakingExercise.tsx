@@ -10,7 +10,7 @@ import { evaluateSpeech } from "@/api/process";
 import dynamic from 'next/dynamic';
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import Spinner from "@/components/ui/spinner";
+import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
 export default function SpeakingExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
@@ -99,25 +99,12 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
                             onUploadError={console.error}
                         />
                     </div>
-                    <button
-                        type="button"
-                        onClick={handleSubmit}
-                        disabled={!hasRecording || isLoading}
-                        className="btn btn-primary"
-                    >
-                        {isLoading
-                            ? <Spinner size={24} />
-                            : <p>{t("checkAnswer")}</p>
-                        }
-                    </button>
+                    <CheckButton label={t("checkAnswer")} loading={isLoading} disabled={!hasRecording} type="button" onClick={handleSubmit} />
                 </section>
             )}
 
             {hasFeedback && currentLevel && (
-                <div className={`card mt-4 ${correct
-                    ? "border-success/30 bg-success/10 text-success"
-                    : "border-danger/30 bg-danger/10 text-danger"}`}
-                >
+                <FeedbackPanel correct={correct}>
                     <h3>{currentLevel.label}</h3>
                     <p className="italic">`&quot;`{currentLevel.description}`&quot;`</p>
                     <p>
@@ -126,7 +113,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
                         )}
                         {feedbackMessage}
                     </p>
-                </div>
+                </FeedbackPanel>
             )}
         </div>
     );

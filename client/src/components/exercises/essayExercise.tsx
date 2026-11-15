@@ -11,7 +11,7 @@ import { evaluateText } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import Spinner from "@/components/ui/spinner";
+import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 
 export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -76,24 +76,11 @@ export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRun
                 disabled={attempts >= 3 || correct || isLoading}
             />
             {(!correct && attempts < 3) && (
-                <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={attempts >= 3 || correct || isLoading}
-                >
-                    {
-                        !isLoading
-                        ?<p>{t("showCorrection")}</p>
-                        :(
-                            <Spinner size={24} />
-                        )
-                    }
-                </button>
+                <CheckButton label={t("showCorrection")} loading={isLoading} />
             )}
 
             {(correct || attempts > 0) && (
-                <div className={`card mt-4 ${correct ?
-                    'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
+                <FeedbackPanel correct={correct}>
                     {correct ? (
                         <>
                             <p>
@@ -119,7 +106,7 @@ export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRun
                             <p className="font-medium">{t("providedExampleAnswer")} {answer}</p>
                         </div>
                     )}
-                </div>
+                </FeedbackPanel>
             )}
         </form>
     );
