@@ -4,7 +4,7 @@
   --background: #f5efe3;
   --surface: #fffbf3;
   --foreground: #362b22;
-  --muted: #8a7a64;
+  --muted: #796b58;   /* 4.52:1 on --background, 5.01:1 on --surface (was #8a7a64: 3.63 / 4.03) */
   --border: #e3d6be;
 
   --primary: #4b5d45;
