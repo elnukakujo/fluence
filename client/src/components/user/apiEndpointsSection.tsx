@@ -7,8 +7,10 @@ import EndpointCard, { ProviderOption, PROVIDER_OPTIONS as FALLBACK_PROVIDERS } 
 import SaveButton from "./saveButton";
 import ConfirmDialog from "./confirmDialog";
 import { updateUserPreferences } from "@/api/userPreferences";
-import { BASE_URL } from "@/api";
+import { apiFetch } from "@/api/apiFetch";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
+
+type EndpointTestResult = { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string };
 
 export default function ApiEndpointsSection({
   prefId,
@@ -21,14 +23,13 @@ export default function ApiEndpointsSection({
   const [endpoints, setEndpoints] = useState<ApiEndpointConfig[]>(initial);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<number, { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string } | null>>({});
+  const [testResults, setTestResults] = useState<Record<number, EndpointTestResult | null>>({});
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
   const [providers, setProviders] = useState<ProviderOption[]>(FALLBACK_PROVIDERS);
   const [testingIdx, setTestingIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/pref/providers`)
-      .then((r) => r.json())
+    apiFetch<ProviderOption[]>("/api/pref/providers", { errorMessage: "Failed to load providers" })
       .then((data: ProviderOption[]) => {
         if (Array.isArray(data) && data.length > 0) setProviders(data);
       })
@@ -101,20 +102,19 @@ export default function ApiEndpointsSection({
     const start = performance.now();
     try {
       // Proxy through backend to avoid browser CORS blocking local-network IPs
-      const res = await fetch(`${BASE_URL}/api/pref/test-endpoint`, {
+      const data = await apiFetch<EndpointTestResult>("/api/pref/test-endpoint", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        errorMessage: "Failed to test the endpoint",
+        body: {
           base_url: ep.base_url,
           api_key: ep.api_key,
           model: ep.model ?? "",
           api_format: ep.api_format ?? "openai",
           auth_type: ep.auth_type ?? "bearer",
           api_type: ep.api_type ?? "text_gen",
-        }),
+        },
         signal: AbortSignal.timeout(30000),
       });
-      const data = await res.json();
       setTestResults((prev) => ({ ...prev, [idx]: data }));
     } catch (err) {
       const ms = Math.round(performance.now() - start);
