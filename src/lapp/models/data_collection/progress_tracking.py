@@ -16,6 +16,10 @@ class ProgressTracking(BaseDataCollectionModel):
     hint_used = Column(Boolean, nullable=True)
     attempt_number = Column(Integer, nullable=True)
     session_completed = Column(Boolean, nullable=True)
+    skill = Column(String, nullable=True)
+    evidence_type = Column(String, nullable=True)
+    level_before = Column(String, nullable=True)
+    level_after = Column(String, nullable=True)
 
     # Foreign keys
     element_id = Column(String, nullable=False)  # No FK — BaseElementModel is abstract

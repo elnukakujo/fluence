@@ -20,7 +20,7 @@ class ElementKind:
     bulkable: bool = False         # voc/gram/call/ex
     container: bool = False        # Lesson, Language
     radical_variant: bool = False  # slot for the target domain, unread today
-    skills: tuple = field(default=())  # slot for the target domain, unread today
+    skills: tuple = field(default=())  # score skills of this kind (stand-in matrix, TODO(owner): spec 2). Empty = aggregate/no own skill, stored as "recall"
 
     def model(self):
         # lazy import so the registry never triggers a bad import order in models/__init__.py
@@ -41,11 +41,11 @@ class ElementKind:
 _KINDS = {
     "lang_": ElementKind("Language", "lang_", owner_attr="user_id", container=True),
     "lesson_": ElementKind("Lesson", "lesson_", parent="Language", parent_attr="language_id", container=True),
-    "voc_": ElementKind("Vocabulary", "voc_", parent="Lesson", parent_attr="lesson_id", bulkable=True),
-    "gram_": ElementKind("Grammar", "gram_", parent="Lesson", parent_attr="lesson_id", bulkable=True),
-    "call_": ElementKind("Calligraphy", "call_", parent="Lesson", parent_attr="lesson_id", bulkable=True),
+    "voc_": ElementKind("Vocabulary", "voc_", parent="Lesson", parent_attr="lesson_id", bulkable=True, skills=("recognition", "recall")),
+    "gram_": ElementKind("Grammar", "gram_", parent="Lesson", parent_attr="lesson_id", bulkable=True, skills=("recognition",)),
+    "call_": ElementKind("Calligraphy", "call_", parent="Lesson", parent_attr="lesson_id", bulkable=True, skills=("recall",)),
     "ex_": ElementKind("Exercise", "ex_", parent="Lesson", parent_attr="lesson_id", bulkable=True),
-    "char_": ElementKind("Character", "char_", parent="Language", parent_attr="language_id", radical_variant=True),
+    "char_": ElementKind("Character", "char_", parent="Language", parent_attr="language_id", radical_variant=True, skills=("recall",)),
     "word_": ElementKind("Word", "word_", parent="Language", parent_attr="language_id"),
     "pass_": ElementKind("Passage", "pass_", parent="Language", parent_attr="language_id"),
     "tag_": ElementKind("Tag", "tag_", owner_attr="user_id"),
