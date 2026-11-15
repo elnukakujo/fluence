@@ -1,7 +1,13 @@
 """Stand-in values for study preferences. Every one is a `TODO(user)`: ask before changing."""
 
 BOOST_FACTOR = 1.5          # TODO(user): review-priority multiplier for boosted exercises
-GOAL_MASTERED_SCORE = 60.0  # TODO(user): score at which a goal item counts as mastered
+from pathlib import Path
+import json
+
+# The one source for study constants shared with the client (shared/study-constants.json).
+_SHARED = json.loads((Path(__file__).resolve().parents[4] / "shared" / "study-constants.json").read_text(encoding="utf-8"))
+
+GOAL_MASTERED_SCORE = _SHARED["goalMasteredScore"]  # TODO(user): score at which a goal item counts as mastered
 STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review to validate the day
 
 # Without any study goal the daily review still works: new elements are drawn at random from the first N unstarted

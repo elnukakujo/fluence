@@ -1,0 +1,25 @@
+{
+  "tier": {
+    "_todo": "TODO(user): flashcard-tier score/difficulty thresholds",
+    "learningScore": 20,
+    "learningDifficulty": 0.7,
+    "maintainingScore": 60
+  },
+  "hints": {
+    "_todo": "TODO(user): best grade allowed after 0/1/2 hints, and recall-time windows",
+    "caps": [1, 0.75, 0.5],
+    "fastMs": 3000,
+    "slowMs": 10000
+  },
+  "typed": {
+    "_todo": "TODO(user): typed-answer closeness thresholds (full hit above, nothing below)",
+    "full": 0.9,
+    "floor": 0.4
+  },
+  "cadence": {
+    "_todo": "TODO(user): one eligible card in this many is drawn/listened before it is seen",
+    "drawEvery": 3,
+    "listenEvery": 3
+  },
+  "goalMasteredScore": 60.0
+}

@@ -1,3 +1,4 @@
+import { STUDY } from "@/shared/studyConstants";
 import { FAST_MS } from "./cardHints";
 
 const squash = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "");
@@ -15,9 +16,9 @@ export function gradeForTyped(correct: boolean, ms: number): number {
     return !correct ? 0 : ms < FAST_MS ? 1 : 0.75;
 }
 
-// TODO(user): stand-ins, mirroring TYPED_FULL / TYPED_FLOOR in the server's study_constants. At or above FULL a near miss earns the full hit; below FLOOR nothing.
-export const TYPED_FULL = 0.9;
-export const TYPED_FLOOR = 0.4;
+// At or above FULL a near miss earns the full hit; below FLOOR nothing.
+export const TYPED_FULL = STUDY.typed.full;
+export const TYPED_FLOOR = STUDY.typed.floor;
 
 /** The score a typed answer that is not an exact match earns from its character closeness (0..1): full hit near-perfect, linear to 0 at the floor. */
 export function gradeFromCloseness(closeness: number, ms: number): number {

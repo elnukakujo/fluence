@@ -5,6 +5,8 @@ RUN npm ci
 
 FROM deps AS build
 COPY client/ ./
+# shared study constants (build context is the repo root; the synced copy is git-ignored)
+COPY shared/study-constants.json ./src/shared/study-constants.json
 ARG LAPP_PUBLIC_HOST
 ARG LAPP_PUBLIC_PORT
 ARG LAPP_EXTRA_MEDIA_HOSTS

@@ -1,7 +1,8 @@
+import { STUDY } from "@/shared/studyConstants";
 import type { Tier } from "./cardTier";
 import { dayOf, hash } from "./stableDaily";
 
-export const LISTEN_EVERY = 3;     // TODO(user): one eligible card in this many is listened to before it is seen
+export const LISTEN_EVERY = STUDY.cadence.listenEvery;
 
 type Card = { id?: string; card_id?: string; side?: string; word?: { audio_files?: string[] } };
 

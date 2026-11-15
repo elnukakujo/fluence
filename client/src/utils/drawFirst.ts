@@ -1,7 +1,8 @@
+import { STUDY } from "@/shared/studyConstants";
 import type { Tier } from "./cardTier";
 import { dayOf, hash } from "./stableDaily";
 
-export const DRAW_EVERY = 3;     // TODO(user): one eligible calligraphy card in this many is drawn instead of flipped
+export const DRAW_EVERY = STUDY.cadence.drawEvery;
 
 type Card = { id?: string; card_id?: string };
 

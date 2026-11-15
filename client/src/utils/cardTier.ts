@@ -1,9 +1,10 @@
+import { STUDY } from "@/shared/studyConstants";
 /** How well a flashcard is known, from the card's own score (0-100) and difficulty (0-1). The thresholds are TODO(user) stand-ins. */
 export type Tier = "learning" | "practising" | "maintaining";
 
-export const TIER_LEARNING_SCORE = 20;          // below: learning
-export const TIER_LEARNING_DIFFICULTY = 0.7;    // above: learning
-export const TIER_MAINTAINING_SCORE = 60;       // at or above (and not difficult): maintaining; matches GOAL_MASTERED_SCORE on the server
+export const TIER_LEARNING_SCORE = STUDY.tier.learningScore;
+export const TIER_LEARNING_DIFFICULTY = STUDY.tier.learningDifficulty;
+export const TIER_MAINTAINING_SCORE = STUDY.tier.maintainingScore;
 
 export function cardTier(score: number, difficulty: number): Tier {
     if (score < TIER_LEARNING_SCORE || difficulty > TIER_LEARNING_DIFFICULTY) return "learning";
