@@ -23,9 +23,9 @@ describe("study constants are the one source", () => {
         expect(LISTEN_EVERY).toBe(STUDY.cadence.listenEvery);
     });
 
-    it("the synced copy is byte-identical to the repo-root file", () => {
-        const synced = readFileSync(join(__dirname, "study-constants.json"), "utf8");
-        const root = readFileSync(join(__dirname, "../../../shared/study-constants.json"), "utf8");
+    it.each(["study-constants.json", "exercise-types.json"])("the synced %s is byte-identical to the repo-root file", (name) => {
+        const synced = readFileSync(join(__dirname, name), "utf8");
+        const root = readFileSync(join(__dirname, "../../../shared", name), "utf8");
         expect(synced).toBe(root);
     });
 });

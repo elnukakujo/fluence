@@ -27,7 +27,9 @@ describe("getExerciseLevel", () => {
         expect(getExerciseLevel("speaking", 0.95, T).description).toBe("levels.speaking.4.description");
     });
 
-    it("unknown type falls back to translate", () => {
-        expect(getExerciseLevel("dictation", 0.9, T).stars).toBe(STARS[4]);
+    it("unknown type falls back to translate, thresholds and i18n keys alike", () => {
+        const lvl = getExerciseLevel("dictation", 0.9, T);
+        expect(lvl.stars).toBe(STARS[4]);
+        expect(lvl.label).toBe("levels.translate.4.label"); // a key that exists in messages, not levels.dictation.*
     });
 });
