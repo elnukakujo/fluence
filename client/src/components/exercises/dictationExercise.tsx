@@ -9,7 +9,7 @@ import Exercise from "@/interface/features/Exercise";
 import { evaluateText, updateScoreById } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import { useLineAudio } from "./lineAudio";
 import LineAudioButton from "./lineAudioButton";
 import GenerateAudioButton from "./generateAudioButton";
@@ -44,7 +44,7 @@ export default function DictationExercise({ exercise, onFinished }: Omit<Exercis
                 const result = await evaluateText(exercise.id!, text);
                 score = result.score; message = result.feedback; correct = result.correct === true;
             }
-            setFeedback({ message, correct, level: getLevelForScore(score, "translate").label });
+            setFeedback({ message, correct, level: getExerciseLevel("translate", score, t).label });
             setDone(true);
             updateScoreById(exercise.id!, score, Math.round(performance.now() - startTimeRef.current), false, 1).catch(console.error);
         } catch (e) {

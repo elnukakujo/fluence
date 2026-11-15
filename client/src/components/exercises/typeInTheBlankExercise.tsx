@@ -9,7 +9,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslations } from "next-intl";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import { Ring } from 'ldrs/react';
 //@ts-ignore
 import 'ldrs/react/Ring.css';
@@ -55,7 +55,7 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
 
         evaluateText(exercise.id!, userText).then((result) => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "type_in_the_blank"));
+            setCurrentLevel(getExerciseLevel("type_in_the_blank", result.score, t));
             if (result.correct === true) {
                 setIsCorrect(true);
                 const duration_ms = Math.round(performance.now() - startTimeRef.current);

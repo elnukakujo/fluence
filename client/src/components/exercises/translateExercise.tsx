@@ -13,7 +13,7 @@ import remarkGfm from "remark-gfm";
 import Exercise from "@/interface/features/Exercise";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { updateScoreById, evaluateText } from "@/api/process";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 
 export default function TranslateExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">){
@@ -47,7 +47,7 @@ export default function TranslateExercise({ exercise, onFinished }: Omit<Exercis
 
         evaluateText(exercise.id!, userAnswer).then((result) => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "translate"));
+            setCurrentLevel(getExerciseLevel("translate", result.score, t));
             if (result.correct === true) {
                 setIsCorrect(true);
                 const duration_ms = Math.round(performance.now() - startTimeRef.current);

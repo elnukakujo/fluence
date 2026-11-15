@@ -11,7 +11,7 @@ import remarkGfm from "remark-gfm";
 import Exercise from "@/interface/features/Exercise";
 import { updateScoreById, evaluateSpeech } from "@/api/process";
 import dynamic from 'next/dynamic';
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
@@ -60,7 +60,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
         try {
             const result = await evaluateSpeech(String(exercise.id), audioUrl, 0);
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "speaking"));
+            setCurrentLevel(getExerciseLevel("speaking", result.score, t));
 
             if (result.correct) {
                 setIsCorrect(true);

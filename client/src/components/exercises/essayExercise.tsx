@@ -13,7 +13,7 @@ import 'ldrs/react/Ring.css';
 import type Exercise from "@/interface/features/Exercise";
 import { updateScoreById, evaluateText } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 
 export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
@@ -47,7 +47,7 @@ export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRun
 
         evaluateText(exercise.id!, userAnswer).then(result => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "essay"));
+            setCurrentLevel(getExerciseLevel("essay", result.score, t));
             if (result.correct === true) {
                 setIsCorrect(true);
                 const duration_ms = Math.round(performance.now() - startTimeRef.current);

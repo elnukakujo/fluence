@@ -12,7 +12,7 @@ import Image from 'next/image';
 import Exercise from "@/interface/features/Exercise";
 import { updateScoreById, evaluateSpeech } from "@/api/process";
 import { BASE_URL } from "@/api";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 
 import dynamic from 'next/dynamic';
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
@@ -261,7 +261,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
  
         try {
             const result = await evaluateSpeech(String(exercise.id), state.audioUrl, conversation.lines[currentLineIndex].audioIndex!);
-            const level = getLevelForScore(result.score, "conversation");
+            const level = getExerciseLevel("conversation", result.score, t);
             const newAttempts = state.attempts + 1;
             const isLastUserLine = currentLineIndex === userLineIndices[userLineIndices.length - 1];
  

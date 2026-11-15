@@ -24,6 +24,7 @@ from ..utils import (
 )
 from ..utils.typed_similarity import closeness
 from .features import ExerciseService
+from .features.study_constants import EXERCISE_SCALES
 from .feedback import FeedbackService
 
 # Exercises answered by typing target-language text against one reference answer (free-form types are excluded).
@@ -49,16 +50,7 @@ class EvaluatorService:
     def stt_pipe(self):
         return get_stt_pipe()
 
-    exercises_scales = {
-        "translate": (0.6, 0.2, 0.2),
-        "organize": (0.5, 0.1, 0.4),
-        "type_in_the_blank": (0.5, 0.1, 0.4),
-        "essay": (0.4, 0.4, 0.2),
-        "answering": (0.6, 0.3, 0.1),
-        "speaking": (0.3, 0.1, 0.6),
-        "conversation": (0.3, 0.1, 0.6),
-        "dictation": (0.0, 0.0, 1.0),   # token overlap only (spec)
-    }
+    exercises_scales = EXERCISE_SCALES  # from shared/study-constants.json (read as tuples)
 
     exercises_thresholds = {
         "speaking":0.70,

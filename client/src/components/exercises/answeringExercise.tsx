@@ -12,7 +12,7 @@ import 'ldrs/react/Ring.css';
 import type Exercise from "@/interface/features/Exercise";
 import { updateScoreById, evaluateText } from "@/api/process";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { useRef } from "react";
 
@@ -49,7 +49,7 @@ export default function AnsweringExercise({ exercise, onFinished }: Omit<Exercis
 
         evaluateText(exercise.id!, userAnswer).then((result) => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "answering"));
+            setCurrentLevel(getExerciseLevel("answering", result.score, t));
             if (result.correct === true) {
                 setIsCorrect(true);
                 const duration_ms = Math.round(performance.now() - startTimeRef.current);

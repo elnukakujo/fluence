@@ -14,7 +14,7 @@ import 'ldrs/react/Ring.css';
 
 import Exercise from "@/interface/features/Exercise";
 import { updateScoreById, evaluateText } from "@/api/process";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
 
@@ -57,7 +57,7 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
 
         evaluateText(exercise.id!, userAnswer.map(item => item.word).join(' ')).then((result) => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "organize"));
+            setCurrentLevel(getExerciseLevel("organize", result.score, t));
             if (result.correct === true) {
                 setIsCorrect(true);
                 const duration_ms = Math.round(performance.now() - startTimeRef.current);
