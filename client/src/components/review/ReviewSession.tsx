@@ -20,6 +20,7 @@ import { pickReplacement } from "@/utils/replaceCard";
 import { suggestedGrade } from "@/utils/cardHints";
 import { isExercise, rendererFor } from "./renderers";
 import type { RendererCtx, SessionItem, SessionOptions, ShellState, TypedState } from "./types";
+import EmptyState from "@/components/ui/emptyState";
 
 export type { SessionItem, SessionOptions } from "./types";
 
@@ -91,7 +92,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     if (!card || !renderer) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
-                <p className="text-muted">{t("nothingToReview")}</p>
+                <EmptyState>{t("nothingToReview")}</EmptyState>
                 <BackButton>{backLabel}</BackButton>
             </article>
         );

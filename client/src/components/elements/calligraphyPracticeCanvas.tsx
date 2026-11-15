@@ -6,6 +6,7 @@ import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
 import type { ReactNode } from "react";
 import type { Tier } from "@/utils/cardTier";
 import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
+import EmptyState from "@/components/ui/emptyState";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
 const STROKE_MATCH_THRESHOLD = 150; // max centroid distance (1024-space) for a stroke to count as correct
@@ -175,7 +176,7 @@ export default function CalligraphyPracticeCanvas({
     return <p className="text-sm text-muted" role="status">{t("loadingStrokeData")}</p>;
   }
   if (referenceStrokes === null) {
-    return <p className="text-sm text-muted">{t("noStrokeData")}</p>;
+    return <EmptyState className="text-sm">{t("noStrokeData")}</EmptyState>;
   }
 
   return (

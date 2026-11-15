@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
+import EmptyState from "@/components/ui/emptyState";
 
 function NoMatchingOptions() {
   const t = useTranslations("ui");
-  return <p className="px-3 py-2 text-sm text-muted">{t("noMatchingOptions")}</p>;
+  return <EmptyState className="px-3 py-2 text-sm">{t("noMatchingOptions")}</EmptyState>;
 }
 
 export default function ClassicSelectMenu({

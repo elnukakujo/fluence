@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import { fetchLogs } from "@/api/logs";
 
 const LEVEL_CLASS: Record<string, string> = {

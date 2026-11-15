@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import ToggleRow from "./toggleRow";
 import SaveButton from "./saveButton";
 import { updateUserPreferences } from "@/api/userPreferences";

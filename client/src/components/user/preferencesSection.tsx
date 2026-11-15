@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Ban, Clock, Dumbbell, Layers, ListOrdered, Plus, Rocket, X, type LucideIcon } from "lucide-react";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import NumberField from "@/components/ui/input/numberField";
 import SortableList from "@/components/ui/sortableList";
 import SaveButton from "./saveButton";

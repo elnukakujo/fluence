@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { BookOpen, Brush, Lock, LockOpen, PenLine, Sparkles } from "lucide-react";
-import SectionCard from "@/components/user/sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
 import NumberField from "@/components/ui/input/numberField";

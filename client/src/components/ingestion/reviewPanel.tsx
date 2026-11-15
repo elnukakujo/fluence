@@ -21,6 +21,7 @@ import {
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
 import ReviewCard from "./reviewCard";
+import EmptyState from "@/components/ui/emptyState";
 
 const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
@@ -349,7 +350,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           </div>
         )}
 
-        {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
+        {counts.total === 0 && groups.length === 0 && <EmptyState className="card">{t("nothingFound")}</EmptyState>}
 
         <SelectionScope key={active} canSelect={groups.length > 0} bar={reviewBar} barWidth="max-w-3xl" className="flex flex-col gap-3">
         {groups.length > 0 && (

@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { BaseElement } from "@/interface/base";
 import NavButton from "@/components/layout/navButton";
+import EmptyState from "@/components/ui/emptyState";
 
 export default function ElementTagsCard({element} : {element: BaseElement}) {
     const t = useTranslations("elements");
@@ -26,7 +27,7 @@ export default function ElementTagsCard({element} : {element: BaseElement}) {
                     ))}
                 </div>
             ) : (
-                <p className="index-divider pt-3 text-muted">{t("noTagsAssigned")}</p>
+                <EmptyState className="index-divider pt-3">{t("noTagsAssigned")}</EmptyState>
             )}
         </section>
     );

@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import EndpointCard, { ProviderOption, PROVIDER_OPTIONS as FALLBACK_PROVIDERS } from "./endpointCard";
 import SaveButton from "./saveButton";
 import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
 import { updateUserPreferences } from "@/api/userPreferences";
 import { apiFetch } from "@/api/apiFetch";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
+import EmptyState from "@/components/ui/emptyState";
 
 type EndpointTestResult = { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string };
 
@@ -140,7 +141,7 @@ export default function ApiEndpointsSection({
       {endpoints.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-8 text-center" role="status">
           <span className="text-3xl opacity-30" aria-hidden="true">⚡</span>
-          <p className="text-sm opacity-40">{t("noEndpoints")}</p>
+          <EmptyState className="text-sm">{t("noEndpoints")}</EmptyState>
           <button type="button" className="btn btn-secondary mt-1" onClick={handleAdd}>
             {t("configureFirst")}
           </button>
