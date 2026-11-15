@@ -94,7 +94,6 @@
     "restore": "Restore",
     "download": "Download",
     "delete": "Delete",
-    "notYetImplemented": "Not yet implemented",
     "restoreConfirm": "Restore database from \"{name}\"? This will overwrite current data.",
     "confirmRestore": "Confirm Restore",
     "deleteConfirm": "Delete backup \"{name}\"?",

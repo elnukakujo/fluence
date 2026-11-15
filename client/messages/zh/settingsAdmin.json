@@ -94,7 +94,6 @@
     "restore": "恢复",
     "download": "下载",
     "delete": "删除",
-    "notYetImplemented": "尚未实现",
     "restoreConfirm": "从 \"{name}\" 恢复数据库？这将覆盖当前数据。",
     "confirmRestore": "确认恢复",
     "deleteConfirm": "删除备份 \"{name}\" ？",

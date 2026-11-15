@@ -66,15 +66,16 @@ export default function BackupRow({
           <RotateCcw size={14} />
           <span className="hidden sm:inline">{t("restore")}</span>
         </button>
-        <button
-          type="button"
+        {/* Plain same-origin link: the session cookie authenticates it and the browser streams the dump to disk. */}
+        <a
           className="btn btn-secondary text-xs"
-          disabled
-          title={t("notYetImplemented")}
+          href={`/api/backup/download/${encodeURIComponent(backup.filename)}`}
+          download={backup.filename}
+          aria-label={t("download")}
         >
           <Download size={14} />
           <span className="hidden sm:inline">{t("download")}</span>
-        </button>
+        </a>
         <button
           type="button"
           className="btn btn-danger text-xs"

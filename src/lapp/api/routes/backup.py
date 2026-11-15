@@ -6,10 +6,12 @@ Provides API endpoints for:
 - Restoring from backups
 - Listing available backups
 - Getting backup statistics
+- Downloading a backup file (admin)
 - Deleting old backups
 """
 import logging
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, send_from_directory
+from ...core.auth import admin_required
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -287,6 +289,38 @@ def backup_info():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@bp.route('/download/<backup_file>', methods=['GET'])
+@admin_required
+def download_backup(backup_file: str):
+    """
+    Download a backup dump (admin only).
+    ---
+    tags:
+        - Backup
+    parameters:
+        - in: path
+          name: backup_file
+          required: true
+          type: string
+    responses:
+        200:
+            description: The backup file
+        400:
+            description: Invalid backup filename
+        403:
+            description: Admin access required
+        404:
+            description: Backup file not found
+    """
+    backup_dir = current_app.backup_manager.backup_dir
+    if not backup_file.startswith('backup_') or not backup_file.endswith('.dump'):
+        return jsonify({'success': False, 'error': 'Invalid backup filename'}), 400
+    if not (backup_dir / backup_file).is_file():
+        return jsonify({'success': False, 'error': f'Backup file not found: {backup_file}'}), 404
+    # send_from_directory also rejects path traversal.
+    return send_from_directory(backup_dir, backup_file, as_attachment=True)
 
 
 @bp.route('/delete/<backup_file>', methods=['DELETE'])

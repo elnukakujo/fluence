@@ -94,7 +94,6 @@
     "restore": "Restaurer",
     "download": "Télécharger",
     "delete": "Supprimer",
-    "notYetImplemented": "Pas encore implémenté",
     "restoreConfirm": "Restaurer la base de données à partir de \"{name}\" ? Cela écrasera les données actuelles.",
     "confirmRestore": "Restaurer",
     "deleteConfirm": "Supprimer le backup \"{name}\" ?",
