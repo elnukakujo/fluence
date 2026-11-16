@@ -14,7 +14,8 @@ from ..components import PassageService, WordService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
 from ...core.database import db_manager, transactional, resolve_related
-from ...utils import update_score, update_difficulty, status_for
+from ...utils.scoring import level_for
+from ...utils import update_score, update_difficulty
 
 lesson_service = LessonService()
 language_service = LanguageService()
@@ -250,7 +251,7 @@ class GrammarService:
                 language_id=grammar.lesson.language_id,
                 element_id=grammar_id,
                 element_type="grammar",
-                element_status=status_for(grammar_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,

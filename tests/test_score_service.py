@@ -5,7 +5,6 @@ import pytest
 
 from lapp.services.system_data import ScoreService
 from lapp.models.system_data import User, Score
-from lapp.utils.helpers import status_for
 
 
 def _seed_users(db):
@@ -91,11 +90,10 @@ def test_merge_attaches_score_level_and_skills(db):
     ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")
     out = ScoreService().merge("user_U1", [{"id": "gram_G1"}, {"id": "gram_G9"}])
     assert out[0]["score"] == pytest.approx(7.5)
-    assert out[0]["level"] == "learning" and out[0]["is_leech"] is False
+    assert out[0]["score_level"] == "learning" and out[0]["weak"] is True and out[0]["is_leech"] is False
     assert out[0]["skills"]["recognition"]["score"] == pytest.approx(7.5)
-    assert out[0]["status"] == status_for("gram_G1", out[0]["score"])
-    assert out[1]["score"] == 0.0 and out[1]["difficulty"] == 0.5 and out[1]["status"] == "unstarted"
-    assert out[1]["skills"] == {} and out[1]["level"] == "learning"
+    assert out[1]["score"] == 0.0 and out[1]["difficulty"] == 0.5
+    assert out[1]["skills"] == {} and out[1]["score_level"] == "learning"
 
 
 def test_set_note_reaches_every_skill_row(db):

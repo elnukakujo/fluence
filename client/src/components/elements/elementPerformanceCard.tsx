@@ -29,8 +29,8 @@ export default function ElementPerformanceCard({ element }: { element: BaseEleme
     const e = element as unknown as Record<string, unknown>;
     // one row per score/difficulty pair: just the element, or overall + front + back for two-sided vocabulary
     const sided = "front_score" in e;
-    const rows = [
-        ...(sided || "score" in e || "difficulty" in e ? [{ key: "all", label: sided ? t("average") : "", score: e.score as number | null | undefined, difficulty: e.difficulty as number | null | undefined }] : []),
+    const rows: { key: string; label: string; score: number | null | undefined; difficulty: number | null | undefined; stability?: number | null }[] = [
+        ...(sided || "score" in e || "difficulty" in e ? [{ key: "all", stability: e.stability as number | null | undefined, label: sided ? t("average") : "", score: e.score as number | null | undefined, difficulty: e.difficulty as number | null | undefined }] : []),
         ...(sided ? (["front", "back"] as const).map((side) => ({ key: side, label: t(side), score: e[`${side}_score`] as number, difficulty: e[`${side}_difficulty`] as number })) : []),
     ];
     const hasDates = e.created_at != null || e.last_seen_at != null;
@@ -39,7 +39,7 @@ export default function ElementPerformanceCard({ element }: { element: BaseEleme
         <section className="card flex flex-col gap-3">
             <h3>{t("performanceInfo")}</h3>
             <div className="index-divider" />
-            {'level' in element && (
+            {'level' in element && typeof element.level === 'number' && (
                 <LevelDisplay language_iso639_1={language_iso639_1} levelIdx={element.level as number}/>
             )}
             {rows.length > 0 && (
@@ -50,7 +50,7 @@ export default function ElementPerformanceCard({ element }: { element: BaseEleme
                     {rows.map((r) => (
                         <div key={r.key} className="contents">
                             {sided && <span className="text-sm text-muted">{r.label}</span>}
-                            {r.score != null ? <ScoreDisplay score={r.score} hideLabel /> : <span className="text-sm text-muted">–</span>}
+                            {r.score != null ? <ScoreDisplay score={r.score} stability={r.stability ?? undefined} hideLabel /> : <span className="text-sm text-muted">–</span>}
                             {r.difficulty != null ? <DifficultyDisplay difficulty={r.difficulty} hideLabel /> : <span className="text-sm text-muted">–</span>}
                         </div>
                     ))}

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { STUDY, levelFor, isWeak } from "./studyConstants";
+import { STUDY, levelFor, isWeak, fadingDays, FADING_CAP } from "./studyConstants";
 import { TIER_LEARNING_DIFFICULTY, TIER_LEARNING_SCORE, TIER_MAINTAINING_SCORE } from "@/utils/cardTier";
 import { FAST_MS, HINT_CAPS, SLOW_MS } from "@/utils/cardHints";
 import { DRAW_EVERY } from "@/utils/drawFirst";
@@ -33,5 +33,21 @@ describe("study constants are the one source", () => {
         const synced = readFileSync(join(__dirname, name), "utf8");
         const root = readFileSync(join(__dirname, "../../../shared", name), "utf8");
         expect(synced).toBe(root);
+    });
+});
+
+describe("fadingDays: days until the effective score leaves its band", () => {
+    it("is monotonic in stability and null for weak or unseen", () => {
+        const d = [1, 4, 16, 64].map((st) => fadingDays(70, st)!);
+        expect(d).toEqual([...d].sort((a, b) => a - b));
+        expect(fadingDays(30, 10)).toBeNull();
+        expect(fadingDays(0, 10)).toBeNull();
+    });
+    it("is the half-life maths: one half-life to reach the edge", () => {
+        expect(fadingDays(70, 10)).toBe(Math.round(10 * Math.log2(70 / STUDY.levels.knownFrom)));   // 70 -> 60 edge
+        expect(fadingDays(STUDY.levels.knownFrom, 10)).toBe(0);
+    });
+    it("caps the display", () => {
+        expect(fadingDays(99, 500)).toBe(FADING_CAP);
     });
 });

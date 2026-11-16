@@ -16,7 +16,8 @@ from ..containers import LessonService, LanguageService
 from ..components import CharacterService, WordService, PassageService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
-from ...utils import update_score, status_for
+from ...utils.scoring import level_for
+from ...utils import update_score
 
 lesson_service = LessonService()
 language_service = LanguageService()
@@ -385,7 +386,7 @@ class CalligraphyService:
                 language_id=calligraphy.lesson.language_id,
                 element_id=calligraphy_id,
                 element_type="calligraphy",
-                element_status=status_for(calligraphy_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,

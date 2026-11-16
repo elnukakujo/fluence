@@ -8,9 +8,8 @@ from sqlalchemy.orm import Session
 from ...core.database import db_manager, transactional
 from ...models.system_data import Score
 from ...utils.element_kinds import kind_of
-from ...utils.helpers import status_for
 from ...utils.scoring import (
-    EVIDENCE_WEIGHTS, STABILITY_CAP_DAYS, ScoreState, apply_answer, effective_score, level_for,
+    EVIDENCE_WEIGHTS, STABILITY_CAP_DAYS, ScoreState, apply_answer, effective_score, is_weak, level_for,
 )
 
 SIDES = ("front", "back")
@@ -37,7 +36,7 @@ def _effective(row: Score, now: datetime) -> float:
 
 def _row_view(row: Score, now: datetime) -> dict:
     return {"score": _effective(row, now), "level": level_for(_effective(row, now)), "is_leech": bool(row.is_leech),
-            "last_seen_at": row.last_seen_at, "difficulty": row.difficulty}
+            "last_seen_at": row.last_seen_at, "difficulty": row.difficulty, "stability": row.stability}
 
 
 @dataclass
@@ -77,7 +76,7 @@ def _vocabulary(parent_rows: list, side_rows: dict, now: datetime) -> Optional[_
     skill_names = sorted({r.skill for rs in side_rows.values() for r in rs})
     skills = {}
     for sk in skill_names:
-        vals, leech, seen = [], False, []
+        vals, leech, seen, stab = [], False, [], []
         for rs in side_rows.values():
             if not rs:
                 vals.append(0.0)
@@ -86,11 +85,12 @@ def _vocabulary(parent_rows: list, side_rows: dict, now: datetime) -> Optional[_
             if r is not None:
                 vals.append(_effective(r, now))
                 leech |= bool(r.is_leech)
+                stab.append(r.stability)
                 if r.last_seen_at:
                     seen.append(r.last_seen_at)
         score = mean(vals)
         skills[sk] = {"score": score, "level": level_for(score), "is_leech": leech,
-                      "last_seen_at": max(seen) if seen else None}
+                      "last_seen_at": max(seen) if seen else None, "stability": min(stab) if stab else None}
     sides = {sd: _leaf(rs, now) for sd, rs in side_rows.items() if rs}
     every = [r for rs in side_rows.values() for r in rs] + parent_rows
     seen = [r.last_seen_at for r in every if r.last_seen_at]
@@ -235,7 +235,7 @@ class ScoreService:
     @transactional
     def merge(self, user_id: str, elements: list[dict],
               session: Optional[Session] = None) -> list[dict]:
-        """Inject score/difficulty/level/skills/status/last_seen_at into serialized element dicts."""
+        """Inject score/difficulty/score_level/weak/skills/last_seen_at into serialized element dicts."""
         found = self._collect(session, user_id, [e["id"] for e in elements if e.get("id")], datetime.now())
         for e in elements:
             eid = e.get("id")
@@ -247,10 +247,12 @@ class ScoreService:
                     e[f"{sd}_difficulty"] = side.get("difficulty", 0.5)
             e["score"] = s.score if s else 0.0
             e["difficulty"] = s.difficulty if s else 0.5
-            e["level"] = level_for(e["score"])
+            e["score_level"] = level_for(e["score"])     # not `level`: containers keep their CEFR index there
+            e["weak"] = is_weak(e["score"])
             e["skills"] = s.skills if s else {}
+            stab = [v["stability"] for v in e["skills"].values() if v.get("stability")]
+            e["stability"] = min(stab) if stab else None      # the first skill to fade sets the estimate
             e["is_leech"] = s.is_leech if s else False
-            e["status"] = status_for(eid, e["score"])
             e["last_seen_at"] = s.last_seen_at if s else None
             e["current_lesson_id"] = s.current_lesson_id if s else None
             e["note"] = s.note if s else None

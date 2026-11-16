@@ -9,7 +9,8 @@ from ...models.features import Exercise
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
 from ...models.system_data import Tag, Source, Score
-from ...utils import update_score, update_difficulty, status_for
+from ...utils.scoring import level_for
+from ...utils import update_score, update_difficulty
 from ..containers import LessonService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
@@ -297,7 +298,7 @@ class ExerciseService:
                 language_id=exercise.lesson.language_id,
                 element_id=ex_id,
                 element_type="exercise",
-                element_status=status_for(ex_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,

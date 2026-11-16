@@ -17,7 +17,8 @@ from ..system_data.score import SIDES
 
 SIDE_SKILL = {"front": "recognition", "back": "recall"}   # a face tests one skill
 from ...core.database import db_manager, transactional, resolve_related, stack_related
-from ...utils import update_score, update_difficulty, stack_lists, status_for
+from ...utils.scoring import level_for
+from ...utils import update_score, update_difficulty, stack_lists
 
 lesson_service = LessonService()
 language_service = LanguageService()
@@ -310,7 +311,7 @@ class VocabularyService:
                 language_id=vocabulary.lesson.language_id,
                 element_id=voc_id,
                 element_type="vocabulary",
-                element_status=status_for(voc_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,
