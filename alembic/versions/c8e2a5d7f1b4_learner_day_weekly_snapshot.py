@@ -1,7 +1,8 @@
-"""new tables `learner_day` (streak per learner and day) and `weekly_snapshot` (level counts when a week closed)
+"""new tables `learner_day` (streak per learner and day) and `weekly_snapshot` (level counts when a week closed);
+`progress_tracking.session_completed` is renamed `daily_goal_reached_before`
 
 Additive and idempotent (a table already present is skipped). Existing days are not back-filled: the streak and the trends
-start from the first answer after this migration. Take a backup first.
+start from the first answer after this migration (the app writes the last closed week's snapshot at startup). Take a backup first.
 
 Revision ID: c8e2a5d7f1b4
 Revises: b6d1f8a3c5e7
@@ -19,7 +20,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    have = sa.inspect(op.get_bind()).get_table_names()
+    insp = sa.inspect(op.get_bind())
+    have = insp.get_table_names()
+    cols = {c["name"] for c in insp.get_columns("progress_tracking")}
+    if "session_completed" in cols and "daily_goal_reached_before" not in cols:
+        op.alter_column("progress_tracking", "session_completed", new_column_name="daily_goal_reached_before")
     if "learner_day" not in have:
         op.create_table(
             "learner_day",
@@ -49,7 +54,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    have = sa.inspect(op.get_bind()).get_table_names()
+    insp = sa.inspect(op.get_bind())
+    have = insp.get_table_names()
+    cols = {c["name"] for c in insp.get_columns("progress_tracking")}
+    if "daily_goal_reached_before" in cols and "session_completed" not in cols:
+        op.alter_column("progress_tracking", "daily_goal_reached_before", new_column_name="session_completed")
     for table in ("weekly_snapshot", "learner_day"):
         if table in have:
             op.drop_table(table)
