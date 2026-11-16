@@ -15,7 +15,7 @@ export default async function ReviewByTypePage({ params }: { params: Promise<{ l
         <main>
             <h1>{t("reviewByType")}</h1>
             <p className="text-muted">{t("reviewByTypeHint")}</p>
-            <ul className="mt-4 flex flex-wrap gap-3">
+            <ul className="mt-4 flex list-none flex-wrap gap-3 pl-0">
                 {TYPES.map((x) => (
                     <li key={`${x.type}${"radicals" in x ? "-radicals" : ""}`}>
                         <Link className="btn btn-secondary" href={queueHref(language_id, { scope: "type", type: x.type, radicals: "radicals" in x })}>

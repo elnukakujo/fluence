@@ -126,7 +126,7 @@ export default function PracticeHeatmap({ history, bands = DEFAULT_BANDS, weekDe
                     ))}
                 </div>
             </div>
-            <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" aria-label={t("heatmapLegend")}>
+            <ul className="flex list-none flex-wrap items-center gap-x-3 gap-y-1 pl-0 text-xs text-muted" aria-label={t("heatmapLegend")}>
                 {bandLabels(bands).map((label, i) => (
                     <li key={label} className="flex items-center gap-1"><span className={`heatmap-cell heatmap-level-${i + 1}`} aria-hidden />{label}</li>
                 ))}

@@ -7,7 +7,7 @@ export default function LevelMiniBar({ learning, known, mastered }: Levels) {
     const t = useTranslations("home");
     const total = learning + known + mastered;
     const parts = [
-        { key: "learning", n: learning, cls: "bg-border" },
+        { key: "learning", n: learning, cls: "bg-muted/60" },
         { key: "known", n: known, cls: "bg-accent-soft" },
         { key: "mastered", n: mastered, cls: "bg-accent" },
     ] as const;
@@ -17,7 +17,7 @@ export default function LevelMiniBar({ learning, known, mastered }: Levels) {
             <div role="img" aria-label={summary} className="flex h-2 w-full overflow-hidden rounded-full bg-border/40">
                 {total > 0 && parts.map((p) => p.n > 0 && <span key={p.key} className={p.cls} style={{ width: `${(p.n / total) * 100}%` }} />)}
             </div>
-            <ul className="flex flex-wrap gap-x-3 text-xs text-muted">
+            <ul className="flex list-none flex-wrap gap-x-3 pl-0 text-xs text-muted">
                 {parts.map((p) => <li key={p.key}>{t(`level.${p.key}`)} <strong className="text-ink">{p.n}</strong></li>)}
             </ul>
         </div>

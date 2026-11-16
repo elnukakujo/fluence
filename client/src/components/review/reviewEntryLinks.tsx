@@ -14,7 +14,7 @@ export default async function ReviewEntryLinks({ scope }: { scope: ScopeParams }
     return (
         <section className="mt-4 flex flex-col gap-2">
             <h2 className="font-serif text-lg text-ink">{t("reviewThis")}</h2>
-            <ul className="flex flex-wrap gap-3">
+            <ul className="flex list-none flex-wrap gap-3 pl-0">
                 {languages.map((l) => (
                     <li key={l.id}><Link className="btn btn-secondary" href={queueHref(l.id!, scope)}>{t("reviewIn", { name: l.name })}</Link></li>
                 ))}
