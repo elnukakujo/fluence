@@ -3,6 +3,7 @@
 import { type ExerciseRunnerProps } from "./exerciseFinish";
 import { evaluateText } from "@/api/process";
 import { useAttemptScoring } from "./useAttemptScoring";
+import { blankQuality } from "@/utils/typedAnswer";
 import type Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
@@ -47,10 +48,11 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
         evaluateText(exercise.id!, userText).then((result) => {
             setFeedbackMessage(result.feedback);
             setCurrentLevel(getExerciseLevel("type_in_the_blank", result.score, t));
+            const parts = (result.blanks as number[] | undefined)?.map(blankQuality);   // each blank credits the element it tests
             if (result.correct === true) {
-                submit(result.score, { final: true, correct: true });
+                submit(result.score, { final: true, correct: true, parts });
             } else if (attempts >= 2) {
-                submit(result.score, { final: true, correct: false }); // the third miss
+                submit(result.score, { final: true, correct: false, parts }); // the third miss
             } else {
                 miss();
             }

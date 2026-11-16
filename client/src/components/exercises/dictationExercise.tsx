@@ -4,8 +4,8 @@ import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Exercise from "@/interface/features/Exercise";
-import { evaluateText, updateScoreById } from "@/api/process";
-import { exerciseAnswer } from "@/utils/skills";
+import { evaluateText } from "@/api/process";
+import { creditExercise } from "./creditExercise";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import { getExerciseLevel } from "@/utils/speech_levels";
@@ -46,7 +46,7 @@ export default function DictationExercise({ exercise, onFinished }: Omit<Exercis
             }
             setFeedback({ message, correct, level: getExerciseLevel("translate", score, t).label });
             setDone(true);
-            updateScoreById(exercise.id!, exerciseAnswer(exercise, score, Math.round(performance.now() - startTimeRef.current), false, 1)).catch(console.error);
+            creditExercise(exercise, score, Math.round(performance.now() - startTimeRef.current), false, 1);
         } catch (e) {
             console.error("Error evaluating dictation:", e);
         } finally {

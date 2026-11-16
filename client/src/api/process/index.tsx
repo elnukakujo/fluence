@@ -22,7 +22,6 @@ export type Answer = {
   evidence: Evidence;
   durationMs: number;
   hintUsed?: boolean;
-  attempt?: number;            // exercises
   side?: "front" | "back";     // vocabulary
 };
 
@@ -30,16 +29,25 @@ export async function updateScoreById(elementId: string, a: Answer) {
   const body = {
     similarity: a.similarity, skill: a.skill, evidence_type: a.evidence, duration_ms: a.durationMs, hint_used: a.hintUsed ?? false,
     ...(a.side ? { side: a.side } : {}),
-    ...(a.attempt !== undefined ? { attempt_number: a.attempt } : {}),
   };
   const [endpoint, idKey]: [string, string] | [] =
     elementId.startsWith("voc_") ? ["/api/vocabulary/score", "vocabulary_id"] :
     elementId.startsWith("gram_") ? ["/api/grammar/score", "grammar_id"] :
     elementId.startsWith("call_") ? ["/api/calligraphy/score", "calligraphy_id"] :
-    elementId.startsWith("ex_") ? ["/api/exercise/score", "exercise_id"] : [];
+    [];
   if (!endpoint || !idKey) throw new Error(`Unsupported element ID for scoring: ${elementId}`);
 
   return apiFetch(endpoint, { method: "POST", body: { [idKey]: elementId, ...body }, errorMessage: "Failed to update score" });
+}
+
+export type ExerciseResult = { element_id: string; quality: number; skill: Skill; evidence_type: Evidence };
+
+/** Credit one exercise attempt: the server counts only a `final` one and answers `{correct, total}` (never a score). */
+export async function scoreExercise(exerciseId: string, a: { results: ExerciseResult[]; attempt: number; final: boolean; durationMs: number; hintUsed: boolean }): Promise<{ correct?: number; total?: number }> {
+  return apiFetch("/api/exercise/score", {
+    method: "POST", errorMessage: "Failed to update score",
+    body: { exercise_id: exerciseId, results: a.results, attempt: a.attempt, final: a.final, duration_ms: a.durationMs, hint_used: a.hintUsed },
+  });
 }
 
 // ============= Media API =============

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
 
-const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
+const api = vi.hoisted(() => ({ scoreExercise: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
 const exApi = vi.hoisted(() => ({ generateLineAudio: vi.fn() }));
 const played = vi.hoisted(() => ({ urls: [] as string[] }));
 vi.mock("@/api/process", () => api);
@@ -54,7 +54,7 @@ describe("dictation exercise", () => {
     expect(api.evaluateText).toHaveBeenCalledTimes(1);
     expect(api.evaluateText).toHaveBeenCalledWith("ex_2", "犬がいます 猫もいます");
     expect(await screen.findByText("Good")).toBeInTheDocument();
-    expect(api.updateScoreById).toHaveBeenCalledWith("ex_2", expect.objectContaining({ similarity: 0.9, hintUsed: false, attempt: 1, skill: "recall", evidence: "typed" }));
+    expect(api.scoreExercise).toHaveBeenCalledWith("ex_2", expect.objectContaining({ final: true, hintUsed: false, attempt: 1, results: [expect.objectContaining({ quality: 0.9, skill: "recall", evidence_type: "typed" })] }));
   });
 
   it("scores 0 without calling the server when every line is empty", async () => {
@@ -62,6 +62,6 @@ describe("dictation exercise", () => {
     await userEvent.click(screen.getByRole("button", { name: "Next line" }));
     await userEvent.click(screen.getByRole("button", { name: "Check Answer" }));
     expect(api.evaluateText).not.toHaveBeenCalled();
-    expect(api.updateScoreById).toHaveBeenCalledWith("ex_2", expect.objectContaining({ similarity: 0, hintUsed: false, attempt: 1, skill: "recall", evidence: "typed" }));
+    expect(api.scoreExercise).toHaveBeenCalledWith("ex_2", expect.objectContaining({ final: true, hintUsed: false, attempt: 1, results: [expect.objectContaining({ quality: 0, skill: "recall", evidence_type: "typed" })] }));
   });
 });

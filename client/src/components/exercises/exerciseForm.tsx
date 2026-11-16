@@ -115,7 +115,7 @@ export default function ExerciseForm({
     );
     const [blanks, setBlanks] = useState<BlankRow[]>(
         existingContent && "blanks" in existingContent
-            ? existingContent.blanks.map(b => ({ answer: b.answer, options: (b.options ?? []).join(", ") }))
+            ? existingContent.blanks.map(b => ({ answer: b.answer, options: (b.options ?? []).join(", "), element_id: b.element_id }))
             : [{ answer: "", options: "" }]
     );
     const [pairs, setPairs] = useState<[string, string][]>(
@@ -239,13 +239,16 @@ export default function ExerciseForm({
                 segments,
                 blanks: blanks.map(b => ({
                     answer: b.answer,
+                    ...(b.element_id ? { element_id: b.element_id } : {}),
                     ...(b.options.trim() ? { options: b.options.split(",").map(o => o.trim()).filter(Boolean) } : {}),
                 })),
             };
             normalizedQuestion = segments.join("__");
             normalizedAnswer = blanks.map(b => b.answer).join(", ");
         } else if (exerciseType === "matching") {
-            content = { pairs };
+            const ids = existingContent && "element_ids" in existingContent ? existingContent.element_ids : undefined;
+            // the ids line up with the pairs by position: kept only while the pair count is unchanged
+            content = { pairs, ...(ids && ids.length === pairs.length ? { element_ids: ids } : {}) };
             normalizedQuestion = "Matching exercise";
             normalizedAnswer = pairs.map(p => p.join(" - ")).join("; ");
         } else if (exerciseType === "organize") {

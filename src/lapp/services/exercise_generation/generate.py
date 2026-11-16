@@ -48,6 +48,8 @@ def _generation_system(etype: str, target: str, source: str | None, advanced: bo
         + ("" if advanced else LEVEL_RULE) + TYPE_RULES.get(etype, "") +
         "- Use only words from the slot's elements and the known words listed in the user message, plus very basic words; never introduce other new words: the learner has not seen them.\n"
         f"- `content` is {content}.\n"
+        + ("- Each blank also has `element_id`: the id of the one slot element that blank tests (one of `links`).\n" if etype in ("type_in_the_blank", "select_in_the_blank") else "")
+        + ('- Add `element_ids` to `content`: for each pair, in order, the id of the one slot element that pair tests (one of `links`).\n' if etype == "matching" else "") +
         "- `links` lists the ids (copied exactly) of the slot's elements the exercise is about; at least one.\n"
         '- Reply with ONLY a JSON array, one object per slot in the slot order: {"question": str, "answer": str, "text_support": str|null, "content": object|null, "links": [str]}.'
     )

@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-// Pins today's score payloads per runner so the useAttemptScoring refactor (plan Tasks 9-10) cannot change them.
+// Pins the score payloads per runner: one credit post per finished exercise (final attempt only), results per element.
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
-import { evaluateText, updateScoreById } from "@/api/process";
+import { evaluateText, scoreExercise } from "@/api/process";
 
-vi.mock("@/api/process", () => ({ updateScoreById: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
+vi.mock("@/api/process", () => ({ scoreExercise: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
 vi.mock("@/api/exercise", () => ({ generateLineAudio: vi.fn() }));
 
 import ExerciseRunner from "./exerciseRunner";
@@ -14,14 +14,14 @@ import ExerciseRunner from "./exerciseRunner";
 const make = (type: string, content: unknown) => ({ id: "ex1", exercise_type: type, content, question: "q", answer: "a", audio_files: [], related_vocabulary: [], related_grammar: [], related_characters: [], related_calligraphy: [] }) as unknown as Exercise;
 const ev = (correct: boolean, score: number) => vi.mocked(evaluateText).mockResolvedValueOnce({ correct, score, feedback: "f" } as never);
 const check = () => fireEvent.click(screen.getByRole("button", { name: /check/i }));
-const calls = () => vi.mocked(updateScoreById).mock.calls.map(([, a]) => [a.similarity, typeof a.durationMs, a.hintUsed, a.attempt]);
+const calls = () => vi.mocked(scoreExercise).mock.calls.map(([, a]) => [a.results[0].quality, typeof a.durationMs, a.hintUsed, a.attempt]);
 const setup = (type: string, content: unknown) => {
     const onFinished = vi.fn();
     render(<ExerciseRunner exercise={make(type, content)} onFinished={onFinished} />);
     return onFinished;
 };
 
-beforeEach(() => { vi.mocked(updateScoreById).mockClear(); vi.mocked(evaluateText).mockReset(); });
+beforeEach(() => { vi.mocked(scoreExercise).mockClear(); vi.mocked(evaluateText).mockReset(); });
 afterEach(cleanup);
 
 describe("closed-answer runners: one attempt, wrong is final", () => {
@@ -34,7 +34,7 @@ describe("closed-answer runners: one attempt, wrong is final", () => {
         check();
         expect(calls()).toEqual([[0, "number", false, 1]]);
         expect(fin).toHaveBeenCalledTimes(1);
-        cleanup(); vi.mocked(updateScoreById).mockClear();
+        cleanup(); vi.mocked(scoreExercise).mockClear();
         fin = setup(type, content);
         fireEvent.click(screen.getByRole("button", { name: right as string }));
         check();
@@ -97,6 +97,6 @@ describe("every post carries the skill and how the answer was given", () => {
         setup(type, content);
         fireEvent.click(screen.getByRole("button", { name: right as string }));
         check();
-        expect(vi.mocked(updateScoreById).mock.calls[0][1]).toMatchObject({ skill: "recall", evidence });
+        expect(vi.mocked(scoreExercise).mock.calls[0][1]).toMatchObject({ final: true, results: [{ element_id: "ex1", skill: "recall", evidence_type: evidence }] });
     });
 });

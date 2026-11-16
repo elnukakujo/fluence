@@ -38,6 +38,10 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
         pairs = [tuple(normalise(x) for x in p) for p in item["content"]["pairs"]]
         if len({p[0] for p in pairs}) != len(pairs) or len({p[1] for p in pairs}) != len(pairs):
             return "matching has a duplicate pair or a repeated side"
+    content = item.get("content") or {}
+    tested = [b.get("element_id") for b in content.get("blanks") or []] + list(content.get("element_ids") or [])
+    if any(e is not None and e not in allowed_ids for e in tested):
+        return "a blank or pair names an element that is not one of the slot's elements (use only the ids given)"
     links = item.get("links") or []
     if not links or not set(links) <= allowed_ids:
         return "link the exercise to at least one of the elements it is about (use only the ids given)"

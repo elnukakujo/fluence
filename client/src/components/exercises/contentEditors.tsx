@@ -5,7 +5,7 @@ import type { ReadingRow, DictationRow } from "./readingDictationRows";
 
 // The per-type content editors of the exercise form, shared with the import review so both edit exercises the same way.
 
-export type BlankRow = { answer: string; options: string }; // options: comma-separated
+export type BlankRow = { answer: string; options: string; element_id?: string }; // options: comma-separated
 
 // Appends/strips a trailing "\n" on a segment, rendered as a horizontal divider in the practice card.
 function toggleLineBreak(value: string): string {

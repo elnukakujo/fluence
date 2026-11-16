@@ -26,3 +26,8 @@ export function gradeFromCloseness(closeness: number, ms: number): number {
     if (closeness <= TYPED_FLOOR) return 0;
     return (0.75 * (closeness - TYPED_FLOOR)) / (TYPED_FULL - TYPED_FLOOR);
 }
+
+/** The quality one typed blank earns from its closeness to the answer: a near-perfect fill is a full hit, linear to 0 at the floor. */
+export function blankQuality(closeness: number): number {
+    return closeness >= TYPED_FULL ? 1 : closeness <= TYPED_FLOOR ? 0 : (closeness - TYPED_FLOOR) / (TYPED_FULL - TYPED_FLOOR);
+}

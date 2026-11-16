@@ -2,24 +2,24 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
-import { updateScoreById } from "@/api/process";
+import { scoreExercise } from "@/api/process";
 import { useAttemptScoring } from "./useAttemptScoring";
 
-vi.mock("@/api/process", () => ({ updateScoreById: vi.fn().mockResolvedValue({}) }));
+vi.mock("@/api/process", () => ({ scoreExercise: vi.fn().mockResolvedValue({}) }));
 
 const ex = { id: "ex1" } as Exercise;
-const calls = () => vi.mocked(updateScoreById).mock.calls;
+const calls = () => vi.mocked(scoreExercise).mock.calls;
 
-beforeEach(() => vi.mocked(updateScoreById).mockClear());
+beforeEach(() => vi.mocked(scoreExercise).mockClear());
 
 describe("useAttemptScoring", () => {
-    it("posts wrong then right with attempt 1 then 2", () => {
+    it("a non-final wrong posts nothing; the right attempt posts once, as attempt 2", () => {
         const { result } = renderHook(() => useAttemptScoring(ex));
         act(() => result.current.submit(0));
+        expect(calls()).toHaveLength(0);
         act(() => result.current.submit(1));
         expect(calls()).toEqual([
-            ["ex1", expect.objectContaining({ similarity: 0, hintUsed: false, attempt: 1, skill: "recall" })],
-            ["ex1", expect.objectContaining({ similarity: 1, hintUsed: false, attempt: 2, skill: "recall" })],
+            ["ex1", expect.objectContaining({ final: true, hintUsed: false, attempt: 2, results: [expect.objectContaining({ quality: 1, skill: "recall" })] })],
         ]);
         expect(result.current.finished).toBe(true);
         expect(result.current.correct).toBe(true);
@@ -46,7 +46,7 @@ describe("useAttemptScoring", () => {
         act(() => result.current.submit(1));
         act(() => result.current.reset());
         expect(result.current.finished).toBe(false);
-        act(() => result.current.submit(0));
+        act(() => result.current.submit(1));
         expect(calls()).toHaveLength(2); // the first post + the post after reset
     });
 
@@ -58,5 +58,18 @@ describe("useAttemptScoring", () => {
         expect(result.current.attempts).toBe(1);
         rerender({ e: ex2 });
         expect(result.current.attempts).toBe(0);
+    });
+
+    it("each blank credits the element it tests; an untested linked element gets the exercise quality", () => {
+        const linked = { id: "ex1", exercise_type: "type_in_the_blank", related_vocabulary: ["voc_1", "voc_2"], related_grammar: ["gram_1"],
+            content: { segments: ["a", "b", "c"], blanks: [{ answer: "x", element_id: "voc_1" }, { answer: "y", element_id: "voc_2" }] } } as unknown as Exercise;
+        const { result } = renderHook(() => useAttemptScoring(linked));
+        act(() => result.current.submit(0.5, { final: true, parts: [1, 0] }));
+        expect(calls()).toHaveLength(1);
+        expect(calls()[0][1].results).toEqual([
+            { element_id: "voc_1", quality: 1, skill: "recognition", evidence_type: "typed" },   // the server lets each vocabulary face use its own skill
+            { element_id: "voc_2", quality: 0, skill: "recognition", evidence_type: "typed" },
+            { element_id: "gram_1", quality: 0.5, skill: "recognition", evidence_type: "typed" },
+        ]);
     });
 });

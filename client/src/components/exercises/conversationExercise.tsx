@@ -7,8 +7,8 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Image from 'next/image';
 import Exercise from "@/interface/features/Exercise";
-import { updateScoreById, evaluateSpeech } from "@/api/process";
-import { exerciseAnswer } from "@/utils/skills";
+import { evaluateSpeech } from "@/api/process";
+import { creditExercise } from "./creditExercise";
 import { BASE_URL } from "@/api";
 import { getExerciseLevel } from "@/utils/speech_levels";
 
@@ -294,7 +294,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                     const averageScore = userLineIndices.reduce((acc, idx) => acc + (lineStates[idx]?.similarityScore ?? 0), 0) / userLineIndices.length;
                     const duration_ms = Math.round(performance.now() - startTimeRef.current);
                     const attemptNumber = userLineIndices.reduce((acc, idx) => acc + (lineStates[idx]?.attempts ?? 0), 0) + userLineIndices.length;
-                    updateScoreById(exercise.id!, exerciseAnswer(exercise, averageScore, duration_ms, false, attemptNumber)).catch(console.error);
+                    creditExercise(exercise, averageScore, duration_ms, false, attemptNumber);
                     setIsFinished(true);
                 } else {
                     const nextUserLine = userLineIndices.find((i) => i > currentLineIndex)!;
@@ -316,7 +316,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                     const previousAttempts = userLineIndices
                         .filter((idx) => idx < currentLineIndex)
                         .reduce((acc, idx) => acc + (lineStates[idx]?.attempts ?? 0) + 1, 0);
-                    updateScoreById(exercise.id!, exerciseAnswer(exercise, 0, duration_ms, false, previousAttempts + newAttempts)).catch(console.error);
+                    creditExercise(exercise, 0, duration_ms, false, previousAttempts + newAttempts);
                     setIsFinished(true);
                 }
             }

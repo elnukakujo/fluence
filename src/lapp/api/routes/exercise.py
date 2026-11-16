@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from ...services import ExerciseService
 from ...services.system_data import ScoreService, ExerciseUserPrefService, SourceService
 from ...schemas import ExerciseDict
-from ..answer import answered
+from ...schemas.answer import parse_exercise_answer
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...services.system_data import UserPreferencesService
 from ...utils.llm_providers import resolve_api
@@ -346,7 +346,7 @@ def delete_exercise(exercise_id: str):
 @bp.route('/score', methods=['POST'])
 @login_required
 def score_exercise():
-    """Score an exercise.
+    """Credit the elements of an exercise attempt (only the final attempt counts).
     ---
     tags:
         - Exercise
@@ -356,38 +356,45 @@ def score_exercise():
           required: true
           schema:
             type: object
-            description: Score update object
             properties:
-                exercise_id:
-                    type: string
-                    example: "ex_E1"
-                    description: "ID of the exercise to score"
-                    required: true
-                score:
-                    type: number
-                    example: 0.8
-                    description: "The score for the exercise"
-                    required: true
-                attempt_number:
-                    type: integer
-                    example: 2
-                    description: "The number of attempts made for the exercise"
-                    required: false
+                exercise_id: {type: string, example: "ex_E1"}
+                results:
+                    type: array
+                    description: "One entry per blank / pair, or one per linked element at the exercise quality"
+                    items:
+                        type: object
+                        properties:
+                            element_id: {type: string, example: "voc_V1"}
+                            quality: {type: number, example: 1.0}
+                            skill: {type: string, enum: [recognition, recall]}
+                            evidence_type: {type: string, enum: [typed, spoken, self_grade, multiple_choice, matching]}
+                attempt: {type: integer, example: 2}
+                final: {type: boolean, description: "false posts nothing"}
+                duration_ms: {type: integer}
+                hint_used: {type: boolean}
     responses:
         200:
-            description: Exercise scored successfully
-            schema:
-                type: object
-                description: Updated Exercise object
+            description: "{success, correct, total}; no score is returned"
+        400:
+            description: Invalid body, or a result names an element the exercise is not linked to
         404:
             description: Exercise not found
     """
     data = request.json or {}
     exercise_id = data.get('exercise_id')
     require_write(exercise_id)
-    return answered(exercise_id, data, lambda a: exercise_service.update_score(
-        exercise_id, a.similarity, duration_ms=a.duration_ms, hint_used=a.hint_used, attempt_number=a.attempt_number,
-        user_id=current_user_id(), skill=a.skill, evidence_type=a.evidence_type))
+    try:
+        answer = parse_exercise_answer(data)
+        if not answer.final:
+            return jsonify({'success': True, 'credited': False})
+        counts = exercise_service.credit(
+            exercise_id, [r.model_dump() for r in answer.results], user_id=current_user_id(),
+            duration_ms=answer.duration_ms, hint_used=answer.hint_used, attempt=answer.attempt)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    if counts is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({'success': True, **counts})
 
 @bp.route('/<exercise_id>/line-audio', methods=['POST'])
 @login_required

@@ -1,6 +1,6 @@
 import type Exercise from "@/interface/features/Exercise";
 import { elementKindOf } from "@/api/elementKinds";
-import type { Answer } from "@/api/process";
+import type { ExerciseResult } from "@/api/process";
 
 export type Skill = "recognition" | "recall";
 export type Evidence = "typed" | "spoken" | "self_grade" | "multiple_choice" | "matching";
@@ -25,7 +25,23 @@ export function evidenceFor(type: Exercise["exercise_type"]): Evidence {
     }
 }
 
-/** The answer an exercise runner posts: skill and evidence follow from the exercise itself. */
-export function exerciseAnswer(ex: Exercise, similarity: number, durationMs: number, hintUsed: boolean, attempt: number): Answer {
-    return { similarity, skill: skillFor(ex.id!), evidence: evidenceFor(ex.exercise_type), durationMs, hintUsed, attempt };
+/** The element each blank / pair of an exercise tests (undefined = none recorded). */
+function partElements(ex: Exercise): (string | undefined)[] {
+    const c = ex.content as { blanks?: { element_id?: string }[]; element_ids?: (string | null)[] } | undefined;
+    return c?.blanks ? c.blanks.map((b) => b.element_id) : (c?.element_ids ?? []).map((id) => id ?? undefined);
+}
+
+/** What an exercise attempt says about each element, for the server's per-element credit (DM-6, DM-57).
+ *  `parts` = the quality of each blank / pair, in order: a part credits the element it tests (the server averages parts of one element).
+ *  A linked element no part tests gets the exercise `quality`; with no part at all, every linked element does; with no linked element, the exercise stands for itself. */
+export function exerciseResults(ex: Exercise, quality: number, parts?: number[]): ExerciseResult[] {
+    const linked = [...(ex.related_vocabulary ?? []), ...(ex.related_grammar ?? []), ...(ex.related_calligraphy ?? [])];
+    const evidence_type = evidenceFor(ex.exercise_type);
+    const make = (element_id: string, q: number): ExerciseResult => ({ element_id, quality: q, skill: skillFor(element_id), evidence_type });
+    const ids = partElements(ex);
+    const tested = (parts ?? []).flatMap((q, i) => (ids[i] && linked.includes(ids[i]!) ? [make(ids[i]!, q)] : []));
+    const covered = new Set(tested.map((r) => r.element_id));
+    const rest = linked.filter((id) => !covered.has(id)).map((id) => make(id, quality));
+    const all = [...tested, ...rest];
+    return all.length ? all : [make(ex.id!, quality)];
 }

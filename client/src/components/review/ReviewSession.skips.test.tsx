@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReviewCard } from "@/api/review";
 
-const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}) }));
+const api = vi.hoisted(() => ({ scoreExercise: vi.fn().mockResolvedValue({}) }));
 vi.mock("@/api/process", () => api);
 vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));
 vi.mock("@/components/exercises/exerciseRunner", () => ({ default: ({ exercise, onFinished, gaveUp }: { exercise: { id: string }; onFinished?: () => void; gaveUp?: boolean }) => <div><span data-testid="runner">{exercise.id}</span>{gaveUp && <span>answer shown</span>}<button onClick={onFinished}>solve</button></div> }));
@@ -27,14 +27,14 @@ describe("review: skips", () => {
         await userEvent.click(screen.getByRole("button", { name: "I can't speak" }));
         expect(screen.getByTestId("runner")).toHaveTextContent("ex_2");
         expect(screen.queryByRole("button", { name: /I can't/ })).toBeNull();
-        expect(api.updateScoreById).not.toHaveBeenCalled();
+        expect(api.scoreExercise).not.toHaveBeenCalled();
     });
 
     it("skipping the only exercise ends the review without scoring", async () => {
         render(<ReviewFlashCard cards={[ex("ex_1", "dictation")]} />);
         await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
         expect(screen.queryByTestId("runner")).toBeNull();
-        expect(api.updateScoreById).not.toHaveBeenCalled();
+        expect(api.scoreExercise).not.toHaveBeenCalled();
     });
 
     it("swaps an exercise the learner can't do for a ready spare, keeping the queue length", async () => {
@@ -43,7 +43,7 @@ describe("review: skips", () => {
         await userEvent.click(screen.getByRole("button", { name: "I can't hear" }));
         expect(screen.getByTestId("runner")).toHaveTextContent("ex_s");
         expect(screen.getByText(/1 \/ 2|1\/2/)).toBeInTheDocument();
-        expect(api.updateScoreById).not.toHaveBeenCalled();
+        expect(api.scoreExercise).not.toHaveBeenCalled();
     });
 
     it("uses a spare only once and never one the learner can't do", async () => {

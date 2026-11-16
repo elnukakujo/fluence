@@ -1,8 +1,8 @@
 import { BaseFeature } from "../base";
 
 export type ExerciseContent =
-    | { segments: string[]; blanks: { options?: string[]; answer: string }[] } // type_in_the_blank / select_in_the_blank
-    | { pairs: [string, string][] } // matching
+    | { segments: string[]; blanks: { options?: string[]; answer: string; element_id?: string }[] } // type_in_the_blank / select_in_the_blank; element_id = the linked element the blank tests
+    | { pairs: [string, string][]; element_ids?: (string | null)[] } // matching; element_ids[i] = the linked element pair i tests
     | { items: string[]; answer_order: number[] } // organize
     | { statement: string; answer: boolean } // true_false
     | { options: string[]; correct: number[] } // quizz

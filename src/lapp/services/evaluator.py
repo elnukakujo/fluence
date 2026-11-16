@@ -233,6 +233,12 @@ class EvaluatorService:
         return {"score": x * similarity + y * grammar + z * usage, "similarity": similarity, "grammar_error_rate": grammar,
                 "token_difference_rate": usage, "user_answer": user_text, "correct_answer": ""}
 
+    @staticmethod
+    def blank_closeness(blanks: list[dict], user_text: str, iso1: Optional[str] = None) -> list[float]:
+        """Closeness (0..1) of each typed blank to its answer; `user_text` is the blanks joined by ", " (the form the client sends)."""
+        parts = user_text.split(", ")
+        return [round(closeness(parts[i] if i < len(parts) else "", b["answer"], iso1=iso1), 4) for i, b in enumerate(blanks)]
+
     def _evaluate_text(
         self,
         ex_id: str,
@@ -385,11 +391,12 @@ class EvaluatorService:
                     exercise=exercise,
                 )
 
-                return {
-                    "correct": results["score"] > threshold,
-                    "score": results["score"],
-                    "feedback": feedback,
-                }
+                out = {"correct": results["score"] > threshold, "score": results["score"], "feedback": feedback}
+                blanks = (exercise.content or {}).get("blanks") if exercise.exercise_type == "type_in_the_blank" and input_type == "text" else None
+                if blanks:       # per-blank closeness, so each blank can credit its own element
+                    language = get_language_by_iso2t(target_lang_code) if target_lang_code else None
+                    out["blanks"] = self.blank_closeness(blanks, user_input, language.iso1 if language else None)
+                return out
         except Exception:
             logger.error("evaluate failed for ex_id=%s:\n%s", ex_id, traceback.format_exc())
             return {"correct": False, "score": 0.0, "feedback": "Evaluation unavailable. Please try again."}

@@ -63,10 +63,11 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (filledAnswers.every((ans, idx) => ans === correctAnswers[idx])) {
-            submit(1);
+        const parts = filledAnswers.map((ans, idx) => (ans === correctAnswers[idx] ? 1 : 0));
+        if (parts.every((p) => p === 1)) {
+            submit(1, { parts });
         } else if (attempts >= 2) {
-            submit(0, { final: true }); // the third miss
+            submit(0, { final: true, parts }); // the third miss: the blanks it got right still credit their elements
         } else {
             miss();
         }

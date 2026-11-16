@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
 
-const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
+const api = vi.hoisted(() => ({ scoreExercise: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
 const exApi = vi.hoisted(() => ({ generateLineAudio: vi.fn() }));
 const played = vi.hoisted(() => ({ urls: [] as string[] }));
 vi.mock("@/api/process", () => api);
@@ -53,9 +53,9 @@ describe("reading exercise", () => {
     expect(screen.queryByText("rec")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Easy/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "I've read it" }));
-    expect(api.updateScoreById).toHaveBeenCalledWith("ex_1", expect.objectContaining({ similarity: 1, hintUsed: false, attempt: 1, skill: "recall", evidence: "self_grade" }));
+    expect(api.scoreExercise).toHaveBeenCalledWith("ex_1", expect.objectContaining({ final: true, hintUsed: false, attempt: 1, results: [expect.objectContaining({ quality: 1, skill: "recall", evidence_type: "self_grade" })] }));
     expect(screen.queryByRole("button", { name: "I've read it" })).not.toBeInTheDocument();
-    expect(api.updateScoreById).toHaveBeenCalledTimes(1);
+    expect(api.scoreExercise).toHaveBeenCalledTimes(1);
   });
 
   it("renders a single-speaker passage", () => {
