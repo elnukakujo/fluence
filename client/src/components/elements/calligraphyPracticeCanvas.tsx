@@ -180,8 +180,10 @@ export default function CalligraphyPracticeCanvas({
   }
 
   return (
-    <div className="flex flex-col gap-3 items-center">
-      {info}
+    // wide: card and drawing side by side; narrow: the drawing first (on screen at once), the card under it
+    <div className="flex flex-col items-center gap-4 md:flex-row md:items-start md:justify-center">
+      {info && <div className="order-2 w-full md:order-1 md:w-80 md:shrink-0">{info}</div>}
+      <div className="order-1 flex flex-col items-center gap-3 md:order-2">
       <canvas
         ref={canvasRef}
         width={300}
@@ -200,6 +202,7 @@ export default function CalligraphyPracticeCanvas({
         <button type="button" className="btn" onClick={handleClear}>
           {t("clearButton")}
         </button>
+      </div>
       </div>
     </div>
   );
