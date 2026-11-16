@@ -41,6 +41,9 @@ export default async function Language({ params }: { params: Promise<{ language_
                     <NavButton path={`/languages/${language_id}/review`}>
                         <p>{t("dailyReview")}</p>
                     </NavButton>
+                    <NavButton path={`/languages/${language_id}/review/by-type`}>
+                        <p>{t("reviewByType")}</p>
+                    </NavButton>
                     {language.current_lesson_id && <NavButton path={`/languages/${language_id}/lesson/${language.current_lesson_id}`}>
                         <p>{t("goToCurrentLesson")}</p>
                     </NavButton>}
