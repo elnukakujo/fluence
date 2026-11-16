@@ -34,5 +34,7 @@
   "mediaLoaderUploadAudio": "上传音频",
   "mediaLoaderClearAudios": "清除音频",
   "mediaLoaderPreview": "预览",
-  "imageViewerResetZoom": "重置缩放"
+  "imageViewerResetZoom": "重置缩放",
+  "mediaLoaderRemoveImage": "移除图片",
+  "mediaLoaderRemoveAudio": "移除音频"
 }

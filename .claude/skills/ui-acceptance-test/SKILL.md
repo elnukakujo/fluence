@@ -23,4 +23,4 @@ Writing these tests often finds bugs — fix them before handing over.
 Read every `Comment:`, section comment and the verdict. For each: reproduce or locate the cause, fix it (test first), or record it as an open decision. Reply under the comment with `  - Reply: <what changed or why not>`; never delete the owner's text. Unticked steps the owner skipped ("no time", "no data") stay unticked: cover them with a test and say so in the reply. Record domain differences (`refactor-differences.md` RD row + the domain page itself), CHANGELOG and session log in the same edit.
 
 ## 4. Keep it honest
-Expected numbers come from running the code, not from memory. State in the final message which steps you have not clicked through yourself.
+Expected numbers come from running the code, not from memory. Click through the flows yourself first with puppeteer on a throwaway `--env test` stack (see the memory note on browser checks: seeded `fluence_test`, backend :5055, client :3055) and look at desktop and phone screenshots; fix what you see before handing over. State in the final message which steps you have not clicked through yourself.

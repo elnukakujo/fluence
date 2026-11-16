@@ -169,8 +169,8 @@ export default function EntitySelector<T extends EntityLike>({
 
   return (
     <>
-      <section ref={containerRef} className="flex w-full max-w-md flex-col gap-1.5">
-        <label className="text-xs font-medium uppercase tracking-wide text-muted">
+      <section ref={containerRef} className="flex w-full flex-col gap-1.5">
+        <label className="text-sm font-medium capitalize text-foreground">
           {label}
         </label>
 

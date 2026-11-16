@@ -70,7 +70,7 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
                     <Link
                       key={`${group.kind}-${item.id}-${index}`}
                       href={href}
-                      className="chip"
+                      className={`chip ${group.kind === "character" ? "font-serif text-lg" : ""}`}
                     >
                       {label}
                     </Link>

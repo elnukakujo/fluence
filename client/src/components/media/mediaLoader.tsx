@@ -4,7 +4,7 @@ import { useRef, ChangeEvent, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDeleteLeft } from '@fortawesome/free-solid-svg-icons'
+import { faImage, faVolumeHigh, faXmark } from '@fortawesome/free-solid-svg-icons'
 
 import { uploadImage, uploadAudio } from "@/api/process";
 import { BASE_URL } from '@/api';
@@ -106,129 +106,65 @@ export default function MediaLoader({
     }
   };
 
+  const removeAt = <T,>(list: T[], index: number) => list.filter((_, i) => i !== index);
+
   return (
-    <div 
-      className="space-y-6"
+    <div
+      className="grid gap-6 sm:grid-cols-2"
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
-      <div>
-        <h3 className="text-sm font-medium mb-2">{t("mediaLoaderImage")}</h3>
-        <input
-          type="file"
-          ref={imageInputRef}
-          accept="image/*"
-          onChange={handleImageChange}
-          className="hidden"
-        />
-        <div className='flex flex-row space-x-4'>
-          <button
-            type='button'
-            onClick={() => imageInputRef.current?.click()}
-            className="btn btn-secondary"
-          >
-            {t("mediaLoaderUploadImage")}
-          </button>
-          {imagePreviewUrl && (
-            <button
-              type='button'
-              onClick={clearImage}
-              className="btn btn-danger"
-            >
-              {t("mediaLoaderClearImages")}
-            </button>
+      {/* Images: upload, then thumbnails with a small remove button each */}
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-medium text-foreground">{t("mediaLoaderImage")}</h3>
+          {imagePreviewUrl.length > 1 && (
+            <button type="button" onClick={clearImage} className="text-sm text-danger underline-offset-2 hover:underline">{t("mediaLoaderClearImages")}</button>
           )}
         </div>
+        <input type="file" ref={imageInputRef} accept="image/*" onChange={handleImageChange} className="hidden" />
+        <button type="button" onClick={() => imageInputRef.current?.click()} className="btn btn-secondary min-h-11 self-start">
+          <FontAwesomeIcon icon={faImage} aria-hidden="true" /> {t("mediaLoaderUploadImage")}
+        </button>
         {imagePreviewUrl.length > 0 && (
-          <span className="my-10 flex flex-col space-y-4 items-center">
-            {
-              imagePreviewUrl.map((url, index) => (
-                <figure key={index} className="flex flex-row items-center space-x-4 mb-4">
-                  <Image
-                    src={url}
-                    alt={t("mediaLoaderPreview")}
-                    className="object-contain"
-                    width={150}
-                    height={150}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newPreviewUrls = [...imagePreviewUrl];
-                      const newUrls = [...imageUrl];
-                      newPreviewUrls.splice(index, 1);
-                      newUrls.splice(index, 1);
-                      setImagePreviewUrl(newPreviewUrls);
-                      setImageUrl(newUrls);
-                    }}
-                    className="btn btn-danger px-2 py-1"
-                  >
-                    <FontAwesomeIcon icon={faDeleteLeft} />
-                  </button>
-                </figure>
-              ))
-            }
-          </span>
+          <ul className="flex flex-wrap gap-3">
+            {imagePreviewUrl.map((url, index) => (
+              <li key={url + index} className="relative h-24 w-24 overflow-hidden rounded-xl border border-border bg-surface">
+                <Image src={url} alt={t("mediaLoaderPreview")} className="object-contain" fill sizes="96px" />
+                <button type="button" aria-label={t("mediaLoaderRemoveImage")} className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-danger"
+                  onClick={() => { setImagePreviewUrl(removeAt(imagePreviewUrl, index)); setImageUrl(removeAt(imageUrl, index)); }}>
+                  <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
-      {/* Audio Upload Section */}
-      <div>
-        <h3 className="text-sm font-medium mb-2">{t("mediaLoaderAudio")}</h3>
-        <input
-          type="file"
-          ref={audioInputRef}
-          accept="audio/*"
-          onChange={handleAudioChange}
-          className="hidden"
-        />
-        <div className='flex flex-row space-x-4'>
-          <button
-            type='button'
-            onClick={() => audioInputRef.current?.click()}
-            className="btn btn-secondary"
-          >
-            {t("mediaLoaderUploadAudio")}
-          </button>
-          {audioPreviewUrl && (
-            <button
-              type='button'
-              onClick={clearAudio}
-              className="btn btn-danger"
-            >
-              {t("mediaLoaderClearAudios")}
-            </button>
+      {/* Audio: upload, then one player row per file */}
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-medium text-foreground">{t("mediaLoaderAudio")}</h3>
+          {audioPreviewUrl.length > 1 && (
+            <button type="button" onClick={clearAudio} className="text-sm text-danger underline-offset-2 hover:underline">{t("mediaLoaderClearAudios")}</button>
           )}
         </div>
+        <input type="file" ref={audioInputRef} accept="audio/*" onChange={handleAudioChange} className="hidden" />
+        <button type="button" onClick={() => audioInputRef.current?.click()} className="btn btn-secondary min-h-11 self-start">
+          <FontAwesomeIcon icon={faVolumeHigh} aria-hidden="true" /> {t("mediaLoaderUploadAudio")}
+        </button>
         {audioPreviewUrl.length > 0 && (
-          <span className="my-10 flex flex-col space-y-4 items-center">
-            {
-              audioPreviewUrl.map((url, index) => (
-                <figure key={index} className="flex flex-row items-center space-x-4 mb-4">
-                  <audio
-                    ref={audioRef}
-                    src={url}
-                    className="w-full"
-                    controls
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newPreviewUrls = [...audioPreviewUrl];
-                      const newUrls = [...audioUrl];
-                      newPreviewUrls.splice(index, 1);
-                      newUrls.splice(index, 1);
-                      setAudioPreviewUrl(newPreviewUrls);
-                      setAudioUrl(newUrls);
-                    }}
-                    className="btn btn-danger px-2 py-1"
-                  >
-                    <FontAwesomeIcon icon={faDeleteLeft} />
-                  </button>
-                </figure>
-              ))
-            }
-          </span>
+          <ul className="flex flex-col gap-2">
+            {audioPreviewUrl.map((url, index) => (
+              <li key={url + index} className="flex items-center gap-2">
+                <audio ref={index === 0 ? audioRef : undefined} src={url} className="h-10 min-w-0 flex-1" controls />
+                <button type="button" aria-label={t("mediaLoaderRemoveAudio")} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-danger hover:bg-accent-soft"
+                  onClick={() => { setAudioPreviewUrl(removeAt(audioPreviewUrl, index)); setAudioUrl(removeAt(audioUrl, index)); }}>
+                  <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

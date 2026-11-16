@@ -75,7 +75,7 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
         <>
         {shell.conflictProps && <ConflictDialog {...shell.conflictProps} />}
         <FormLayout onSubmit={shell.handleSubmit}>
-            <FormSection title={t("formHeading")}>
+            <FormSection title={t("formHeading")} columns={3}>
                 <Field label={t("wordLabel")} required labelClassName={FORM_LABEL}>
                     <input className="input" value={word} onChange={(e) => setWord(e.target.value)} placeholder={t("wordPlaceholder")} />
                 </Field>

@@ -93,7 +93,7 @@ export default function ClassicSelectMenu({
   return (
     <div ref={containerRef} className="flex flex-col gap-1.5 w-full max-w-64">
       {label && (
-        <label htmlFor={id} className="text-xs font-medium uppercase tracking-wide text-muted">
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
           {label} {required && <span className="text-danger">*</span>}
         </label>
       )}

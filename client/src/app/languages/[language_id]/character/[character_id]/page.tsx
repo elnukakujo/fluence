@@ -31,6 +31,7 @@ export default async function CharacterPage({
         <RelatedCard
           languageId={language_id}
           radicals={character.key_radical ? [character.key_radical] : []}
+          characters={[...(character.radical_of_refs ?? []), ...(character.component_of_refs ?? [])].filter((c, i, all) => all.findIndex((o) => o.id === c.id) === i)}
           words={character.words}
           passages={character.passages}
         />

@@ -19,6 +19,8 @@
   "meaningLabel": "Meaning",
   "radicalLabel": "Key radical",
   "componentsLabel": "Components",
+  "radicalPlaceholder": "e.g. 氵",
+  "componentsPlaceholder": "Type a character, then Enter",
   "structureLegend": "Structure",
   "structureHintCreate": "A radical and the components are characters of this language. Leave them empty and the app fills them from the dictionary when you save; any you type are created if they do not exist yet.",
   "structureHintUpdate": "A radical and the components are characters of this language; one that does not exist yet is created when you save. Empty the field to remove it.",

@@ -70,7 +70,7 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
                                     <dt className="min-w-28 text-sm text-muted">{label}</dt>
                                     <dd className="flex flex-wrap gap-2">
                                         {refs!.map((r) => (
-                                            <Link key={r.id} href={`/languages/${languageId}/character/${r.id}`} className="chip font-serif text-base">{r.character}</Link>
+                                            <Link key={r.id} href={`/languages/${languageId}/character/${r.id}`} className="chip font-serif text-xl">{r.character}</Link>
                                         ))}
                                     </dd>
                                 </div>

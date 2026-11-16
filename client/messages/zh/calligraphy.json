@@ -19,6 +19,8 @@
   "meaningLabel": "含义",
   "radicalLabel": "部首",
   "componentsLabel": "部件",
+  "radicalPlaceholder": "如 氵",
+  "componentsPlaceholder": "输入一个字，按回车",
   "structureLegend": "结构",
   "structureHintCreate": "部首和部件都是本语言中的汉字。留空则保存时由应用根据字典自动填写；你输入的汉字若不存在会被创建。",
   "structureHintUpdate": "部首和部件都是本语言中的汉字；不存在的汉字会在保存时创建。清空输入框即可移除。",

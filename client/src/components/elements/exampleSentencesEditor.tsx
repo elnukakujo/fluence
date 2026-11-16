@@ -7,7 +7,7 @@ import { faAdd, faTrash } from "@fortawesome/free-solid-svg-icons";
 import Field from "@/components/ui/field";
 import MediaLoader from "@/components/media/mediaLoader";
 import type Passage from "@/interface/components/Passage";
-import { FORM_LABEL } from "./formParts";
+import { Disclosure, FORM_LABEL } from "./formParts";
 
 type FieldName = "text" | "translation" | "image_files" | "audio_files";
 
@@ -34,7 +34,7 @@ export default function ExampleSentencesEditor({ heading, labels, sentences, set
 
     return (
         <section className="card flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">{heading}</h2>
+            <h2 className="text-lg font-semibold">{heading}{sentences.length > 0 && <span className="ml-2 text-sm font-normal text-muted">({sentences.length})</span>}</h2>
             {sentences.map((sentence, key) => (
                 <div className="relative grid gap-4 rounded-xl border border-border p-4 pr-16 sm:grid-cols-2" key={key}>
                     <button type="button" aria-label={t("removeExampleSentence")} className="btn btn-danger absolute right-3 top-3 min-h-11 min-w-11 px-2 py-1"
@@ -47,10 +47,10 @@ export default function ExampleSentencesEditor({ heading, labels, sentences, set
                     <Field label={labels.translation} labelClassName={FORM_LABEL}>
                         <input className="input" value={sentence.translation || ""} onChange={(e) => change(key, "translation", e.target.value)} />
                     </Field>
-                    <div className="sm:col-span-2">
+                    <Disclosure title={t("formMediaSection")} count={(sentence.image_files?.length ?? 0) + (sentence.audio_files?.length ?? 0)}>
                         <MediaLoader imageUrl={sentence.image_files || []} setImageUrl={(files) => change(key, "image_files", files)}
                             audioUrl={sentence.audio_files || []} setAudioUrl={(files) => change(key, "audio_files", files)} />
-                    </div>
+                    </Disclosure>
                 </div>
             ))}
             <button type="button" className="btn btn-secondary min-h-11 min-w-11 self-start"

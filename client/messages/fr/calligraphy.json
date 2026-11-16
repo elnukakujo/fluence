@@ -19,6 +19,8 @@
   "meaningLabel": "Sens",
   "radicalLabel": "Radical principal",
   "componentsLabel": "Composants",
+  "radicalPlaceholder": "ex. 氵",
+  "componentsPlaceholder": "Saisissez un caractère, puis Entrée",
   "structureLegend": "Structure",
   "structureHintCreate": "Le radical et les composants sont des caractères de cette langue. Laissez-les vides : l'application les remplit depuis le dictionnaire à l'enregistrement ; ceux que vous saisissez sont créés s'ils n'existent pas encore.",
   "structureHintUpdate": "Le radical et les composants sont des caractères de cette langue ; un caractère inexistant est créé à l'enregistrement. Videz le champ pour le retirer.",

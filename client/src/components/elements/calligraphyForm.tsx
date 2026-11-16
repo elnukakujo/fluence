@@ -18,7 +18,7 @@ import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
 import ExampleSentencesEditor from "./exampleSentencesEditor";
 import { useElementForm } from "./useElementForm";
 import CharacterLinksField from "./characterLinksField";
-import { FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
+import { Disclosure, FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
 export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters = []}: {calligraphy?: Partial<Calligraphy>; lesson_id: string; knownCharacters?: string[]}) {
     const t = useTranslations("calligraphy");
@@ -99,7 +99,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters
         <>
         {shell.conflictProps && <ConflictDialog {...shell.conflictProps} />}
         <FormLayout onSubmit={shell.handleSubmit}>
-            <FormSection title={t("formHeading")} columns={3}>
+            <FormSection title={t("formHeading")} columns={4}>
                 <Field label={t("characterLabel")} required labelClassName={FORM_LABEL}>
                     <input className="input text-center font-serif text-2xl" lang="zh" value={character} onChange={(e) => setCharacter(e.target.value)} />
                 </Field>
@@ -123,7 +123,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters
                 <MediaLoader imageUrl={imageUrl} setImageUrl={setImageUrl} audioUrl={audioUrl} setAudioUrl={setAudioUrl} />
             </FormSection>
             <section className="card flex flex-col gap-4">
-                <h2 className="text-lg font-semibold">{t("exampleWordsHeading")}</h2>
+                <h2 className="text-lg font-semibold">{t("exampleWordsHeading")}{exampleWords.length > 0 && <span className="ml-2 text-sm font-normal text-muted">({exampleWords.length})</span>}</h2>
                 {exampleWords.map((exampleWord, key) => (
                     <div key={key} className="relative grid gap-4 rounded-xl border border-border p-4 pr-16 sm:grid-cols-2">
                         <button type="button" aria-label={tEl("removeExampleWord")} className="btn btn-danger absolute right-3 top-3 min-h-11 min-w-11 px-2 py-1"
@@ -140,12 +140,12 @@ export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters
                             onChange={(value) => handleExampleWordChange(key, "word_type", value)} />
                         <ClassicSelectMenu label={t("exampleWordGenderLabel")} options={['m', 'f', 'n', 'c', '']} selectedOption={exampleWord.word_gender || ""}
                             onChange={(value) => handleExampleWordChange(key, "word_gender", value)} />
-                        <div className="sm:col-span-2">
+                        <Disclosure title={tEl("formMediaSection")} count={(exampleWord.image_files?.length ?? 0) + (exampleWord.audio_files?.length ?? 0)}>
                             <MediaLoader
                                 imageUrl={exampleWord.image_files || []} setImageUrl={(files) => handleExampleWordChange(key, "image_files", files)}
                                 audioUrl={exampleWord.audio_files || []} setAudioUrl={(files) => handleExampleWordChange(key, "audio_files", files)}
                             />
-                        </div>
+                        </Disclosure>
                     </div>
                 ))}
                 <button type="button" className="btn btn-secondary min-h-11 self-start"
