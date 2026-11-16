@@ -350,3 +350,19 @@ def test_radical_options_are_only_radicals_and_say_which_the_learner_has(app, db
 def test_no_radical_options_for_a_language_without_characters(app, db):
     _seed(db, iso="kor")
     assert _client(app).get("/api/character/radicals?language_id=lang_L1").get_json() == []
+
+
+# --- cards carry the radical and the components with their glyph ---
+
+def test_a_calligraphy_payload_carries_the_radical_and_components_with_their_glyph(app, db):
+    _with_calligraphy(db)
+    _set(db, "char_C1", key_radical_id="char_C2", components=["char_C2", "char_C3"])
+    got = _client(app).get("/api/calligraphy/call_C1").get_json()["character"]
+    assert got["key_radical"] == {"id": "char_C2", "character": "氵"}
+    assert [c["character"] for c in got["component_refs"]] == ["氵", "河"]
+
+
+def test_a_character_without_links_has_none(app, db):
+    _with_calligraphy(db)
+    got = _client(app).get("/api/calligraphy/call_C1").get_json()["character"]
+    assert got["key_radical"] is None and got["component_refs"] == []

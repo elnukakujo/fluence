@@ -3,7 +3,7 @@ import { PenLine, PenOff } from "lucide-react";
 import type Calligraphy from "@/interface/features/Calligraphy";
 import { submitCalligraphyDrawing } from "@/api/calligraphy";
 import CalligraphyPracticeCanvas, { guidanceFor } from "@/components/elements/calligraphyPracticeCanvas";
-import CharacterCard from "@/components/elements/characterCard";
+import CharacterCard, { CharacterStructure } from "@/components/elements/characterCard";
 import { loadStrokeData } from "@/lib/calligraphy/strokeData";
 import { isDrawFirst } from "@/utils/drawFirst";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
@@ -51,7 +51,7 @@ function Front({ c }: { c: RendererCtx<Calligraphy> }) {
     return (
         <>
             <h3 className="font-serif">{t("characterHeading")}</h3>
-            <CharacterCard character={c.item.character} hiddenTranslation={true} hiddenAdditionalInformations={c.showDetail} />
+            <CharacterCard review character={c.item.character} hiddenTranslation={true} hiddenAdditionalInformations={c.showDetail} />
         </>
     );
 }
@@ -82,11 +82,13 @@ export const calligraphyRenderer: ItemRenderer<Calligraphy> = {
                     console.error("Failed to submit drawing", e);
                 }
             }}
-            info={c.tier === "learning" ? <CharacterCard character={c.item.character} hiddenTranslation={false} hiddenAdditionalInformations={false} /> : undefined} />
+            info={c.tier === "learning"
+                ? <CharacterCard review character={c.item.character} hiddenTranslation={false} hiddenAdditionalInformations={false} />
+                : <CharacterStructure tiles keyRadical={c.item.character.key_radical} components={c.item.character.component_refs} />} />
     ) : (
         <FlipCard hidden={c.hiddenTranslation} onReveal={c.reveal}
             front={<Front c={c} />}
-            back={<CharacterCard character={c.item.character} hiddenTranslation={false} hiddenAdditionalInformations={false} />} />
+            back={<CharacterCard review character={c.item.character} hiddenTranslation={false} hiddenAdditionalInformations={false} />} />
     ),
     escape: (c) => c.showPractice && !c.graded ? <CantDraw c={c} /> : null,
     post: (c) => <NonVocabExamples item={c.item} />,

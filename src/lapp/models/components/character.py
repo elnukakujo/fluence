@@ -1,5 +1,5 @@
 from sqlalchemy import JSON, Column, Integer, String, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import object_session, relationship
 
 from ..base import BaseComponentModel, character_word_link, character_passage_link
 
@@ -44,6 +44,15 @@ class Character(BaseComponentModel):
             "key_radical_id": self.key_radical_id,
             "components": self.components or [],
         }
+        # The radical and the components with their glyph, so a card can show them without a second request (the review queue,
+        # the flashcards, the sheets). ponytail: one `get` per link (the session caches them); a join if a queue ever gets slow.
+        session = object_session(self)
+        if session is not None:
+            def ref(i):
+                c = session.get(Character, i)
+                return {"id": c.id, "character": c.character} if c else None
+            base_dict["key_radical"] = ref(self.key_radical_id) if self.key_radical_id else None
+            base_dict["component_refs"] = [r for r in map(ref, self.components or []) if r]
         if include_relations:
             base_dict.update({
                 "calligraphy": [c.to_dict(include_relations=False) for c in self.calligraphy],

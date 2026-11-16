@@ -19,7 +19,7 @@ vi.mock("@/utils/drawFirst", () => ({ isDrawFirst: m.isDrawFirst }));
 vi.mock("@/components/exercises/exerciseRunner", () => ({ default: () => <div /> }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
 vi.mock("@/components/elements/calligraphyPracticeCanvas", () => ({
-    default: (p: { onResult: typeof m.onResult }) => { m.onResult = p.onResult; return <div data-testid="canvas" />; },
+    default: (p: { onResult: typeof m.onResult; info?: React.ReactNode }) => { m.onResult = p.onResult; return <div data-testid="canvas">{p.info}</div>; },
     guidanceFor: () => m.guidance,
 }));
 
@@ -31,6 +31,30 @@ const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof Revie
 const call = (score: number) => ({ id: "call_1", created_at: "2026-01-01T00:00:00", score, difficulty: 0.5, character: { character: "日", phonetic: "rì", strokes: 4 } }) as unknown as ReviewCard;
 
 beforeEach(() => { vi.clearAllMocks(); m.loadStrokeData.mockResolvedValue([[]]); m.isDrawFirst.mockReturnValue(true); m.guidance = "none"; });
+
+const built = (score: number) => ({ ...call(score), character: { character: "河", phonetic: "hé", meaning: "river", strokes: 8,
+    key_radical: { id: "c2", character: "氵" }, component_refs: [{ id: "c2", character: "氵" }, { id: "c3", character: "可" }] } }) as unknown as ReviewCard;
+
+describe("review card: radicals and components", () => {
+    it("the drawing card shows the radical and the components at every tier, as plain characters (no link out of the session)", () => {
+        for (const score of [40, 90]) {
+            const { unmount } = render(<ReviewFlashCard cards={[built(score)]} />);
+            const canvas = screen.getByTestId("canvas");
+            expect(canvas).toHaveTextContent("氵");
+            expect(canvas).toHaveTextContent("可");
+            expect(canvas.querySelectorAll("a")).toHaveLength(0);
+            unmount();
+        }
+    });
+
+    it("the flip card shows them on its front, before the answer is revealed", () => {
+        m.isDrawFirst.mockReturnValue(false);
+        render(<ReviewFlashCard cards={[built(40)]} />);
+        expect(screen.queryByTestId("canvas")).toBeNull();
+        expect(screen.getAllByText("可").length).toBeGreaterThan(0);
+        expect(screen.queryAllByRole("link")).toHaveLength(0);
+    });
+});
 
 describe("review card: draw-first calligraphy", () => {
     it("a draw-first day shows the canvas instead of the flip card", () => {
