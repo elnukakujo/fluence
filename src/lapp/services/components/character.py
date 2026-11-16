@@ -128,8 +128,14 @@ class CharacterService:
         data: CharacterDict,
         session: Optional[Session] = None,
         on_conflict: Optional[str] = None,
+        autofill: bool = False,
     ) -> Character | None:
         """Create a new character.
+
+        Args:
+            autofill: a character the learner (or the AI parser) adds on purpose gets its radical and first-level components
+                filled from the decomposition when none was given (linked, missing ones created without autofill). Characters
+                derived from a word or passage stay unlinked stubs, so a long text does not create dozens of extra rows.
 
         Args:
             on_conflict: How to resolve an existing character for this
@@ -169,7 +175,13 @@ class CharacterService:
 
         enriched_data = enrich_character(character_text=data.character, target_iso1=target_iso1, source_iso1=source_iso1)
         readings = _clean_readings(data.readings) if data.readings else None
-        key_id, comp_ids = self._links_from_glyphs(None, data.language_id, data.character, data.radical, data.component_glyphs, session)
+        radical_text, glyphs = data.radical, data.component_glyphs
+        if autofill:
+            if not (data.radical or data.key_radical_id) and enriched_data.get("radical"):
+                radical_text = enriched_data["radical"]
+            if glyphs is None and not data.components:
+                glyphs = list(enriched_data.get("components") or [])
+        key_id, comp_ids = self._links_from_glyphs(None, data.language_id, data.character, radical_text, glyphs, session)
         self._check_links(None, data.language_id, key_id or data.key_radical_id, comp_ids if comp_ids is not None else (data.components or []), session)
 
         character = Character(

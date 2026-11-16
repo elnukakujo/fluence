@@ -26,10 +26,11 @@ export default async function CharacterPage({
     <main>
       <article className="flex flex-col space-y-4">
         <h1>{t("characterSheet")}</h1>
-        <CharacterCard character={character} languageId={language_id} keyRadical={character.key_radical} components={character.component_refs} usedIn={character.used_in_refs} />
+        <CharacterCard character={character} languageId={language_id} keyRadical={character.key_radical} components={character.component_refs} radicalOf={character.radical_of_refs} componentOf={character.component_of_refs} />
 
         <RelatedCard
           languageId={language_id}
+          radicals={character.key_radical ? [character.key_radical] : []}
           words={character.words}
           passages={character.passages}
         />

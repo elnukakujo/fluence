@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
-import AutoWidthInput from "@/components/ui/input/autoWidthInput";
+import Field from "@/components/ui/field";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import TagSelector from "@/components/tags/tagSelector";
 import SourceSelector from "@/components/sources/sourceSelector";
@@ -12,9 +12,11 @@ import Grammar from "@/interface/features/Grammar";
 import Passage from "@/interface/components/Passage";
 import ExampleSentencesEditor from "./exampleSentencesEditor";
 import { useElementForm } from "./useElementForm";
+import { FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
 export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Grammar>; lesson_id: string}) {
     const t = useTranslations("grammar");
+    const tEl = useTranslations("elements");
 
     let grammarData: Partial<Grammar>;
     if (!grammar) {
@@ -41,35 +43,22 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
     });
 
     return (
-        <form className="flex flex-col space-y-12" onSubmit={shell.handleSubmit}>
-            <article className="flex flex-col space-y-2 items-center">
-                <h3>{t("formHeading")}</h3>
-                <AutoWidthInput
-                    label={t("titleLabel")}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required={true}
-                />
-                <AutoSizeTextArea
-                    value={explanation}
-                    onChange={(e) => setExplanation(e.target.value)}
-                    label={t("explanationLabel")}
-                    required={true}
-                />
-            </article>
-            <TagSelector
-                selectedTagIds={shell.selectedTagIds}
-                onTagsChange={shell.setSelectedTagIds}
-                elementId={grammarData.id!}
-            />
-            <SourceSelector
-                selectedSourceIds={shell.selectedSourceIds}
-                onSourcesChange={shell.setSelectedSourceIds}
-                elementId={grammarData.id!}
-            />
+        <FormLayout onSubmit={shell.handleSubmit}>
+            <FormSection title={t("formHeading")} columns={1}>
+                <Field label={t("titleLabel")} required labelClassName={FORM_LABEL}>
+                    <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
+                </Field>
+                <AutoSizeTextArea value={explanation} onChange={(e) => setExplanation(e.target.value)} label={t("explanationLabel")} required={true} />
+            </FormSection>
             <ExampleSentencesEditor heading={t("learnableSentencesHeading")} labels={{ sentence: t("exampleSentenceLabel"), translation: t("exampleSentenceTranslationLabel") }}
                 sentences={learnableSentence} setSentences={setLearnableSentence} />
-            {shell.isUpdate ? <SubmitButton isLoading={shell.isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={shell.isSubmitting}>{t("addButton")}</SubmitButton>}
-        </form>
+            <FormSection title={tEl("formOrganisationSection")} columns={1}>
+                <TagSelector selectedTagIds={shell.selectedTagIds} onTagsChange={shell.setSelectedTagIds} elementId={grammarData.id!} />
+                <SourceSelector selectedSourceIds={shell.selectedSourceIds} onSourcesChange={shell.setSelectedSourceIds} elementId={grammarData.id!} />
+            </FormSection>
+            <FormActions note={tEl("formRequiredNote")}>
+                <SubmitButton isLoading={shell.isSubmitting}>{shell.isUpdate ? t("updateButton") : t("addButton")}</SubmitButton>
+            </FormActions>
+        </FormLayout>
     );
 }

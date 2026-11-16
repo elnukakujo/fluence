@@ -1,4 +1,6 @@
 import { getWordById } from "@/api/word";
+import { listCharacters } from "@/api/character";
+import { radicalsOf } from "@/utils/characterLinks";
 import type Word from "@/interface/components/Word";
 import type Character from "@/interface/components/Character";
 import type Passage from "@/interface/components/Passage";
@@ -22,6 +24,8 @@ export default async function WordPage({
     passages?: Partial<Passage>[];
   };
 
+  const radicals = radicalsOf(word.characters, await listCharacters(language_id));
+
   return (
     <main>
       <article className="flex flex-col space-y-4">
@@ -31,6 +35,7 @@ export default async function WordPage({
         <RelatedCard
           languageId={language_id}
           characters={word.characters}
+          radicals={radicals}
           passages={word.passages}
         />
 

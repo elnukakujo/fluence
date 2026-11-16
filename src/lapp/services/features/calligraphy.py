@@ -179,7 +179,7 @@ class CalligraphyService:
 
         if data.character is not None:
             data.character.language_id = lesson.language_id
-            character = character_service.create(data.character, session=session, on_conflict=on_conflict)
+            character = character_service.create(data.character, session=session, on_conflict=on_conflict, autofill=True)
             if not character:
                 logger.error(f"Failed to create character for calligraphy")
                 return None

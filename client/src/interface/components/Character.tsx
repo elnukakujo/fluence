@@ -16,6 +16,8 @@ export default interface Character extends BaseComponent {
     key_radical?: CharacterRef | null;
     component_refs?: CharacterRef[];
     used_in_refs?: CharacterRef[];
+    radical_of_refs?: CharacterRef[];
+    component_of_refs?: CharacterRef[];
     component_glyphs?: string[];
     clear_radical?: boolean;
 }

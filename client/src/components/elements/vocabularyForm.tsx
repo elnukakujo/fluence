@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
-import AutoWidthInput from "@/components/ui/input/autoWidthInput";
+import Field from "@/components/ui/field";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import TagSelector from "@/components/tags/tagSelector";
 import { createVocabulary, updateVocabulary } from "@/api/vocabulary";
@@ -13,9 +13,11 @@ import SourceSelector from "@/components/sources/sourceSelector";
 import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
 import ExampleSentencesEditor from "./exampleSentencesEditor";
 import { useElementForm } from "./useElementForm";
+import { FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
 export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vocabulary | Partial<Vocabulary>; lesson_id: string}) {
     const t = useTranslations("vocabulary");
+    const tEl = useTranslations("elements");
 
     let vocabularyData: Partial<Vocabulary>;
     if (!vocabulary) {
@@ -68,68 +70,37 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
         mergeInto: (element, resolved) => Object.assign(element.word!, resolved),
     });
 
+    const types = ['noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article', 'preposition', 'conjunction', 'particle', 'interjection', 'numeral', 'classifier', 'auxiliary', 'modal'];
     return (
         <>
         {shell.conflictProps && <ConflictDialog {...shell.conflictProps} />}
-        <form
-            className="flex flex-col space-y-12"
-            onSubmit={shell.handleSubmit}
-        >
-            <article className="flex flex-col space-y-2 items-center">
-                <h3>{t("formHeading")}</h3>
-                <AutoWidthInput
-                    value={word}
-                    label={t("wordLabel")}
-                    onChange={(e) => setWord(e.target.value)}
-                    placeholder={t("wordPlaceholder")}
-                    required={true}
-                />
-                <AutoWidthInput
-                    value={translation}
-                    label={t("translationLabel")}
-                    onChange={(e) => setTranslation(e.target.value)}
-                    placeholder={t("translationPlaceholder")}
-                />
-                <ClassicSelectMenu
-                    label={t("wordTypeLabel")}
-                    options={[
-                        'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article',
-                        'preposition', 'conjunction', 'particle', 'interjection', 'numeral',
-                        'classifier', 'auxiliary', 'modal'
-                    ]}
-                    selectedOption={type}
-                    onChange={(value) => setType(value as typeof type)}
-                />
-                <ClassicSelectMenu
-                    label={t("genderLabel")}
-                    options={[
-                        'm', 'f', 'n', 'c', ''
-                    ]}
-                    selectedOption={gender || ""}
-                    onChange={(value) => setGender(value as typeof gender)}
-                />
-                <AutoWidthInput
-                    value={phonetic || ""}
-                    label={t("phoneticLabel")}
-                    onChange={(e) => setPhonetic(e.target.value)}
-                    placeholder={t("phoneticPlaceholder")}
-                />
+        <FormLayout onSubmit={shell.handleSubmit}>
+            <FormSection title={t("formHeading")}>
+                <Field label={t("wordLabel")} required labelClassName={FORM_LABEL}>
+                    <input className="input" value={word} onChange={(e) => setWord(e.target.value)} placeholder={t("wordPlaceholder")} />
+                </Field>
+                <Field label={t("translationLabel")} labelClassName={FORM_LABEL}>
+                    <input className="input" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder={t("translationPlaceholder")} />
+                </Field>
+                <Field label={t("phoneticLabel")} labelClassName={FORM_LABEL}>
+                    <input className="input" value={phonetic || ""} onChange={(e) => setPhonetic(e.target.value)} placeholder={t("phoneticPlaceholder")} />
+                </Field>
+                <ClassicSelectMenu label={t("wordTypeLabel")} options={types} selectedOption={type} onChange={(value) => setType(value as typeof type)} />
+                <ClassicSelectMenu label={t("genderLabel")} options={['m', 'f', 'n', 'c', '']} selectedOption={gender || ""} onChange={(value) => setGender(value as typeof gender)} />
+            </FormSection>
+            <FormSection title={tEl("formMediaSection")} columns={1}>
                 <MediaLoader imageUrl={wordImageUrl} setImageUrl={setWordImageUrl} audioUrl={wordAudioUrl} setAudioUrl={setWordAudioUrl} />
-            </article>
-            <TagSelector
-                selectedTagIds={shell.selectedTagIds}
-                onTagsChange={shell.setSelectedTagIds}
-                elementId={vocabularyData.id!}
-            />
-            <SourceSelector
-                selectedSourceIds={shell.selectedSourceIds}
-                onSourcesChange={shell.setSelectedSourceIds}
-                elementId={vocabularyData.id!}
-            />
+            </FormSection>
             <ExampleSentencesEditor heading={t("exampleSentencesHeading")} labels={{ sentence: t("exampleSentenceLabel"), translation: t("exampleSentenceTranslationLabel") }}
                 sentences={exampleSentences} setSentences={setExampleSentences} />
-            {shell.isUpdate ? <SubmitButton isLoading={shell.isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={shell.isSubmitting}>{t("addButton")}</SubmitButton>}
-        </form>
+            <FormSection title={tEl("formOrganisationSection")} columns={1}>
+                <TagSelector selectedTagIds={shell.selectedTagIds} onTagsChange={shell.setSelectedTagIds} elementId={vocabularyData.id!} />
+                <SourceSelector selectedSourceIds={shell.selectedSourceIds} onSourcesChange={shell.setSelectedSourceIds} elementId={vocabularyData.id!} />
+            </FormSection>
+            <FormActions note={tEl("formRequiredNote")}>
+                <SubmitButton isLoading={shell.isSubmitting}>{shell.isUpdate ? t("updateButton") : t("addButton")}</SubmitButton>
+            </FormActions>
+        </FormLayout>
         </>
     );
 }

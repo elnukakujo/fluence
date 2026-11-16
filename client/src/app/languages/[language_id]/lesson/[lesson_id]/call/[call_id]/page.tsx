@@ -28,7 +28,7 @@ export default async function CalligraphyPage({ params }: { params: Promise<para
         <main>
             <article className="flex flex-col space-y-4">
                 <h1>{t("calligraphySheet")}</h1>
-                <CharacterCard character={calligraphy.character} languageId={language_id} keyRadical={links.key_radical} components={links.component_refs} usedIn={links.used_in_refs} />
+                <CharacterCard character={calligraphy.character} languageId={language_id} keyRadical={links.key_radical} components={links.component_refs} radicalOf={links.radical_of_refs} componentOf={links.component_of_refs} />
                 {calligraphy.example_words && calligraphy.example_words.length > 0 && (
                     <section className="flex flex-col space-y-4 items-baseline">
                         <h3>{t("exampleWords")}</h3>
@@ -49,6 +49,7 @@ export default async function CalligraphyPage({ params }: { params: Promise<para
                 <RelatedCard
                     languageId={language_id}
                     characters={[calligraphy.character]}
+                    radicals={links.key_radical ? [links.key_radical] : []}
                     words={calligraphy.example_words}
                     passages={calligraphy.example_sentences}
                 />

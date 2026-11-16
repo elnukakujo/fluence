@@ -187,7 +187,8 @@ def test_typing_a_radical_links_the_existing_character_and_keeps_the_text(app, d
     assert _call_update(c, "char_C1", radical="氵").status_code in (200, 201)
     got = c.get("/api/character/char_C1").get_json()
     assert got["key_radical"] == {"id": "char_C2", "character": "氵"} and got["radical"] == "氵"
-    assert c.get("/api/character/char_C2").get_json()["used_in_refs"] == [{"id": "char_C1", "character": "水"}]
+    got = c.get("/api/character/char_C2").get_json()
+    assert got["used_in_refs"] == got["radical_of_refs"] == [{"id": "char_C1", "character": "水"}] and got["component_of_refs"] == []
 
 
 def test_typing_a_radical_that_does_not_exist_creates_that_character(app, db):
@@ -286,3 +287,50 @@ def test_the_migration_is_idempotent_and_backfills_readings(db):
     with db.session_scope() as s:
         assert s.get(Character, "char_C1").readings == [{"kind": "phonetic", "value": "fàng", "primary": True}]
         assert s.query(Character).count() == 9
+
+
+# --- autofill of radical and components for a character added on purpose ---
+
+def _fake_enrich(monkeypatch, radical="氵", components=("氵", "可")):
+    from lapp.services.components import character as char_mod
+    monkeypatch.setattr(char_mod, "enrich_character", lambda **k: {"phonetic": "", "radical": radical, "meaning": "river", "components": list(components)})
+
+
+def test_a_new_calligraphy_character_gets_its_radical_and_components_filled(app, db, monkeypatch):
+    _seed(db)
+    _fake_enrich(monkeypatch)
+    with db.session_scope() as s:
+        db.insert(Lesson(id="lesson_L1", user_id="user_U1", language_id="lang_L1", title="L", position=0), session=s, commit=False)
+    r = _client(app).post("/api/calligraphy/", json={"lesson_id": "lesson_L1", "character": {"language_id": "lang_L1", "character": "湖"}})
+    assert r.status_code == 201
+    with db.session_scope() as s:
+        new = s.query(Character).filter_by(language_id="lang_L1", character="湖").one()
+        glyph = {c.id: c.character for c in s.query(Character).filter_by(language_id="lang_L1")}
+        assert glyph[new.key_radical_id] == "氵" and new.key_radical_id == "char_C2"          # the existing 氵 is reused
+        assert [glyph[i] for i in new.components] == ["氵", "可"]
+        assert s.query(Character).filter_by(language_id="lang_L1", character="可").one().components == []   # no cascade
+
+
+def test_what_the_learner_typed_is_never_overwritten_by_the_autofill(app, db, monkeypatch):
+    _seed(db)
+    _fake_enrich(monkeypatch)
+    with db.session_scope() as s:
+        db.insert(Lesson(id="lesson_L1", user_id="user_U1", language_id="lang_L1", title="L", position=0), session=s, commit=False)
+    _client(app).post("/api/calligraphy/", json={"lesson_id": "lesson_L1", "character": {"language_id": "lang_L1", "character": "湖", "radical": "河", "component_glyphs": ["河"]}})
+    with db.session_scope() as s:
+        new = s.query(Character).filter_by(language_id="lang_L1", character="湖").one()
+        assert new.key_radical_id == "char_C3" and new.components == ["char_C3"]
+
+
+def test_characters_derived_from_a_passage_stay_unlinked_stubs(db, monkeypatch):
+    _seed(db)
+    _fake_enrich(monkeypatch)
+    c = CharacterService().create(CharacterDict(language_id="lang_L1", character="湖"))     # what a word or passage does
+    assert c.key_radical_id is None and c.components == []
+
+
+def test_the_decomposition_gives_first_level_parts_without_missing_glyphs():
+    from lapp.utils.strokes import get_cjk_character_info
+    assert get_cjk_character_info("河", "zh")["components"] == ["氵", "可"]
+    assert get_cjk_character_info("学", "zh")["components"] == ["子"]          # "No glyph available" is dropped
+    assert get_cjk_character_info("a", "fr")["components"] == []

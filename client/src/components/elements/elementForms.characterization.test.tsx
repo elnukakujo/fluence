@@ -87,7 +87,7 @@ describe("vocabulary form", () => {
     it("adds and fills an example sentence", async () => {
         const { container } = render(<VocabularyForm lesson_id="lesson_1" />);
         await userEvent.type(field("Word *"), "水");
-        await userEvent.click(container.querySelector("button.btn-primary:not([type=submit])") as HTMLElement);
+        await userEvent.click(screen.getByRole("button", { name: /Add example sentence/i }));
         await userEvent.type(field("Example Sentence *"), "水を飲む");
         await submitByName(/Add Vocabulary/);
         await waitFor(() => expect(m.createVocabulary).toHaveBeenCalled());
@@ -97,7 +97,7 @@ describe("vocabulary form", () => {
     it("deleting an example sentence does not submit the form", async () => {
         const { container } = render(<VocabularyForm lesson_id="lesson_1" />);
         await userEvent.type(field("Word *"), "水");
-        await userEvent.click(container.querySelector("button.btn-primary:not([type=submit])") as HTMLElement);
+        await userEvent.click(screen.getByRole("button", { name: /Add example sentence/i }));
         await userEvent.type(field("Example Sentence *"), "水を飲む");
         await userEvent.click(container.querySelector("button.btn-danger") as HTMLElement);
         expect(screen.queryByText("Example Sentence *", { selector: "label" })).toBeNull();
@@ -187,7 +187,7 @@ describe("grammar form", () => {
         await fill();
         await userEvent.click(screen.getByText("pick tag"));
         await userEvent.click(screen.getByText("pick source"));
-        await userEvent.click(container.querySelector("button.btn-primary:not([type=submit])") as HTMLElement);
+        await userEvent.click(screen.getByRole("button", { name: /Add example sentence/i }));
         await userEvent.type(field("Example Sentence *"), "食べて");
         await submitByName(/Add Grammar/);
         await waitFor(() => expect(m.createGrammar).toHaveBeenCalled());
@@ -197,7 +197,7 @@ describe("grammar form", () => {
     it("deleting an example sentence does not submit the form", async () => {
         const { container } = render(<GrammarForm lesson_id="lesson_1" />);
         await fill();
-        await userEvent.click(container.querySelector("button.btn-primary:not([type=submit])") as HTMLElement);
+        await userEvent.click(screen.getByRole("button", { name: /Add example sentence/i }));
         await userEvent.type(field("Example Sentence *"), "食べて");
         await userEvent.click(container.querySelector("button.btn-danger") as HTMLElement);
         expect(screen.queryByText("Example Sentence *", { selector: "label" })).toBeNull();
@@ -215,7 +215,7 @@ describe("grammar form", () => {
 });
 
 describe("calligraphy form", () => {
-    const CHAR = { character: "水", phonetic: "", meaning: undefined, radical: undefined, clear_radical: true, component_glyphs: [], strokes: undefined, image_files: [], audio_files: [] };
+    const CHAR = { character: "水", phonetic: "", meaning: undefined, radical: undefined, strokes: undefined, image_files: [], audio_files: [] };
 
     it("creates, sends the payload, then returns to the lesson", async () => {
         render(<CalligraphyForm lesson_id="lesson_1" />);

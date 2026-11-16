@@ -5,7 +5,7 @@ import ElementMediaCard from "./elementMediaCard";
 
 type Ref = CharacterRef;
 
-export default function CharacterCard({ character, hiddenTranslation, hiddenAdditionalInformations, languageId, components, usedIn, keyRadical }: { character: Character | Partial<Character>; hiddenTranslation?: boolean; hiddenAdditionalInformations?: boolean; languageId?: string; components?: Ref[]; usedIn?: Ref[]; keyRadical?: Ref | null }) {
+export default function CharacterCard({ character, hiddenTranslation, hiddenAdditionalInformations, languageId, components, radicalOf, componentOf, keyRadical }: { character: Character | Partial<Character>; hiddenTranslation?: boolean; hiddenAdditionalInformations?: boolean; languageId?: string; components?: Ref[]; radicalOf?: Ref[]; componentOf?: Ref[]; keyRadical?: Ref | null }) {
     const t = useTranslations("elements");
     const showExtras =
         (hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation;
@@ -14,7 +14,12 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
         (character.audio_files && character.audio_files.length > 0);
     return (
         <section className="card">
-            <h2 className="mb-1 text-lg font-semibold">{t("characterHeading")}</h2>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold">{t("characterHeading")}</h2>
+                {/* status badges (not links): this character is also a radical / a component of others */}
+                {(radicalOf?.length ?? 0) > 0 && <span className="chip pointer-events-none border border-accent">{t("characterRadicalBadge")}</span>}
+                {(componentOf?.length ?? 0) > 0 && <span className="chip pointer-events-none border border-accent">{t("characterComponentBadge")}</span>}
+            </div>
             <div className="index-divider pt-3 flex flex-col space-y-4">
                 {/* ── Main character row ──────────────────────────────────────────── */}
                 <div className="flex flex-wrap items-baseline gap-2">
@@ -32,14 +37,12 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
                 </div>
 
                 {/* ── Meta chips ────────────────────────────────────────────── */}
-                {showExtras && (character.strokes || character.radical) && (
+                {showExtras && (character.strokes || (character.radical && !keyRadical)) && (
                 <div className="flex flex-wrap gap-2">
                     {character.strokes && (
                     <span className="chip pointer-events-none">{t("strokeCount", { n: character.strokes })}</span>
                     )}
-                    {keyRadical ? (
-                    <Link href={`/languages/${languageId}/character/${keyRadical.id}`} className="chip" title={t("characterKeyRadical")}>{keyRadical.character}</Link>
-                    ) : character.radical && (
+                    {!keyRadical && character.radical && (
                     <span className="chip pointer-events-none">{character.radical}</span>
                     )}
                 </div>
@@ -50,16 +53,31 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
                         {t("characterReadings")}: {character.readings!.map((r) => `${r.kind} ${r.value}`).join(" · ")}
                     </p>
                 )}
-                {[[t("characterComponents"), components], [t("characterUsedIn"), usedIn]].map(([label, refs]) =>
-                    (refs as Ref[] | undefined)?.length ? (
-                        <div key={label as string} className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-sm text-muted">{label as string}</span>
-                            {(refs as Ref[]).map((r) => (
-                                <Link key={r.id} href={`/languages/${languageId}/character/${r.id}`} className="chip font-serif">{r.character}</Link>
+
+                {/* ── Structure: what it is built from, then what is built on it ── */}
+                {(() => {
+                    const rows: [string, Ref[] | undefined][] = [
+                        [t("characterKeyRadical"), keyRadical ? [keyRadical] : undefined],
+                        [t("characterComponents"), components],
+                        [t("characterRadicalOf"), radicalOf],
+                        [t("characterComponentOf"), componentOf],
+                    ];
+                    const shown = rows.filter(([, refs]) => refs?.length);
+                    return shown.length > 0 ? (
+                        <dl className="flex flex-col gap-2 rounded-xl border border-border p-3">
+                            {shown.map(([label, refs]) => (
+                                <div key={label} className="flex flex-wrap items-baseline gap-2">
+                                    <dt className="min-w-28 text-sm text-muted">{label}</dt>
+                                    <dd className="flex flex-wrap gap-2">
+                                        {refs!.map((r) => (
+                                            <Link key={r.id} href={`/languages/${languageId}/character/${r.id}`} className="chip font-serif text-base">{r.character}</Link>
+                                        ))}
+                                    </dd>
+                                </div>
                             ))}
-                        </div>
-                    ) : null,
-                )}
+                        </dl>
+                    ) : null;
+                })()}
 
                 {hasMedia && <ElementMediaCard element={character} />}
             </div>

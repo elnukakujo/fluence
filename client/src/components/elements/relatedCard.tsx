@@ -10,6 +10,8 @@ type RelatedCardProps = {
   words?: Partial<Word>[];
   characters?: Partial<Character>[];
   passages?: Partial<Passage>[];
+  /** the key radicals of the characters shown here: a character that other characters are built on (DM-48) */
+  radicals?: Partial<Character>[];
 };
 
 function getHref(languageId: string, item: Partial<Word> | Partial<Character> | Partial<Passage>, kind: "word" | "character" | "passage") {
@@ -17,7 +19,7 @@ function getHref(languageId: string, item: Partial<Word> | Partial<Character> | 
   return `/languages/${itemLanguageId}/${kind}/${item.id}`;
 }
 
-export default function RelatedCard({ languageId, words = [], characters = [], passages = [] }: RelatedCardProps) {
+export default function RelatedCard({ languageId, words = [], characters = [], passages = [], radicals = [] }: RelatedCardProps) {
   const t = useTranslations("elements");
   const groups = [
     {
@@ -30,6 +32,12 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
       title: t("relatedCharacters"),
       kind: "character" as const,
       items: characters,
+      label: (item: Partial<Character>) => item.character ?? "",
+    },
+    {
+      title: t("relatedRadicals"),
+      kind: "character" as const,       // a radical is a character: it opens its own sheet
+      items: radicals,
       label: (item: Partial<Character>) => item.character ?? "",
     },
     {

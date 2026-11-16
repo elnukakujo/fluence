@@ -1,4 +1,6 @@
 import { getPassageById } from "@/api/passage";
+import { listCharacters } from "@/api/character";
+import { radicalsOf } from "@/utils/characterLinks";
 import type Passage from "@/interface/components/Passage";
 import type Word from "@/interface/components/Word";
 import type Character from "@/interface/components/Character";
@@ -22,6 +24,8 @@ export default async function PassagePage({
     characters?: Partial<Character>[];
   };
 
+  const radicals = radicalsOf(passage.characters, await listCharacters(language_id));
+
   return (
     <main>
       <article className="flex flex-col space-y-4">
@@ -32,6 +36,7 @@ export default async function PassagePage({
           languageId={language_id}
           words={passage.words}
           characters={passage.characters}
+          radicals={radicals}
         />
 
         <ElementTagsCard element={passage} />

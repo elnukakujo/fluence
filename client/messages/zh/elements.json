@@ -13,6 +13,7 @@
   "relatedComponentsHeading": "相关组件",
   "relatedWords": "单词",
   "relatedCharacters": "字符",
+  "relatedRadicals": "部首",
   "relatedPassages": "段落",
   "noRelatedComponents": "未找到相关组件。",
   "nothingToReview": "今天没有要复习的内容 🎉",
@@ -23,6 +24,10 @@
   "strokeCount": "{n} 笔",
   "characterComponents": "部件",
   "characterKeyRadical": "部首",
+  "characterRadicalBadge": "部首",
+  "characterComponentBadge": "部件",
+  "characterRadicalOf": "作为部首的字",
+  "characterComponentOf": "作为部件的字",
   "characterUsedIn": "用于",
   "characterReadings": "读音",
   "exampleSentences": "例句",
@@ -108,5 +113,9 @@
   "skipBroken": "跳过",
   "backToLesson": "返回课程",
   "addExampleSentence": "添加例句",
-  "removeExampleSentence": "删除例句"
+  "removeExampleSentence": "删除例句",
+  "formMediaSection": "媒体",
+  "formOrganisationSection": "标签与来源",
+  "formRequiredNote": "* 必填",
+  "removeExampleWord": "移除例词"
 }

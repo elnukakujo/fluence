@@ -26,6 +26,7 @@ def get_cjk_character_info(character: str, iso1: str) -> dict:
         {
           "radical": str, # e.g. "子" — Kangxi radical; "" if unknown
           "meaning": str, # English gloss (CEDICT first sense); "" if unknown
+          "components": list[str], # first-level parts (hanzipy decomposition, e.g. 河 -> ["氵", "可"]); [] if unknown
         }
     Examples:
         get_cjk_character_info("学", "zh")
@@ -35,13 +36,17 @@ def get_cjk_character_info(character: str, iso1: str) -> dict:
         get_cjk_character_info("A", "en")
         # → {"radical": "", "meaning": ""}
     """
-    empty: dict = {"radical": "", "meaning": ""}
+    empty: dict = {"radical": "", "meaning": "", "components": []}
     lang = iso1.split("-")[0].lower()
     if lang not in ("zh", "ja"):
         return empty
     try:
         # --- radical ---
-        radical = ""
+        radical, components = "", []
+        try:
+            components = [c for c in _hanzi_decomposer().decompose(character, 1).get("components", []) if "glyph" not in c.lower() and c != character]
+        except Exception:
+            pass
         try:
             decomposition = _hanzi_decomposer().decompose(character)
             radical_list = decomposition.get("radical", [])
@@ -61,7 +66,7 @@ def get_cjk_character_info(character: str, iso1: str) -> dict:
         except Exception:
             pass
 
-        return {"radical": radical, "meaning": meaning}
+        return {"radical": radical, "meaning": meaning, "components": components}
 
     except Exception as exc:
         logger.error("get_cjk_character_info(%r, %s): %s", character, iso1, exc)

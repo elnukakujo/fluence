@@ -13,6 +13,7 @@
   "relatedComponentsHeading": "Composants connexes",
   "relatedWords": "Mots",
   "relatedCharacters": "Caractères",
+  "relatedRadicals": "Radicaux",
   "relatedPassages": "Passages",
   "noRelatedComponents": "Aucun composant connexe trouvé.",
   "nothingToReview": "Rien à réviser aujourd'hui 🎉",
@@ -23,6 +24,10 @@
   "strokeCount": "{n} coups",
   "characterComponents": "Composants",
   "characterKeyRadical": "Radical principal",
+  "characterRadicalBadge": "Radical",
+  "characterComponentBadge": "Composant",
+  "characterRadicalOf": "Radical de",
+  "characterComponentOf": "Composant de",
   "characterUsedIn": "Utilisé dans",
   "characterReadings": "Lectures",
   "exampleSentences": "Phrases d'exemple",
@@ -108,5 +113,9 @@
   "skipBroken": "Le passer",
   "backToLesson": "Retour à la leçon",
   "addExampleSentence": "Ajouter une phrase d'exemple",
-  "removeExampleSentence": "Supprimer la phrase d'exemple"
+  "removeExampleSentence": "Supprimer la phrase d'exemple",
+  "formMediaSection": "Médias",
+  "formOrganisationSection": "Tags et sources",
+  "formRequiredNote": "* obligatoire",
+  "removeExampleWord": "Retirer l'exemple de mot"
 }

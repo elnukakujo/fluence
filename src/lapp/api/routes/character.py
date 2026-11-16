@@ -26,6 +26,8 @@ def get_character(character_id: str):
         payload["key_radical"] = ref(character.key_radical_id)
         payload["component_refs"] = [r for r in map(ref, character.components or []) if r]
         payload["used_in_refs"] = [r for r in map(ref, payload["used_in"]) if r]
+        payload["radical_of_refs"] = [ref(i) for i, c in by_id.items() if c.key_radical_id == character_id]
+        payload["component_of_refs"] = [ref(i) for i, c in by_id.items() if character_id in (c.components or [])]
         return jsonify(payload)
     finally:
         session.close()

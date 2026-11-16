@@ -13,6 +13,7 @@
   "relatedComponentsHeading": "Related Components",
   "relatedWords": "Words",
   "relatedCharacters": "Characters",
+  "relatedRadicals": "Radicals",
   "relatedPassages": "Passages",
   "noRelatedComponents": "No related components found.",
   "nothingToReview": "Nothing to review today 🎉",
@@ -23,6 +24,10 @@
   "strokeCount": "{n} strokes",
   "characterComponents": "Components",
   "characterKeyRadical": "Key radical",
+  "characterRadicalBadge": "Radical",
+  "characterComponentBadge": "Component",
+  "characterRadicalOf": "Radical of",
+  "characterComponentOf": "Component of",
   "characterUsedIn": "Used in",
   "characterReadings": "Readings",
   "exampleSentences": "Example sentences",
@@ -108,5 +113,9 @@
   "skipBroken": "Skip it",
   "backToLesson": "Back to lesson",
   "addExampleSentence": "Add example sentence",
-  "removeExampleSentence": "Remove example sentence"
+  "removeExampleSentence": "Remove example sentence",
+  "formMediaSection": "Media",
+  "formOrganisationSection": "Tags and sources",
+  "formRequiredNote": "* required",
+  "removeExampleWord": "Remove example word"
 }
