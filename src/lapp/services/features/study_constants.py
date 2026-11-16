@@ -55,7 +55,6 @@ GEN_ADVANCED_FROM = 30          # TODO(user): known words a learner needs before
 GEN_GUARANTEE_READING_FROM = 4   # a batch of at least this many always has a reading (unless banned)
 
 # Leech cards (a card that keeps slipping). TODO(user): stand-ins.
-LEECH_LAPSES = 4             # score drops after which a card gets leech help
 LEECH_CONFUSABLE_RATIO = 0.6 # spelling similarity (difflib) for a confusable word
 LEECH_CANDIDATES = 2000      # words of the language compared at most
 

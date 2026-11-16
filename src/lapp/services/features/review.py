@@ -19,7 +19,7 @@ from ..system_data.exercise_user_pref import effective_mode
 from .card_time import estimate_seconds, pace_ratios
 from .exercise_share import exercise_quota, exercise_share, is_eligible, knowledge
 from .side_pattern import make_side_picker
-from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, LEECH_LAPSES, NO_GOAL_NEW, SPARE_EXERCISES)
+from .study_constants import (BOOST_FACTOR, LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, NO_GOAL_NEW, SPARE_EXERCISES)
 from .study_goal import StudyGoalService, TYPES
 from ..system_data.score import SIDES, side_id
 
@@ -250,19 +250,22 @@ class ReviewService:
 
     @transactional
     def annotate_leeches(self, cards: list[dict], user_id: str, language_id: str, session: Optional[Session] = None) -> list[dict]:
-        """Add `leech` ({lapses, parts, confusable}) to the vocabulary and calligraphy cards whose score dropped LEECH_LAPSES times
-        (a lapse = a progress row with score_after < score_before). Only leeches cost more than the one grouped query."""
+        """Add `leech` ({lapses, is_leech, parts, confusable}) to the vocabulary and calligraphy cards the score engine flags as leeches
+        (any score level; the card stays in the queue). `lapses` = progress rows with score_after < score_before."""
         ids = {c["id"] for c in cards if str(c.get("id", "")).startswith(("voc_", "call_"))}
         if not ids:
             return cards
+        flagged = {c["id"] for c in ScoreService().merge(user_id, [{"id": i} for i in ids], session=session) if c["is_leech"]}
+        if not flagged:
+            return cards
         lapses = dict(session.query(ProgressTracking.element_id, func.count()).filter(
-            ProgressTracking.user_id == user_id, ProgressTracking.element_id.in_(ids), ProgressTracking.score_after < ProgressTracking.score_before,
+            ProgressTracking.user_id == user_id, ProgressTracking.element_id.in_(flagged), ProgressTracking.score_after < ProgressTracking.score_before,
         ).group_by(ProgressTracking.element_id).all())
         for card in cards:
-            n = lapses.get(card.get("id"), 0)
-            if n >= LEECH_LAPSES:
+            if card.get("id") in flagged:
+                n = lapses.get(card["id"], 0)
                 word = session.get(Word, card["word_id"]) if card.get("word_id") else None
-                card["leech"] = {"lapses": n,
+                card["leech"] = {"lapses": n, "is_leech": True,
                                  "parts": [{"character": ch.character, "phonetic": ch.phonetic, "meaning": ch.meaning} for ch in word.characters] if word else [],
                                  "confusable": self._confusable(word, language_id, session) if word else None}
         return cards
