@@ -241,6 +241,8 @@ def create_calligraphy():
 
     except ValidationError as e:
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
+    except ValueError as e:     # e.g. Korean has no characters (DM-50)
+        return jsonify({'error': str(e)}), 400
     except DuplicateEntityError as e:
         return jsonify({
             'conflict': True,

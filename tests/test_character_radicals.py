@@ -124,3 +124,41 @@ def test_migration_turns_phonetic_into_one_primary_reading_and_is_idempotent(db)
         assert s.get(Character, "char_C1").readings == [{"kind": "phonetic", "value": "shuǐ", "primary": True}]
         assert s.get(Character, "char_C2").readings == [{"kind": "mine", "value": "y", "primary": True}]
         assert s.get(Character, "char_C3").readings == []
+
+
+def _korean(db):
+    from lapp.models.containers import Lesson
+    with db.session_scope() as s:
+        db.insert(User(id="user_U1", username="a", email="a@x.com"), session=s, commit=False)
+        db.insert(Language(id="lang_K", user_id="user_U1", name="K", target_iso639_2t="kor"), session=s, commit=False)
+        db.insert(Lesson(id="lesson_K", user_id="user_U1", language_id="lang_K", title="L", position=0), session=s, commit=False)
+
+
+def test_a_korean_passage_is_created_without_characters(db, monkeypatch):
+    from lapp.schemas.components import PassageDict
+    from lapp.services import PassageService
+    from lapp.services.components import passage as passage_mod
+    _korean(db)
+    # the Korean romaniser (hangul_romanize) is broken in this environment, which is not what is tested here
+    monkeypatch.setattr(passage_mod, "enrich_passage", lambda **k: {"translation": "I am a student", "words": [], "characters": ["나", "는"]})
+    assert PassageService().create(PassageDict(language_id="lang_K", text="나는 학생입니다")).id
+    with db.session_scope() as s:
+        assert s.query(Character).filter_by(language_id="lang_K").count() == 0
+
+
+def test_a_korean_word_is_created_without_characters(db, monkeypatch):
+    from lapp.schemas.components import WordDict
+    from lapp.services import WordService
+    from lapp.services.components import word as word_mod
+    _korean(db)
+    monkeypatch.setattr(word_mod, "enrich_word", lambda **k: {"phonetic": "", "translation": "Korean", "word_type": None, "word_gender": None,
+                                                            "characters": ["한", "국"], "passages": []})
+    assert WordService().create(WordDict(language_id="lang_K", word="한국", translation="Korea")).id
+    with db.session_scope() as s:
+        assert s.query(Character).filter_by(language_id="lang_K").count() == 0
+
+
+def test_a_korean_calligraphy_is_a_400_not_a_500(app, db):
+    _korean(db)
+    r = _client(app).post("/api/calligraphy/", json={"lesson_id": "lesson_K", "character": {"language_id": "lang_K", "character": "한"}})
+    assert r.status_code == 400
