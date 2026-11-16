@@ -21,3 +21,10 @@ def get_passage(passage_id: str):
         return jsonify(payload)
     finally:
         session.close()
+
+
+@bp.route("/score", methods=["POST"])
+@login_required
+def score_passage():
+    """A passage has no score of its own: it follows the vocabulary, grammar and calligraphy that test it (SC-11)."""
+    return jsonify({"error": "Passage scores change only through their components"}), 405

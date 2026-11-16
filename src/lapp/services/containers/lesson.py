@@ -14,6 +14,7 @@ from ...models.features import Calligraphy, Vocabulary, Grammar, Exercise
 from ...core.database import db_manager, transactional, resolve_related
 from .language import LanguageService
 from ..system_data import ScoreService
+from ..system_data.score_cascade import refresh
 
 language_service = LanguageService()
 score_service = ScoreService()
@@ -305,19 +306,7 @@ class LessonService:
             session=session
         )
 
-        component_ids = [c.id for c in components]
-        score_map = score_service.get_many(user_id, component_ids, session=session)
-        if component_ids:
-            total_score = sum(score_map[cid].score if cid in score_map else 0.0 for cid in component_ids)
-            total_difficulty = sum(score_map[cid].difficulty if cid in score_map else 0.5 for cid in component_ids)
-            lesson_score = round(total_score / len(component_ids), 2)
-            lesson_difficulty = total_difficulty / len(component_ids)
-        else:
-            logger.warning(f"No components found for lesson: {lesson_id}")
-            lesson_score = 0.0
-            lesson_difficulty = 0.5
-
-        result = score_service.set(user_id, lesson_id, lesson_score, lesson_difficulty, touch=touch, session=session)
+        result = refresh(user_id, lesson_id, [c.id for c in components], digits=1, touch=touch, session=session)
         if result:
             logger.info(f"Updated lesson {lesson_id} score: {result.score}")
 

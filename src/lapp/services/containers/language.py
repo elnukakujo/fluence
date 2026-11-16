@@ -12,6 +12,7 @@ from ...models.system_data import Source, Tag
 from ...models.containers import Language, Lesson
 from ...core.database import db_manager, transactional, resolve_related
 from ..system_data import ScoreService
+from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
 
@@ -317,16 +318,6 @@ class LanguageService:
         )
 
         lesson_ids = [l.id for l in lessons]
-        score_map = score_service.get_many(user_id, lesson_ids, session=session)
-        if lesson_ids:
-            total_score = sum(score_map[lid].score if lid in score_map else 0.0 for lid in lesson_ids)
-            total_difficulty = sum(score_map[lid].difficulty if lid in score_map else 0.5 for lid in lesson_ids)
-            language_score = round(total_score / len(lesson_ids), 2)
-            language_difficulty = total_difficulty / len(lesson_ids)
-        else:
-            logger.warning(f"No lessons found for language: {language_id}")
-            language_score = 0.0
-            language_difficulty = 0.5
 
         current_lesson_id = self._find_current_lesson(
             language_id=language.id,
@@ -335,8 +326,8 @@ class LanguageService:
             session=session
         )
 
-        result = score_service.set(user_id, language_id, language_score, language_difficulty,
-                                   current_lesson_id=current_lesson_id, touch=touch, session=session)
+        result = refresh(user_id, language_id, lesson_ids, digits=1, touch=touch,
+                         current_lesson_id=current_lesson_id, session=session)
 
         if result:
             logger.info(f"Updated language {language_id} score: {result.score}")

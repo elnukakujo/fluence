@@ -177,6 +177,15 @@ class ScoreService:
         return self.get_many(user_id, [element_id], session=session).get(element_id)
 
     @transactional
+    def skill_scores(self, user_id: str, element_ids: list[str], now: Optional[datetime] = None,
+                     session: Optional[Session] = None) -> dict[str, dict[str, float]]:
+        """Effective score per answered skill, per element (decay applied, nothing written)."""
+        if not element_ids:
+            return {}
+        found = self._collect(session, user_id, list(element_ids), now or datetime.now())
+        return {eid: {k: v["score"] for k, v in s.skills.items()} for eid, s in found.items()}
+
+    @transactional
     def get_many(self, user_id: str, element_ids: list[str], now: Optional[datetime] = None,
                  session: Optional[Session] = None) -> dict[str, Score]:
         """One effective row per element that has a score (decay applied on read, nothing written)."""

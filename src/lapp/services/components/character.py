@@ -13,6 +13,7 @@ from ...core.exceptions import DuplicateEntityError
 from ...models.system_data import Tag, Source
 from ...utils import enrich_character, get_language_by_iso2t, stack_lists
 from ..system_data import ScoreService
+from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
 
@@ -209,18 +210,7 @@ class CharacterService:
 
         features = [*character.calligraphy]
         feature_ids = [f.id for f in features]
-        score_map = score_service.get_many(user_id, feature_ids, session=session)
-        if feature_ids:
-            total_score = sum(score_map[fid].score if fid in score_map else 0.0 for fid in feature_ids)
-            total_difficulty = sum(score_map[fid].difficulty if fid in score_map else 0.5 for fid in feature_ids)
-            character_score = total_score / len(feature_ids)
-            character_difficulty = total_difficulty / len(feature_ids)
-        else:
-            logger.warning(f"No features found for character: {char_id}")
-            character_score = 0.0
-            character_difficulty = 0.5
-
-        result = score_service.set(user_id, char_id, character_score, character_difficulty, session=session)
+        result = refresh(user_id, char_id, feature_ids, session=session)
         if result:
             logger.info(f"Updated CharacterComponent {char_id} score to {result.score} and difficulty to {result.difficulty}")
 
