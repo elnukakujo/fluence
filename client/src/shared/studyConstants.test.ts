@@ -37,10 +37,10 @@ describe("study constants are the one source", () => {
 });
 
 describe("fadingDays: days until the effective score leaves its band", () => {
-    it("is monotonic in stability and null for weak or unseen", () => {
+    it("is monotonic in stability, the half-life when weak, null when unseen", () => {
         const d = [1, 4, 16, 64].map((st) => fadingDays(70, st)!);
         expect(d).toEqual([...d].sort((a, b) => a - b));
-        expect(fadingDays(30, 10)).toBeNull();
+        expect(fadingDays(30, 10)).toBe(10);        // weak: no lower edge, the score halves in `stability` days (RD-72)
         expect(fadingDays(0, 10)).toBeNull();
     });
     it("is the half-life maths: one half-life to reach the edge", () => {

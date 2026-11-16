@@ -250,8 +250,8 @@ class ScoreService:
             e["score_level"] = level_for(e["score"])     # not `level`: containers keep their CEFR index there
             e["weak"] = is_weak(e["score"])
             e["skills"] = s.skills if s else {}
-            stab = [v["stability"] for v in e["skills"].values() if v.get("stability")]
-            e["stability"] = min(stab) if stab else None      # the first skill to fade sets the estimate
+            stab = [v["stability"] for v in e["skills"].values() if v.get("stability")] if eid and eid.startswith(("voc_", "gram_", "call_")) else []
+            e["stability"] = min(stab) if stab else None      # the first skill to fade sets the estimate; aggregates have none
             e["is_leech"] = s.is_leech if s else False
             e["last_seen_at"] = s.last_seen_at if s else None
             e["current_lesson_id"] = s.current_lesson_id if s else None

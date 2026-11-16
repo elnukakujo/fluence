@@ -53,6 +53,24 @@ class CharacterService:
                 c = rows[cur]
                 stack += [*([c.key_radical_id] if c.key_radical_id else []), *(c.components or [])]
 
+    def _glyph_to_id(self, language_id: str, glyph: str, session: Session) -> str:
+        """The Character of this language written `glyph`; created (like any character, enriched) when the language has none."""
+        existing = self.get_by_character(glyph, language_id=language_id, session=session)
+        return (existing or self.create(CharacterDict(language_id=language_id, character=glyph), session=session, on_conflict="keep")).id
+
+    def _links_from_glyphs(self, char_id: Optional[str], language_id: str, own_glyph: str, radical: Optional[str],
+                           component_glyphs: Optional[list[str]], session: Session) -> tuple[Optional[str], Optional[list[str]]]:
+        """(key_radical_id, components) from what the learner typed in the form; None = not given, leave as is.
+        A glyph equal to the character itself is not linked (it stays as the free text)."""
+        key = components = None
+        if radical is not None:
+            r = radical.strip()
+            key = "" if not r else (None if r == own_glyph else self._glyph_to_id(language_id, r, session))
+        if component_glyphs is not None:
+            glyphs = [g for g in dict.fromkeys(ch for part in component_glyphs for ch in part.strip() if not ch.isspace()) if g != own_glyph]
+            components = [self._glyph_to_id(language_id, g, session) for g in glyphs]
+        return key, components
+
     @transactional
     def used_in(self, char_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:
         """Ids of the characters that use this one as key radical or component."""
@@ -151,17 +169,19 @@ class CharacterService:
 
         enriched_data = enrich_character(character_text=data.character, target_iso1=target_iso1, source_iso1=source_iso1)
         readings = _clean_readings(data.readings) if data.readings else None
-        self._check_links(None, data.language_id, data.key_radical_id, data.components or [], session)
+        key_id, comp_ids = self._links_from_glyphs(None, data.language_id, data.character, data.radical, data.component_glyphs, session)
+        self._check_links(None, data.language_id, key_id or data.key_radical_id, comp_ids if comp_ids is not None else (data.components or []), session)
 
         character = Character(
             id=db_manager.generate_new_id(model_class=Character, session=session),
-            **{k: v for k, v in data.model_dump(exclude={'id', 'difficulty', 'status', 'score', 'created_at', 'last_seen_at', 'phonetic', 'radical', 'meaning', 'readings', 'components'}, exclude_none=True).items()},
+            **{k: v for k, v in data.model_dump(exclude={'id', 'difficulty', 'status', 'score', 'created_at', 'last_seen_at', 'phonetic', 'radical', 'meaning', 'readings', 'components', 'component_glyphs', 'key_radical_id', 'clear_radical'}, exclude_none=True).items()},
             phonetic=data.phonetic if (data.phonetic is not None and data.phonetic != "") else enriched_data["phonetic"],
             radical=data.radical if (data.radical is not None and data.radical != "") else enriched_data["radical"],
             meaning=data.meaning if (data.meaning is not None and data.meaning != "") else enriched_data["meaning"],
             tags = session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
             sources = session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else [],
-            components=list(data.components or []),
+            components=list(comp_ids if comp_ids is not None else (data.components or [])),
+            key_radical_id=key_id or data.key_radical_id,
         )
         character.readings = readings if readings is not None else (
             [{"kind": "phonetic", "value": character.phonetic, "primary": True}] if character.phonetic else [])
@@ -230,15 +250,21 @@ class CharacterService:
 
         existing.character = update_data.get('character', existing.character)
         existing.phonetic = resolve('phonetic', existing.phonetic)
-        existing.radical = resolve('radical', existing.radical)
+        existing.radical = None if update_data.get('clear_radical') else resolve('radical', existing.radical)
         existing.meaning = resolve('meaning', existing.meaning)
         existing.strokes = update_data.get('strokes', existing.strokes)
-        key_radical = update_data.get('key_radical_id', existing.key_radical_id)
-        components = update_data.get('components', existing.components or [])
+        key_id, comp_ids = self._links_from_glyphs(character_id, existing.language_id, existing.character,
+                                                   "" if update_data.get('clear_radical') else update_data.get('radical'),
+                                                   update_data.get('component_glyphs'), session)
+        key_radical = (None if key_id == "" else key_id) if key_id is not None else update_data.get('key_radical_id', existing.key_radical_id)
+        components = comp_ids if comp_ids is not None else update_data.get('components', existing.components or [])
         self._check_links(character_id, existing.language_id, key_radical, components, session)
         existing.key_radical_id, existing.components = key_radical, list(components)
         if data.readings is not None:
             existing.readings = _clean_readings(data.readings)
+        elif existing.phonetic:     # phonetic and the primary "phonetic" reading stay in step
+            others = [r for r in (existing.readings or []) if r.get("kind") != "phonetic"]
+            existing.readings = [{"kind": "phonetic", "value": existing.phonetic, "primary": not any(r.get("primary") for r in others)}, *others]
         if resolving_conflict:
             existing.audio_files = stack_lists(existing.audio_files, update_data.get('audio_files'))
             existing.image_files = stack_lists(existing.image_files, update_data.get('image_files'))

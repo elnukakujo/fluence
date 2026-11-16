@@ -9,6 +9,7 @@ import SentenceCard from "@/components/elements/sentenceCard";
 import CharacterCard from "@/components/elements/characterCard";
 import RelatedCard from "@/components/elements/relatedCard";
 import { getCalligraphyById } from "@/api/calligraphy";
+import { getCharacterById } from "@/api/character";
 import { getTranslations } from "next-intl/server";
 
 type paramsType = {
@@ -21,12 +22,13 @@ export default async function CalligraphyPage({ params }: { params: Promise<para
     const t = await getTranslations("languages");
     const { call_id, language_id, lesson_id } = await params;
     const calligraphy: Character = await getCalligraphyById(call_id);
+    const links = await getCharacterById(calligraphy.character.id!);     // radical, components, used in (with their glyphs)
 
     return (
         <main>
             <article className="flex flex-col space-y-4">
                 <h1>{t("calligraphySheet")}</h1>
-                <CharacterCard character={calligraphy.character} />
+                <CharacterCard character={calligraphy.character} languageId={language_id} keyRadical={links.key_radical} components={links.component_refs} usedIn={links.used_in_refs} />
                 {calligraphy.example_words && calligraphy.example_words.length > 0 && (
                     <section className="flex flex-col space-y-4 items-baseline">
                         <h3>{t("exampleWords")}</h3>

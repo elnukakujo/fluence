@@ -44,6 +44,7 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
     const [phonetic, setPhonetic] = useState<string>(calligraphyData.character?.phonetic || "");
     const [meaning, setMeaning] = useState<string|undefined>(calligraphyData.character?.meaning || undefined);
     const [radical, setRadical] = useState<string|undefined>(calligraphyData.character?.radical || undefined);
+    const [componentGlyphs, setComponentGlyphs] = useState<string>((calligraphyData.character?.component_glyphs ?? []).join(" "));
     const [strokes, setStrokes] = useState<number|undefined>(calligraphyData.character?.strokes || undefined);
     const [imageUrl, setImageUrl] = useState<string[]>(calligraphyData.character?.image_files || []);
     const [audioUrl, setAudioUrl] = useState<string[]>(calligraphyData.character?.audio_files || []);
@@ -60,6 +61,8 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                 phonetic: phonetic,
                 meaning: meaning,
                 radical: radical,
+                clear_radical: !radical?.trim() ? true : undefined,
+                component_glyphs: componentGlyphs.split(" ").filter(Boolean),
                 strokes: strokes,
                 image_files: imageUrl,
                 audio_files: audioUrl
@@ -114,6 +117,11 @@ export default function CalligraphyForm({calligraphy, lesson_id}: {calligraphy?:
                     value={radical || ""}
                     onChange={(e) => setRadical(e.target.value)}
                     label={t("radicalLabel")}
+                />
+                <AutoWidthInput
+                    value={componentGlyphs}
+                    onChange={(e) => setComponentGlyphs(e.target.value)}
+                    label={t("componentsLabel")}
                 />
                 <span className="flex flex-col space-y-2">
                     <span className="text-sm font-medium text-foreground">{t("strokesLabel")}</span>

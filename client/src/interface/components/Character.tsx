@@ -1,5 +1,7 @@
 import { BaseComponent } from '../base';
 
+export type CharacterRef = { id: string; character: string };
+
 export default interface Character extends BaseComponent {
     character: string;
     phonetic: string;
@@ -10,4 +12,10 @@ export default interface Character extends BaseComponent {
     key_radical_id?: string | null;
     components?: string[];
     used_in?: string[];
+    // sheet only: the linked characters with their glyph, and the form's typed components
+    key_radical?: CharacterRef | null;
+    component_refs?: CharacterRef[];
+    used_in_refs?: CharacterRef[];
+    component_glyphs?: string[];
+    clear_radical?: boolean;
 }

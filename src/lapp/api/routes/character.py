@@ -21,6 +21,11 @@ def get_character(character_id: str):
             return jsonify({"error": "Character not found"}), 404
         payload = character.to_dict()
         payload["used_in"] = character_service.used_in(character_id, character.language_id, session=session)
+        by_id = {c.id: c for c in character_service.list_for_language(character.language_id, session=session)}
+        ref = lambda i: {"id": i, "character": by_id[i].character} if i in by_id else None
+        payload["key_radical"] = ref(character.key_radical_id)
+        payload["component_refs"] = [r for r in map(ref, character.components or []) if r]
+        payload["used_in_refs"] = [r for r in map(ref, payload["used_in"]) if r]
         return jsonify(payload)
     finally:
         session.close()

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import Character from "@/interface/components/Character";
+import Character, { type CharacterRef } from "@/interface/components/Character";
 import ElementMediaCard from "./elementMediaCard";
 
-type Ref = { id: string; character: string };
+type Ref = CharacterRef;
 
-export default function CharacterCard({ character, hiddenTranslation, hiddenAdditionalInformations, languageId, components, usedIn }: { character: Character | Partial<Character>; hiddenTranslation?: boolean; hiddenAdditionalInformations?: boolean; languageId?: string; components?: Ref[]; usedIn?: Ref[] }) {
+export default function CharacterCard({ character, hiddenTranslation, hiddenAdditionalInformations, languageId, components, usedIn, keyRadical }: { character: Character | Partial<Character>; hiddenTranslation?: boolean; hiddenAdditionalInformations?: boolean; languageId?: string; components?: Ref[]; usedIn?: Ref[]; keyRadical?: Ref | null }) {
     const t = useTranslations("elements");
     const showExtras =
         (hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation;
@@ -37,7 +37,9 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
                     {character.strokes && (
                     <span className="chip pointer-events-none">{t("strokeCount", { n: character.strokes })}</span>
                     )}
-                    {character.radical && (
+                    {keyRadical ? (
+                    <Link href={`/languages/${languageId}/character/${keyRadical.id}`} className="chip" title={t("characterKeyRadical")}>{keyRadical.character}</Link>
+                    ) : character.radical && (
                     <span className="chip pointer-events-none">{character.radical}</span>
                     )}
                 </div>

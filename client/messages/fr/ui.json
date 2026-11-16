@@ -28,6 +28,7 @@
   "levelKnown": "Connu",
   "levelMastered": "Maîtrisé",
   "levelWeak": "Fragile",
+  "levelUnseen": "Jamais vu",
   "fadingIn": "S'efface dans ~{days} jours",
   "thisEntityExists": "Ce {entityType} existe déjà",
   "entityExistsDescription": "Un {entityType} avec cette valeur existe déjà pour cette langue. Examinez chaque champ en conflit ci-dessous et décidez ce que vous souhaitez conserver.",

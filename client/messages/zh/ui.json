@@ -28,6 +28,7 @@
   "levelKnown": "已掌握",
   "levelMastered": "精通",
   "levelWeak": "薄弱",
+  "levelUnseen": "未见过",
   "fadingIn": "约 {days} 天后开始遗忘",
   "thisEntityExists": "此 {entityType} 已存在",
   "entityExistsDescription": "此语言已存在具有此值的 {entityType}。审查下面的每个冲突字段并决定要保留什么。",

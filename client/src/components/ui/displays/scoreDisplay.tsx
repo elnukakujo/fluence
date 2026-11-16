@@ -25,7 +25,7 @@ export default function ScoreDisplay({ score, hideLabel, stability }: ScoreDispl
   const weak = isWeak(clamped);
   const levelConfig = LEVEL_STYLE[level];
   const t = useTranslations("ui");
-  const label = weak ? t("levelWeak") : t(`level${level[0].toUpperCase()}${level.slice(1)}`);
+  const label = clamped === 0 ? t("levelUnseen") : weak ? t("levelWeak") : t(`level${level[0].toUpperCase()}${level.slice(1)}`);
   const fading = stability != null ? fadingDays(clamped, stability) : null;
   const filledPips = clamped === 0 ? 0 : Math.max(1, Math.round((clamped / 100) * PIPS));
 

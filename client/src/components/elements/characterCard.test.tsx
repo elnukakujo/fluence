@@ -21,4 +21,15 @@ describe("CharacterCard", () => {
         render(<CharacterCard character={{ character: "水" }} languageId="lang_1" components={[]} />);
         expect(screen.queryByText("characterComponents")).toBeNull();
     });
+
+    it("shows the key radical as a link instead of the plain text badge", () => {
+        render(<CharacterCard character={{ character: "放", radical: "方" }} languageId="lang_1" keyRadical={{ id: "char_7", character: "方" }} />);
+        expect(screen.getByRole("link", { name: "方" })).toHaveAttribute("href", "/languages/lang_1/character/char_7");
+    });
+
+    it("keeps the plain text badge while the radical is not linked", () => {
+        render(<CharacterCard character={{ character: "放", radical: "方" }} languageId="lang_1" />);
+        expect(screen.getByText("方")).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "方" })).toBeNull();
+    });
 });

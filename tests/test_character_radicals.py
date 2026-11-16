@@ -162,3 +162,127 @@ def test_a_korean_calligraphy_is_a_400_not_a_500(app, db):
     _korean(db)
     r = _client(app).post("/api/calligraphy/", json={"lesson_id": "lesson_K", "character": {"language_id": "lang_K", "character": "한"}})
     assert r.status_code == 400
+
+
+# --- the form: the learner types a radical and components as characters ---
+
+def _call_update(c, cid, **character):
+    return c.put("/api/calligraphy/call_C1", json={"lesson_id": "lesson_L1", "character": {"language_id": "lang_L1", "character": "水", **character}})
+
+
+def _with_calligraphy(db):
+    from lapp.models.features import Calligraphy
+    _seed(db)
+    with db.session_scope() as s:
+        db.insert(Lesson(id="lesson_L1", user_id="user_U1", language_id="lang_L1", title="L", position=0), session=s, commit=False)
+        db.insert(Calligraphy(id="call_C1", lesson_id="lesson_L1", character_id="char_C1"), session=s, commit=False)
+
+
+from lapp.models.containers import Lesson   # noqa: E402
+
+
+def test_typing_a_radical_links_the_existing_character_and_keeps_the_text(app, db):
+    _with_calligraphy(db)
+    c = _client(app)
+    assert _call_update(c, "char_C1", radical="氵").status_code in (200, 201)
+    got = c.get("/api/character/char_C1").get_json()
+    assert got["key_radical"] == {"id": "char_C2", "character": "氵"} and got["radical"] == "氵"
+    assert c.get("/api/character/char_C2").get_json()["used_in_refs"] == [{"id": "char_C1", "character": "水"}]
+
+
+def test_typing_a_radical_that_does_not_exist_creates_that_character(app, db):
+    _with_calligraphy(db)
+    c = _client(app)
+    _call_update(c, "char_C1", radical="火")
+    got = c.get("/api/character/char_C1").get_json()
+    assert got["key_radical"]["character"] == "火"
+    with db.session_scope() as s:
+        assert s.query(Character).filter_by(language_id="lang_L1", character="火").count() == 1
+
+
+def test_components_are_typed_as_glyphs_and_clearing_the_radical_unlinks(app, db):
+    _with_calligraphy(db)
+    c = _client(app)
+    _call_update(c, "char_C1", radical="氵", component_glyphs=["氵 河"])
+    got = c.get("/api/character/char_C1").get_json()
+    assert [r["character"] for r in got["component_refs"]] == ["氵", "河"]
+    _call_update(c, "char_C1", clear_radical=True, component_glyphs=[])
+    got = c.get("/api/character/char_C1").get_json()
+    assert got["key_radical"] is None and got["component_refs"] == []
+
+
+def test_a_radical_that_would_make_a_cycle_is_a_400(app, db):
+    _with_calligraphy(db)
+    c = _client(app)
+    _set(db, "char_C2", components=["char_C1"])           # 氵 is built from 水
+    assert _call_update(c, "char_C1", radical="氵").status_code == 400    # so 水 cannot use 氵
+
+
+def test_editing_the_phonetic_keeps_the_primary_reading_in_step(db):
+    _seed(db)
+    _set(db, "char_C1", phonetic="shuǐ")
+    assert CharacterService().get_by_id("char_C1").readings == [{"kind": "phonetic", "value": "shuǐ", "primary": True}]
+    _set(db, "char_C1", phonetic="shui3")
+    assert [r["value"] for r in CharacterService().get_by_id("char_C1").readings] == ["shui3"]
+
+
+# --- migration f2d8b5c1a7e3: link the free-text radicals of existing characters ---
+
+def _link_mig():
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("mig10", Path(__file__).parent.parent / "alembic/versions/f2d8b5c1a7e3_link_text_radicals.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def _old_data(db):
+    """Characters as they are in an existing database: free-text radicals, no links."""
+    _seed(db)
+    with db.session_scope() as s:
+        s.query(Character).delete()
+        db.insert(Language(id="lang_K", user_id="user_U1", name="K", target_iso639_2t="kor"), session=s, commit=False)
+        for i, (cid, lang, ch, rad, ph) in enumerate([
+            ("char_C1", "lang_L1", "放", "方", "fàng"),     # radical 方 does not exist yet
+            ("char_C2", "lang_L1", "河", "氵", None),       # radical 氵 exists below
+            ("char_C3", "lang_L1", "氵", "水", None),
+            ("char_C4", "lang_L1", "方", "方", None),       # its own radical: not linked
+            ("char_C5", "lang_L1", "水", "氵", None),       # 水 -> 氵 -> 水 would be a cycle
+            ("char_C6", "lang_L1", "木", "木木", None),     # not a single character: left as text
+            ("char_C7", "lang_L2", "放", "方", None),       # other language: its own 方
+            ("char_C8", "lang_K", "한", "ㅎ", None),         # Korean: left alone
+        ]):
+            db.insert(Character(id=cid, language_id=lang, character=ch, radical=rad, phonetic=ph), session=s, commit=False)
+
+
+def test_the_migration_links_text_radicals_creating_missing_ones(db):
+    mig = _link_mig()
+    _old_data(db)
+    with db.session_scope() as s:
+        out = mig.link_text_radicals(s.connection())
+    with db.session_scope() as s:
+        key = {c.id: c.key_radical_id for c in s.query(Character)}
+        glyph = {c.id: c.character for c in s.query(Character)}
+        lang = {c.id: c.language_id for c in s.query(Character)}
+        assert key["char_C2"] == "char_C3" and key["char_C3"] and glyph[key["char_C3"]] == "水"      # existing 水 reused
+        assert key["char_C1"] and glyph[key["char_C1"]] == "方" and lang[key["char_C1"]] == "lang_L1"
+        assert key["char_C1"] == "char_C4"                       # the existing 方 of that language, not a new one
+        assert key["char_C7"] and key["char_C7"] != key["char_C1"] and lang[key["char_C7"]] == "lang_L2"   # created in its own language
+        assert key["char_C4"] is None and key["char_C6"] is None and key["char_C8"] is None
+        assert key["char_C5"] is None                              # 氵 -> 水 is cut: 水 already points to it would close the 水/氵 loop
+        assert out["created"] == 1 and out["skipped_cycle"] == 1
+        assert s.query(Character).filter_by(language_id="lang_K").count() == 1
+
+
+def test_the_migration_is_idempotent_and_backfills_readings(db):
+    mig = _link_mig()
+    _old_data(db)
+    for _ in range(2):
+        with db.session_scope() as s:
+            out = mig.link_text_radicals(s.connection())
+            mig.backfill_readings(s.connection())
+    assert out == {"linked": 0, "created": 0, "skipped_cycle": 1}       # second run: nothing new (the cut pair is retried, still a cycle)
+    with db.session_scope() as s:
+        assert s.get(Character, "char_C1").readings == [{"kind": "phonetic", "value": "fàng", "primary": True}]
+        assert s.query(Character).count() == 9

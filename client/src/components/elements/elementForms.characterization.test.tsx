@@ -215,7 +215,7 @@ describe("grammar form", () => {
 });
 
 describe("calligraphy form", () => {
-    const CHAR = { character: "水", phonetic: "", meaning: undefined, radical: undefined, strokes: undefined, image_files: [], audio_files: [] };
+    const CHAR = { character: "水", phonetic: "", meaning: undefined, radical: undefined, clear_radical: true, component_glyphs: [], strokes: undefined, image_files: [], audio_files: [] };
 
     it("creates, sends the payload, then returns to the lesson", async () => {
         render(<CalligraphyForm lesson_id="lesson_1" />);

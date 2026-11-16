@@ -393,6 +393,8 @@ def update_calligraphy(calligraphy_id: str):
             
     except ValidationError as e:
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
+    except ValueError as e:     # radical/component links: another language, itself, a cycle
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/<calligraphy_id>', methods=['DELETE'])

@@ -16,6 +16,11 @@ describe("shared displays render synchronously with translated labels", () => {
     expect(screen.getByText("Learning")).toBeInTheDocument();
     rerender(<ScoreDisplay score={30} />);
     expect(screen.getByText("Weak")).toBeInTheDocument();
+    rerender(<ScoreDisplay score={0} />);
+    expect(screen.getByText("Unseen")).toBeInTheDocument();
+    rerender(<ScoreDisplay score={7.5} stability={4} />);
+    expect(screen.getByText("Weak")).toBeInTheDocument();
+    expect(screen.getByText("Fading in ~4 days")).toBeInTheDocument();
     rerender(<ScoreDisplay score={70} />);
     expect(screen.getByText("Known")).toBeInTheDocument();
     rerender(<ScoreDisplay score={90} />);
