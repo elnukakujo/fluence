@@ -22,7 +22,7 @@ export function FormLayout({ onSubmit, children }: { onSubmit: React.FormEventHa
 /** The save bar: stays at the bottom of the viewport so the action is never a long scroll away. */
 export function FormActions({ note, children }: { note?: string; children: ReactNode }) {
     return (
-        <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-10 md:bottom-0 -mx-2 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-2 py-3 backdrop-blur">
+        <div className="sticky bottom-0 z-[60] pb-[calc(0.75rem+env(safe-area-inset-bottom))] -mx-2 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-2 pt-3 backdrop-blur">
             <p className="text-sm text-muted">{note}</p>
             <div className="flex gap-3">{children}</div>
         </div>

@@ -111,7 +111,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters
                 </Field>
                 <span className="flex flex-col gap-1">
                     <span className={FORM_LABEL}>{t("strokesLabel")}</span>
-                    <NumberField min={0} ariaLabel={t("strokesLabel")} value={strokes ?? ""} onChange={(v) => setStrokes(v === "" || v === 0 ? undefined : v)} />
+                    <NumberField fill min={0} ariaLabel={t("strokesLabel")} value={strokes ?? ""} onChange={(v) => setStrokes(v === "" || v === 0 ? undefined : v)} />
                 </span>
             </FormSection>
             <CharacterLinksField

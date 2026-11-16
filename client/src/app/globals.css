@@ -975,6 +975,9 @@
     font-variant-numeric: tabular-nums;
   }
   .stepper input:focus-visible { outline: none; }
+  .stepper-fill { display: flex; width: 100%; min-height: 2.5rem; }
+  .stepper-fill input { flex: 1 1 auto; min-width: 0; width: auto; }
+  .stepper-fill button { flex: none; min-height: 2.5rem; }
   .stepper button {
     display: grid;
     place-items: center;
