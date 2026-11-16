@@ -52,7 +52,7 @@ describe("review card: leech", () => {
     it("the wrong choice grades again and shows the answer", async () => {
         render(<ReviewFlashCard cards={[leechy("front")]} />);
         await userEvent.click(screen.getByRole("button", { name: "kitten" }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0, expect.any(Number), false, undefined, "front");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "front", skill: "recognition", evidence: "multiple_choice" }));
     });
 
     it("on the back side the choice is between the two words", async () => {

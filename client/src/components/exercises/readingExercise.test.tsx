@@ -53,7 +53,7 @@ describe("reading exercise", () => {
     expect(screen.queryByText("rec")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Easy/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "I've read it" }));
-    expect(api.updateScoreById).toHaveBeenCalledWith("ex_1", 1, expect.any(Number), false, 1);
+    expect(api.updateScoreById).toHaveBeenCalledWith("ex_1", expect.objectContaining({ similarity: 1, hintUsed: false, attempt: 1, skill: "recall", evidence: "self_grade" }));
     expect(screen.queryByRole("button", { name: "I've read it" })).not.toBeInTheDocument();
     expect(api.updateScoreById).toHaveBeenCalledTimes(1);
   });

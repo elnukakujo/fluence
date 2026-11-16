@@ -130,7 +130,7 @@ def test_collaborator_practice_writes_progress(app, db):
         '/api/collaboration', json={'collaborator_id': 'user_U2', 'target_type': 'language', 'target_id': 'lang_L1'}).get_json()
     _client_for_user(app, db, "user_U2").post(f"/api/collaboration/{inv['collaboration']['id']}/accept")
     res = _client_for_user(app, db, "user_U2").post(
-        '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'score': 1.0, 'duration_ms': 100})
+        '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'similarity': 1.0, 'skill': 'recall', 'evidence_type': 'typed', 'duration_ms': 100})
     assert res.status_code == 200
     from lapp.services.system_data import ScoreService
     # the parent is computed from its side rows (no stored parent row)

@@ -49,6 +49,6 @@ describe("two-sided vocabulary card in the shell (was vocabularyFlashCard)", () 
     const { container } = render(<ReviewSession items={[voc("back")]} />);
     await userEvent.click(faces(container).front);
     await userEvent.click(screen.getByText(/good/i));
-    expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0.75, expect.any(Number), true, undefined, "back");
+    expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0.75, hintUsed: true, side: "back", skill: "recall", evidence: "self_grade" }));
   });
 });

@@ -1,4 +1,5 @@
 import { apiFetch } from "../apiFetch";
+import type { Evidence, Skill } from "@/utils/skills";
 
 // ============= Evaluation API =============
 export async function evaluateText(exerciseId: string, userText: string) {
@@ -15,34 +16,30 @@ export async function evaluateSpeech(exerciseId: string, user_audio_url: string,
 }
 
 // ============= Scoring API =============
-export async function updateScoreById(
-  elementId: string,
-  score: number,
-  duration_ms: number,
-  hint_used: boolean = false,
-  attempt_number?: number,
-  side?: "front" | "back",
-) {
-  let endpoint = "";
-  let payload: Record<string, string | number | boolean> = {};
+export type Answer = {
+  similarity: number;          // 0..1, the server rejects anything else
+  skill: Skill;
+  evidence: Evidence;
+  durationMs: number;
+  hintUsed?: boolean;
+  attempt?: number;            // exercises
+  side?: "front" | "back";     // vocabulary
+};
 
-  if (elementId.startsWith("voc_")) {
-    endpoint = "/api/vocabulary/score";
-    payload = { vocabulary_id: elementId, score, duration_ms, hint_used, ...(side ? { side } : {}) };
-  } else if (elementId.startsWith("gram_")) {
-    endpoint = "/api/grammar/score";
-    payload = { grammar_id: elementId, score, duration_ms, hint_used };
-  } else if (elementId.startsWith("call_")) {
-    endpoint = "/api/calligraphy/score";
-    payload = { calligraphy_id: elementId, score, duration_ms, hint_used };
-  } else if (elementId.startsWith("ex_")) {
-    endpoint = "/api/exercise/score";
-    payload = { exercise_id: elementId, score, duration_ms, hint_used, ...(attempt_number !== undefined ? { attempt_number } : {}) };
-  } else {
-    throw new Error(`Unsupported element ID for scoring: ${elementId}`);
-  }
+export async function updateScoreById(elementId: string, a: Answer) {
+  const body = {
+    similarity: a.similarity, skill: a.skill, evidence_type: a.evidence, duration_ms: a.durationMs, hint_used: a.hintUsed ?? false,
+    ...(a.side ? { side: a.side } : {}),
+    ...(a.attempt !== undefined ? { attempt_number: a.attempt } : {}),
+  };
+  const [endpoint, idKey]: [string, string] | [] =
+    elementId.startsWith("voc_") ? ["/api/vocabulary/score", "vocabulary_id"] :
+    elementId.startsWith("gram_") ? ["/api/grammar/score", "grammar_id"] :
+    elementId.startsWith("call_") ? ["/api/calligraphy/score", "calligraphy_id"] :
+    elementId.startsWith("ex_") ? ["/api/exercise/score", "exercise_id"] : [];
+  if (!endpoint || !idKey) throw new Error(`Unsupported element ID for scoring: ${elementId}`);
 
-  return apiFetch(endpoint, { method: "POST", body: payload, errorMessage: "Failed to update score" });
+  return apiFetch(endpoint, { method: "POST", body: { [idKey]: elementId, ...body }, errorMessage: "Failed to update score" });
 }
 
 // ============= Media API =============

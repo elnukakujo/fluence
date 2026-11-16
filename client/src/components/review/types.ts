@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ReviewCard } from "@/api/review";
 import type { Tier } from "@/utils/cardTier";
+import type { Evidence } from "@/utils/skills";
 
 export type SessionItem = ReviewCard;
 
@@ -50,7 +51,7 @@ export type RendererCtx<T extends SessionItem = SessionItem> = ShellState & Item
     pickChoice(correct: boolean): void;
     languageId?: string;
     // primitives the renderers use for their own type-specific handlers (typed answer, drawing)
-    grade(score: number): void;                       // post the score and mark the card graded
+    grade(score: number, evidence?: Evidence): void;  // post the score (evidence defaults to self_grade) and mark the card graded
     elapsedMs(): number;                              // since the card was shown
     hintUsed: boolean;
     effectiveLevel: number;                           // hint level capped at 2

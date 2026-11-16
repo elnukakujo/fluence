@@ -34,7 +34,7 @@ describe("review card: type the word", () => {
         expect(screen.queryByText("Click to reveal")).toBeNull();
         await userEvent.type(screen.getByLabelText("Type the word"), "猫");
         await userEvent.click(screen.getByRole("button", { name: "Check" }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 1, expect.any(Number), false, undefined, "back");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 1, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
         expect(screen.getByText("Right!")).toBeInTheDocument();
     });
 
@@ -42,7 +42,7 @@ describe("review card: type the word", () => {
         render(<ReviewFlashCard cards={[voc("back")]} />);
         await userEvent.type(screen.getByLabelText("Type the word"), "狗");
         await userEvent.click(screen.getByRole("button", { name: "Check" }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0, expect.any(Number), false, undefined, "back");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
         expect(screen.getByText("Not quite. The word is 猫")).toBeInTheDocument();
     });
 
@@ -51,7 +51,7 @@ describe("review card: type the word", () => {
         render(<ReviewFlashCard cards={[voc("back")]} />);
         await userEvent.type(screen.getByLabelText("Type the word"), "狗");
         await userEvent.click(screen.getByRole("button", { name: "Check" }));
-        const grade = api.updateScoreById.mock.calls[0][1];
+        const grade = api.updateScoreById.mock.calls[0][1].similarity;
         expect(grade).toBeGreaterThan(0);
         expect(grade).toBeLessThan(0.75);
         expect(await screen.findByLabelText("different: 猫")).toBeInTheDocument();
@@ -61,13 +61,13 @@ describe("review card: type the word", () => {
         render(<ReviewFlashCard cards={[voc("back")]} />);
         await userEvent.type(screen.getByLabelText("Type the word"), "狗");
         await userEvent.click(screen.getByRole("button", { name: "Check" }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0, expect.any(Number), false, undefined, "back");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
     });
 
     it("I don't know is graded again", async () => {
         render(<ReviewFlashCard cards={[voc("back")]} />);
         await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0, expect.any(Number), false, undefined, "back");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
     });
 
     it("a hint caps what a right answer can earn", async () => {
@@ -75,7 +75,7 @@ describe("review card: type the word", () => {
         await userEvent.click(screen.getByRole("button", { name: "Hint" }));
         await userEvent.type(screen.getByLabelText("Type the word"), "猫");
         await userEvent.click(screen.getByRole("button", { name: "Check" }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0.75, expect.any(Number), true, undefined, "back");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0.75, hintUsed: true, side: "back", skill: "recall", evidence: "typed" }));
     });
 
     it("flip instead falls back to the normal card", async () => {

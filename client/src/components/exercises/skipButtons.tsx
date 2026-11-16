@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
+import { exerciseAnswer } from "@/utils/skills";
 import { CircleHelp, EarOff, MicOff } from "lucide-react";
 import type Exercise from "@/interface/features/Exercise";
 import { needsHearing, needsSpeaking } from "@/utils/exerciseSkills";
@@ -16,7 +17,7 @@ export default function SkipButtons({ exercise, onSkip, onGiveUp }: { exercise: 
     const start = useRef(performance.now());
     const Icon = hear ? EarOff : MicOff;
     const dontKnow = () => {
-        updateScoreById(exercise.id!, 0, Math.round(performance.now() - start.current), false, 1).catch(console.error);
+        updateScoreById(exercise.id!, exerciseAnswer(exercise, 0, Math.round(performance.now() - start.current), false, 1)).catch(console.error);
         onGiveUp();
     };
     return (

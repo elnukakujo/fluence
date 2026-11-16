@@ -5,6 +5,7 @@ from ...services import CalligraphyService
 from ...services.system_data import ScoreService
 from ...schemas import CalligraphyDict
 from ...core.exceptions import DuplicateEntityError
+from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...utils.helpers import score_drawing
 
@@ -453,25 +454,12 @@ def score_calligraphy():
         404:
             description: calligraphy not found
     """
-    data = request.json
-    calligraphy_id = data['calligraphy_id']
+    data = request.json or {}
+    calligraphy_id = data.get('calligraphy_id')
     require_write(calligraphy_id)
-    score = float(data['score'])
-    duration_ms = float(data['duration_ms'])
-    hint_used = bool(data.get('hint_used', False))
-
-    calligraphy = calligraphy_service.update_score(
-        calligraphy_id,
-        score,
-        duration_ms=duration_ms,
-        hint_used=hint_used,
-        user_id=current_user_id(),
-    )
-
-    if calligraphy:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'calligraphy not found'}), 404
+    return answered(calligraphy_id, data, lambda a: calligraphy_service.update_score(
+        calligraphy_id, a.similarity, duration_ms=a.duration_ms, hint_used=a.hint_used, user_id=current_user_id(),
+        skill=a.skill, evidence_type=a.evidence_type))
 
 @bp.route('/draw', methods=['POST'])
 @login_required
@@ -480,25 +468,15 @@ def draw_calligraphy():
 
     Body: { calligraphy_id, similarity (0..1), stroke_order_errors (int), duration_ms (float), hint_used (bool, optional) }.
     """
-    data = request.json
-    calligraphy_id = data['calligraphy_id']
+    data = request.json or {}
+    calligraphy_id = data.get('calligraphy_id')
     require_write(calligraphy_id)
-    similarity = float(data['similarity'])
-    stroke_order_errors = int(data['stroke_order_errors'])
-    duration_ms = float(data.get('duration_ms', 0))
-    hint_used = bool(data.get('hint_used', False))      # a guide was shown while drawing
-
-    score = score_drawing(similarity, stroke_order_errors)
-
-    calligraphy = calligraphy_service.update_score(
-        calligraphy_id,
-        score,
-        duration_ms=duration_ms,
-        hint_used=hint_used,
-        user_id=current_user_id(),
-    )
-
-    if calligraphy:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'calligraphy not found'}), 404
+    try:
+        stroke_order_errors = int(data['stroke_order_errors'])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'error': 'stroke_order_errors must be an integer'}), 400
+    # drawing is produced from memory: recall, typed-grade evidence
+    body = {'skill': 'recall', 'evidence_type': 'typed', 'duration_ms': data.get('duration_ms', 0), **data}
+    return answered(calligraphy_id, body, lambda a: calligraphy_service.update_score(
+        calligraphy_id, score_drawing(a.similarity, stroke_order_errors), duration_ms=a.duration_ms,
+        hint_used=a.hint_used, user_id=current_user_id(), skill=a.skill, evidence_type=a.evidence_type))

@@ -46,7 +46,7 @@ describe("session as lesson study", () => {
         // now the back side: it asks with the translation
         const front = document.querySelector(".flashcard-face:not(.flashcard-face-back)") as HTMLElement;
         expect(front).toHaveTextContent("water");
-        expect(m.updateScoreById).toHaveBeenCalledWith("voc_1", 0.75, expect.any(Number), true, undefined, "front");
+        expect(m.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0.75, hintUsed: true, side: "front", skill: "recognition", evidence: "self_grade" }));
     });
 
     it("an empty lesson shows nothing to review instead of crashing", () => {

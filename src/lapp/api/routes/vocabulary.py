@@ -7,6 +7,7 @@ from ...services import VocabularyService
 from ...services.system_data import ScoreService
 from ...schemas.features import VocabularyDict
 from ...core.exceptions import DuplicateEntityError
+from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('vocabulary', __name__, url_prefix='/api/vocabulary')
@@ -427,26 +428,9 @@ def score_vocabulary():
         404:
             description: Vocabulary not found
     """
-    data = request.json
-    vocabulary_id = data['vocabulary_id']
+    data = request.json or {}
+    vocabulary_id = data.get('vocabulary_id')
     require_write(vocabulary_id)
-    score = float(data['score'])
-    duration_ms = float(data['duration_ms'])
-    hint_used = bool(data.get('hint_used', False))
-    side = data.get('side')
-    if side is not None and side not in ('front', 'back'):
-        return jsonify({'error': 'side must be front or back'}), 400
-
-    vocabulary = vocabulary_service.update_score(
-        vocabulary_id,
-        score,
-        duration_ms=duration_ms,
-        hint_used=hint_used,
-        user_id=current_user_id(),
-        side=side,
-    )
-
-    if vocabulary:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'Vocabulary not found'}), 404
+    return answered(vocabulary_id, data, lambda a: vocabulary_service.update_score(
+        vocabulary_id, a.similarity, duration_ms=a.duration_ms, hint_used=a.hint_used, user_id=current_user_id(),
+        side=a.side, skill=a.skill, evidence_type=a.evidence_type))

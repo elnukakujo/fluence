@@ -54,7 +54,7 @@ describe("dictation exercise", () => {
     expect(api.evaluateText).toHaveBeenCalledTimes(1);
     expect(api.evaluateText).toHaveBeenCalledWith("ex_2", "犬がいます 猫もいます");
     expect(await screen.findByText("Good")).toBeInTheDocument();
-    expect(api.updateScoreById).toHaveBeenCalledWith("ex_2", 0.9, expect.any(Number), false, 1);
+    expect(api.updateScoreById).toHaveBeenCalledWith("ex_2", expect.objectContaining({ similarity: 0.9, hintUsed: false, attempt: 1, skill: "recall", evidence: "typed" }));
   });
 
   it("scores 0 without calling the server when every line is empty", async () => {
@@ -62,6 +62,6 @@ describe("dictation exercise", () => {
     await userEvent.click(screen.getByRole("button", { name: "Next line" }));
     await userEvent.click(screen.getByRole("button", { name: "Check Answer" }));
     expect(api.evaluateText).not.toHaveBeenCalled();
-    expect(api.updateScoreById).toHaveBeenCalledWith("ex_2", 0, expect.any(Number), false, 1);
+    expect(api.updateScoreById).toHaveBeenCalledWith("ex_2", expect.objectContaining({ similarity: 0, hintUsed: false, attempt: 1, skill: "recall", evidence: "typed" }));
   });
 });

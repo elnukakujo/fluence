@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
+import { skillFor, type Evidence } from "@/utils/skills";
 import { completeReview, type ReviewCard } from "@/api/review";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Calligraphy from "@/interface/features/Calligraphy";
@@ -98,10 +99,10 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         );
     }
 
-    const handleGrade = (score: number) => {
+    const handleGrade = (score: number, evidence: Evidence = "self_grade") => {
         setGraded(true);
-        const duration_ms = Math.round(performance.now() - startTimeRef.current);
-        updateScoreById(card.id, score, duration_ms, hintUsed, undefined, renderer.scoreSide?.(card));
+        const side = renderer.scoreSide?.(card);
+        updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side });
     };
 
     const reveal = () => {
@@ -130,7 +131,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const pickChoice = (correct: boolean) => {
         setChoiceDone(true);
         if (correct) { setHintLevel((l) => Math.max(l, 1)); setHintUsed(true); }       // assisted: the best grade is limited
-        else { setHiddenTranslation(false); handleGrade(0); }
+        else { setHiddenTranslation(false); handleGrade(0, "multiple_choice"); }
     };
 
     const ctx: RendererCtx = {

@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from ...services import ExerciseService
 from ...services.system_data import ScoreService, ExerciseUserPrefService, SourceService
 from ...schemas import ExerciseDict
+from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...services.system_data import UserPreferencesService
 from ...utils.llm_providers import resolve_api
@@ -381,27 +382,12 @@ def score_exercise():
         404:
             description: Exercise not found
     """
-    data = request.json
-    exercise_id = data['exercise_id']
+    data = request.json or {}
+    exercise_id = data.get('exercise_id')
     require_write(exercise_id)
-    score = float(data['score'])
-    duration_ms = float(data['duration_ms'])
-    hint_used = bool(data.get('hint_used', False))
-    attempt_number = int(data['attempt_number']) if data.get('attempt_number') is not None else None
-
-    exercise = exercise_service.update_score(
-        exercise_id,
-        score,
-        duration_ms=duration_ms,
-        hint_used=hint_used,
-        attempt_number=attempt_number,
-        user_id=current_user_id(),
-    )
-
-    if exercise:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'exercise not found'}), 404
+    return answered(exercise_id, data, lambda a: exercise_service.update_score(
+        exercise_id, a.similarity, duration_ms=a.duration_ms, hint_used=a.hint_used, attempt_number=a.attempt_number,
+        user_id=current_user_id(), skill=a.skill, evidence_type=a.evidence_type))
 
 @bp.route('/<exercise_id>/line-audio', methods=['POST'])
 @login_required

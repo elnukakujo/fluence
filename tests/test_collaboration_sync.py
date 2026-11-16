@@ -88,7 +88,7 @@ def test_share_recipient_can_write(app, db):
     _seed_vocab(db)
     LessonShareService().share("lesson_L1", "user_U2")
     res = _client_for_user(app, db, "user_U2").post(
-        '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'score': 1.0, 'duration_ms': 100})
+        '/api/vocabulary/score', json={'vocabulary_id': 'voc_V1', 'similarity': 1.0, 'skill': 'recall', 'evidence_type': 'typed', 'duration_ms': 100})
     assert res.status_code == 200
 
 

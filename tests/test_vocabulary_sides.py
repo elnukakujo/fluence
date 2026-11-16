@@ -50,9 +50,9 @@ def test_route_side_and_bad_side(app, db):
     token = AuthService().create_session("user_U1", remember=False)
     c = app.test_client()
     c.set_cookie("session_token", token)
-    ok = c.post("/api/vocabulary/score", json={"vocabulary_id": "voc_V1", "score": 0.8, "duration_ms": 5, "side": "back"})
+    ok = c.post("/api/vocabulary/score", json={"vocabulary_id": "voc_V1", "similarity": 0.8, "skill": "recall", "evidence_type": "typed", "duration_ms": 5, "side": "back"})
     assert ok.status_code == 200
-    bad = c.post("/api/vocabulary/score", json={"vocabulary_id": "voc_V1", "score": 0.8, "duration_ms": 5, "side": "left"})
+    bad = c.post("/api/vocabulary/score", json={"vocabulary_id": "voc_V1", "similarity": 0.8, "skill": "recall", "evidence_type": "typed", "duration_ms": 5, "side": "left"})
     assert bad.status_code == 400
 
 

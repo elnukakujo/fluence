@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type Exercise from "@/interface/features/Exercise";
 import { updateScoreById } from "@/api/process";
+import { exerciseAnswer } from "@/utils/skills";
 import { useFinished } from "./exerciseFinish";
 
 export type AttemptScoring = {
@@ -28,7 +29,7 @@ export function useAttemptScoring(exercise: Exercise, onFinished?: () => void): 
         if (finished) return; // double-submit after finishing posts nothing
         const attempt = attempts + 1;
         setAttempts(attempt);
-        updateScoreById(exercise.id!, score, Math.round(performance.now() - startRef.current), opts?.hintUsed ?? false, attempt).catch(console.error);
+        updateScoreById(exercise.id!, exerciseAnswer(exercise, score, Math.round(performance.now() - startRef.current), opts?.hintUsed ?? false, attempt)).catch(console.error);
         if (score === 1 || opts?.final) {
             setCorrect(opts?.correct ?? score === 1);
             setFinished(true);

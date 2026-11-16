@@ -18,8 +18,8 @@ describe("useAttemptScoring", () => {
         act(() => result.current.submit(0));
         act(() => result.current.submit(1));
         expect(calls()).toEqual([
-            ["ex1", 0, expect.any(Number), false, 1],
-            ["ex1", 1, expect.any(Number), false, 2],
+            ["ex1", expect.objectContaining({ similarity: 0, hintUsed: false, attempt: 1, skill: "recall" })],
+            ["ex1", expect.objectContaining({ similarity: 1, hintUsed: false, attempt: 2, skill: "recall" })],
         ]);
         expect(result.current.finished).toBe(true);
         expect(result.current.correct).toBe(true);

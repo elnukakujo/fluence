@@ -14,7 +14,7 @@ import ExerciseRunner from "./exerciseRunner";
 const make = (type: string, content: unknown) => ({ id: "ex1", exercise_type: type, content, question: "q", answer: "a", audio_files: [], related_vocabulary: [], related_grammar: [], related_characters: [], related_calligraphy: [] }) as unknown as Exercise;
 const ev = (correct: boolean, score: number) => vi.mocked(evaluateText).mockResolvedValueOnce({ correct, score, feedback: "f" } as never);
 const check = () => fireEvent.click(screen.getByRole("button", { name: /check/i }));
-const calls = () => vi.mocked(updateScoreById).mock.calls.map(([, ...rest]) => rest.map((v, i) => (i === 1 ? typeof v : v)));
+const calls = () => vi.mocked(updateScoreById).mock.calls.map(([, a]) => [a.similarity, typeof a.durationMs, a.hintUsed, a.attempt]);
 const setup = (type: string, content: unknown) => {
     const onFinished = vi.fn();
     render(<ExerciseRunner exercise={make(type, content)} onFinished={onFinished} />);
@@ -86,5 +86,17 @@ describe("evaluated runners: wrong sends nothing until the 3rd miss, right sends
         }
         await waitFor(() => expect(calls()).toEqual([[0.1, "number", false, 3]]));
         expect(fin).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("every post carries the skill and how the answer was given", () => {
+    it.each([
+        ["true_false", { statement: "s", answer: true }, "True", "multiple_choice"],
+        ["quizz", { options: ["x", "y"], correct: [1] }, "y", "multiple_choice"],
+    ])("%s", (type, content, right, evidence) => {
+        setup(type, content);
+        fireEvent.click(screen.getByRole("button", { name: right as string }));
+        check();
+        expect(vi.mocked(updateScoreById).mock.calls[0][1]).toMatchObject({ skill: "recall", evidence });
     });
 });

@@ -43,7 +43,7 @@ describe("practice skips", () => {
     it("I don't know scores 0, reveals the answer and offers Next instead of advancing", async () => {
         render(<ExercisePractice exercise_lists={[ex("e1", "essay"), ex("e2", "quizz")]} />);
         await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(updateScoreById).toHaveBeenCalledWith("e1", 0, expect.any(Number), false, 1);
+        expect(updateScoreById).toHaveBeenCalledWith("e1", expect.objectContaining({ similarity: 0, hintUsed: false, attempt: 1, skill: "recall" }));
         expect(current()).toBe("e1");
         expect(screen.getByText("answer shown")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "I don't know" })).toBeNull();

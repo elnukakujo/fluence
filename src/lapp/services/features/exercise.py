@@ -279,15 +279,17 @@ class ExerciseService:
         hint_used: bool = False,
         attempt_number: Optional[int] = None,
         user_id: Optional[str] = None,
+        evidence_type: str = "typed",
+        skill: Optional[str] = None,
     ) -> Score | None:
         exercise = self.get_by_id(ex_id, session=session)
         if not exercise:
             logger.warning(f"Exercise not found: {ex_id}")
             return None
 
-        previous = score_service.get(user_id, ex_id, skill="recall", session=session)
+        previous = score_service.get(user_id, ex_id, skill=skill or "recall", session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, ex_id, "recall", score, "typed", session=session)
+        updated = score_service.record(user_id, ex_id, skill or "recall", score, evidence_type, session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

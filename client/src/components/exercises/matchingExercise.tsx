@@ -8,6 +8,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslations } from "next-intl";
 import { updateScoreById } from "@/api/process";
+import { exerciseAnswer } from "@/utils/skills";
 import shuffle from 'lodash/shuffle';
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
@@ -112,7 +113,7 @@ export default function MatchingExercise({ exercise, onFinished }: Omit<Exercise
     useEffect(() => {
         if (isSuccess) {
             const duration_ms = Math.round(performance.now() - startTimeRef.current);
-            updateScoreById(exercise.id!, 1, duration_ms, false, 4 - attempts).catch(console.error);
+            updateScoreById(exercise.id!, exerciseAnswer(exercise, 1, duration_ms, false, 4 - attempts)).catch(console.error);
         };
     }, [isSuccess, exercise]);
 

@@ -46,7 +46,7 @@ describe("review card: hint ladder", () => {
         await flip();
         expect(screen.getByRole("button", { name: /Hard/ })).toHaveTextContent("Suggested");
         await userEvent.click(screen.getByRole("button", { name: /Good/ }));
-        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", 0.75, expect.any(Number), true, undefined, "front");
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0.75, hintUsed: true, side: "front", skill: "recognition", evidence: "self_grade" }));
     });
 
     it("a quick flip with no hint suggests easy and allows every grade", async () => {

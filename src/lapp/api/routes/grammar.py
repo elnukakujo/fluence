@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from ...services import GrammarService
 from ...services.system_data import ScoreService
 from ...schemas import GrammarDict
+from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 bp = Blueprint('grammar', __name__, url_prefix='/api/grammar')
@@ -361,22 +362,9 @@ def score_grammar():
         200:
             description: Grammar scored successfully
     """
-    data = request.json
-    grammar_id = data['grammar_id']
+    data = request.json or {}
+    grammar_id = data.get('grammar_id')
     require_write(grammar_id)
-    score = float(data['score'])
-    duration_ms = float(data['duration_ms'])
-    hint_used = bool(data.get('hint_used', False))
-
-    grammar = grammar_service.update_score(
-        grammar_id,
-        score,
-        duration_ms=duration_ms,
-        hint_used=hint_used,
-        user_id=current_user_id(),
-    )
-
-    if grammar:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'grammar not found'}), 404
+    return answered(grammar_id, data, lambda a: grammar_service.update_score(
+        grammar_id, a.similarity, duration_ms=a.duration_ms, hint_used=a.hint_used, user_id=current_user_id(),
+        skill=a.skill, evidence_type=a.evidence_type))

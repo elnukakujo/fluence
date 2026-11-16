@@ -39,7 +39,7 @@ describe("ExerciseFooter", () => {
     it("I don't know records a 0 and gives up instead of advancing", () => {
         render(<ExerciseFooter {...base} finished={false} isLast={false} />);
         fireEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(updateScoreById).toHaveBeenCalledWith("ex_1", 0, expect.any(Number), false, 1);
+        expect(updateScoreById).toHaveBeenCalledWith("ex_1", expect.objectContaining({ similarity: 0, hintUsed: false, attempt: 1, skill: "recall" }));
         expect(base.onGiveUp).toHaveBeenCalledTimes(1);
         expect(base.onNext).not.toHaveBeenCalled();
     });

@@ -287,7 +287,8 @@ class VocabularyService:
         hint_used: bool = False,
         user_id: Optional[str] = None,
         side: Optional[str] = None,
-        evidence_type: str = "self_grade",  # TODO(spec 2 Task 4): the client sends the real evidence
+        evidence_type: str = "self_grade",
+        skill: Optional[str] = None,       # None = the kind's default skill (internal cascades)
         session: Optional[Session] = None,
     ) -> Score | None:
         if side is not None and side not in SIDES:
@@ -301,7 +302,7 @@ class VocabularyService:
         previous_score = previous.score if previous else 0.0
         # no side (old clients): both sides; a face tests one skill (front recognition, back recall)
         for sd in ([side] if side else SIDES):
-            updated = score_service.record_side(user_id, voc_id, sd, SIDE_SKILL[sd], score, evidence_type, session=session)
+            updated = score_service.record_side(user_id, voc_id, sd, skill or SIDE_SKILL[sd], score, evidence_type, session=session)
 
         progress_tracking_service.create(
             data=ProgressTrackingDict(

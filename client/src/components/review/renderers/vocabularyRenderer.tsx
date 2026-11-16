@@ -35,7 +35,7 @@ async function answerTyped(c: RendererCtx<Vocabulary>, value: string | null) {
     }
     c.setTyped({ correct, diff: grade > 0 ? diff : undefined });
     c.showAnswer();
-    c.grade(Math.min(grade, HINT_CAPS[c.effectiveLevel]));
+    c.grade(Math.min(grade, HINT_CAPS[c.effectiveLevel]), "typed");
 }
 
 function Choice({ c }: { c: RendererCtx<Vocabulary> }) {
