@@ -74,6 +74,18 @@ describe("review card: draw-first calligraphy", () => {
         expect(screen.queryByTestId("canvas")).toBeNull();
     });
 
+    it("self-grading is hidden while drawing and comes back with I can't draw (a misclick)", async () => {
+        m.isDrawFirst.mockReturnValue(false);
+        render(<ReviewFlashCard cards={[call(40)]} />);
+        await userEvent.click(screen.getByText("Click to reveal"));
+        expect(screen.getByRole("button", { name: /Good/ })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole("button", { name: "Practice" }));
+        expect(screen.getByTestId("canvas")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /Good/ })).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "I can't draw" }));
+        expect(screen.getByRole("button", { name: /Good/ })).toBeInTheDocument();
+    });
+
     it("no stroke data falls back to the flip card", async () => {
         m.loadStrokeData.mockResolvedValue(null);
         render(<ReviewFlashCard cards={[call(40)]} />);

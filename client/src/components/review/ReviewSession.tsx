@@ -192,8 +192,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
                     {renderer.escape?.(ctx)}
 
-                    {/* ── Grade buttons ────────────────────────────── */}
-                    {!hiddenTranslation && !graded && (
+                    {/* ── Grade buttons (hidden while drawing; "I can't draw" brings them back) ── */}
+                    {!hiddenTranslation && !graded && !showPractice && (
                         <RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
                     )}
 
