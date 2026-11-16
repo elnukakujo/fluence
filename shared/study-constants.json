@@ -139,5 +139,11 @@
       0.0,
       1.0
     ]
+  },
+  "speaking": {
+    "_todo": "TODO(owner): label cut-offs on the bar value (text similarity minus offset); the 0.15 offset is DM-63",
+    "offset": 0.15,
+    "excellentFrom": 0.85,
+    "goodFrom": 0.6
   }
 }

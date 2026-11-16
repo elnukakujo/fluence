@@ -14,7 +14,7 @@ from statistics import mean
 from ...utils.element_kinds import kind_of
 from ...utils.scoring import CORRECT_AT, level_for
 from ..containers import LessonService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from .calligraphy import CalligraphyService
 from .grammar import GrammarService
@@ -27,7 +27,7 @@ lesson_service = LessonService()
 calligraphy_service = CalligraphyService()
 grammar_service = GrammarService()
 vocabulary_service = VocabularyService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 class ExerciseService:
@@ -295,10 +295,8 @@ class ExerciseService:
         previous_score = previous.score if previous else 0.0
         updated = score_service.record(user_id, ex_id, skill or "recall", score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=exercise.lesson.language_id,
+        study_activity.record(
+            user_id, exercise.lesson.language_id, ProgressTrackingDict(
                 element_id=ex_id,
                 element_type="exercise",
                 element_status=level_for(updated.score),

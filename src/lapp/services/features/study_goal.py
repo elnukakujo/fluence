@@ -9,9 +9,11 @@ from ...models.containers import Lesson
 from ...models.features import Vocabulary, Grammar, Calligraphy
 from ...models.system_data import StudyGoal, StudyGoalItem, Score
 from ...utils import review_priority
+from ...utils.learner_clock import learner_today
 from ...models.system_data import UserPreferences
 from ...utils.scoring import KNOWN_FROM
 from ..system_data import ScoreService
+from .lesson_gate import GateService
 from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
@@ -46,7 +48,7 @@ class StudyGoalService:
     def upsert(self, user_id: str, language_id: str, period: str, n_vocabulary: int, n_grammar: int,
                n_calligraphy: int, active: bool = True, r_vocabulary: int = 0, r_grammar: int = 0,
                r_calligraphy: int = 0, auto: bool = False, today: Optional[date] = None,
-               session: Optional[Session] = None) -> dict:
+               n_radicals: int = 0, r_radicals: int = 0, session: Optional[Session] = None) -> dict:
         """Save the goal. The quantities and the period are what the NEXT period will use: the running
         period's menu stays locked (see `ensure_cycle`). `active` takes effect at once. With `auto` the
         quantities are the suggested ones for the user's daily minutes (and keep following them); a save
@@ -57,7 +59,7 @@ class StudyGoalService:
             r_vocabulary, r_grammar, r_calligraphy = (wanted["r"][k] for k in TYPES)
         if period not in PERIOD_DAYS:
             raise ValueError(f"period must be one of {tuple(PERIOD_DAYS)}")
-        counts = (n_vocabulary, n_grammar, n_calligraphy, r_vocabulary, r_grammar, r_calligraphy)
+        counts = (n_vocabulary, n_grammar, n_calligraphy, r_vocabulary, r_grammar, r_calligraphy, n_radicals, r_radicals)
         if any(not isinstance(n, int) or isinstance(n, bool) or n < 0 for n in counts):
             raise ValueError("quantities must be non-negative integers")
         goal = self._goal(user_id, language_id, session)
@@ -67,7 +69,8 @@ class StudyGoalService:
             session.add(goal)
         was_suggested = goal.auto and not auto and goal.locked is not None
         goal.period, goal.active, goal.auto = period, bool(active), bool(auto)
-        goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy = counts
+        (goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy,
+         goal.n_radicals, goal.r_radicals) = counts
         if was_suggested:            # first time the user sets their own numbers: replace the suggested menu at once
             self._reset(goal, today or date.today(), session)
         session.flush()
@@ -92,7 +95,8 @@ class StudyGoalService:
                     if i.id not in done:
                         session.delete(i)
                 goal.locked = {**goal.locked, "n": {k: getattr(goal, c[1]) for k, c in TYPES.items()},
-                               "r": {k: getattr(goal, c[2]) for k, c in TYPES.items()}}
+                               "r": {k: getattr(goal, c[2]) for k, c in TYPES.items()},
+                               "n_radicals": goal.n_radicals, "r_radicals": goal.r_radicals}
                 session.flush()
                 return self._dict(goal)
         self._reset(goal, today, session)
@@ -151,16 +155,22 @@ class StudyGoalService:
         this_period = {i.element_id for i in items if i.cycle_start == start}
         done = self._done(items, user_id, session)
         carried_open = {i.element_id for i in items if i.cycle_start != start and i.id not in done}   # still on the list
-        for kind, (model, _n, _r) in TYPES.items():
-            mine = [i for i in items if i.cycle_start == start and _type_of(i.element_id) == kind]
-            for role, quota, pick in (("new", lock["n"][kind], self._new_elements), ("review", lock["r"][kind], self._review_elements)):
+        gated = GateService().gate_lesson(user_id, language_id, [m for m, _n, _r in TYPES.values()], session=session)   # soft gate (SG-6)
+        # (type, radicals?) -> quantities: the radicals quota is its own slot on the calligraphy cards of radical characters, never blocking the rest
+        slots = [(kind, model, None, lock["n"][kind], lock["r"][kind]) for kind, (model, _n, _r) in TYPES.items()]
+        slots.insert(2, ("calligraphy", Calligraphy, True, lock.get("n_radicals", 0), lock.get("r_radicals", 0)))   # radicals pick first: they are the scarce ones
+        for kind, model, radicals, n_quota, r_quota in slots:
+            mine = [i for i in items if i.cycle_start == start and _type_of(i.element_id) == kind and bool(i.radical) == bool(radicals)]
+            for role, quota, pick in (("new", n_quota, self._new_elements), ("review", r_quota, self._review_elements)):
                 missing = quota - sum(1 for i in mine if i.kind == role)
                 if missing <= 0:
                     continue
                 # new elements never repeat an earlier pick; a review element only has to be off this period's menu
-                for element_id in pick(model, language_id, user_id, everything if role == "new" else this_period | carried_open, missing, session):
+                found = pick(model, language_id, user_id, everything if role == "new" else this_period | carried_open, missing, session,
+                             only_lesson=gated if role == "new" else None, radicals=True if radicals else None)
+                for element_id in found:
                     session.add(StudyGoalItem(id=db_manager.generate_new_id(StudyGoalItem, session=session), goal_id=goal.id,
-                                              element_id=element_id, cycle_start=start, kind=role))
+                                              element_id=element_id, cycle_start=start, kind=role, radical=bool(radicals)))
                     everything.add(element_id)
                     this_period.add(element_id)
         session.flush()
@@ -209,15 +219,29 @@ class StudyGoalService:
                 row["carried"] += 1
             label, lesson_id = self._describe(i.element_id, session)
             listed.append({"id": i.element_id, "kind": kind, "role": i.kind, "label": label, "lesson_id": lesson_id,
-                           "done": finished, "carried": not current})
+                           "done": finished, "carried": not current, "radical": bool(i.radical)})
         pending = (goal.period != lock["period"]
                    or any(getattr(goal, TYPES[k][1]) != lock["n"][k] or getattr(goal, TYPES[k][2]) != lock["r"][k] for k in TYPES))
         return {"period": lock["period"], "active": goal.active, "cycle_start": start.isoformat(), "cycle_end": end.isoformat(),
-                "types": types, "items": listed,
+                "types": types, "items": listed, "radicals": {"n": lock.get("n_radicals", 0), "r": lock.get("r_radicals", 0)},
                 "rebuild": {"mastered": sum(1 for i in items if i.id in done and i.cycle_start == start),
                             "redraw": sum(1 for i in items if i.id not in done)},
                 "next": {"start": end.isoformat(), "period": goal.period, "pending": pending,
                          "n": {k: getattr(goal, TYPES[k][1]) for k in TYPES}, "r": {k: getattr(goal, TYPES[k][2]) for k in TYPES}}}
+
+    @transactional
+    def mark_succeeded(self, user_id: str, element_id: str, now: Optional[datetime] = None, session: Optional[Session] = None) -> bool:
+        """Called after an answer: if the element's effective score is now known, stamp its open goal items (once, never cleared)."""
+        base = element_id.split("#")[0]
+        open_items = (session.query(StudyGoalItem).join(StudyGoal, StudyGoal.id == StudyGoalItem.goal_id)
+                      .filter(StudyGoal.user_id == user_id, StudyGoalItem.element_id == base, StudyGoalItem.kind == "new",
+                              StudyGoalItem.succeeded_at.is_(None)).all())
+        if not open_items or self._scores(user_id, [base], session).get(base, 0.0) < KNOWN_FROM:
+            return False
+        for i in open_items:
+            i.succeeded_at = now or datetime.now()
+        session.flush()
+        return True
 
     # -- lock ----------------------------------------------------------------------------------
     @staticmethod
@@ -237,7 +261,8 @@ class StudyGoalService:
                  if current else _cycle_start(goal, today))
         goal.locked = {"start": start.isoformat(), "period": goal.period,
                        "n": {k: getattr(goal, c[1]) for k, c in TYPES.items()},
-                       "r": {k: getattr(goal, c[2]) for k, c in TYPES.items()}}
+                       "r": {k: getattr(goal, c[2]) for k, c in TYPES.items()},
+                       "n_radicals": goal.n_radicals, "r_radicals": goal.r_radicals}
         session.flush()
         return self._parsed(goal.locked)
 
@@ -260,7 +285,7 @@ class StudyGoalService:
                 "start_date": goal.start_date.isoformat(), "n_vocabulary": goal.n_vocabulary,
                 "n_grammar": goal.n_grammar, "n_calligraphy": goal.n_calligraphy,
                 "r_vocabulary": goal.r_vocabulary, "r_grammar": goal.r_grammar, "r_calligraphy": goal.r_calligraphy,
-                "active": goal.active, "auto": goal.auto}
+                "n_radicals": goal.n_radicals, "r_radicals": goal.r_radicals, "active": goal.active, "auto": goal.auto}
 
     @staticmethod
     def _describe(element_id: str, session) -> tuple[str, Optional[str]]:
@@ -285,11 +310,16 @@ class StudyGoalService:
         return {eid: r.score for eid, r in ScoreService().get_many(user_id, list(element_ids), session=session).items()}
 
     def _done(self, items, user_id, session) -> set[str]:
-        """Ids of the finished items: a new one once mastered, a review one once reviewed since its own period
-        began (both sides for vocabulary)."""
-        new_ids = [i.element_id for i in items if i.kind == "new"]
-        scores = self._scores(user_id, new_ids, session)
-        finished = {i.id for i in items if i.kind == "new" and scores.get(i.element_id, 0.0) >= KNOWN_FROM}
+        """Ids of the finished items: a new one once it reached known at any moment (`succeeded_at`, permanent: decay never
+        undoes it, DM-53), a review one once reviewed since its own period began (both sides for vocabulary)."""
+        news = [i for i in items if i.kind == "new" and i.succeeded_at is None]
+        if news:                                             # catch up scores that reached known outside `ScoreService.record`
+            scores = self._scores(user_id, [i.element_id for i in news], session)
+            for i in news:
+                if scores.get(i.element_id, 0.0) >= KNOWN_FROM:
+                    i.succeeded_at = datetime.now()
+            session.flush()
+        finished = {i.id for i in items if i.kind == "new" and i.succeeded_at is not None}
         reviews = [i for i in items if i.kind == "review"]
         sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
         rows = session.query(Score.element_id, Score.last_seen_at).filter(
@@ -316,25 +346,39 @@ class StudyGoalService:
         session.flush()
 
     @staticmethod
-    def _language_elements(model, language_id, session) -> list[str]:
-        rows = (session.query(model.id).join(Lesson, Lesson.id == model.lesson_id)
-                .filter(Lesson.language_id == language_id)
-                .order_by(Lesson.position, Lesson.created_at, model.created_at, model.id).all())
-        return [r[0] for r in rows]
+    def _radical_cards(language_id, session) -> set[str]:
+        """Calligraphy cards of the characters that are some character's key radical (DM-48: radicals are characters)."""
+        radicals = {c.key_radical_id for c in session.query(Character).filter_by(language_id=language_id) if c.key_radical_id}
+        return {r[0] for r in session.query(Calligraphy.id).filter(Calligraphy.character_id.in_(radicals))} if radicals else set()
 
     @staticmethod
-    def _new_elements(model, language_id, user_id, taken, n, session) -> list[str]:
-        """Up to n unstarted element ids (no Score row, or score 0) in lesson order, then creation order."""
-        ids = [i for i in StudyGoalService._language_elements(model, language_id, session) if i not in taken]
+    def _language_elements(model, language_id, session, only_lesson: Optional[str] = None) -> list[str]:
+        q = session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)
+        if only_lesson:
+            q = q.filter(model.lesson_id == only_lesson)
+        return [r[0] for r in q.order_by(Lesson.position, Lesson.created_at, model.created_at, model.id).all()]
+
+    @staticmethod
+    def _new_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None, radicals: Optional[bool] = None) -> list[str]:
+        """Up to n unstarted element ids (no Score row, or score 0) in lesson order, then creation order.
+        `only_lesson`: the soft gate is closed, draw from that lesson only. `radicals`: True = only radical characters' cards, False = none of them."""
+        ids = [i for i in StudyGoalService._language_elements(model, language_id, session, only_lesson) if i not in taken]
+        if radicals is not None:
+            rad = StudyGoalService._radical_cards(language_id, session)
+            ids = [i for i in ids if (i in rad) == radicals]
         scores = StudyGoalService._scores(user_id, ids, session)
         return [i for i in ids if scores.get(i, 0.0) == 0.0][:n]
 
     @staticmethod
-    def _review_elements(model, language_id, user_id, taken, n, session) -> list[str]:
+    def _review_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None, radicals: Optional[bool] = None) -> list[str]:
         """Up to n already-seen element ids (they have a Score row), the ones most due first (`review_priority`)."""
         ids = [i for i in StudyGoalService._language_elements(model, language_id, session) if i not in taken]
+        if radicals is not None:
+            rad = StudyGoalService._radical_cards(language_id, session)
+            ids = [i for i in ids if (i in rad) == radicals]
         if not ids:
             return []
-        rows = list(ScoreService().get_many(user_id, ids, session=session).values())
-        rows.sort(key=lambda r: review_priority(r.created_at, r.last_seen_at or r.created_at, r.difficulty or 0.0, r.score or 0), reverse=True)
-        return [r.element_id for r in rows][:n]
+        now = datetime.now()
+        seen = ScoreService().priority_inputs(user_id, ids, now, learner_today(None, now), session=session)   # ponytail: server zone until the learner's zone is passed in (Task 5)
+        ranked = sorted(seen, key=lambda i: review_priority(seen[i].score, seen[i].stability, seen[i].last_seen_at, seen[i].lapses, now), reverse=True)
+        return ranked[:n]

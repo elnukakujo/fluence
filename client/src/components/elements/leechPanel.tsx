@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { AlertCircle } from "lucide-react";
 import { saveCardNote, type Leech } from "@/api/review";
 import Field from "@/components/ui/field";
+import { STUDY } from "@/shared/studyConstants";
 
 /** Help for a card that keeps slipping: how often it was missed, what the word is made of, and a memory trick of the user's own. */
 export default function LeechPanel({ id, leech, note }: { id: string; leech: Leech; note?: string | null }) {
@@ -19,6 +20,8 @@ export default function LeechPanel({ id, leech, note }: { id: string; leech: Lee
     return (
         <section className="card flex flex-col gap-3">
             <p role="status" className="flex items-center gap-2 font-medium"><AlertCircle size={16} aria-hidden />{t("leechBanner", { count: leech.lapses })}</p>
+            <p className="text-sm text-muted" data-testid="leech-leaving">{t("leechLeaving", { count: leech.correct_in_row ?? 0, total: STUDY.leech.leaveCorrectInRow })}</p>
+            {leech.confusable && <p className="text-sm">{t("leechConfusable", { word: leech.confusable.word, translation: leech.confusable.translation })}</p>}
             {leech.parts.length > 0 && (
                 <div>
                     <p className="text-sm text-muted">{t("leechParts")}</p>

@@ -20,26 +20,8 @@ describe("matchesAnswer", () => {
 });
 
 describe("gradeForTyped", () => {
-    it("wrong is 0, a slow right answer is good, a fast one is easy", () => {
-        expect(gradeForTyped(false, 500)).toBe(0);
-        expect(gradeForTyped(true, 2999)).toBe(1);
-        expect(gradeForTyped(true, 3000)).toBe(0.75);
-    });
-});
-
-import { gradeFromCloseness, TYPED_FLOOR, TYPED_FULL } from "./typedAnswer";
-
-describe("gradeFromCloseness", () => {
-    it("near-perfect is a full hit, quick is easy", () => {
-        expect(gradeFromCloseness(TYPED_FULL, 5000)).toBe(0.75);
-        expect(gradeFromCloseness(1, 500)).toBe(1);
-    });
-    it("at or below the floor earns nothing", () => {
-        expect(gradeFromCloseness(TYPED_FLOOR, 500)).toBe(0);
-        expect(gradeFromCloseness(0, 500)).toBe(0);
-    });
-    it("between floor and full is linear partial credit", () => {
-        const mid = gradeFromCloseness((TYPED_FLOOR + TYPED_FULL) / 2, 500);
-        expect(mid).toBeCloseTo(0.375);
+    it("wrong is 0, right is 1: speed is never scored", () => {
+        expect(gradeForTyped(false)).toBe(0);
+        expect(gradeForTyped(true)).toBe(1);
     });
 });

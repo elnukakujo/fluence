@@ -352,5 +352,10 @@
     }
   },
   "speaker": "Locuteur",
-  "audioSlot": "Piste audio"
+  "audioSlot": "Piste audio",
+  "speakingLabel": {
+    "excellent": "Excellent",
+    "good": "Bien",
+    "keepGoing": "Continuez"
+  }
 }

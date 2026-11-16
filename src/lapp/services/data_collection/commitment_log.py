@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
+
+from ...utils.learner_clock import learner_today
 from typing import Optional
 
 import logging
@@ -107,8 +109,9 @@ class CommitmentLogService:
         self,
         progress_tracking_id: str,
         session: Session,
+        day: Optional[date] = None,
     ) -> CommitmentLog:
-        """Append-only update invoked when a review session is completed.
+        """Append-only update invoked for every answer, on the learner's day.
 
         Caller MUST pass an open session.
         """
@@ -140,7 +143,7 @@ class CommitmentLogService:
                 )
 
             # Apply append-only aggregation
-            today = datetime.now().isoformat().split("T")[0]
+            today = (day or learner_today(None)).isoformat()      # callers pass the learner day
             if commitment_log.days_active_last_counted_at.split("T")[0] != today: # Only count a new day once
                 commitment_log.days_active += 1
                 commitment_log.days_active_last_counted_at = today

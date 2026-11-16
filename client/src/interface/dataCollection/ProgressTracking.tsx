@@ -10,5 +10,5 @@ export default interface ProgressTracking extends BaseDataCollection {
     duration_ms: number; // time taken to answer in milliseconds
     hint_used?: boolean; // whether the user used a hint
     attempt_number?: number; // which attempt this is for the element
-    session_completed?: boolean; // whether the user completed the session after this attempt
+    daily_goal_reached_before?: boolean; // the day was already a streak day before this answer this attempt
 }

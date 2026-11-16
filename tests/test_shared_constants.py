@@ -63,6 +63,7 @@ def test_shared_json_matches_the_literal_table():
             "conversation": [0.3, 0.1, 0.6],
             "dictation": [0.0, 0.0, 1.0],
         },
+        "speaking": {"offset": 0.15, "excellentFrom": 0.85, "goodFrom": 0.6},
     }
 
 

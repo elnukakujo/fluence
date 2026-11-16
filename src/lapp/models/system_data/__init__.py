@@ -9,6 +9,7 @@ from .lesson_share import LessonShare
 from .ingestion_job import IngestionJob
 from .exercise_user_pref import ExerciseUserPref
 from .study_goal import StudyGoal, StudyGoalItem
+from .lesson_gate import LessonGate
 
 __all__ = [
     "User",
@@ -23,4 +24,5 @@ __all__ = [
     "ExerciseUserPref",
     "StudyGoal",
     "StudyGoalItem",
+    "LessonGate",
 ]

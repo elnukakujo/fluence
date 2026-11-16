@@ -15,10 +15,10 @@ class UserPreferences(Base):
     voc_side_pattern = Column(JSON, nullable=True)
     exercise_type_prefs = Column(JSON, default=dict, nullable=False)
     review_layout = Column(JSON, nullable=True)
-    daily_goal_minutes = Column(Integer, default=20, nullable=False)
+    daily_goal_minutes = Column(Integer, default=20, server_default="20", nullable=False)
     # Learner clock (IANA name, null = server zone) and the answers that validate a streak day
     timezone = Column(String, nullable=True)
-    streak_min_answers = Column(Integer, default=20, nullable=False)
+    streak_min_answers = Column(Integer, default=20, server_default="20", nullable=False)
     last_updated = Column(Date, default=date.today)
     ai_feedback_enabled = Column(Boolean, default=True, nullable=False)
     ai_learnable_sentence_enabled = Column(Boolean, default=True, nullable=False)

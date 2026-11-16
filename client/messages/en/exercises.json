@@ -352,5 +352,10 @@
     }
   },
   "speaker": "Speaker",
-  "audioSlot": "Audio slot"
+  "audioSlot": "Audio slot",
+  "speakingLabel": {
+    "excellent": "Excellent",
+    "good": "Good",
+    "keepGoing": "Keep going"
+  }
 }

@@ -118,3 +118,12 @@ def test_a_leech_at_a_low_score_is_flagged_and_three_correct_in_a_row_clear_it(d
     for _ in range(3):
         ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
     assert "leech" not in _annotate(_cards())[0]
+
+
+def test_leech_panel_data_counts_the_correct_answers_in_a_row(db):
+    _seed(db)
+    _history(db, "voc_V1", 4)
+    assert _annotate(_cards())[0]["leech"]["correct_in_row"] == 0
+    for _ in range(2):
+        ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
+    assert _annotate(_cards())[0]["leech"]["correct_in_row"] == 2          # 3 in a row and it leaves

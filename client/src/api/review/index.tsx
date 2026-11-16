@@ -7,6 +7,7 @@ import type Exercise from "@/interface/features/Exercise";
 /** Extra help for a card that keeps slipping (computed by the server from the user's history). */
 export type Leech = {
   lapses: number;
+  correct_in_row?: number;      // answers right in a row; the card leaves the leech list at `STUDY.leech.leaveCorrectInRow`
   parts: { character: string; phonetic?: string | null; meaning?: string | null }[];
   confusable: { word: string; translation: string } | null;
 };

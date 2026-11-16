@@ -42,7 +42,7 @@ def put_study_goal(language_id: str):
         goal = service.upsert(user_id, language_id, data.get('period'), data.get('n_vocabulary', 0),
                               data.get('n_grammar', 0), data.get('n_calligraphy', 0), data.get('active', True),
                               data.get('r_vocabulary', 0), data.get('r_grammar', 0), data.get('r_calligraphy', 0),
-                              bool(data.get('auto', False)))
+                              bool(data.get('auto', False)), n_radicals=data.get('n_radicals', 0), r_radicals=data.get('r_radicals', 0))
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id)})

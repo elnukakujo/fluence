@@ -2,12 +2,6 @@ from datetime import date, datetime
 from math import log2
 
 
-def _as_date(value: date | datetime) -> date:
-    if isinstance(value, datetime):
-        return value.date()
-    return value
-
-
 def stack_lists(existing: list | None, incoming: list | None) -> list:
     """Union two lists, preserving order and dropping duplicates.
 
@@ -23,46 +17,22 @@ def stack_lists(existing: list | None, incoming: list | None) -> list:
     return result
 
 
-def compute_recency_weight(
-    created_at: date | datetime,
-    last_seen_at: date | datetime
-) -> float:
-    """
-    Computes a recency weight from both created_at and last_seen_at.
-
-    - staleness:  how long since last review  → increases weight (more forgetting)
-    - maturity:   how long since item created → decreases weight (well-learned items need less boost)
-    """
-    today = date.today()
-
-    created_at = _as_date(created_at)
-    last_seen_at = _as_date(last_seen_at)
-
-    days_since_seen = (today - last_seen_at).days
-    days_since_created = (today - created_at).days
-
-    staleness       = log2(days_since_seen + 2)
-    maturity_dampen = log2(days_since_created + 2)
-
-    return staleness / maturity_dampen
-
 def review_priority(
-    created_at: date | datetime,
-    last_seen_at: date | datetime,
-    difficulty: float,
-    score: float,
+    effective_score: float,
+    stability: float,
+    last_seen_at: datetime | None,
+    lapses: int,
+    now: datetime,
 ) -> float:
-    """Composite "should review now" priority for the daily review queue.
-
-    Sums three independent signals, all derivable from fields already on every
-    feature/component (no persisted SRS state):
-      - forgetting: recency weight (staleness) scaled by difficulty,
-      - difficult:  difficulty itself, so hard cards surface even if recent,
-      - learning:   low score, so just-introduced cards repeat into long-term memory.
-    """
-    forgetting = compute_recency_weight(created_at, last_seen_at) * (1.0 + difficulty)
-    learning = 1.0 - min(max(score, 0.0), 100.0) / 100.0
-    return forgetting + difficulty + learning
+    """"Should review now" priority, higher = sooner. Monotone in each input (spec 3 G2):
+      - a lower effective score (decay already applied) ranks higher,
+      - a longer time since last seen, relative to the stability (days to halve), ranks higher,
+      - more lapses (wrong answers among the recent ones) rank higher.
+    A never-seen element has nothing overdue: it ranks by its (zero) score alone.
+    TODO(owner): the weights are stand-ins; the spec only asks for a monotone combination."""
+    low = 1.0 - min(max(effective_score, 0.0), 100.0) / 100.0
+    overdue = 0.0 if last_seen_at is None else max(0.0, (now - last_seen_at).total_seconds() / 86400) / max(stability, 0.1)
+    return low + log2(1.0 + overdue) + 0.25 * max(lapses, 0)
 
 
 def score_drawing(similarity: float, stroke_order_errors: int) -> float:

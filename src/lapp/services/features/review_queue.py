@@ -5,18 +5,23 @@ learner's time, `build_queue` picks and orders the cards. Behaviour is the pre-s
 """
 import random
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from ...core.database import db_manager
 from ...models.containers import Language, Lesson
+from ...models.components import Character
 from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
+from ...models.base import source_element_link, tag_element_link
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
+from ...utils.learner_clock import learner_today
+from ...utils.scoring import INITIAL_STABILITY_DAYS
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
-from ..system_data.prefs_view import PrefsView
+from ..system_data.prefs_view import PrefsView, prefs_for
 from ..system_data.score import SIDES, side_id
+from ...utils.helpers import base_element_id
 from .card_time import estimate_seconds, pace_ratios
 from .exercise_share import exercise_quota, exercise_share, is_eligible, knowledge
 from .side_pattern import make_side_picker
@@ -45,13 +50,15 @@ def section_budgets(layout: list[dict], daily_goal_minutes: int, mean_seconds: d
     return {t: max(1, round(minutes * 60 / mean_seconds[t])) for t, minutes in section_minutes(layout, daily_goal_minutes).items()}
 
 
-def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set) -> list:
-    """The goal's menu first (new elements, then review ones: `goal_rank` 2 / 1), then by review priority
-    (boosted ones multiplied by BOOST_FACTOR), best first."""
+def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set, capped_ids: frozenset = frozenset()) -> list:
+    """Items already at today's gain cap last (more answers earn nothing, spec G3); then the goal's menu (new elements,
+    then review ones: `goal_rank` 2 / 1); then by review priority (boosted ones multiplied by BOOST_FACTOR), best first.
+    `capped_ids` holds element ids, and `voc_x#front` side ids for vocabulary tuples."""
     def key(item):
-        element = item[0] if isinstance(item, tuple) else item
+        element, side = item if isinstance(item, tuple) else (item, None)
         weight = BOOST_FACTOR if element.id in boosted_ids else 1.0
-        return (goal_rank.get(element.id, 0), priority_of(item) * weight)
+        capped = (side_id(element.id, side) if side else element.id) in capped_ids
+        return (not capped, goal_rank.get(element.id, 0), priority_of(item) * weight)
     return sorted(items, key=key, reverse=True)
 
 
@@ -83,18 +90,21 @@ def pair_vocabulary(bucket: list, quota: int, split: bool = False) -> list:
     return [it for it in bucket if it[0].id in seen]
 
 
-def review_fields(card, score):
-    """(created_at, last_seen_at, difficulty, score) for review_priority. An unreviewed element has no Score row:
-    its content created_at stands in for both timestamps, with defaults."""
-    if score is not None:
-        return (score.created_at, score.last_seen_at, score.difficulty or 0.0, score.score or 0)
-    return (card.created_at, card.created_at, 0.5, 0.0)
+def priority_for(inputs: dict, element_id: str, now: datetime) -> float:
+    """review_priority of one element from its ScoreService.priority_inputs row (none yet = unseen)."""
+    pi = inputs.get(element_id)
+    if pi is None:
+        return review_priority(0.0, INITIAL_STABILITY_DAYS, None, 0, now)
+    return review_priority(pi.score, pi.stability, pi.last_seen_at, pi.lapses, now)
 
 
-def vocabulary_priorities(vocabularies, user_id, session) -> dict:
-    """review_priority of every (vocabulary id, side), from that side's own Score row."""
-    scores = ScoreService().get_many(user_id, [side_id(v.id, sd) for v in vocabularies for sd in SIDES], session=session)
-    return {(v.id, sd): review_priority(*review_fields(v, scores.get(side_id(v.id, sd)))) for v in vocabularies for sd in SIDES}
+def item_skill(card_id: str, side: Optional[str]) -> str:
+    """The skill an answer on this card trains (mirrors client `skillFor`): grammar recognises, a vocabulary face decides, the rest recall."""
+    if card_id.startswith("gram_"):
+        return "recognition"
+    if card_id.startswith("voc_"):
+        return "recall" if side == "back" else "recognition"
+    return "recall"
 
 
 def pop_card(bucket: list, queue: list, model, picker=None):
@@ -133,6 +143,9 @@ class Candidates:
     buckets: dict           # model -> ranked items ((vocabulary, side) tuples for Vocabulary)
     exercises: list         # ready, eligible, not banned (unranked)
     modes: dict             # exercise id -> effective mode (boost/ban/None)
+    now: datetime
+    today: date             # the learner's day
+    bonus_ids: set = field(default_factory=set)    # served after the goal's menu is done (spec G4)
 
 
 @dataclass
@@ -148,65 +161,138 @@ class Budgets:
     paces: dict
 
 
+MODEL_OF_TYPE = {"vocabulary": Vocabulary, "grammar": Grammar, "calligraphy": Calligraphy, "character": Calligraphy, "exercise": Exercise}
+
+
+def _scope_ids(scope: Scope, session) -> set:
+    """Element ids a tag / source / free scope names."""
+    if scope.kind == "free":
+        return {base_element_id(i) for i in scope.ids}
+    link, col, wanted = (tag_element_link, tag_element_link.c.tag_id, scope.tag_id) if scope.kind == "tag" else \
+                        (source_element_link, source_element_link.c.source_id, scope.source_id)
+    return {r[0] for r in session.execute(link.select().with_only_columns(link.c.element_id).where(col == wanted))}
+
+
+def _keep_in_scope(scope: Scope, ids: set, radical_ids: set):
+    """Predicate on a Vocabulary/Grammar/Calligraphy card for the non-daily scopes (a tagged lesson, word or character
+    brings its cards)."""
+    def keep(card) -> bool:
+        if scope.kind == "lesson":
+            return True                                         # the lesson filter is applied by the query
+        if scope.kind == "type":
+            return not scope.radicals or getattr(card, "character_id", None) in radical_ids
+        return card.id in ids or card.lesson_id in ids or getattr(card, "word_id", None) in ids or getattr(card, "character_id", None) in ids
+    return keep
+
+
 def collect_candidates(user_id: str, language_id: str, scope: Scope, session) -> Optional[Candidates]:
-    """Ranked cards per type and the ready exercises. None when the language does not exist."""
+    """Ranked cards per type and the ready exercises. None when the language does not exist.
+
+    `daily`: the goal's menu first, then the review ones by priority; a type the goal covers serves its menu, then
+    bonus items (already started, never unstarted). Other scopes: every card of the scope in natural order (lesson
+    position, creation), no goal and no time budget (RE-4/5); `free` is exactly the ids given (RE-6)."""
     language = db_manager.find_by_attr(Language, {"id": language_id}, session=session)
     if not language:
         return None
     user_id = user_id or language.user_id            # per-user review: default to the language owner
     preferences = db_manager.find_by_attr(UserPreferences, {"user_id": user_id}, session=session)
+    now = datetime.now()
+    today = learner_today(prefs_for(user_id, language_id, session).timezone, now)
+    daily = scope.kind == "daily"
 
-    lessons = session.query(Lesson).filter(Lesson.language_id == language_id).all()
-    lesson_ids = [lesson.id for lesson in lessons]
+    lessons = session.query(Lesson).filter(Lesson.language_id == language_id).order_by(Lesson.position, Lesson.created_at).all()
     lesson_title_by_id = {lesson.id: lesson.title for lesson in lessons}
+    lesson_pos = {lesson.id: n for n, lesson in enumerate(lessons)}
+    lesson_ids = [lesson.id for lesson in lessons if scope.kind != "lesson" or lesson.id == scope.lesson_id]
 
     type_prefs = (preferences.exercise_type_prefs if preferences else None) or {}
-    StudyGoalService().ensure_default(user_id, language_id, session=session)   # no goal yet: the suggested one
-    goal_items = StudyGoalService().ensure_cycle(user_id, language_id, session=session)
-    goal_rank = {i.element_id: 2 if i.kind == "new" else 1 for i in goal_items}       # new before review
-    goal_ids = set(goal_rank)
-
-    # A type covered by the goal's menu serves only that menu (open new elements, then open review ones).
-    locked = {m for m, kind in ((Vocabulary, "vocabulary"), (Grammar, "grammar"), (Calligraphy, "calligraphy"))
-              if kind in StudyGoalService().locked_kinds(user_id, language_id, session=session)}
-
-    # Still no goal (the user has no preferences yet, so no suggested one): the app works anyway. New elements are drawn at random from a small default window
-    # (NO_GOAL_NEW per type, lesson order); seen elements stay candidates by review priority, as before goals.
-    no_goal = StudyGoalService().get(user_id, language_id, session=session) is None
+    goal_rank, goal_ids, locked, no_goal = {}, set(), set(), False
+    if daily:
+        StudyGoalService().ensure_default(user_id, language_id, session=session)   # no goal yet: the suggested one
+        goal_items = StudyGoalService().ensure_cycle(user_id, language_id, session=session)
+        goal_rank = {i.element_id: 2 if i.kind == "new" else 1 for i in goal_items}       # new before review
+        goal_ids = set(goal_rank)
+        # A type covered by the goal's menu serves that menu (open new elements, then open review ones), then bonus items.
+        locked = {m for m, kind in ((Vocabulary, "vocabulary"), (Grammar, "grammar"), (Calligraphy, "calligraphy"))
+                  if kind in StudyGoalService().locked_kinds(user_id, language_id, session=session)}
+        # Still no goal (the user has no preferences yet, so no suggested one): the app works anyway. New elements are drawn at random from a small default window
+        # (NO_GOAL_NEW per type, lesson order); seen elements stay candidates by review priority, as before goals.
+        no_goal = StudyGoalService().get(user_id, language_id, session=session) is None
     kind_of = {m: k for k, (m, _n, _r) in TYPES.items()}
 
+    ids = _scope_ids(scope, session) if scope.kind in ("tag", "source", "free") else set()
+    radical_ids = ({c.key_radical_id for c in session.query(Character).filter(Character.language_id == language_id) if c.key_radical_id}
+                   if scope.radicals else set())
+    keep = _keep_in_scope(scope, ids, radical_ids)
+    models = (MODEL_OF_TYPE[scope.element_type],) if scope.kind == "type" and scope.element_type in MODEL_OF_TYPE else (Vocabulary, Grammar, Calligraphy)
+    scoped_cards = {}
+    for model in (Vocabulary, Grammar, Calligraphy):
+        cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all() if model in models else []
+        if not daily:
+            cards = sorted((c for c in cards if keep(c)), key=lambda c: (lesson_pos[c.lesson_id], c.created_at, c.id))
+            if scope.kind == "free":
+                cards = [c for c in cards if c.id in ids]
+        scoped_cards[model] = cards
+
+    # Review-priority inputs for every card (a vocabulary's sides separately).
+    all_ids = [c.id for cs in scoped_cards.values() for c in cs]
+    side_ids = [side_id(i, sd) for i in all_ids if i.startswith("voc_") for sd in SIDES]
+    inputs = ScoreService().priority_inputs(user_id, [*all_ids, *side_ids], now, today, session=session)
+    capped = frozenset(i for i, pi in inputs.items() if pi.capped)
+
+    bonus_ids: set = set()
     buckets = {}
     for model in (Vocabulary, Grammar, Calligraphy):
-        cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all()
+        cards = scoped_cards[model]
         if model in locked:
-            cards = [c for c in cards if c.id in goal_ids]
-        elif no_goal:
+            menu, rest = [c for c in cards if c.id in goal_ids], [c for c in cards if c.id not in goal_ids]
+            started = [c for c in rest if (pi := inputs.get(c.id)) is not None and pi.last_seen_at is not None]   # never unstarted
+            bonus_ids |= {c.id for c in started}
+            cards = menu + started
+        elif no_goal and daily:
             unstarted = StudyGoalService._new_elements(model, language_id, user_id, set(), len(cards), session)
             window = set(unstarted[:NO_GOAL_NEW[kind_of[model]]])
             cards = [c for c in cards if c.id in window or c.id not in set(unstarted)]
             random.shuffle(cards)                   # equal priorities (the new ones) then come out in random order
-        scores = ScoreService().get_many(user_id, [c.id for c in cards], session=session)
-        if model is Vocabulary:
-            priority = vocabulary_priorities(cards, user_id, session)
-            items = [(v, sd) for v in cards for sd in SIDES]
-            key_of = lambda it, priority=priority: priority[(it[0].id, it[1])]
+        items = [(v, sd) for v in cards for sd in SIDES] if model is Vocabulary else cards
+        if not daily:
+            buckets[model] = items
+        elif model is Vocabulary:
+            buckets[model] = order_bucket(items, lambda it: priority_for(inputs, side_id(it[0].id, it[1]), now), goal_rank, set(), capped)
         else:
-            items = cards
-            key_of = lambda c, scores=scores: review_priority(*review_fields(c, scores.get(c.id)))
-        buckets[model] = order_bucket(items, key_of, goal_rank, set())
+            buckets[model] = order_bucket(items, lambda c: priority_for(inputs, c.id, now), goal_rank, set(), capped)
 
-    exercises = session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids), Exercise.review_reason.is_(None)).all()
-    exercises = [c for c in exercises if not c.needs]      # only exercises that are really ready (content fits the type, audio present)
+    exercises, modes = _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type_prefs, models, session)
+    return Candidates(user_id, language_id, session, scope, preferences, lesson_title_by_id, buckets, exercises, modes, now, today, bonus_ids)
+
+
+def _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type_prefs, models, session):
+    """Ready (content fits, audio present), not banned exercises of the scope, past the linked-average gate (`free` skips the gate:
+    the learner named them)."""
+    if scope.kind == "type" and Exercise not in models:
+        pool = []
+        if scope.element_type in MODEL_OF_TYPE:                 # a type other than exercise: those linked to its cards
+            in_scope = {c[0].id if isinstance(c, tuple) else c.id for b in buckets.values() for c in b}
+            pool = [e for e in session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids), Exercise.review_reason.is_(None)).all()
+                    if in_scope & {x.id for x in (*e.related_vocabulary, *e.related_grammar, *e.related_calligraphy)}]
+    else:
+        pool = session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids), Exercise.review_reason.is_(None)).all()
+        if scope.kind in ("tag", "source", "free"):
+            in_scope = {c[0].id if isinstance(c, tuple) else c.id for b in buckets.values() for c in b}
+            pool = [e for e in pool if e.id in ids or e.lesson_id in ids
+                    or in_scope & {x.id for x in (*e.related_vocabulary, *e.related_grammar, *e.related_calligraphy)}]
+            if scope.kind == "free":
+                pool = [e for e in pool if e.id in ids]
+    exercises = [c for c in pool if not c.needs]
     own = ExerciseUserPrefService().modes_for(user_id, [c.id for c in exercises], session=session)
     modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in exercises}
     exercises = [c for c in exercises if modes[c.id] != "ban"]
-
-    # An exercise appears once the elements it trains are known a little (their scores, never the exercise's own).
-    linked = {c.id: [e.id for e in (*c.related_vocabulary, *c.related_grammar, *c.related_calligraphy)] for c in exercises}
-    element_scores = ScoreService().get_many(user_id, sorted({i for ids in linked.values() for i in ids}), session=session)
-    exercises = [c for c in exercises if is_eligible([element_scores[i].score or 0.0 if i in element_scores else 0.0 for i in linked[c.id]])]
-
-    return Candidates(user_id, language_id, session, scope, preferences, lesson_title_by_id, buckets, exercises, modes)
+    if scope.kind != "free":
+        # An exercise appears once the elements it trains are known a little (their scores, never the exercise's own).
+        linked = {c.id: [e.id for e in (*c.related_vocabulary, *c.related_grammar, *c.related_calligraphy)] for c in exercises}
+        element_scores = ScoreService().get_many(user_id, sorted({i for ids_ in linked.values() for i in ids_}), session=session)
+        exercises = [c for c in exercises if is_eligible([element_scores[i].score or 0.0 if i in element_scores else 0.0 for i in linked[c.id]])]
+    return exercises, modes
 
 
 def card_seconds(card, paces) -> float:
@@ -220,6 +306,10 @@ def plan_budgets(cands: Candidates, prefs: PrefsView, goal: Optional[dict], now:
     preferences = cands.preferences
     daily_goal_minutes = prefs.daily_minutes
     cap_seconds = daily_goal_minutes * 60
+    if cands.scope.kind != "daily":     # lesson / tag / source / type / free review: everything in scope, no time budget, no quotas (RE-4..6)
+        quota = {**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}
+        pattern = preferences.voc_side_pattern if preferences else None
+        return Budgets(float("inf"), daily_goal_minutes, {}, quota, None, None, pattern, pace_ratios(user_id, session))
     layout = preferences.review_layout if preferences else None
     pattern = preferences.voc_side_pattern if preferences else None
 
@@ -262,11 +352,16 @@ def build_queue(cands: Candidates, budgets: Budgets) -> tuple[list, list, list]:
     # Exercises come from the lessons of the elements being reviewed (all of them when no element is).
     in_play = {(i[0] if isinstance(i, tuple) else i).lesson_id
                for m in (Vocabulary, Grammar, Calligraphy) for i in buckets[m][:quota[m]]}
-    if in_play:
+    daily = cands.scope.kind == "daily"
+    if in_play and daily:
         exercises = [c for c in exercises if c.lesson_id in in_play]
     boosted = {i for i, m in cands.modes.items() if m == "boost"}
-    ex_scores = ScoreService().get_many(user_id, [c.id for c in exercises], session=session)
-    buckets[Exercise] = order_bucket(exercises, lambda c: review_priority(*review_fields(c, ex_scores.get(c.id))), {}, boosted)
+    inputs = ScoreService().priority_inputs(user_id, [c.id for c in exercises], cands.now, cands.today, session=session)
+    capped = frozenset(i for i, pi in inputs.items() if pi.capped)
+    if daily:
+        buckets[Exercise] = order_bucket(exercises, lambda c: priority_for(inputs, c.id, cands.now), {}, boosted, capped)
+    else:
+        buckets[Exercise] = list(exercises)         # natural order
 
     picker = None
     if pattern and pattern.get("mode") != "split":

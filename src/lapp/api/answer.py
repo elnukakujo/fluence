@@ -1,8 +1,9 @@
-from flask import jsonify
+from flask import jsonify, request
 
 from ..core.auth import current_user_id
 from ..schemas.answer import parse_answer
 from ..services.system_data import ScoreService
+from ..services.system_data.prefs_view import remember_timezone
 from ..utils.scoring import level_for
 
 
@@ -17,6 +18,7 @@ def answered(element_id: str, data, record):
         payload = parse_answer(element_id, data or {})
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    remember_timezone(current_user_id(), request.headers.get('X-Timezone'))     # the answer lands on the learner's own day
     before = _level(element_id)
     if not record(payload):
         return jsonify({'error': 'not found'}), 404

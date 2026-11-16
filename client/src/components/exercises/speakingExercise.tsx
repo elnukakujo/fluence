@@ -9,6 +9,8 @@ import remarkGfm from "remark-gfm";
 import { evaluateSpeech } from "@/api/process";
 import dynamic from 'next/dynamic';
 import { getExerciseLevel } from "@/utils/speech_levels";
+import { speakingLabel } from "@/utils/speakingLabel";
+import ProgressBar from "@/components/ui/progressBar";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
@@ -21,6 +23,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
     const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string } | null>(null);
+    const [similarity, setSimilarity] = useState<number | null>(null);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const hasFeedback = correct || attempts > 0;
 
@@ -34,6 +37,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
     // Reset everything when the exercise changes
     useEffect(() => {
         setCurrentLevel(null);
+        setSimilarity(null);
         setAudioUrl(null);
         setFeedbackMessage(null);
         setResetKey((k) => k + 1); // remount AudioRecorder to clear its state
@@ -53,6 +57,7 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
             const result = await evaluateSpeech(String(exercise.id), audioUrl, 0);
             setFeedbackMessage(result.feedback);
             setCurrentLevel(getExerciseLevel("speaking", result.score, t));
+            setSimilarity(result.score);
 
             if (result.correct) {
                 submit(1, { correct: true });
@@ -105,6 +110,8 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
 
             {hasFeedback && currentLevel && (
                 <FeedbackPanel correct={correct}>
+                    {similarity !== null && <p className="font-medium">{t(`speakingLabel.${speakingLabel(similarity).label}`)}</p>}
+                    {similarity !== null && <SpeakingBar similarity={similarity} />}
                     <h3>{currentLevel.label}</h3>
                     <p className="italic">`&quot;`{currentLevel.description}`&quot;`</p>
                     <p>
@@ -117,4 +124,11 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
             )}
         </div>
     );
+}
+
+/** The approximate result of a spoken answer: a label and a bar (text similarity minus the fixed offset, DM-63). */
+function SpeakingBar({ similarity }: { similarity: number }) {
+    const t = useTranslations("exercises");
+    const { label, barValue } = speakingLabel(similarity);
+    return <ProgressBar current={Math.round(barValue * 100)} total={100} showLabel={false} showPercent={false} thin accent ariaLabel={t(`speakingLabel.${label}`)} />;
 }

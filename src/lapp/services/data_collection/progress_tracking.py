@@ -6,13 +6,8 @@ from sqlalchemy.orm import Session
 from ...core.database import db_manager, transactional
 from ...models.data_collection.progress_tracking import ProgressTracking
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
-from .daily_stats import DailyStatsService
-from .commitment_log import CommitmentLogService
 
 logger = logging.getLogger(__name__)
-
-daily_stats_service = DailyStatsService()
-commitment_log_service = CommitmentLogService()
 
 class ProgressTrackingService:
     def _serialize(
@@ -72,10 +67,8 @@ class ProgressTrackingService:
             duration_ms=data.duration_ms,
             hint_used=data.hint_used,
             attempt_number=data.attempt_number,
-            session_completed=daily_stats_service.has_reached_daily_goal_today(user_id=data.user_id, language_id=data.language_id, session=session),
+            daily_goal_reached_before=data.daily_goal_reached_before,
         )
 
         result = db_manager.insert(obj=entry, session=session, commit=False)
-        daily_stats_service.update(progress_tracking_id=result.id, session=session)
-        commitment_log_service.apply_progress_tracking(progress_tracking_id=result.id, session=session)
         return self._serialize(result, as_dict, include_relations)

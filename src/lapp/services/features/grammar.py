@@ -11,7 +11,7 @@ from ...models.features import Grammar
 from ...models.system_data import Tag, Source, Score
 from ..containers import LessonService, LanguageService
 from ..components import PassageService, WordService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from ...core.database import db_manager, transactional, resolve_related
 from ...utils.scoring import level_for
@@ -20,7 +20,7 @@ lesson_service = LessonService()
 language_service = LanguageService()
 word_service = WordService()
 passage_service = PassageService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 class GrammarService:
@@ -244,10 +244,8 @@ class GrammarService:
         previous_score = previous.score if previous else 0.0
         updated = score_service.record(user_id, grammar_id, skill or "recognition", score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=grammar.lesson.language_id,
+        study_activity.record(
+            user_id, grammar.lesson.language_id, ProgressTrackingDict(
                 element_id=grammar_id,
                 element_type="grammar",
                 element_status=level_for(updated.score),

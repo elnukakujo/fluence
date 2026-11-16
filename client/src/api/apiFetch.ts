@@ -29,6 +29,11 @@ export type ApiOptions = {
   headers?: Record<string, string>;
 };
 
+/** The browser's IANA time zone ("" when it cannot tell). */
+function browserTimeZone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
+}
+
 /** The only place that calls fetch. `path` is `/api/…`, `/media/…` or an absolute URL (sent without auth headers). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wrappers used to return res.json() (any); callers narrow via T
 export async function apiFetch<T = any>(path: string, opts: ApiOptions): Promise<T> {
@@ -36,7 +41,7 @@ export async function apiFetch<T = any>(path: string, opts: ApiOptions): Promise
   const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
   let headers: Record<string, string> | undefined;
   if (!absolute) {
-    headers = await getAuthHeaders();
+    headers = { ...(await getAuthHeaders()), "X-Timezone": browserTimeZone() };      // the learner's day follows their own clock (spec 3)
     if (isForm) delete headers["Content-Type"];
     if (opts.headers) headers = { ...headers, ...opts.headers };
   }

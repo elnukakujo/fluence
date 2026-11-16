@@ -27,4 +27,7 @@ __all__ = [
     "ExerciseUserPref",
     "StudyGoal",
     "StudyGoalItem",
+    "LessonGate",
+    "LearnerDay",
+    "WeeklySnapshot",
 ]

@@ -117,5 +117,7 @@
   "formMediaSection": "媒体",
   "formOrganisationSection": "标签与来源",
   "formRequiredNote": "* 必填",
-  "removeExampleWord": "移除例词"
+  "removeExampleWord": "移除例词",
+  "leechLeaving": "即将移出难卡：已连续答对 {count}/{total} 次",
+  "leechConfusable": "容易和 {word}（{translation}）混淆"
 }

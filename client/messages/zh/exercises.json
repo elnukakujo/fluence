@@ -352,5 +352,10 @@
     }
   },
   "speaker": "说话人",
-  "audioSlot": "音频位"
+  "audioSlot": "音频位",
+  "speakingLabel": {
+    "excellent": "非常好",
+    "good": "不错",
+    "keepGoing": "继续加油"
+  }
 }
