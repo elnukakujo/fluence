@@ -40,5 +40,6 @@ Run `/graphify --update <changed paths>` before ending the turn — every turn, 
 - New models go in the right `models/<bucket>/` and its `__init__.py` — the import order in
   `models/__init__.py` is load-bearing.
 - Never invent domain logic or scoring thresholds — leave a `TODO` and ask.
+- Every dropdown is the shared `ClassicSelectMenu` — never a native `<select>`, `datalist` or one-off menu; extend it instead (`docs/rules/ui-components.md`).
 - Never spawn a sub-agent for structural exploration — use `/graphify`.
 - Changing docs: update the folder `README.md`, bump `last_updated`, add `CHANGELOG` + session log in the same edit.

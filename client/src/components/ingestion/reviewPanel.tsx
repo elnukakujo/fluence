@@ -24,6 +24,7 @@ import ReviewCard from "./reviewCard";
 import EmptyState from "@/components/ui/emptyState";
 import Field from "@/components/ui/field";
 import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
@@ -279,11 +280,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const invalid = has("content_invalid");
       return (
         <ReviewCard {...common} summary={
-            <select className="input min-h-11 w-auto max-w-full" aria-label={t("changeType")} value={row.exercise_type ?? ""} disabled={reloadingId === c.id}
-              onChange={(e) => changeType(row, e.target.value)}>
-              {!row.exercise_type && <option value="">{t("exerciseFallback")}</option>}
-              {Object.entries(EXERCISE_TYPE_KEY).map(([id, key]) => <option key={id} value={id}>{tEx(key)}</option>)}
-            </select>}
+            <ClassicSelectMenu className="w-64 max-w-full" ariaLabel={t("changeType")} disabled={reloadingId === c.id} placeholder={t("exerciseFallback")}
+              options={Object.keys(EXERCISE_TYPE_KEY)} optionLabel={(id) => tEx(EXERCISE_TYPE_KEY[id as keyof typeof EXERCISE_TYPE_KEY])}
+              selectedOption={row.exercise_type ?? ""} onChange={(v) => changeType(row, v as string)} />}
           preview={<ExerciseBody row={row} />}
           onReload={() => setRegenId(regenId === c.id ? null : c.id)} reloading={reloadingId === c.id}
           footer={<>
@@ -310,18 +309,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
               <input className="input" value={row[key] || ""} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
             </label>
           ))}
-          <label className="flex min-w-32 flex-col gap-1">
-            <span className="field-label">{t("field_type")}</span>
-            <select className="input" value={row.word_type || ""} onChange={(e) => patch(c.id, { word_type: e.target.value })}>
-              {WORD_TYPES.map((w) => <option key={w} value={w}>{w || "—"}</option>)}
-            </select>
-          </label>
-          <label className="flex min-w-24 flex-col gap-1">
-            <span className="field-label">{t("field_word_gender")}</span>
-            <select className="input" value={row.word_gender || ""} onChange={(e) => patch(c.id, { word_gender: e.target.value })}>
-              {["", "m", "f", "n", "c"].map((g) => <option key={g} value={g}>{g || "—"}</option>)}
-            </select>
-          </label>
+          <ClassicSelectMenu className="w-44" label={t("field_type")} options={[...WORD_TYPES]} selectedOption={row.word_type || ""} onChange={(v) => patch(c.id, { word_type: v as string })} />
+          <ClassicSelectMenu className="w-32" label={t("field_word_gender")} options={["", "m", "f", "n", "c"]} selectedOption={row.word_gender || ""} onChange={(v) => patch(c.id, { word_gender: v as string })} />
         </div>
       </ReviewCard>
     );

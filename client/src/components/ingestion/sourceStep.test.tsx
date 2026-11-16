@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { pick, optionTexts } from "@/test/selectMenu";
 import { describe, expect, it, vi } from "vitest";
 import SourceStep from "./sourceStep";
 import { languageProficiencySystems } from "@/utils/language_iso639";
@@ -28,14 +29,13 @@ describe("SourceStep", () => {
     expect(screen.queryByRole("combobox", { name: /level/i })).not.toBeInTheDocument();
   });
 
-  it("shows level select with option labels when showLevel is true", () => {
+  it("shows level select with option labels when showLevel is true", async () => {
     render(<SourceStep filename="book.pdf" onSourceChange={vi.fn()} languageCode="zho" showLevel={true} />);
     const levelSelect = screen.getByRole("combobox", { name: /level/i });
     expect(levelSelect).toBeInTheDocument();
     // Check that the system renders the level labels (HSK 1, HSK 2, etc for Chinese)
     const system = languageProficiencySystems["zho"];
-    const option1 = screen.getByRole("option", { name: system.levels[0].code });
-    expect(option1).toBeInTheDocument();
+    expect(await optionTexts(levelSelect)).toContain(system.levels[0].code);
   });
 
   it("calls onSourceChange with the entered values", async () => {
@@ -51,8 +51,8 @@ describe("SourceStep", () => {
     await user.type(descriptionTextarea, "A test description");
 
     // Select level 5 from the level select
-    const levelSelect = screen.getByRole("combobox", { name: /level/i }) as HTMLSelectElement;
-    await user.selectOptions(levelSelect, "5");
+    const levelSelect = screen.getByRole("combobox", { name: /level/i });
+    await pick(levelSelect, languageProficiencySystems["zho"].levels[5].code);
 
     // The onChange should be called with all the values
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
@@ -87,7 +87,7 @@ describe("SourceStep", () => {
     render(<SourceStep filename="genki.pdf" onSourceChange={onChange} languageCode="jpn" showLevel />);
     const last = () => (onChange.mock.calls.at(-1)![0] as { level?: number }).level;
     expect(last()).toBe(0);
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: /level/i }), "N4");
+    await pick(screen.getByRole("combobox", { name: /level/i }), "N4");
     expect(last()).toBe(1);
   });
 });

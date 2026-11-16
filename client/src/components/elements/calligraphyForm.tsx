@@ -17,10 +17,10 @@ import { faTrash, faAdd } from "@fortawesome/free-solid-svg-icons";
 import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
 import ExampleSentencesEditor from "./exampleSentencesEditor";
 import { useElementForm } from "./useElementForm";
-import CharacterLinksField from "./characterLinksField";
+import CharacterLinksField, { type RadicalOption } from "./characterLinksField";
 import { Disclosure, FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
-export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters = []}: {calligraphy?: Partial<Calligraphy>; lesson_id: string; knownCharacters?: string[]}) {
+export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions = []}: {calligraphy?: Partial<Calligraphy>; lesson_id: string; radicalOptions?: RadicalOption[]}) {
     const t = useTranslations("calligraphy");
     const tEl = useTranslations("elements");
     let calligraphyData: Partial<Calligraphy>;
@@ -115,7 +115,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, knownCharacters
                 </span>
             </FormSection>
             <CharacterLinksField
-                own={character} known={knownCharacters} creating={!calligraphy}
+                own={character} radicals={radicalOptions} creating={!calligraphy}
                 radical={radical || ""} onRadical={setRadical}
                 components={componentList} onComponents={setComponentList}
             />

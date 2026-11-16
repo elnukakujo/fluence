@@ -13,6 +13,7 @@ import { MAX_RATIO, joinPattern, splitPattern, type SideOrder } from "@/utils/si
 import type UserPreferences from "@/interface/systemData/UserPreferences";
 import type { ReviewSection } from "@/interface/systemData/UserPreferences";
 import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const SECTION_TYPES: ReviewSection["type"][] = ["voc", "gram", "ex", "call"];
 const ORDERS: SideOrder[] = ["random", "alternate", "blocks"];
@@ -86,10 +87,9 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
           ))}
           {mine.length === 0 && <span className="text-sm text-muted self-center">{ts("typesNone")}</span>}
         </div>
-        <select className="input w-auto" aria-label={ts(`addTo_${mode}`)} value="" disabled={free.length === 0} onChange={(e) => e.target.value && setMode(e.target.value, mode)}>
-          <option value="">{ts("addType")}</option>
-          {free.map((type) => <option key={type} value={type}>{tEx(EXERCISE_TYPE_KEY[type])}</option>)}
-        </select>
+        <ClassicSelectMenu className="w-64 max-w-full" ariaLabel={ts(`addTo_${mode}`)} placeholder={ts("addType")} disabled={free.length === 0} options={free}
+          optionLabel={(type) => tEx(EXERCISE_TYPE_KEY[type as keyof typeof EXERCISE_TYPE_KEY])} selectedOption=""
+          onChange={(v) => v && setMode(v as string, mode)} />
       </div>
     );
   };

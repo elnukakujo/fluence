@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { pick, optionTexts } from "@/test/selectMenu";
 import { describe, expect, it, vi } from "vitest";
 import PagePanel from "./pagePanel";
 
@@ -82,7 +83,7 @@ describe("PagePanel", () => {
     expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("125%");
     await userEvent.click(screen.getByRole("button", { name: "Reset zoom" }));
     expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("100%");
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Go to page" }), "4");
+    await pick(screen.getByRole("combobox", { name: "Go to page" }), "4");
     expect(onPage).toHaveBeenCalledWith(4);
   });
 
@@ -99,11 +100,10 @@ describe("PagePanel", () => {
       expect(onPage).toHaveBeenLastCalledWith(22);
     });
 
-    it("lists only the lesson's pages, names the ranges and disables Next on the last one", () => {
+    it("lists only the lesson's pages, names the ranges and disables Next on the last one", async () => {
       render(<PagePanel jobId="job1" page={46} range={[21, 46]} pages={pages} onPage={vi.fn()} />);
       expect(screen.getByText("Page 46 (21-22, 45-46)")).toBeInTheDocument();
-      const options = Array.from(screen.getByRole("combobox", { name: /go to page/i }).querySelectorAll("option")).map((o) => o.textContent);
-      expect(options).toEqual(["21", "22", "45", "46"]);
+      expect(await optionTexts(screen.getByRole("combobox", { name: /go to page/i }))).toEqual(["21", "22", "45", "46"]);
       expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
     });
 

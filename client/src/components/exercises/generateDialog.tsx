@@ -11,6 +11,7 @@ import GenerationProgress from "./generationProgress";
 import { scaleMix } from "@/utils/scaleMix";
 import { addable, free, resize, step, type Mix } from "@/utils/mixEdit";
 import NumberField from "@/components/ui/input/numberField";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const MAX = 60;           // same cap as the server (GEN_MAX)
 const POLL_MS = 2000;
@@ -188,11 +189,8 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
                                         </ul>
                                         {options.length > 0 && (
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <label className="text-sm" htmlFor="mix-add">{t("generateMixAddType")}</label>
-                                                <select id="mix-add" className="min-h-11 rounded-md border border-border bg-surface px-2" value={pick} onChange={(e) => setPick(e.target.value)}>
-                                                    <option value="">…</option>
-                                                    {options.map((ty) => <option key={ty} value={ty}>{labelOf(ty)}</option>)}
-                                                </select>
+                                                <ClassicSelectMenu className="w-64 max-w-full" label={t("generateMixAddType")} placeholder="…" options={options} optionLabel={labelOf}
+                                                    selectedOption={pick} onChange={(v) => setPick(v as string)} clearable />
                                                 <button type="button" className="btn btn-secondary min-h-11" disabled={!pick || freeN === 0} aria-describedby="mix-hint"
                                                     onClick={() => { change(pick, 1); setPick(""); }}>{t("generateMixAdd")}</button>
                                             </div>

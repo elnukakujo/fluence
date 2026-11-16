@@ -11,11 +11,13 @@ from ...models.containers import Language
 from ...core.database import db_manager, transactional, stack_related, resolve_related
 from ...core.exceptions import DuplicateEntityError
 from ...models.system_data import Tag, Source
+from ...utils.strokes import list_radicals
 from ...utils import enrich_character, get_language_by_iso2t, stack_lists
 from ..system_data import ScoreService
 from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
+RADICAL_LANGUAGES = {"zho", "jpn"}      # the languages with a radical dictionary (DM-50: Korean has none)
 NO_CHARACTER_LANGUAGES = {"kor"}      # DM-50: Korean has no Character/radical element type
 
 
@@ -70,6 +72,19 @@ class CharacterService:
             glyphs = [g for g in dict.fromkeys(ch for part in component_glyphs for ch in part.strip() if not ch.isspace()) if g != own_glyph]
             components = [self._glyph_to_id(language_id, g, session) for g in glyphs]
         return key, components
+
+    @transactional
+    def radical_options(self, language_id: str, session: Optional[Session] = None) -> list[dict]:
+        """The radicals offered by the pickers of the character form: the dictionary's radicals plus the catalogue rows of the language,
+        each with the id of the Character the learner already has for it (None = it would be created on save). zh/ja only."""
+        language = session.get(Language, language_id)
+        if not language or language.target_iso639_2t not in RADICAL_LANGUAGES:
+            return []
+        have = {c.character: c.id for c in session.query(Character).filter(Character.language_id == language_id)}
+        entries = {r["character"]: r["meaning"] for r in list_radicals()}
+        for row in session.query(RadicalCatalogue).filter(RadicalCatalogue.language_iso == language.target_iso639_2t):
+            entries[row.character] = row.meaning or entries.get(row.character, "")
+        return [{"character": g, "meaning": m, "id": have.get(g)} for g, m in entries.items()]
 
     @transactional
     def used_in(self, char_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:

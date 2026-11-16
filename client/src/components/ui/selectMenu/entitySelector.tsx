@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
+import ClassicSelectMenu from "./classicSelectMenu";
 
 interface EntityLike {
   id: string;
@@ -49,14 +50,11 @@ export default function EntitySelector<T extends EntityLike>({
 }: EntitySelectorProps<T>) {
   const [allEntities, setAllEntities] = useState<T[]>([]);
   const [searchInput, setSearchInput] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState("");
   // Track which entity IDs are currently mid-request to show a loading state on them
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations("ui");
 
   const fetchEntities = async () => {
@@ -76,38 +74,7 @@ export default function EntitySelector<T extends EntityLike>({
     fetchEntities();
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const selectedEntities = useMemo(
-    () => allEntities.filter((entity) => selectedIds.includes(entity.id)),
-    [allEntities, selectedIds]
-  );
-
   const trimmedInput = searchInput.trim();
-
-  const filteredEntities = useMemo(() => {
-    const query = trimmedInput.toLowerCase();
-    return allEntities.filter(
-      (entity) =>
-        !selectedIds.includes(entity.id) &&
-        (!query || getLabel(entity).toLowerCase().includes(query))
-    );
-  }, [allEntities, trimmedInput, selectedIds, getLabel]);
-
-  const canCreate = useMemo(() => {
-    if (!trimmedInput || disabled) return false;
-    return !allEntities.some(
-      (entity) => getLabel(entity).trim().toLowerCase() === trimmedInput.toLowerCase()
-    );
-  }, [allEntities, disabled, trimmedInput, getLabel]);
 
   const setPending = (entityId: string, pending: boolean) => {
     setPendingIds((prev) => {
@@ -122,9 +89,6 @@ export default function EntitySelector<T extends EntityLike>({
 
     // Optimistic update
     onSelectionChange([...selectedIds, entity.id]);
-    setSearchInput("");
-    setIsOpen(false);
-    inputRef.current?.focus();
 
     if (!elementId) return; // If it is part of a create form the add logic will be handled in the form submission
 
@@ -167,99 +131,35 @@ export default function EntitySelector<T extends EntityLike>({
     await fetchEntities();
   };
 
+  const byId = useMemo(() => new Map(allEntities.map((e) => [e.id, e])), [allEntities]);
+  // The one shared dropdown does the picking; this component only adds the server calls around it.
+  const onPick = (next: string | string[]) => {
+    const ids = next as string[];
+    const added = ids.find((id) => !selectedIds.includes(id));
+    const removed = selectedIds.find((id) => !ids.includes(id));
+    if (added && byId.get(added)) handleSelect(byId.get(added)!);
+    else if (removed && byId.get(removed)) handleRemove(byId.get(removed)!);
+  };
+
   return (
     <>
-      <section ref={containerRef} className="flex w-full flex-col gap-1.5">
-        <label className="text-sm font-medium capitalize text-foreground">
-          {label}
-        </label>
-
-        {error && (
-          <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
-        )}
-
-        <div className="relative">
-          <div
-            className={`flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-colors
-              ${disabled ? "bg-background border-border" : "bg-surface border-border focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-soft"}`}
-            onClick={() => { if (!disabled) { setIsOpen(true); inputRef.current?.focus(); } }}
-          >
-            {selectedEntities.map((entity) => {
-              const isPending = pendingIds.has(entity.id);
-              const color = getColor?.(entity);
-              return (
-                <span
-                  key={entity.id}
-                  className={`chip ${isPending ? "opacity-50" : "opacity-100"}`}
-                >
-                  {color && (
-                    <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                  )}
-                  {getLabel(entity)}
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleRemove(entity); }}
-                    disabled={disabled || isPending}
-                    className="chip-remove"
-                    aria-label={`${t("remove")} ${getLabel(entity)}`}
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="text-[10px]" />
-                  </button>
-                </span>
-              );
-            })}
-
-            {isLoading ? (
-              <span className="px-1 text-sm text-muted">{t("loading")}</span>
-            ) : (
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchInput}
-                onChange={(e) => { setSearchInput(e.target.value); setIsOpen(true); }}
-                onFocus={() => setIsOpen(true)}
-                placeholder={selectedEntities.length === 0 ? `Search or add ${label.toLowerCase()}…` : ""}
-                disabled={disabled}
-                className="min-w-[120px] flex-1 bg-transparent text-sm text-foreground placeholder:text-muted outline-none"
-              />
-            )}
-          </div>
-
-          {isOpen && !isLoading && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border border-border bg-surface shadow-md">
-              {filteredEntities.length > 0
-                ? filteredEntities.map((entity) => (
-                    <button
-                      key={entity.id}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleSelect(entity)}
-                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-accent-soft"
-                    >
-                      {getColor?.(entity) && (
-                        <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: getColor(entity) }} />
-                      )}
-                      <span className="text-foreground">{getLabel(entity)}</span>
-                    </button>
-                  ))
-                : !canCreate && (
-                    <p className="px-3 py-2 text-sm text-muted">No matching {label.toLowerCase()}</p>
-                  )}
-
-              {canCreate && (
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { setIsOpen(false); setShowCreateModal(true); }}
-                  className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-accent transition-colors hover:bg-accent-soft"
-                >
-                  <FontAwesomeIcon icon={faPlus} className="text-xs" />
-                  <span>Create &ldquo;{trimmedInput}&rdquo;</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+      <section className="flex w-full flex-col gap-1.5">
+        {error && <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        <ClassicSelectMenu
+          multiple
+          label={label.charAt(0).toUpperCase() + label.slice(1)}
+          className="w-full"
+          options={allEntities.map((e) => e.id)}
+          selectedOption={selectedIds.filter((id) => byId.has(id))}
+          onChange={onPick}
+          optionLabel={(id) => byId.get(id) ? getLabel(byId.get(id)!) : id}
+          optionColor={(id) => (byId.get(id) ? getColor?.(byId.get(id)!) : undefined)}
+          placeholder={`${t("searchOrAdd", { what: label.toLowerCase() })}`}
+          disabled={disabled}
+          loading={isLoading}
+          onCreate={(typed) => { setSearchInput(typed); setShowCreateModal(true); }}
+          createLabel={(typed) => t("createTyped", { typed })}
+        />
       </section>
 
       {showCreateModal &&

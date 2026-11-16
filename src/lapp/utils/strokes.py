@@ -14,6 +14,16 @@ def _hanzi_decomposer():
     from hanzipy.decomposer import HanziDecomposer
     return HanziDecomposer()
 
+def list_radicals() -> list[dict]:
+    """The radicals a learner can pick from, in the dictionary's (Kangxi) order: [{"character", "meaning"}] (zh/ja only).
+    hanzipy ships 390 of them with an English meaning."""
+    try:
+        return [{"character": g, "meaning": m} for g, m in _hanzi_decomposer().radicals.items() if len(g) == 1 and "glyph" not in m.lower()]
+    except Exception as exc:
+        logger.error("list_radicals: %s", exc)
+        return []
+
+
 def get_cjk_character_info(character: str, iso1: str) -> dict:
     """
     Return radical and English meaning for a single CJK character.

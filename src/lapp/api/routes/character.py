@@ -10,6 +10,19 @@ bp = Blueprint("character", __name__, url_prefix="/api/character")
 character_service = CharacterService()
 
 
+@bp.route("/radicals", methods=["GET"])
+@login_required
+def list_radicals():
+    """The radicals the character form offers for this language (empty for languages without characters)."""
+    language_id = request.args.get("language_id", "")
+    require_owns(language_id)
+    session = db_manager.get_session()
+    try:
+        return jsonify(character_service.radical_options(language_id, session=session))
+    finally:
+        session.close()
+
+
 @bp.route("/<character_id>", methods=["GET"])
 @login_required
 def get_character(character_id: str):

@@ -9,43 +9,66 @@ vi.mock("next-intl", () => ({
     useTranslations: () => (k: string, v?: Record<string, string>) => (v ? `${k}:${Object.values(v).join(",")}` : k),
 }));
 
-import CharacterLinksField from "./characterLinksField";
+import CharacterLinksField, { type RadicalOption } from "./characterLinksField";
 
-function Harness({ known = ["氵", "方"], creating = false, initialComponents = [] as string[], initialRadical = "" }) {
+const RADICALS: RadicalOption[] = [
+    { character: "氵", meaning: "water", id: "c1" },
+    { character: "火", meaning: "fire", id: null },
+    { character: "木", meaning: "tree", id: null },
+];
+
+function Harness({ creating = false, initialComponents = [] as string[], initialRadical = "" }) {
     const [radical, setRadical] = useState(initialRadical);
     const [components, setComponents] = useState<string[]>(initialComponents);
-    return <CharacterLinksField own="河" known={known} creating={creating} radical={radical} onRadical={setRadical} components={components} onComponents={setComponents} />;
+    return (
+        <>
+            <CharacterLinksField own="河" radicals={RADICALS} creating={creating} radical={radical} onRadical={setRadical} components={components} onComponents={setComponents} />
+            <output data-testid="state">{JSON.stringify({ radical, components })}</output>
+        </>
+    );
 }
+const state = () => JSON.parse(screen.getByTestId("state").textContent!);
 
-describe("CharacterLinksField", () => {
-    it("says whether the typed radical exists or will be created", async () => {
+describe("CharacterLinksField (select only)", () => {
+    it("offers only radicals, with their meaning, and finds one by its meaning", async () => {
         render(<Harness />);
-        await userEvent.type(screen.getByLabelText("radicalLabel"), "氵");
-        expect(screen.getByText("radicalExists:氵")).toBeInTheDocument();
-        await userEvent.clear(screen.getByLabelText("radicalLabel"));
-        await userEvent.type(screen.getByLabelText("radicalLabel"), "火");
+        await userEvent.click(screen.getByRole("combobox", { name: "radicalLabel" }));
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["氵water", "火fire", "木tree"]);
+        await userEvent.keyboard("fire");
+        expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["火fire"]);
+        await userEvent.keyboard("{Enter}");
+        expect(state().radical).toBe("火");
+    });
+
+    it("typing Latin letters never turns into characters (no stray t, e, s, t chips)", async () => {
+        render(<Harness />);
+        const box = screen.getByRole("combobox", { name: "componentsLabel" });
+        await userEvent.click(box);
+        await userEvent.keyboard("test");
+        expect(screen.queryAllByRole("option")).toHaveLength(0);
+        expect(state().components).toEqual([]);
+        await userEvent.keyboard("{Enter}");
+        expect(state().components).toEqual([]);
+    });
+
+    it("components are chosen one by one into chips, the new ones are marked, and each can be removed", async () => {
+        render(<Harness />);
+        await userEvent.click(screen.getByRole("combobox", { name: "componentsLabel" }));
+        await userEvent.click(screen.getByRole("option", { name: /氵/ }));
+        await userEvent.click(screen.getByRole("option", { name: /火/ }));
+        expect(state().components).toEqual(["氵", "火"]);
+        expect(screen.getByText("火 · componentNew")).toBeInTheDocument();     // 火 is not in the learner's language yet
+        expect(screen.queryByText("氵 · componentNew")).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "removeOption:氵" }));
+        expect(state().components).toEqual(["火"]);
+    });
+
+    it("never offers the character itself, keeps a current value that is not a radical, and says when the radical will be created", async () => {
+        render(<Harness initialComponents={["可"]} initialRadical="火" />);
+        expect(screen.getByText("可")).toBeInTheDocument();               // an autofilled component that is not in the radical list
         expect(screen.getByText("radicalNew:火")).toBeInTheDocument();
-    });
-
-    it("adds components as chips on Enter, space or comma, marks the new ones, ignores duplicates and the character itself", async () => {
-        render(<Harness />);
-        const input = screen.getByLabelText("componentsLabel");
-        await userEvent.type(input, "氵可 河{Enter}");
-        expect(screen.getByText("氵")).toBeInTheDocument();
-        expect(screen.getByText("可")).toBeInTheDocument();
-        expect(screen.queryByText("河")).toBeNull();
-        expect(screen.getAllByText("componentNew")).toHaveLength(1);       // 可 does not exist yet, 氵 does
-        await userEvent.type(input, "氵,");
-        expect(screen.getAllByText("氵")).toHaveLength(1);
-    });
-
-    it("removes a chip with its button and with Backspace in the empty field", async () => {
-        render(<Harness initialComponents={["氵", "可"]} />);
-        await userEvent.click(screen.getByRole("button", { name: "removeComponent:氵" }));
-        expect(screen.queryByText("氵")).toBeNull();
-        await userEvent.click(screen.getByLabelText("componentsLabel"));
-        await userEvent.keyboard("{Backspace}");
-        expect(screen.queryByText("可")).toBeNull();
+        await userEvent.click(screen.getByRole("combobox", { name: "radicalLabel" }));
+        expect(screen.queryByRole("option", { name: /河/ })).toBeNull();
     });
 
     it("explains the autofill only when creating", () => {

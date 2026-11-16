@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { pageImageUrl } from "@/api/ingestion";
 import ImageViewer from "@/components/media/imageViewer";
 import { formatRanges, toRanges } from "@/lib/ingestion/ranges";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const MIN_ZOOM = 0.5, MAX_ZOOM = 3, STEP = 0.25;
 
@@ -48,9 +49,8 @@ export default function PagePanel({ jobId, page, range, pages, onPage }: {
         <div className="flex items-center justify-between gap-2 text-sm">
           <label className="flex items-center gap-2">
             <span className="opacity-70">{t("goTo")}</span>
-            <select className="input w-auto" aria-label={t("goToPage")} value={shown} onChange={(e) => onPage(Number(e.target.value))}>
-              {options.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <ClassicSelectMenu className="w-28" ariaLabel={t("goToPage")} searchable options={options.map(String)} optionLabel={(n) => n}
+              selectedOption={String(shown)} onChange={(v) => onPage(Number(v))} />
           </label>
           <div className="flex items-center gap-1" role="group" aria-label={t("zoomLabel")}>
             <button type="button" className="btn btn-secondary" aria-label={t("zoomOutAriaLabel")} disabled={zoom <= MIN_ZOOM} onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z - STEP))}>−</button>

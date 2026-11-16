@@ -12,6 +12,7 @@ import { getAvailableLanguages } from "@/api/language";
 import { getStudyGoal, resetStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
 import type Language from "@/interface/containers/Language";
 import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const PERIODS: StudyGoal["period"][] = ["week", "biweek", "month"];
 type Draft = Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "active" | "auto">;
@@ -93,12 +94,8 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         <form onSubmit={submit}>
             <SectionCard title={t("goalTitle")}>
                 <p className="text-sm text-muted">{t("goalHint")}</p>
-                <label className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="opacity-70">{t("goalLanguage")}</span>
-                    <select className="input w-auto" value={languageId} onChange={(e) => setLanguageId(e.target.value)}>
-                        {languages.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                </label>
+                <ClassicSelectMenu className="w-full max-w-xs" label={t("goalLanguage")} options={languages.map((l) => l.id)}
+                    optionLabel={(id) => languages.find((l) => l.id === id)?.name} selectedOption={languageId} onChange={(v) => setLanguageId(v as string)} />
 
                 <RebuildMenuDialog open={confirming} mastered={progress?.rebuild?.mastered ?? 0} redraw={progress?.rebuild?.redraw ?? 0}
                     onConfirm={() => lock(true)} onCancel={() => setConfirming(false)} />

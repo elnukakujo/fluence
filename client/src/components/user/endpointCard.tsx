@@ -6,6 +6,7 @@ import { Eye, EyeOff, Copy, Check, ChevronDown, ChevronUp, ArrowUp, ArrowDown } 
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
 import Spinner from "@/components/ui/spinner";
 import Field from "@/components/ui/field";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 export type ProviderOption = {
   value: string;
@@ -196,58 +197,39 @@ export default function EndpointCard({
         <div className="flex flex-col gap-3 pt-3 mt-3 border-t border-dashed border-[var(--color-border)]">
 
           {/* Step 1: Purpose */}
-          <Field label={t("purpose")}>
-            <select
-              className="input"
-              value={endpoint.api_type ?? ""}
-              onChange={(e) => {
-                const newType = (e.target.value || undefined) as ApiEndpointConfig["api_type"];
-                const updates: ApiEndpointConfig = { ...endpoint, api_type: newType };
-                // Clear provider if the new purpose doesn't offer it
-                const current = endpoint.provider ? providers.find(p => p.value === endpoint.provider) : undefined;
-                if (current && !offeredFor(current, newType)) {
-                  updates.provider = undefined;
-                  updates.base_url = undefined;
-                }
-                onUpdate(updates);
-              }}
-              disabled={disabled}
-            >
-              <option value="">{t("selectPurpose")}</option>
-              {TYPE_OPTIONS.map(({ value, labelKey }) => (
-                <option key={value} value={value}>{t(labelKey)}</option>
-              ))}
-              {/* Legacy: "Both" can no longer be chosen, but saved endpoints keep it until changed */}
-              {endpoint.api_type === "both" && <option value="both">{t("testResults.legacy")}</option>}
-            </select>
-          </Field>
+          <ClassicSelectMenu className="w-full" label={t("purpose")} disabled={disabled} searchable={false}
+            options={["", ...TYPE_OPTIONS.map((o) => o.value), ...(endpoint.api_type === "both" ? ["both"] : [])]}
+            optionLabel={(v) => (v === "" ? t("selectPurpose") : v === "both" ? t("testResults.legacy") : t(TYPE_OPTIONS.find((o) => o.value === v)!.labelKey))}
+            selectedOption={endpoint.api_type ?? ""}
+            onChange={(value) => {
+              const newType = ((value as string) || undefined) as ApiEndpointConfig["api_type"];
+              const updates: ApiEndpointConfig = { ...endpoint, api_type: newType };
+              // Clear provider if the new purpose doesn't offer it
+              const current = endpoint.provider ? providers.find(p => p.value === endpoint.provider) : undefined;
+              if (current && !offeredFor(current, newType)) {
+                updates.provider = undefined;
+                updates.base_url = undefined;
+              }
+              onUpdate(updates);
+            }} />
 
           {/* Step 2: Provider (appears after purpose is selected) */}
           {endpoint.api_type && (
-            <Field label={t("provider")}>
-              <select
-                className="input"
-                value={endpoint.provider ?? ""}
-                onChange={(e) => {
-                  const preset = providerMap[e.target.value];
-                  if (preset) {
-                    onUpdate({
-                      ...endpoint,
-                      provider: preset.value,
-                      base_url: endpoint.base_url || preset.base_url,
-                      api_format: preset.api_format,
-                      auth_type: preset.auth_type,
-                    });
-                  }
-                }}
-                disabled={disabled}
-              >
-                <option value="">{t("selectProvider")}</option>
-                {filteredProviders.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </Field>
+            <ClassicSelectMenu className="w-full" label={t("provider")} disabled={disabled} options={["", ...filteredProviders.map((p) => p.value)]}
+              optionLabel={(v) => (v === "" ? t("selectProvider") : filteredProviders.find((p) => p.value === v)?.label)}
+              selectedOption={endpoint.provider ?? ""}
+              onChange={(value) => {
+                const preset = providerMap[value as string];
+                if (preset) {
+                  onUpdate({
+                    ...endpoint,
+                    provider: preset.value,
+                    base_url: endpoint.base_url || preset.base_url,
+                    api_format: preset.api_format,
+                    auth_type: preset.auth_type,
+                  });
+                }
+              }} />
           )}
 
           {/* Step 3: Connection (appears after provider is selected) */}

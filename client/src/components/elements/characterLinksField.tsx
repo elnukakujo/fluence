@@ -1,16 +1,16 @@
 "use client";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { useTranslations } from "next-intl";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
-const glyphs = (text: string) => Array.from(text).filter((c) => c.trim() !== "" && c !== ",");
+export type RadicalOption = { character: string; meaning: string; id: string | null };
 
-/** The key radical and the components of a character: both are characters of the language. Suggestions come from the
- *  characters already in it (native datalist); one that does not exist yet is marked "new" and is created when the form is saved. */
-export default function CharacterLinksField({ own, known, creating, radical, onRadical, components, onComponents }: {
+/** The key radical and the components of a character, picked from the language's radicals (nobody can type 氵 on a keyboard).
+ *  Both use the app's one dropdown: type a meaning or paste a glyph to filter, arrows and Enter to pick.
+ *  A radical the learner does not have yet is marked "new" and is created when the form is saved. */
+export default function CharacterLinksField({ own, radicals, creating, radical, onRadical, components, onComponents }: {
     own: string;
-    known: string[];
+    radicals: RadicalOption[];
     creating: boolean;
     radical: string;
     onRadical: (v: string) => void;
@@ -19,15 +19,17 @@ export default function CharacterLinksField({ own, known, creating, radical, onR
 }) {
     const t = useTranslations("calligraphy");
     const id = useId();
-    const [draft, setDraft] = useState("");
-    const exists = (g: string) => known.includes(g);
-    const options = known.filter((g) => g !== own);
-
-    const add = (text: string) => {
-        const next = [...components];
-        for (const g of glyphs(text)) if (g !== own && !next.includes(g)) next.push(g);
-        onComponents(next);
-        setDraft("");
+    const byGlyph = new Map(radicals.map((r) => [r.character, r]));
+    const isNew = (g: string) => byGlyph.get(g)?.id === null;           // not in the list = a character the learner already has
+    const withCurrent = (current: string[]) => [...radicals.map((r) => r.character).filter((g) => g !== own), ...current.filter((g) => g && !byGlyph.has(g) && g !== own)];
+    const common = {
+        optionHint: (g: string) => byGlyph.get(g)?.meaning,
+        optionSearch: (g: string) => byGlyph.get(g)?.meaning,
+        optionLabel: (g: string) => g,
+        valueClassName: "font-serif text-lg",
+        lang: "zh",
+        searchable: true,
+        className: "w-full",
     };
 
     return (
@@ -36,46 +38,21 @@ export default function CharacterLinksField({ own, known, creating, radical, onR
                 <h2 id={`${id}-title`} className="text-lg font-semibold">{t("structureLegend")}</h2>
                 <p className="text-sm text-muted">{creating ? t("structureHintCreate") : t("structureHintUpdate")}</p>
             </header>
-            <div className="grid gap-4 sm:grid-cols-[11rem_1fr]">
+            <div className="grid gap-4 sm:grid-cols-[14rem_1fr]">
                 <div className="flex flex-col gap-1">
-                    <label htmlFor={`${id}-radical`} className="text-sm font-medium text-foreground">{t("radicalLabel")}</label>
-                    <input
-                        id={`${id}-radical`} className="input h-12 w-full text-center font-serif text-2xl" lang="zh" list={`${id}-known`}
-                        value={radical} onChange={(e) => onRadical(glyphs(e.target.value).slice(0, 1).join(""))}
-                        aria-describedby={`${id}-radical-status`} autoComplete="off" placeholder={t("radicalPlaceholder")}
-                    />
-                    <p id={`${id}-radical-status`} role="status" className="min-h-5 text-sm text-muted">
-                        {radical && radical !== own && t(exists(radical) ? "radicalExists" : "radicalNew", { glyph: radical })}
+                    <ClassicSelectMenu {...common} label={t("radicalLabel")} clearable placeholder={t("radicalPlaceholder")}
+                        options={withCurrent(radical ? [radical] : [])} selectedOption={radical} onChange={(v) => onRadical(v as string)} />
+                    <p role="status" className="min-h-5 text-sm text-muted">
+                        {radical && radical !== own && isNew(radical) && t("radicalNew", { glyph: radical })}
                     </p>
                 </div>
-
                 <div className="flex min-w-0 flex-col gap-1">
-                    <label htmlFor={`${id}-components`} className="text-sm font-medium text-foreground">{t("componentsLabel")}</label>
-                    <div className="input flex min-h-12 flex-wrap items-center gap-2 py-1.5">
-                        {components.map((g) => (
-                            <span key={g} className={`chip font-serif text-base ${exists(g) ? "" : "border border-dashed border-accent"}`}>
-                                {g}
-                                {!exists(g) && <span className="font-sans text-xs">{t("componentNew")}</span>}
-                                <button type="button" className="chip-remove" aria-label={t("removeComponent", { glyph: g })}
-                                    onClick={() => onComponents(components.filter((c) => c !== g))}>
-                                    <FontAwesomeIcon icon={faXmark} />
-                                </button>
-                            </span>
-                        ))}
-                        <input
-                            id={`${id}-components`} className="min-w-32 flex-1 bg-transparent font-serif text-xl outline-none placeholder:font-sans placeholder:text-sm" lang="zh" list={`${id}-known`}
-                            value={draft} autoComplete="off" placeholder={components.length ? "" : t("componentsPlaceholder")}
-                            onChange={(e) => (/[\s,，、]/.test(e.target.value) ? add(e.target.value) : setDraft(e.target.value))}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); add(draft); }
-                                else if (e.key === "Backspace" && draft === "" && components.length) onComponents(components.slice(0, -1));
-                            }}
-                            onBlur={() => draft && add(draft)}
-                        />
-                    </div>
+                    <ClassicSelectMenu {...common} multiple label={t("componentsLabel")} placeholder={t("componentsPlaceholder")}
+                        options={withCurrent(components)} selectedOption={components} onChange={(v) => onComponents(v as string[])}
+                        chipLabel={(g) => (isNew(g) ? `${g} · ${t("componentNew")}` : g)} />
+                    <p className="min-h-5 text-sm text-muted" />
                 </div>
             </div>
-            <datalist id={`${id}-known`}>{options.map((g) => <option key={g} value={g} />)}</datalist>
         </section>
     );
 }

@@ -1,7 +1,7 @@
 import type Calligraphy from "@/interface/features/Calligraphy";
 import CalligraphyForm from "@/components/elements/calligraphyForm";
 import { getCalligraphyById } from "@/api/calligraphy";
-import { getCharacterById, listCharacters } from "@/api/character";
+import { getCharacterById, listRadicals } from "@/api/character";
 import { getTranslations } from "next-intl/server";
 
 type paramsType = {
@@ -15,13 +15,13 @@ export default async function UpdateCalligraphyPage({ params }: { params: Promis
     const { call_id, lesson_id, language_id } = await params;
     const calligraphy: Calligraphy = await getCalligraphyById(call_id);
     const links = await getCharacterById(calligraphy.character.id!);
-    const known = ((await listCharacters(language_id)) as { character: string }[]).map((c) => c.character);
+    const radicalOptions = await listRadicals(language_id);
     calligraphy.character = { ...calligraphy.character, component_glyphs: (links.component_refs ?? []).map((c: { character: string }) => c.character) };
 
     return (
         <main className="flex flex-col gap-4">
             <h1>{t("updateCalligraphy")}</h1>
-            <CalligraphyForm calligraphy={calligraphy} lesson_id={lesson_id} knownCharacters={known} />
+            <CalligraphyForm calligraphy={calligraphy} lesson_id={lesson_id} radicalOptions={radicalOptions} />
         </main>
     );
 }

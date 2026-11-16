@@ -8,6 +8,7 @@ import { mergeLessons } from "@/api/lesson";
 import { itemCount } from "@/lib/lessonOrder";
 import Field from "@/components/ui/field";
 import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 // Two lessons side by side (read-only) and the merged lesson's editable title, description and level.
 // A survives (keeps its id, shares and collaborators); B's items move into it and B is deleted.
@@ -80,11 +81,8 @@ export default function MergeLessons({ languageId, a, b, levelOptions }: {
             <textarea className="input min-h-24" value={description} onChange={(e) => setDescription(e.target.value)} />
           </Field>
           <div className="flex gap-2">{use("description", labels.description, "A", a)}{use("description", labels.description, "B", b)}</div>
-          <Field label={t("level")}>
-            <select className="input" value={String(level)} onChange={(e) => setLevel(Number(e.target.value))}>
-              {levelOptions.map((code, i) => <option key={code} value={String(i)}>{code}</option>)}
-            </select>
-          </Field>
+          <ClassicSelectMenu className="w-full" label={t("level")} options={levelOptions.map((_, i) => String(i))} optionLabel={(i) => levelOptions[Number(i)]}
+            selectedOption={String(level)} onChange={(v) => setLevel(Number(v))} />
           <div className="flex gap-2">{use("level", labels.level, "A", a)}{use("level", labels.level, "B", b)}</div>
         </fieldset>
       </div>

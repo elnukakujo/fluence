@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { pick, optionTexts } from "@/test/selectMenu";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ updateUserPreferences: vi.fn().mockResolvedValue({}) }));
@@ -44,8 +45,8 @@ describe("learning preferences", () => {
 
     it("adds an exercise type to the boosted and banned lists and removes it", async () => {
         render(<PreferencesSection preferences={{ id: "pref_1" }} />);
-        await userEvent.selectOptions(screen.getByRole("combobox", { name: "Add an exercise type to boost" }), "essay");
-        await userEvent.selectOptions(screen.getByRole("combobox", { name: "Add an exercise type to ban" }), "matching");
+        await pick(screen.getByRole("combobox", { name: "Add an exercise type to boost" }), /essay/i);
+        await pick(screen.getByRole("combobox", { name: "Add an exercise type to ban" }), /matching/i);
         await save();
         expect(lastSaved().exercise_type_prefs).toEqual({ essay: "boost", matching: "ban" });
         await userEvent.click(screen.getByRole("button", { name: "Remove Essay" }));

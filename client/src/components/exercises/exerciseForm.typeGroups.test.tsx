@@ -16,7 +16,7 @@ import ExerciseForm from "./exerciseForm";
 const elements = { vocabularies: [], grammars: [], calligraphies: [] } as never;
 const open = async (iso?: string) => {
   render(<ExerciseForm lesson_id="l1" lessonElements={elements} languageIso={iso} />);
-  await userEvent.click(screen.getByRole("textbox", { name: /exercise type/i }));
+  await userEvent.click(screen.getByRole("combobox", { name: /exercise type/i }));
 };
 
 describe("exercise form: type dropdown grouped by exam section", () => {

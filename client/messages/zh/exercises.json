@@ -350,5 +350,7 @@
         "description": "Flawless! A beautifully written, compelling essay."
       }
     }
-  }
+  },
+  "speaker": "说话人",
+  "audioSlot": "音频位"
 }

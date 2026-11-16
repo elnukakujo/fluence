@@ -8,6 +8,7 @@ import type Source from "@/interface/systemData/Source";
 import { mergeTags } from "@/api/tag";
 import { mergeSources } from "@/api/source";
 import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 type Item = Tag | Source;
 const SOURCE_TYPES = ["original", "textbook", "class", "online", "media", "social", "other"];
@@ -45,7 +46,7 @@ export default function MergeLabels({ kind, a, b }: { kind: "tag" | "source"; a:
   const input = (f: string) => {
     const common = { id: `merge-${f}`, className: "input min-h-11", value: values[f] ?? "", onChange: (e: React.ChangeEvent<HTMLInputElement & HTMLSelectElement & HTMLTextAreaElement>) => setValues((v) => ({ ...v, [f]: e.target.value })) };
     if (f === "description") return <textarea {...common} className="input min-h-24" />;
-    if (f === "source_type") return <select {...common}>{SOURCE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</select>;
+    if (f === "source_type") return <ClassicSelectMenu className="w-full" ariaLabel={fieldLabel(f)} options={[...SOURCE_TYPES]} selectedOption={values[f] ?? ""} onChange={(v) => setValues((cur) => ({ ...cur, [f]: v as string }))} />;
     if (f === "color") return <input {...common} type="color" value={values[f] || "#888888"} />;
     if (f === "date") return <input {...common} type="date" />;
     return <input {...common} required />;

@@ -334,3 +334,19 @@ def test_the_decomposition_gives_first_level_parts_without_missing_glyphs():
     assert get_cjk_character_info("河", "zh")["components"] == ["氵", "可"]
     assert get_cjk_character_info("学", "zh")["components"] == ["子"]          # "No glyph available" is dropped
     assert get_cjk_character_info("a", "fr")["components"] == []
+
+
+# --- the radical picker's options ---
+
+def test_radical_options_are_only_radicals_and_say_which_the_learner_has(app, db):
+    _seed(db)                                   # 氵 exists in lang_L1 (char_C2), 河 and 水 too
+    got = _client(app).get("/api/character/radicals?language_id=lang_L1").get_json()
+    by = {r["character"]: r for r in got}
+    assert len(got) > 100 and by["氵"]["id"] == "char_C2" and by["氵"]["meaning"]
+    assert "河" not in by                      # an ordinary character is not a radical
+    assert by["火"]["id"] is None              # offered, would be created on save
+
+
+def test_no_radical_options_for_a_language_without_characters(app, db):
+    _seed(db, iso="kor")
+    assert _client(app).get("/api/character/radicals?language_id=lang_L1").get_json() == []

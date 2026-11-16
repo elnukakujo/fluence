@@ -11,3 +11,7 @@ export async function listCharacters(languageId: string, radicals = false) {
 export async function copyRadical(characterId: string, catalogueId: number) {
   return apiFetch(`/api/character/${characterId}/radical`, { method: "POST", body: { catalogue_id: catalogueId }, errorMessage: "Failed to add radical" });
 }
+
+export async function listRadicals(languageId: string) {
+  return apiFetch(`/api/character/radicals?language_id=${languageId}`, { errorMessage: "Failed to fetch radicals" });
+}
