@@ -8,7 +8,7 @@ from ...core.database import db_manager, transactional, resolve_related
 from ...models.features import Exercise
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
-from ...models.system_data import Tag, Source, Score
+from ...models.system_data import Tag, Source, Score, OverrideFlag
 from statistics import mean
 
 from ...utils.element_kinds import kind_of
@@ -172,6 +172,7 @@ class ExerciseService:
             question=exercise_data.get("question"),
             answer=exercise_data.get("answer") or "",
             text_support=exercise_data.get("text_support", ""),
+            accepted_answers=exercise_data.get("accepted_answers"),
             content=exercise_data.get("content"),
             category=exercise_data.get("category"),
             generation_batch_id=exercise_data.get("generation_batch_id"),
@@ -335,3 +336,19 @@ class ExerciseService:
         self.update_score(ex_id, mean(r["quality"] for r in results), duration_ms, hint_used=hint_used, attempt_number=attempt,
                           user_id=user_id, evidence_type=results[0]["evidence_type"], session=session)
         return {"correct": sum(r["quality"] >= CORRECT_AT for r in results), "total": len(results)}
+
+    @transactional
+    def override(self, ex_id: str, user_id: str, attempt_id: str, results: list[dict], duration_ms: float,
+                 hint_used: bool = False, attempt: int = 1, session: Optional[Session] = None) -> dict | None:
+        """The learner says a wrong answer was right: credit the results that fell short at full quality, once per attempt.
+        Nothing is credited when every result was already right or the attempt was overridden before; a score never goes down."""
+        wrong = [{**r, "quality": 1.0} for r in results if r["quality"] < CORRECT_AT]
+        seen = session.query(OverrideFlag).filter_by(user_id=user_id, exercise_id=ex_id, attempt_id=attempt_id).first()
+        if not wrong or seen:
+            return {"credited": False}
+        counts = self.credit(ex_id, wrong, user_id, duration_ms, hint_used, attempt, session=session)
+        if counts is None:
+            return None
+        session.add(OverrideFlag(id=db_manager.generate_new_id(OverrideFlag, session=session),
+                                 user_id=user_id, exercise_id=ex_id, attempt_id=attempt_id))
+        return {"credited": True, **counts}

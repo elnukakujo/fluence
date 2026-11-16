@@ -96,6 +96,7 @@ export default function ExerciseForm({
     const [exerciseType, setExerciseType] = useState<Exercise["exercise_type"]>(exerciseData.exercise_type);
     const [question, setQuestion] = useState<string>(exerciseData.question || "");
     const [answer, setAnswer] = useState<string>(exerciseData.answer || "");
+    const [acceptedText, setAcceptedText] = useState<string>((exerciseData.accepted_answers ?? []).join("\n"));   // one extra accepted answer per line
     const [supportText, setSupportText] = useState<string>(exerciseData.text_support || "");
 
     const [imageUrl, setImageUrl] = useState<string[]>(exerciseData.image_files ?? []);
@@ -281,6 +282,7 @@ export default function ExerciseForm({
             image_files: imageUrl,
             audio_files: audioUrl,
             answer: normalizedAnswer,
+            accepted_answers: ["translate", "answering"].includes(exerciseType ?? "") ? acceptedText.split("\n").map(a => a.trim()).filter(Boolean) : [],
             content,
             lesson_id,
             related_vocabulary: relatedVocabularies,
@@ -410,6 +412,10 @@ export default function ExerciseForm({
                             label={t("answer")}
                             required
                         />
+                    )}
+
+                    {["translate", "answering"].includes(exerciseType) && (
+                        <AutoSizeTextArea value={acceptedText} onChange={(e) => setAcceptedText(e.target.value)} label={t("acceptedAnswers")} />
                     )}
 
                     <section className="flex flex-col space-y-4 w-full items-baseline">

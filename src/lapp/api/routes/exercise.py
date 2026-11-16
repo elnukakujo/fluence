@@ -396,6 +396,49 @@ def score_exercise():
         return jsonify({'error': 'not found'}), 404
     return jsonify({'success': True, **counts})
 
+@bp.route('/<exercise_id>/override', methods=['POST'])
+@login_required
+def override_exercise(exercise_id: str):
+    """The learner says a wrong final attempt was right ("I was right"): credit it at full quality, once per attempt.
+    ---
+    tags:
+        - Exercise
+    parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+                attempt_id: {type: string, description: "One id per runner attempt, chosen by the client"}
+                results: {type: array, description: "The attempt's results, as posted to /score"}
+                attempt: {type: integer}
+                duration_ms: {type: integer}
+                hint_used: {type: boolean}
+    responses:
+        200:
+            description: "{credited: false} when nothing was wrong or the attempt was overridden before; else {credited: true, correct, total}"
+        400:
+            description: Invalid body
+        404:
+            description: Exercise not found
+    """
+    data = dict(request.json or {}, exercise_id=exercise_id, final=True)
+    require_write(exercise_id)
+    attempt_id = data.get('attempt_id')
+    if not attempt_id:
+        return jsonify({'error': 'attempt_id is required'}), 400
+    try:
+        answer = parse_exercise_answer(data)
+        out = exercise_service.override(exercise_id, current_user_id(), str(attempt_id), [r.model_dump() for r in answer.results],
+                                        answer.duration_ms, hint_used=answer.hint_used, attempt=answer.attempt)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    if out is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({'success': True, **out})
+
+
 @bp.route('/<exercise_id>/line-audio', methods=['POST'])
 @login_required
 def generate_line_audio(exercise_id: str):

@@ -40,7 +40,7 @@ def home(user_id: str, tz: Optional[str] = None, session: Optional[Session] = No
         weeks.append({"week_start": start.isoformat(), "answers": sum(per_day.get(start + timedelta(days=k), 0) for k in range(7))})
     languages = []
     for language in session.query(Language).filter(Language.user_id == user_id).order_by(Language.created_at).all():
-        c = level_counts(user_id, language.id, now, session)
+        c = level_counts(user_id, language.id, now, session=session)
         stats = session.query(DailyStats).filter(DailyStats.user_id == user_id, DailyStats.language_id == language.id,
                                                  DailyStats.created_at >= datetime.combine(today, datetime.min.time())).first()
         due, seconds = _due(user_id, language.id, session)

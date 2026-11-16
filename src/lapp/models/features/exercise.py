@@ -14,6 +14,7 @@ class Exercise(BaseFeatureModel):
     category = Column(String, nullable=True)  # exam-section slug (listening, reading, ...); the client owns the per-language table, never validated here
     generation_batch_id = Column(String, nullable=True, index=True)  # set on AI-generated exercises: one id per generation run
     review_reason = Column(String, nullable=True)  # why a generated exercise awaits review; set = not ready until accepted
+    accepted_answers = Column(JSON, nullable=True)  # extra answers that count as right besides `answer` (the display answer); None = just `answer`
     content = Column(JSON, nullable=True)  # structured data for type_in_the_blank/select_in_the_blank/matching/organize/true_false/quizz
     
     related_vocabulary = relationship('Vocabulary', secondary=exercise_vocabulary_link)
@@ -49,6 +50,7 @@ class Exercise(BaseFeatureModel):
             "question": self.question,
             "text_support": self.text_support,
             "answer": self.answer,
+            "accepted_answers": self.accepted_answers or [],
             "content": self.content,
             "category": self.category,
             "generation_batch_id": self.generation_batch_id,

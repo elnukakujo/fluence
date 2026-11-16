@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
-import { creditExercise } from "./creditExercise";
+import { creditExercise, forgetAttempt } from "./creditExercise";
 import { CircleHelp, EarOff, MicOff } from "lucide-react";
 import type Exercise from "@/interface/features/Exercise";
 import { needsHearing, needsSpeaking } from "@/utils/exerciseSkills";
@@ -17,6 +17,7 @@ export default function SkipButtons({ exercise, onSkip, onGiveUp }: { exercise: 
     const Icon = hear ? EarOff : MicOff;
     const dontKnow = () => {
         creditExercise(exercise, 0, Math.round(performance.now() - start.current), false, 1);
+        forgetAttempt();
         onGiveUp();
     };
     return (

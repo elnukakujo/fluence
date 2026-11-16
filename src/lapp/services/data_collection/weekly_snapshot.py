@@ -43,7 +43,7 @@ class WeeklySnapshotService:
         if row is not None:
             return row
         closed = week_closed_at(tz, week_start).astimezone().replace(tzinfo=None)         # scores are stored in server local time
-        c = level_counts(user_id, language_id, min(closed, datetime.now()), session)
+        c = level_counts(user_id, language_id, min(closed, datetime.now()), session=session)
         row = WeeklySnapshot(
             id=db_manager.generate_new_id(WeeklySnapshot, session=session), user_id=user_id, language_id=language_id, week_start=week_start,
             n_learning=c["learning"], n_known=c["known"], n_mastered=c["mastered"], n_seen=c["seen"], n_total=c["total"], n_fading=c["fading"])

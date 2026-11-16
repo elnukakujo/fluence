@@ -25,6 +25,7 @@ __all__ = [
     "CommitmentLog",
     "Score",
     "ExerciseUserPref",
+    "OverrideFlag",
     "StudyGoal",
     "StudyGoalItem",
     "LessonGate",

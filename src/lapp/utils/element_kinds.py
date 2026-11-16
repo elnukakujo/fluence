@@ -60,7 +60,7 @@ _KINDS_BY_NAME = {k.name: k for k in _KINDS.values()}
 # ID_PREFIXES keys that are system tables, not elements in the language→lesson→element hierarchy.
 NON_ELEMENT = {
     "UserSession", "DailyStats", "CommitmentLog", "Collaboration", "Score",
-    "LessonShare", "IngestionJob", "ExerciseUserPref", "StudyGoal", "StudyGoalItem", "LessonGate", "LearnerDay", "WeeklySnapshot",
+    "LessonShare", "IngestionJob", "ExerciseUserPref", "OverrideFlag", "StudyGoal", "StudyGoalItem", "LessonGate", "LearnerDay", "WeeklySnapshot",
 }
 
 

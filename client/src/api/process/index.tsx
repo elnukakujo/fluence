@@ -50,6 +50,14 @@ export async function scoreExercise(exerciseId: string, a: { results: ExerciseRe
   });
 }
 
+/** "I was right": credit a wrong final attempt at full quality, once per `attemptId` (the server answers `{credited}`). */
+export async function overrideExercise(exerciseId: string, a: { attemptId: string; results: ExerciseResult[]; attempt: number; durationMs: number; hintUsed: boolean }): Promise<{ credited?: boolean }> {
+  return apiFetch(`/api/exercise/${exerciseId}/override`, {
+    method: "POST", errorMessage: "Failed to override",
+    body: { attempt_id: a.attemptId, results: a.results, attempt: a.attempt, duration_ms: a.durationMs, hint_used: a.hintUsed },
+  });
+}
+
 // ============= Media API =============
 async function upload(kind: "image" | "audio", file: File, temporary: boolean) {
   const formData = new FormData();

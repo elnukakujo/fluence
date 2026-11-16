@@ -45,6 +45,7 @@ ID_PREFIXES = {
     "LessonShare": "ls_L",
     "IngestionJob": "ing_J",
     "ExerciseUserPref": "xup_X",
+    "OverrideFlag": "ovr_O",
     "StudyGoal": "goal_G",
     "StudyGoalItem": "goali_I",
     "LessonGate": "gate_G",

@@ -2,8 +2,7 @@
 
 Run: `uv run pytest tests/test_commitment_log.py`
 """
-from datetime import datetime
-from unittest.mock import patch
+from datetime import date
 
 from lapp.core.database import db_manager
 from lapp.models.system_data import User
@@ -38,14 +37,10 @@ def test_days_active_counts_once_per_day(db):
 
     with db.session_scope() as session:
         pt1 = _make_progress_tracking(session, "user_C1", "lang_C1", "1")
-        with patch("lapp.services.data_collection.commitment_log.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 7, 15, 9, 0, 0)
-            commitment_log_service.apply_progress_tracking(pt1.id, session=session)
+        commitment_log_service.apply_progress_tracking(pt1.id, session=session, day=date(2026, 7, 15))
 
         pt2 = _make_progress_tracking(session, "user_C1", "lang_C1", "2")
-        with patch("lapp.services.data_collection.commitment_log.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 7, 15, 15, 0, 0)
-            commitment_log_service.apply_progress_tracking(pt2.id, session=session)
+        commitment_log_service.apply_progress_tracking(pt2.id, session=session, day=date(2026, 7, 15))
 
     entry = commitment_log_service.get_for_user("user_C1", "lang_C1", as_dict=True)
     assert entry["days_active"] == 1
@@ -53,9 +48,7 @@ def test_days_active_counts_once_per_day(db):
 
     with db.session_scope() as session:
         pt3 = _make_progress_tracking(session, "user_C1", "lang_C1", "3")
-        with patch("lapp.services.data_collection.commitment_log.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 7, 16, 9, 0, 0)
-            commitment_log_service.apply_progress_tracking(pt3.id, session=session)
+        commitment_log_service.apply_progress_tracking(pt3.id, session=session, day=date(2026, 7, 16))
 
     entry = commitment_log_service.get_for_user("user_C1", "lang_C1", as_dict=True)
     assert entry["days_active"] == 2

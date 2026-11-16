@@ -14,6 +14,7 @@ export default interface Exercise extends BaseFeature {
                     'type_in_the_blank' | 'select_in_the_blank' | 'matching' | 'true_false' | 'speaking' | 'quizz' | 'reading' | 'dictation';
     question: string;
     answer: string;
+    accepted_answers?: string[];   // extra answers that count as right besides `answer` (translate / answering)
     text_support?: string;
     content?: ExerciseContent;
     generation_batch_id?: string | null;   // set on AI-generated exercises
