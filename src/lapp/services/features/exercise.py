@@ -13,7 +13,6 @@ from statistics import mean
 
 from ...utils.element_kinds import kind_of
 from ...utils.scoring import CORRECT_AT, level_for
-from ...utils import update_score, update_difficulty
 from ..containers import LessonService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService

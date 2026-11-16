@@ -15,7 +15,6 @@ from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
 from ...core.database import db_manager, transactional, resolve_related
 from ...utils.scoring import level_for
-from ...utils import update_score, update_difficulty
 
 lesson_service = LessonService()
 language_service = LanguageService()

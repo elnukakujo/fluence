@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Optional
 
-from lapp.utils.helpers import update_difficulty
 from sqlalchemy.orm import Session
 
 import logging
@@ -17,7 +16,6 @@ from ..components import CharacterService, WordService, PassageService
 from ..data_collection import ProgressTrackingService
 from ..system_data import ScoreService
 from ...utils.scoring import level_for
-from ...utils import update_score
 
 lesson_service = LessonService()
 language_service = LanguageService()

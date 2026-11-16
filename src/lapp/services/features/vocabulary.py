@@ -18,7 +18,7 @@ from ..system_data.score import SIDES
 SIDE_SKILL = {"front": "recognition", "back": "recall"}   # a face tests one skill
 from ...core.database import db_manager, transactional, resolve_related, stack_related
 from ...utils.scoring import level_for
-from ...utils import update_score, update_difficulty, stack_lists
+from ...utils import stack_lists
 
 lesson_service = LessonService()
 language_service = LanguageService()

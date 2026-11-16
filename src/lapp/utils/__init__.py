@@ -1,5 +1,5 @@
 from .file_handler import MediaFileHandler
-from .helpers import update_score, update_difficulty, stack_lists, review_priority, base_element_id
+from .helpers import stack_lists, review_priority, base_element_id
 from .detect_language import detect_text_language, get_language_by_iso2t, get_language_by_iso1
 from .spacy_model import load_spacy_model
 from .offline import is_offline
@@ -23,8 +23,6 @@ from .resolve_orm_table import resolve_element_model
 
 __all__ = [
     MediaFileHandler,
-    update_score,
-    update_difficulty,
     stack_lists,
     review_priority,
     detect_text_language,
