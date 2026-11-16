@@ -22,11 +22,15 @@ export default async function CharacterPage({
     passages?: Partial<Passage>[];
   };
 
+  const glyph = async (id: string) => ({ id, character: ((await getCharacterById(id)) as Character).character });
+  const components = await Promise.all((character.components ?? []).map(glyph));
+  const usedIn = await Promise.all((character.used_in ?? []).map(glyph));
+
   return (
     <main>
       <article className="flex flex-col space-y-4">
         <h1>{t("characterSheet")}</h1>
-        <CharacterCard character={character} />
+        <CharacterCard character={character} languageId={language_id} components={components} usedIn={usedIn} />
 
         <RelatedCard
           languageId={language_id}

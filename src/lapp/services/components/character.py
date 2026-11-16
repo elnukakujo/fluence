@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger(__name__)
 
 from ...schemas.components import CharacterDict
-from ...models.components import Character
+from ...models.components import Character, RadicalCatalogue
 from ...models.containers import Language
 from ...core.database import db_manager, transactional, stack_related, resolve_related
 from ...core.exceptions import DuplicateEntityError
@@ -16,9 +16,74 @@ from ..system_data import ScoreService
 from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
+NO_CHARACTER_LANGUAGES = {"kor"}      # DM-50: Korean has no Character/radical element type
+
+
+def _clean_readings(readings: list) -> list:
+    """Shape only: [{kind: str, value: non-empty str, primary: bool}], at most one primary. `kind` is free (TODO(owner): kinds per language)."""
+    out = []
+    for r in readings:
+        if not (isinstance(r, dict) and isinstance(r.get("kind"), str) and r["kind"] and isinstance(r.get("value"), str) and r["value"]):
+            raise ValueError("a reading needs a kind and a value")
+        out.append({"kind": r["kind"], "value": r["value"], "primary": bool(r.get("primary", False))})
+    if sum(r["primary"] for r in out) > 1:
+        raise ValueError("at most one primary reading")
+    return out
 
 
 class CharacterService:
+    @staticmethod
+    def _check_links(char_id: Optional[str], language_id: str, key_radical_id: Optional[str], components: list, session: Session) -> None:
+        """Key radical and components: same language, not the character itself, no cycles (DM-48)."""
+        refs = [*([key_radical_id] if key_radical_id else []), *components]
+        if not refs:
+            return
+        if char_id and char_id in refs:
+            raise ValueError("a character cannot be its own radical or component")
+        rows = {c.id: c for c in session.query(Character).filter(Character.language_id == language_id)}
+        if any(r not in rows for r in refs):
+            raise ValueError("radical and components must be characters of the same language")
+        seen, stack = set(), list(refs)               # does any reference lead back to char_id?
+        while char_id and stack:
+            cur = stack.pop()
+            if cur == char_id:
+                raise ValueError("radical/component cycle")
+            if cur not in seen:
+                seen.add(cur)
+                c = rows[cur]
+                stack += [*([c.key_radical_id] if c.key_radical_id else []), *(c.components or [])]
+
+    @transactional
+    def used_in(self, char_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:
+        """Ids of the characters that use this one as key radical or component."""
+        return [c.id for c in session.query(Character).filter(Character.language_id == language_id).order_by(Character.id)
+                if c.key_radical_id == char_id or char_id in (c.components or [])]
+
+    @transactional
+    def list_for_language(self, language_id: str, radicals: bool = False, session: Optional[Session] = None) -> list[Character]:
+        chars = session.query(Character).filter(Character.language_id == language_id).order_by(Character.id).all()
+        if not radicals:
+            return chars
+        used = {r for c in chars for r in [c.key_radical_id, *(c.components or [])] if r}
+        return [c for c in chars if c.id in used]
+
+    @transactional
+    def copy_radical(self, char_id: str, catalogue_id: int, session: Optional[Session] = None) -> Character | None:
+        """Copy a catalogue entry into the character's language as an ordinary Character (reused when it already exists)
+        and make it the key radical of `char_id` (DM-49)."""
+        target = self.get_by_id(char_id, session=session)
+        entry = session.get(RadicalCatalogue, catalogue_id)
+        if not target or not entry:
+            return None
+        radical = self.get_by_character(entry.character, language_id=target.language_id, session=session)
+        if not radical:
+            radical = self.create(CharacterDict(language_id=target.language_id, character=entry.character, phonetic=entry.phonetic,
+                                                meaning=entry.meaning, strokes=entry.strokes), session=session)
+        self._check_links(char_id, target.language_id, radical.id, list(target.components or []), session)
+        target.key_radical_id = radical.id
+        session.flush()
+        return radical
+
     @transactional
     def get_all(self, session: Optional[Session] = None) -> list[Character]:
         """Get all characters."""
@@ -78,21 +143,28 @@ class CharacterService:
             )
 
         language = db_manager.find_by_attr(model_class=Language, attr_values={"id": data.language_id}, session=session)
+        if language and language.target_iso639_2t in NO_CHARACTER_LANGUAGES:
+            raise ValueError("this language has no characters")          # DM-50
 
         source_iso1 = get_language_by_iso2t(language.source_iso639_2t).iso1 if language else None
         target_iso1 = get_language_by_iso2t(language.target_iso639_2t).iso1 if language else None
 
         enriched_data = enrich_character(character_text=data.character, target_iso1=target_iso1, source_iso1=source_iso1)
+        readings = _clean_readings(data.readings) if data.readings else None
+        self._check_links(None, data.language_id, data.key_radical_id, data.components or [], session)
 
         character = Character(
             id=db_manager.generate_new_id(model_class=Character, session=session),
-            **{k: v for k, v in data.model_dump(exclude={'id', 'difficulty', 'status', 'score', 'created_at', 'last_seen_at', 'phonetic', 'radical', 'meaning'}, exclude_none=True).items()},
+            **{k: v for k, v in data.model_dump(exclude={'id', 'difficulty', 'status', 'score', 'created_at', 'last_seen_at', 'phonetic', 'radical', 'meaning', 'readings', 'components'}, exclude_none=True).items()},
             phonetic=data.phonetic if (data.phonetic is not None and data.phonetic != "") else enriched_data["phonetic"],
             radical=data.radical if (data.radical is not None and data.radical != "") else enriched_data["radical"],
             meaning=data.meaning if (data.meaning is not None and data.meaning != "") else enriched_data["meaning"],
             tags = session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources = session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
+            sources = session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else [],
+            components=list(data.components or []),
         )
+        character.readings = readings if readings is not None else (
+            [{"kind": "phonetic", "value": character.phonetic, "primary": True}] if character.phonetic else [])
         result = db_manager.insert(obj=character, session=session, commit=False)
 
         if result:
@@ -161,6 +233,12 @@ class CharacterService:
         existing.radical = resolve('radical', existing.radical)
         existing.meaning = resolve('meaning', existing.meaning)
         existing.strokes = update_data.get('strokes', existing.strokes)
+        key_radical = update_data.get('key_radical_id', existing.key_radical_id)
+        components = update_data.get('components', existing.components or [])
+        self._check_links(character_id, existing.language_id, key_radical, components, session)
+        existing.key_radical_id, existing.components = key_radical, list(components)
+        if data.readings is not None:
+            existing.readings = _clean_readings(data.readings)
         if resolving_conflict:
             existing.audio_files = stack_lists(existing.audio_files, update_data.get('audio_files'))
             existing.image_files = stack_lists(existing.image_files, update_data.get('image_files'))

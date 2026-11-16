@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Column, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from ..base import BaseComponentModel, character_word_link, character_passage_link
@@ -13,6 +13,10 @@ class Character(BaseComponentModel):
     meaning = Column(String, nullable=True)
     radical = Column(String, nullable=True)
     strokes = Column(Integer, nullable=True)
+    # Spec 2 Task 9. `readings`: [{kind, value, primary}] (kind is a free string per language, TODO(owner)).
+    readings = Column(JSON, nullable=False, default=list)
+    key_radical_id = Column(String, nullable=True)    # a Character of the same language (checked in the service, no FK)
+    components = Column(JSON, nullable=False, default=list)    # ordered Character ids of the same language, no cycles
     
     # Relationship
     calligraphy = relationship('Calligraphy', back_populates='character')  # One to One
@@ -35,7 +39,10 @@ class Character(BaseComponentModel):
             "meaning": self.meaning,
             "phonetic": self.phonetic,
             "radical": self.radical,
-            "strokes": self.strokes
+            "strokes": self.strokes,
+            "readings": self.readings or [],
+            "key_radical_id": self.key_radical_id,
+            "components": self.components or [],
         }
         if include_relations:
             base_dict.update({

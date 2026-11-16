@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import Character from "@/interface/components/Character";
 import ElementMediaCard from "./elementMediaCard";
 
-export default function CharacterCard({ character, hiddenTranslation, hiddenAdditionalInformations }: { character: Character | Partial<Character>; hiddenTranslation?: boolean; hiddenAdditionalInformations?: boolean }) {
+type Ref = { id: string; character: string };
+
+export default function CharacterCard({ character, hiddenTranslation, hiddenAdditionalInformations, languageId, components, usedIn }: { character: Character | Partial<Character>; hiddenTranslation?: boolean; hiddenAdditionalInformations?: boolean; languageId?: string; components?: Ref[]; usedIn?: Ref[] }) {
     const t = useTranslations("elements");
     const showExtras =
         (hiddenTranslation && hiddenAdditionalInformations) || !hiddenTranslation;
@@ -38,6 +41,22 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
                     <span className="chip pointer-events-none">{character.radical}</span>
                     )}
                 </div>
+                )}
+
+                {showExtras && (character.readings?.length ?? 0) > 1 && (
+                    <p className="font-mono text-sm text-muted">
+                        {t("characterReadings")}: {character.readings!.map((r) => `${r.kind} ${r.value}`).join(" · ")}
+                    </p>
+                )}
+                {[[t("characterComponents"), components], [t("characterUsedIn"), usedIn]].map(([label, refs]) =>
+                    (refs as Ref[] | undefined)?.length ? (
+                        <div key={label as string} className="flex flex-wrap items-baseline gap-2">
+                            <span className="text-sm text-muted">{label as string}</span>
+                            {(refs as Ref[]).map((r) => (
+                                <Link key={r.id} href={`/languages/${languageId}/character/${r.id}`} className="chip font-serif">{r.character}</Link>
+                            ))}
+                        </div>
+                    ) : null,
                 )}
 
                 {hasMedia && <ElementMediaCard element={character} />}
