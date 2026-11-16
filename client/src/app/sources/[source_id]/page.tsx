@@ -2,6 +2,7 @@ import { getSourceById } from "@/api/source";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
 import NavButton from "@/components/layout/navButton";
 import SourceCard from "@/components/sources/sourceCard";
+import ReviewEntryLinks from "@/components/review/reviewEntryLinks";
 import { getTranslations } from "next-intl/server";
 
 export default async function SourceDetailPage({ params }: { params: Promise<{ source_id: string }> }) {
@@ -12,6 +13,7 @@ export default async function SourceDetailPage({ params }: { params: Promise<{ s
         <main>
             <h1>{t("sourceDetail")}</h1>
             <SourceCard source={source} />
+            <ReviewEntryLinks scope={{ scope: "source", source_id }} />
             <span className="flex flex-row gap-4 mt-4">
                 <NavButton path={`/sources/${source_id}/update`}>
                     {t("editSourceInformations")}

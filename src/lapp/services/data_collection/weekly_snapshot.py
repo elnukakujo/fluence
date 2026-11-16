@@ -19,6 +19,22 @@ from ..system_data import ScoreService
 MAX_CATCH_UP_WEEKS = 104        # an account idle for longer than two years gets the last two years of weeks, no more
 
 
+@transactional
+def level_counts(user_id: str, language_id: str, now: datetime, session: Optional[Session] = None) -> dict:
+    """Level counts of a language at `now` (decay applied): seen elements by level, fading (succeeded once, below known now),
+    `total` elements, and `mean_seen` (mean score of the seen ones, None when none). Coverage = seen / total; the two are never mixed (DM-7)."""
+    ids = [i for model in (Vocabulary, Grammar, Calligraphy)
+           for (i,) in session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)]
+    scores = ScoreService().get_many(user_id, ids, now=now, session=session)
+    by = [r.score or 0.0 for r in scores.values()]
+    succeeded = {i for (i,) in session.query(StudyGoalItem.element_id).join(StudyGoal, StudyGoal.id == StudyGoalItem.goal_id).filter(
+        StudyGoal.user_id == user_id, StudyGoal.language_id == language_id, StudyGoalItem.succeeded_at.isnot(None))}
+    return {"learning": sum(1 for s in by if s < KNOWN_FROM), "known": sum(1 for s in by if KNOWN_FROM <= s < MASTERED_FROM),
+            "mastered": sum(1 for s in by if s >= MASTERED_FROM), "seen": len(by), "total": len(ids),
+            "fading": sum(1 for i in succeeded if i in scores and (scores[i].score or 0.0) < KNOWN_FROM),
+            "mean_seen": sum(by) / len(by) if by else None}
+
+
 class WeeklySnapshotService:
     @transactional
     def close_week(self, user_id: str, language_id: str, week_start: date, tz: Optional[str] = None,
@@ -26,18 +42,11 @@ class WeeklySnapshotService:
         row = session.query(WeeklySnapshot).filter_by(user_id=user_id, language_id=language_id, week_start=week_start).first()
         if row is not None:
             return row
-        ids = [i for model in (Vocabulary, Grammar, Calligraphy)
-               for (i,) in session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)]
         closed = week_closed_at(tz, week_start).astimezone().replace(tzinfo=None)         # scores are stored in server local time
-        scores = ScoreService().get_many(user_id, ids, now=min(closed, datetime.now()), session=session)
-        by = [r.score or 0.0 for r in scores.values()]
-        succeeded = {i for (i,) in session.query(StudyGoalItem.element_id).join(StudyGoal, StudyGoal.id == StudyGoalItem.goal_id).filter(
-            StudyGoal.user_id == user_id, StudyGoal.language_id == language_id, StudyGoalItem.succeeded_at.isnot(None))}
+        c = level_counts(user_id, language_id, min(closed, datetime.now()), session)
         row = WeeklySnapshot(
             id=db_manager.generate_new_id(WeeklySnapshot, session=session), user_id=user_id, language_id=language_id, week_start=week_start,
-            n_learning=sum(1 for s in by if s < KNOWN_FROM), n_known=sum(1 for s in by if KNOWN_FROM <= s < MASTERED_FROM),
-            n_mastered=sum(1 for s in by if s >= MASTERED_FROM), n_seen=len(by), n_total=len(ids),
-            n_fading=sum(1 for i in succeeded if i in scores and (scores[i].score or 0.0) < KNOWN_FROM))
+            n_learning=c["learning"], n_known=c["known"], n_mastered=c["mastered"], n_seen=c["seen"], n_total=c["total"], n_fading=c["fading"])
         session.add(row)
         session.flush()
         return row

@@ -77,5 +77,7 @@
   "deleteLanguagesBody": "Les langues ci-dessous sont supprimées définitivement avec toutes leurs leçons et leurs éléments.",
   "deleteNLanguages": "Supprimer {count, plural, one {# langue} other {# langues}}",
   "deletedLanguages": "{count, plural, one {# langue supprimée} other {# langues supprimées}}",
-  "goalTab": "Objectif d'étude"
+  "goalTab": "Objectif d'étude",
+  "weekDelta": "{delta} vs semaine dernière",
+  "heatmapLegend": "Réponses par jour, par tranche"
 }

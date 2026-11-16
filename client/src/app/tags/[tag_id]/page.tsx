@@ -2,6 +2,7 @@ import { getTagById } from "@/api/tag";
 import DeleteButton from "@/components/ui/buttons/deleteButton";
 import NavButton from "@/components/layout/navButton";
 import TagCard from "@/components/tags/tagCard";
+import ReviewEntryLinks from "@/components/review/reviewEntryLinks";
 import { getTranslations } from "next-intl/server";
 
 export default async function TagDetailPage({ params }: { params: Promise<{ tag_id: string }> }) {
@@ -13,6 +14,7 @@ export default async function TagDetailPage({ params }: { params: Promise<{ tag_
         <main>
             <h1>{t("tagDetail")}</h1>
             <TagCard tag={tag} />
+            <ReviewEntryLinks scope={{ scope: "tag", tag_id }} />
             <span className="flex flex-row gap-4 mt-4">
                 <NavButton path={`/tags/${tag_id}/update`}>
                     {t("editTagInformations")}

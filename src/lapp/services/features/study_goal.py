@@ -10,6 +10,7 @@ from ...models.features import Vocabulary, Grammar, Calligraphy
 from ...models.system_data import StudyGoal, StudyGoalItem, Score
 from ...utils import review_priority
 from ...utils.learner_clock import learner_today
+from ..system_data.prefs_view import prefs_for
 from ...models.system_data import UserPreferences
 from ...utils.scoring import KNOWN_FROM
 from ..system_data import ScoreService
@@ -39,6 +40,11 @@ def _type_of(element_id: str) -> Optional[str]:
 
 
 class StudyGoalService:
+    @staticmethod
+    def _today(user_id: str, session) -> date:
+        """The learner's own calendar day (their stored time zone), never the server's."""
+        return learner_today(prefs_for(user_id, None, session).timezone)
+
     @transactional
     def get(self, user_id: str, language_id: str, session: Optional[Session] = None) -> Optional[dict]:
         goal = self._goal(user_id, language_id, session)
@@ -65,14 +71,14 @@ class StudyGoalService:
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             goal = StudyGoal(id=db_manager.generate_new_id(StudyGoal, session=session), user_id=user_id,
-                             language_id=language_id, start_date=today or date.today(), period=period)
+                             language_id=language_id, start_date=today or self._today(user_id, session), period=period)
             session.add(goal)
         was_suggested = goal.auto and not auto and goal.locked is not None
         goal.period, goal.active, goal.auto = period, bool(active), bool(auto)
         (goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy,
          goal.n_radicals, goal.r_radicals) = counts
         if was_suggested:            # first time the user sets their own numbers: replace the suggested menu at once
-            self._reset(goal, today or date.today(), session)
+            self._reset(goal, today or self._today(user_id, session), session)
         session.flush()
         return self._dict(goal)
 
@@ -85,7 +91,7 @@ class StudyGoalService:
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             return None
-        today = today or date.today()
+        today = today or self._today(user_id, session)
         if keep_mastered and goal.active and goal.locked:
             lock = self._lock(goal, today, session)
             items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
@@ -143,7 +149,7 @@ class StudyGoalService:
 
         Open = a new element not yet mastered or a review element not yet reviewed since its period began;
         unfinished ones of earlier periods carry over."""
-        today = today or date.today()
+        today = today or self._today(user_id, session)
         goal = self._goal(user_id, language_id, session)
         if goal is None or not goal.active:
             return []
@@ -185,13 +191,13 @@ class StudyGoalService:
         goal = self._goal(user_id, language_id, session)
         if goal is None or not goal.active:
             return set()
-        lock = self._lock(goal, today or date.today(), session)
+        lock = self._lock(goal, today or self._today(user_id, session), session)
         return {k for k in TYPES if lock["n"][k] + lock["r"][k] > 0}
 
     @transactional
     def progress(self, user_id: str, language_id: str, today: Optional[date] = None,
                  session: Optional[Session] = None) -> Optional[dict]:
-        today = today or date.today()
+        today = today or self._today(user_id, session)
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             return None

@@ -1,5 +1,24 @@
 {
   "greeting": "Salut {name} !",
   "whatToStudy": "Qu'aimeriez-vous étudier aujourd'hui ?",
-  "createNewLanguage": "Nouvelle langue"
+  "createNewLanguage": "Nouvelle langue",
+  "headline": "Aujourd'hui en un coup d'œil",
+  "streak": "Série",
+  "streakDays": "{count, plural, one {# jour} other {# jours}}",
+  "today": "Aujourd'hui",
+  "todayProgress": "{answers} / {min} réponses",
+  "streakDone": "Jour de série validé",
+  "fading": "En perte",
+  "fadingHint": "Déjà su, sous « su » maintenant",
+  "level": {
+    "learning": "En cours",
+    "known": "Su",
+    "mastered": "Maîtrisé"
+  },
+  "due": "À revoir",
+  "dueValue": "{count, plural, one {# carte} other {# cartes}} · environ {minutes} min",
+  "coverage": "Vu",
+  "meanSeen": "Moyenne des vus",
+  "minutesToday": "Minutes aujourd'hui",
+  "nextUp": "À suivre"
 }

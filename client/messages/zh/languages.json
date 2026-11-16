@@ -50,5 +50,25 @@
   "updateCalligraphy": "更新书法",
   "calligraphyFlashcard": "书法闪卡",
   "deleteCalligraphyButton": "删除书法",
-  "updateInformations": "更新信息"
+  "updateInformations": "更新信息",
+  "reviewThis": "复习这个",
+  "reviewIn": "在{name}中复习",
+  "reviewByType": "按类型复习",
+  "reviewByTypeHint": "某一类型的全部内容，按自然顺序，没有时间限制。",
+  "queueTitle": {
+    "daily": "每日复习",
+    "lesson": "课程复习",
+    "tag": "标签复习",
+    "source": "来源复习",
+    "type": "按类型复习",
+    "free": "自由练习"
+  },
+  "typeLabel": {
+    "vocabulary": "词汇",
+    "grammar": "语法",
+    "calligraphy": "书法",
+    "character": "汉字",
+    "characterRadicals": "部首",
+    "exercise": "练习"
+  }
 }

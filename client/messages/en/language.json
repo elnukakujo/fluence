@@ -77,5 +77,7 @@
   "deleteLanguagesBody": "This permanently deletes the languages below with all their lessons and items.",
   "deleteNLanguages": "Delete {count, plural, one {# language} other {# languages}}",
   "deletedLanguages": "Deleted {count, plural, one {# language} other {# languages}}",
-  "goalTab": "Study goal"
+  "goalTab": "Study goal",
+  "weekDelta": "{delta} vs last week",
+  "heatmapLegend": "Answers per day, by band"
 }

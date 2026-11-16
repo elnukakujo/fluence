@@ -119,5 +119,6 @@
   "formRequiredNote": "* obligatoire",
   "removeExampleWord": "Retirer l'exemple de mot",
   "leechLeaving": "Sort de la liste des cartes difficiles : {count}/{total} bonnes réponses d'affilée",
-  "leechConfusable": "Souvent confondu avec {word} ({translation})"
+  "leechConfusable": "Souvent confondu avec {word} ({translation})",
+  "bulkPractice": "S'exercer"
 }
