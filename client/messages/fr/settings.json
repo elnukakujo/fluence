@@ -5,7 +5,15 @@
     "learning": "Apprentissage",
     "aiFeatures": "IA",
     "endpoints": "Endpoints",
-    "goals": "Objectifs d'étude"
+    "goals": "Objectifs d'étude",
+    "uploads": "Imports",
+    "pace": "Rythme",
+    "review": "Ce que je révise",
+    "answer": "Ma façon de répondre",
+    "see": "Ce que je vois",
+    "skills": "Compétences",
+    "ai": "IA",
+    "study": "Détails d'étude"
   },
   "profile": {
     "title": "Profil",
@@ -45,14 +53,9 @@
     }
   },
   "preferences": {
-    "title": "Apprentissage",
+    "title": "Plan et mélange de révision",
     "nativeLanguages": "Langues maternelles",
-    "dailyGoal": "Objectif quotidien",
-    "dailyGoalUnit": "min / jour",
-    "exerciseTypes": "Types d'exercices préférés",
-    "dailyGoalAria": "Objectif quotidien en minutes",
-    "dailyGoalValueAria": "Valeur de l'objectif quotidien en minutes",
-    "dailyHint": "Combien de temps vous voulez étudier chaque jour. Votre révision quotidienne et vos objectifs s'y adaptent."
+    "exerciseTypes": "Types d'exercices préférés"
   },
   "aiFeatures": {
     "title": "Fonctions IA",
@@ -69,7 +72,12 @@
     "tts": "Synthèse vocale",
     "ttsDesc": "Audio pour les mots, les phrases et les caractères",
     "resetDefaults": "Par défaut",
-    "saveSuccessLabel": "Enregistré"
+    "saveSuccessLabel": "Enregistré",
+    "openEndpoints": "Configurer le point d'accès",
+    "needEndpoint_text": "Le retour du tuteur et les suggestions de phrases et de mots demandent un point d'accès texte actif.",
+    "needTest_text": "Le retour du tuteur et les suggestions de phrases et de mots demandent que votre point d'accès texte réussisse son test de connexion.",
+    "needEndpoint_tts": "La synthèse vocale demande un point d'accès audio actif.",
+    "needTest_tts": "La synthèse vocale demande que votre point d'accès audio réussisse son test de connexion."
   },
   "buttons": {
     "save": "Enregistrer",
@@ -84,5 +92,24 @@
   "sectionsAriaLabel": "Sections",
   "createAccountTagline": "Créez votre compte pour commencer à apprendre.",
   "alreadyRegistered": "Déjà inscrit ?",
-  "signInLink": "Se connecter"
+  "signInLink": "Se connecter",
+  "uploads": {
+    "title": "Mes imports",
+    "description": "Les documents que vous avez importés. Supprimer un import efface le fichier, sa copie analysée et l'import ; les mots déjà ajoutés à vos leçons restent.",
+    "empty": "Aucun import.",
+    "delete": "Supprimer",
+    "confirm": "Supprimer « {name} » ? Action irréversible.",
+    "failedLoad": "Impossible de charger vos imports",
+    "failedDelete": "Impossible de supprimer cet import"
+  },
+  "sections": {
+    "profile": "Profil",
+    "learning": "Apprentissage",
+    "learningHint": "Combien vous étudiez, et comment.",
+    "ai": "IA",
+    "aiHint": "Connectez votre propre service d'IA ; rien n'est fourni.",
+    "study": "Détails d'étude",
+    "studyHint": "Rarement modifiés : ce cours, réponses, plan de révision, compétences.",
+    "admin": "Administration"
+  }
 }

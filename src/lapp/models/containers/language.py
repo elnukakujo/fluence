@@ -7,10 +7,14 @@ from .lesson import Lesson
 class Language(BaseContainerModel):
     __tablename__ = 'language'
     __mapper_args__ = {"polymorphic_identity": "language"}
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_language_user_name'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_language_user_name'),
+        UniqueConstraint('user_id', 'iso1', name='uq_language_user_iso1'),
+    )
 
     name = Column(String, nullable=False, index=True)
     alias = Column(String)
+    iso1 = Column(String, nullable=True, index=True)  # supported-language code; NOT NULL + unique per user once courses are reviewed
     flag = Column(String, default="")
     position = Column(Integer, nullable=False, default=0, server_default="0")  # order on the home page, 0-based
 
@@ -43,6 +47,7 @@ class Language(BaseContainerModel):
             **super().to_dict(include_relations),
             "name": self.name,
             "alias": self.alias,
+            "iso1": self.iso1,
             "flag": self.flag,
             "source_iso639_2t": self.source_iso639_2t,
             "target_iso639_2t": self.target_iso639_2t,

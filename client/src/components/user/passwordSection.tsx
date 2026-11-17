@@ -74,7 +74,7 @@ export default function PasswordSection({ userId }: { userId: string }) {
   );
 
   return (
-    <SectionCard title={t("title")}>
+    <SectionCard title={t("title")} fold>
       <p className="text-sm opacity-60">{t("helpText")}</p>
 
       {error && (

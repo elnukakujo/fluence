@@ -6,7 +6,10 @@
   "settings": "Réglages",
   "account": "Compte",
   "openSearch": "Rechercher",
+  "lightTheme": "Passer au thème clair",
+  "darkTheme": "Passer au thème sombre",
   "closeSearch": "Fermer la recherche",
   "mainNav": "Navigation principale",
-  "back": "Retour"
+  "back": "Retour",
+  "inboxCount": "Boîte de réception : {count} en attente"
 }

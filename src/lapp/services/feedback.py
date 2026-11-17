@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..core.database import db_manager, transactional
 from ..utils import chat_completion
 from ..utils.detect_language import get_language_by_iso2t
-from ..utils.llm_providers import resolve_api
+from ..services.capabilities import gated_api
 from .features import ExerciseService
 from .system_data import UserPreferencesService
 user_preferences_service = UserPreferencesService()
@@ -196,5 +196,5 @@ class FeedbackService:
 		if prefs is not None and prefs.ai_feedback_enabled is False:
 			return self._fallback_feedback(context)
 
-		api = resolve_api(prefs, "text_gen") if prefs else None
+		api = gated_api(prefs, "text_gen") if prefs else None
 		return self._generate_with_model(context, api=api)

@@ -68,7 +68,7 @@ export default function ProfileSection({ user, preferences = {} }: { user: User;
   };
 
   return (
-    <SectionCard title={t("title")}>
+    <SectionCard title={t("title")} quiet>
       {/* Avatar */}
       <div className="flex items-center gap-4 pb-3">
         <div

@@ -1,6 +1,6 @@
 import { apiFetch } from "../apiFetch";
 
-export type SearchCategory = "container" | "feature" | "component";
+export type SearchCategory = "container" | "feature" | "component" | "label";
 
 export interface SearchResult {
   category: SearchCategory;
@@ -9,6 +9,7 @@ export interface SearchResult {
   label: string;
   language_id?: string;
   lesson_id?: string;
+  radical?: boolean;   // a character used as some character's key radical
 }
 
 export interface SearchResponse {

@@ -13,8 +13,7 @@ from ...services.exercise_generation.planner import offerable_types, plan_slots,
 from ...services.exercise_generation.pool import is_advanced, known_words, lesson_pool
 from ...services.features.study_constants import GEN_MAX
 from ...services.system_data import UserPreferencesService
-from ...utils.llm_providers import resolve_api
-
+from ...services.capabilities import capability_for, gated_api
 logger = logging.getLogger(__name__)
 bp = Blueprint("exercise_generation", __name__)
 
@@ -25,7 +24,7 @@ def _offerable(lesson_id: str) -> list[str]:
     prefs = UserPreferencesService().get_by_user_id(user_id)
     with db_manager.session_scope() as s:
         advanced = is_advanced(known_words(lesson_id, user_id, s))
-    return offerable_types(prefs.exercise_type_prefs, prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None, advanced)
+    return offerable_types(prefs.exercise_type_prefs, gated_api(prefs, "tts") is not None, advanced)
 
 
 def _plan(lesson_id: str, count: int | None):
@@ -34,7 +33,7 @@ def _plan(lesson_id: str, count: int | None):
     with db_manager.session_scope() as s:
         pool = lesson_pool(lesson_id, user_id, s)
         prefs = UserPreferencesService().get_by_user_id(user_id, session=s)
-        tts = prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None
+        tts = gated_api(prefs, "tts") is not None
         kinds = Counter(p.kind for p in pool)
         n = count if count is not None else suggest_count(kinds["vocabulary"], kinds["grammar"], kinds["calligraphy"])
         return pool, plan_slots(pool, n, prefs.exercise_type_prefs, tts, advanced=is_advanced(known_words(lesson_id, user_id, s))), n
@@ -81,9 +80,11 @@ def generate(lesson_id: str):
         ok = isinstance(mix, dict) and mix and all(t in offered and isinstance(n, int) and not isinstance(n, bool) and n > 0 for t, n in mix.items())
         if not ok or sum(mix.values()) != count:
             return jsonify({"error": "mix must map offered exercise types to positive whole numbers that add up to count"}), 400
-    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
-    if not api:
-        return jsonify({"error": "text_gen_not_configured"}), 409
+    prefs = UserPreferencesService().get_by_user_id(current_user_id())
+    cap = capability_for(prefs, "exercise_generation")
+    api = gated_api(prefs, "text_gen")
+    if not cap.enabled or not api:
+        return jsonify({"error": "text_gen_not_configured", "reason": cap.reason, "needs": cap.needs}), 409
     pool, slots, _ = _plan(lesson_id, count)
     if not pool or not slots:
         return jsonify({"error": "empty_lesson"}), 409

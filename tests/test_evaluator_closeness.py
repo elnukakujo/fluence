@@ -14,7 +14,7 @@ class FakeModel:
 
 def _svc(monkeypatch, exercise_type, correct, token):
     monkeypatch.setattr(EvaluatorService, "text_embedding_model", property(lambda self: FakeModel()))
-    monkeypatch.setattr(evaluator_module.exercise_service, "get_by_id", lambda *a, **k: SimpleNamespace(exercise_type=exercise_type, answer=correct))
+    monkeypatch.setattr(evaluator_module.exercise_service, "get_by_id", lambda *a, **k: SimpleNamespace(exercise_type=exercise_type, answer=correct, accepted_answers=None))
     s = EvaluatorService()
     monkeypatch.setattr(s, "_get_correct_text_and_type", lambda *a, **k: (correct, exercise_type))
     monkeypatch.setattr(s, "_compute_grammar_error_rate", lambda *a, **k: 1.0)

@@ -23,5 +23,6 @@
   "merging": "Fusion…",
   "mergeFailed": "Impossible de fusionner les leçons",
   "mergeInvalid": "Choisissez deux leçons différentes de cette langue à fusionner.",
-  "backToLanguage": "Retour à la langue"
+  "backToLanguage": "Retour à la langue",
+  "formHeading": "Leçon"
 }

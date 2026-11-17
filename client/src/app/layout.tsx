@@ -4,6 +4,7 @@ import NavBar from "@/components/layout/navBar";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import { cookies } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,9 +36,10 @@ export default async function RootLayout({
 }>) {
   const currentUserId = await getCurrentUserId();
   const locale = await getLocale();
+  const theme = (await cookies()).get("theme")?.value;      // set from Settings -> What I see; absent = follow the system
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-theme={theme === "light" || theme === "dark" ? theme : undefined}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased ${currentUserId ? "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]" : ""}`}
       >

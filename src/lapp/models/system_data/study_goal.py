@@ -19,11 +19,8 @@ class StudyGoal(Base):
     r_vocabulary = Column(Integer, default=0, nullable=False)   # review elements per period, same split as n_*
     r_grammar = Column(Integer, default=0, nullable=False)
     r_calligraphy = Column(Integer, default=0, nullable=False)
-    # Optional radicals quota (DM-42): calligraphy cards of radical characters, suggested and never forced. 0 = none.
-    n_radicals = Column(Integer, default=0, nullable=False, server_default="0")
-    r_radicals = Column(Integer, default=0, nullable=False, server_default="0")
     active = Column(Boolean, default=True, nullable=False)
-    # True while the quantities are the suggested ones for the daily minutes (they follow it); any manual save clears it.
+    # True while the quantities are the suggested ones for the new per week and reviews per day (they follow them); any manual save clears it.
     auto = Column(Boolean, default=False, nullable=False)
     # The menu of the running period, frozen when the period starts: {"start", "period", "n": {...}, "r": {...}}.
     # n_* / r_* / period above are what the NEXT period will use.
@@ -42,4 +39,3 @@ class StudyGoalItem(Base):
     picked_at = Column(DateTime, default=datetime.now, nullable=False)
     # First moment the element's effective score reached known (DM-53). Permanent: decay, a new period or a rebuild never clear it.
     succeeded_at = Column(DateTime, nullable=True)
-    radical = Column(Boolean, default=False, nullable=False, server_default="false")   # picked for the radicals quota

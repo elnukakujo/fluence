@@ -94,7 +94,8 @@ class UserPreferencesService:
             voc_side_pattern=data.voc_side_pattern,
             exercise_type_prefs=data.exercise_type_prefs or {},
             review_layout=data.review_layout,
-            daily_goal_minutes=data.daily_goal_minutes,
+            new_per_week=data.new_per_week if data.new_per_week is not None else 15,
+            reviews_per_day=data.reviews_per_day if data.reviews_per_day is not None else 40,
             timezone=data.timezone,
             streak_min_answers=data.streak_min_answers or 20,
             ai_feedback_enabled=data.ai_feedback_enabled,
@@ -117,6 +118,54 @@ class UserPreferencesService:
             logger.error(f"Failed to create UserPreferences for user {data.user_id}")
 
         return self._serialize(pref, as_dict, include_relations)
+
+    @staticmethod
+    def _keep_stored_keys(stored: list, incoming: list) -> list:
+        """Endpoints sent back without a key keep the one stored under the same name (else the same position)."""
+        by_name = {e.get("name"): e for e in stored if isinstance(e, dict) and e.get("name")}
+        out = []
+        for i, ep in enumerate(incoming):
+            ep = dict(ep)
+            ep.pop("has_key", None)
+            old = by_name.get(ep.get("name")) or (stored[i] if i < len(stored) and isinstance(stored[i], dict) else {})
+            if not ep.get("api_key"):
+                if old.get("api_key"):
+                    ep["api_key"] = old["api_key"]
+                else:
+                    ep.pop("api_key", None)
+            # the test result is the server's: keep the stored one (it stops counting once the config changes)
+            if old.get("test"):
+                ep["test"] = old["test"]
+            else:
+                ep.pop("test", None)
+            out.append(ep)
+        return out
+
+    @transactional
+    def acknowledge_notice(self, user_id: str, base_url: str, session: Optional[Session] = None) -> list[str]:
+        """Remember that `base_url`'s provider disclosure was shown and accepted (idempotent)."""
+        pref = db_manager.find_by_attr(model_class=UserPreferences, attr_values={'user_id': user_id}, session=session)
+        if pref is None:
+            return []
+        seen = list(pref.provider_notices_seen or [])
+        if base_url not in seen:
+            seen.append(base_url)
+            pref.provider_notices_seen = seen
+            db_manager.modify(obj=pref, session=session, commit=False)
+        return seen
+
+    @transactional
+    def record_test(self, user_id: str, index: int, passed: bool, session: Optional[Session] = None) -> None:
+        """Store the outcome of testing the saved endpoint at `index`, tied to its current configuration."""
+        from datetime import datetime
+        from ..capabilities import config_hash
+        pref = db_manager.find_by_attr(model_class=UserPreferences, attr_values={'user_id': user_id}, session=session)
+        eps = [dict(e) for e in (pref.ai_endpoints or [])] if pref else []
+        if not 0 <= index < len(eps):
+            return
+        eps[index]["test"] = {"passed": passed, "at": datetime.now().isoformat(timespec="seconds"), "config_hash": config_hash(eps[index])}
+        pref.ai_endpoints = eps
+        db_manager.modify(obj=pref, session=session, commit=False)
 
     @transactional
     def update(
@@ -150,6 +199,10 @@ class UserPreferencesService:
 
         # Update fields
         for field, value in data.model_dump(exclude_unset=True).items():
+            if field in ("ai_gen_api_key", "ai_tts_api_key") and not value:
+                continue  # keys are write-only: omitted or empty keeps the stored one
+            if field == "ai_endpoints":
+                value = self._keep_stored_keys(user_pref.ai_endpoints or [], value or [])
             setattr(user_pref, field, value)
 
         result = db_manager.modify(obj=user_pref, session=session, commit=False)

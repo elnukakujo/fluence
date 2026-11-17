@@ -2,7 +2,8 @@
   "sidebar": {
     "users": "Utilisateurs",
     "backups": "Backups",
-    "logs": "Logs"
+    "logs": "Logs",
+    "admin": "Administration"
   },
   "apiEndpoints": {
     "title": "Endpoints API",
@@ -78,7 +79,12 @@
     "deleteConfirm": "Supprimer \"{name}\" ?",
     "deleteSuccess": "Endpoints enregistrés",
     "modelWarning": "Saisissez d'abord l'URL",
-    "unnamedEndpoint": "Endpoint sans nom"
+    "unnamedEndpoint": "Endpoint sans nom",
+    "providerNotice": {
+      "title": "Avant d'utiliser ce fournisseur",
+      "message": "Ces points d'accès recevront les textes et images que vous leur envoyez pour les fonctions IA (vos mots, phrases, documents importés) : {urls}. Ils ne sont pas gérés par Fluence : leurs propres règles de confidentialité s'appliquent.",
+      "confirm": "J'ai compris, enregistrer"
+    }
   },
   "backups": {
     "title": "Backups",

@@ -305,7 +305,7 @@ def test_ensure_shared_hosts_heals_orphaned_shares(db):
             Language.user_id == "user_U2", Language.target_iso639_2t == "chi").count() == 1
 
 
-def test_remove_partial_unshares_not_forks(db):
+def test_remove_partial_unshares_and_leaves_a_copy(db):
     _seed_users(db)
     with db.session_scope() as s:
         db.insert(Language(id="lang_L1", user_id="user_U1", name="Japanese",
@@ -320,10 +320,10 @@ def test_remove_partial_unshares_not_forks(db):
     c = CollaborationService().invite("user_U1", "user_U2", "language", "lang_L1")
     CollaborationService().accept(c.id, "partial", lesson_ids=["lesson_M1"])
     CollaborationService().remove(c.id)
-    # M1 is unshared, and no copy of it landed in the invitee's language
+    # M1 is unshared, and the invitee keeps their own copy of it (DM-58)
     assert LessonShareService().is_recipient("user_U2", "lesson_M1") is False
-    titles = [l.title for l in LessonService().get_all(language_id="lang_U2")]
-    assert titles == ["I1"]
+    titles = sorted(l.title for l in LessonService().get_all(language_id="lang_U2"))
+    assert titles == ["I1", "M1"]
 
 
 def _collab_rows(db):

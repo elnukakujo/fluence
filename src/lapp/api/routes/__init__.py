@@ -25,6 +25,8 @@ from .collaboration import bp as collaboration_bp
 from .ingestion import bp as ingestion_bp
 from .element import bp as element_bp
 from .exercise_generation import bp as exercise_generation_bp
+from .capabilities import bp as capabilities_bp
+from .inbox import bp as inbox_bp
 __all__ = [
     language_bp,
     lesson_bp,
@@ -53,4 +55,6 @@ __all__ = [
     ingestion_bp,
     element_bp,
     exercise_generation_bp,
+    capabilities_bp,
+    inbox_bp,
 ]

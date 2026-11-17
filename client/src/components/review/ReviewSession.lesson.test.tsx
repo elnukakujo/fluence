@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReviewCard } from "@/api/review";
 
-const m = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), completeReview: vi.fn().mockResolvedValue({ validated: true, streak: 3 }) }));
+const m = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), completeReview: vi.fn().mockResolvedValue({ validated: true, just_validated: true, streak: 3 }) }));
 vi.mock("@/api/process", () => ({ updateScoreById: m.updateScoreById }));
 vi.mock("@/api/review", () => ({ completeReview: m.completeReview, saveCardNote: vi.fn() }));
 vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));

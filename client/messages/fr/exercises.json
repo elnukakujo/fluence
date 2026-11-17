@@ -359,5 +359,7 @@
     "excellent": "Excellent",
     "good": "Bien",
     "keepGoing": "Continuez"
-  }
+  },
+  "generateInInbox": "Ils attendent dans votre boîte de réception jusqu'à ce que vous les acceptiez.",
+  "generateOpenInbox": "Ouvrir la boîte de réception"
 }

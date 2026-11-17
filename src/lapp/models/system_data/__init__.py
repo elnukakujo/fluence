@@ -11,6 +11,9 @@ from .exercise_user_pref import ExerciseUserPref
 from .override_flag import OverrideFlag
 from .study_goal import StudyGoal, StudyGoalItem
 from .lesson_gate import LessonGate
+from .course_setting import CourseSetting
+from .change_log import ChangeLog
+from .corpus import CorpusSentence, CorpusLink, FailureMemory
 
 __all__ = [
     "User",
@@ -27,4 +30,9 @@ __all__ = [
     "StudyGoal",
     "StudyGoalItem",
     "LessonGate",
+    "CourseSetting",
+    "ChangeLog",
+    "CorpusSentence",
+    "CorpusLink",
+    "FailureMemory",
 ]

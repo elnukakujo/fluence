@@ -34,7 +34,7 @@ describe("UserForm", () => {
     expect(screen.getByText("Optional")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Skip, use the defaults"));
     await vi.waitFor(() => expect(createUser).toHaveBeenCalled());
-    expect(vi.mocked(createUser).mock.calls[0][0].preferences).toMatchObject({ daily_goal_minutes: 20, native_language_iso639_2: ["zho"] });
+    expect(vi.mocked(createUser).mock.calls[0][0].preferences).toMatchObject({ native_language_iso639_2: ["zho"] });
   });
 
   it("keeps an existing user's natives", () => {

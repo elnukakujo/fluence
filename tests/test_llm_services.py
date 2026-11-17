@@ -7,6 +7,7 @@ from lapp.services.tts import TTSService
 
 API = {"base_url": "http://llm:8080/v1", "api_key": "k", "model": "m"}
 GEN = TextGeneratorService()
+TTS_API = {**API, "voice": "alloy"}      # no built-in voices: the voice is the one set on the learner's endpoint
 
 
 @pytest.mark.parametrize("method,kwargs", [
@@ -52,12 +53,12 @@ def test_text_gen_error_propagates():
 
 def test_tts_success_writes_wav(tmp_path):
     with patch("lapp.services.tts.synthesize_speech", return_value=b"wav-bytes") as mock:
-        path = TTSService(media_root=str(tmp_path)).generate_audio(text="hello", api=API)
+        path = TTSService(media_root=str(tmp_path)).generate_audio(text="hello", api=TTS_API)
     filename = path.rsplit("/", 1)[-1]
     assert path == f"/{tmp_path.name}/audio/{filename}"
     assert (tmp_path / "audio" / filename).read_bytes() == b"wav-bytes"
     mock.assert_called_once_with(
-        base_url=API["base_url"], api_key=API["api_key"], model=API["model"], voice="en_f", text="hello"
+        base_url=API["base_url"], api_key=API["api_key"], model=API["model"], voice="alloy", text="hello"
     )
 
 
@@ -74,4 +75,4 @@ def test_tts_missing_api_raises(tmp_path):
 def test_tts_error_propagates(tmp_path):
     with patch("lapp.services.tts.synthesize_speech", side_effect=RuntimeError("boom")):
         with pytest.raises(RuntimeError):
-            TTSService(media_root=str(tmp_path)).generate_audio(text="hello", api=API)
+            TTSService(media_root=str(tmp_path)).generate_audio(text="hello", api=TTS_API)

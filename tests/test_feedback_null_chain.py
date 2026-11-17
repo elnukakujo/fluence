@@ -1,6 +1,6 @@
 def test_generate_feedback_with_null_lesson():
     """Exercise with lesson=None returns fallback feedback, not exception."""
-    from src.lapp.services.feedback import FeedbackService
+    from lapp.services.feedback import FeedbackService
 
     svc = FeedbackService()
 

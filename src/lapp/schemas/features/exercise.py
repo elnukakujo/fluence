@@ -3,9 +3,7 @@ from pydantic import field_validator, model_validator
 
 from ..base import BaseFeatureDict
 
-from ...services.exercises.registry import EXERCISE_TYPES
 
-VALID_EXERCISE_TYPES = list(EXERCISE_TYPES)
 
 
 class ExerciseDict(BaseFeatureDict):
@@ -18,6 +16,8 @@ class ExerciseDict(BaseFeatureDict):
     category: Optional[str] = None              # exam-section slug; free text on purpose (the client owns the table)
 
     generation_batch_id: Optional[str] = None   # AI generation run that made it
+    machine_made: Optional[bool] = None         # made by AI; stays set after acceptance
+    draft: Optional[bool] = None                # AI-made and not accepted yet: excluded from study and search
     review_reason: Optional[str] = None         # set = generated exercise awaiting review (explicit None on update clears it)
 
     related_vocabulary: Optional[list[str]] = None # e.g., ["voc_V1"]
@@ -32,7 +32,8 @@ class ExerciseDict(BaseFeatureDict):
 
     @model_validator(mode='after')
     def _validate(self):
-        valid_exercise_types = VALID_EXERCISE_TYPES
+        from ...services.exercises.registry import EXERCISE_TYPES     # here, not at the top: the services package imports these schemas
+        valid_exercise_types = list(EXERCISE_TYPES)
         if self.exercise_type not in valid_exercise_types:
             raise ValueError(f"Invalid exercise_type: {self.exercise_type}. Must be one of {valid_exercise_types}.")
 

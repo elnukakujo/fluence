@@ -18,6 +18,25 @@ def _register_test_routes(app):
     def protected():
         return jsonify({'ok': True})
 
+    from pydantic import BaseModel
+    from werkzeug.exceptions import abort
+    from lapp.utils.request import parse_json
+
+    class _Body(BaseModel):
+        name: str
+
+    @app.route('/test/boom')
+    def boom():
+        raise RuntimeError("SELECT secret FROM /var/lib/pg")
+
+    @app.route('/test/abort/<int:code>')
+    def abort_code(code):
+        abort(code)
+
+    @app.route('/test/parse', methods=['POST'])
+    def parse():
+        return {"name": parse_json(_Body).name}
+
     @app.route('/test/admin')
     @admin_required
     def admin_only():

@@ -6,7 +6,10 @@
   "settings": "Settings",
   "account": "Account",
   "openSearch": "Search",
+  "lightTheme": "Switch to light theme",
+  "darkTheme": "Switch to dark theme",
   "closeSearch": "Close search",
   "mainNav": "Main navigation",
-  "back": "Back"
+  "back": "Back",
+  "inboxCount": "Inbox: {count} waiting"
 }

@@ -39,6 +39,7 @@ Run `/graphify --update <changed paths>` before ending the turn — every turn, 
 - LLM calls (text gen, TTS, feedback) go through `src/lapp/utils/model_api.py` — never direct.
 - New models go in the right `models/<bucket>/` and its `__init__.py` — the import order in
   `models/__init__.py` is load-bearing.
+- Words, characters (radicals included) and passages are components: never offer, list or count them as something to study, review, set goals on or choose in settings. Only vocabulary, grammar, calligraphy and exercises are studied (`docs/domain/foundations/domain-rules-for-agents.md` §0).
 - Never invent domain logic or scoring thresholds — leave a `TODO` and ask.
 - Every dropdown is the shared `ClassicSelectMenu` — never a native `<select>`, `datalist` or one-off menu; extend it instead (`docs/rules/ui-components.md`).
 - Never spawn a sub-agent for structural exploration — use `/graphify`.

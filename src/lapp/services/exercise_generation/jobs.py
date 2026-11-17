@@ -8,7 +8,7 @@ from flask import Flask
 from ...core.database import db_manager
 from ...schemas import ExerciseDict
 from ...utils import get_language_by_iso2t
-from ...utils.llm_providers import resolve_api
+from ...services.capabilities import gated_api
 from ..features.exercise import ExerciseService
 from ..system_data import SourceService, UserPreferencesService
 from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch
@@ -61,7 +61,7 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
                 well_known = known_words(lesson_id, user_id, s)
                 advanced = is_advanced(well_known)
                 prefs = UserPreferencesService().get_by_user_id(user_id, session=s)
-                tts = prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None
+                tts = gated_api(prefs, "tts") is not None
                 slots = plan_slots_from_mix(pool, mix) if mix else plan_slots(pool, count, prefs.exercise_type_prefs, tts, advanced=advanced)
             job["total"] = len(slots)
             known = list(dict.fromkeys(well_known + [p.label for p in pool]))[:KNOWN_MAX]       # what the learner knows, then this lesson's own elements
@@ -74,7 +74,7 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
                 for item, reason in zip(items, reasons):
                     fields = {k: item[k] for k in ("exercise_type", "question", "answer", "text_support", "content",
                                                    "related_vocabulary", "related_grammar", "related_calligraphy")}
-                    made = ExerciseService().create(ExerciseDict(lesson_id=lesson_id, generation_batch_id=batch_id, review_reason=reason, **fields),
+                    made = ExerciseService().create(ExerciseDict(lesson_id=lesson_id, generation_batch_id=batch_id, review_reason=reason, machine_made=True, draft=True, **fields),
                                                     session=s, as_dict=True)
                     created.append((made["id"], reason))
             with db_manager.session_scope() as s:

@@ -76,5 +76,7 @@
   "deletedLanguages": "{count, plural, one {# langue supprimée} other {# langues supprimées}}",
   "weekDelta": "{delta} vs semaine dernière",
   "heatmapLegend": "Réponses par jour, par tranche",
-  "todayTitle": "Aujourd'hui"
+  "todayTitle": "Aujourd'hui",
+  "formHeading": "Langue",
+  "formDetailsSection": "Détails"
 }

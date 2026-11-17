@@ -5,11 +5,14 @@ import { throwIfConflict } from "./conflictError";
 export class ApiError extends Error {
   status: number;
   serverMessage?: string;
-  constructor(message: string, status: number, serverMessage?: string) {
+  /** The parsed JSON body of the error response, for errors that carry data (e.g. merge conflicts). */
+  body?: Record<string, unknown>;
+  constructor(message: string, status: number, serverMessage?: string, body?: Record<string, unknown>) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.serverMessage = serverMessage;
+    this.body = body;
   }
 }
 
@@ -55,7 +58,7 @@ export async function apiFetch<T = any>(path: string, opts: ApiOptions): Promise
   if (opts.conflict) await throwIfConflict(res);
   if (!res.ok) {
     const body = await res.json().catch(() => undefined);
-    throw new ApiError(opts.errorMessage, res.status, body?.error ?? body?.detail);
+    throw new ApiError(opts.errorMessage, res.status, body?.error ?? body?.detail, body);
   }
   if (opts.raw) return res as T;
   const text = await res.text();

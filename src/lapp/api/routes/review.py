@@ -37,7 +37,6 @@ def get_scoped_queue(language_id: str):
         - {name: tag_id, in: query, type: string}
         - {name: source_id, in: query, type: string}
         - {name: type, in: query, type: string, description: vocabulary, grammar, calligraphy, character or exercise}
-        - {name: radicals, in: query, type: string, description: "1 = only the characters that are radicals (with type=character)"}
         - {name: ids, in: query, type: string, description: comma-separated element ids (scope=free)}
     responses:
         200: {description: "Queue items: the card fields plus kind, skill, bonus, est_seconds, leech"}
@@ -49,7 +48,7 @@ def get_scoped_queue(language_id: str):
     if kind not in SCOPES or (kind in needs and not a.get(needs[kind])) or (kind == 'free' and not a.get('ids')):
         return jsonify({'error': 'unknown scope or missing id'}), 400
     return _queue(language_id, Scope(kind=kind, lesson_id=a.get('lesson_id'), tag_id=a.get('tag_id'), source_id=a.get('source_id'),
-                                     element_type=a.get('type'), radicals=a.get('radicals') == '1',
+                                     element_type=a.get('type'),
                                      ids=[i for i in a.get('ids', '').split(',') if i]))
 
 
@@ -119,10 +118,10 @@ def complete_review(language_id: str):
           required: true
     responses:
         200:
-            description: "{streak: current streak length, validated: whether today is now a streak day}"
+            description: "{streak: current streak length, validated: whether today is a streak day, just_validated: this call made it one}"
     """
     require_write(language_id)
     remember_timezone(current_user_id(), request.headers.get('X-Timezone'))
     status = StudyActivity().complete_queue(current_user_id(), language_id)
     WeeklySnapshotService().catch_up(current_user_id(), prefs_for(current_user_id()).timezone)       # a missed week is written on the first visit after it closed
-    return jsonify({"streak": status.streak, "validated": status.validated})
+    return jsonify({"streak": status.streak, "validated": status.validated, "just_validated": status.just_validated})

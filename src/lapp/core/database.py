@@ -49,6 +49,9 @@ ID_PREFIXES = {
     "StudyGoal": "goal_G",
     "StudyGoalItem": "goali_I",
     "LessonGate": "gate_G",
+    "CourseSetting": "cset_C",
+    "FailureMemory": "fail_F",
+    "ChangeLog": "chg_C",
     "LearnerDay": "lday_D",
     "WeeklySnapshot": "wsnap_W",
 }

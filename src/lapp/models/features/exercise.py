@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, JSON
+from sqlalchemy import Boolean, Column, String, JSON
 from sqlalchemy.orm import relationship
 
 from ..base import BaseFeatureModel, exercise_calligraphy_link, exercise_grammar_link, exercise_vocabulary_link
@@ -14,6 +14,9 @@ class Exercise(BaseFeatureModel):
     category = Column(String, nullable=True)  # exam-section slug (listening, reading, ...); the client owns the per-language table, never validated here
     generation_batch_id = Column(String, nullable=True, index=True)  # set on AI-generated exercises: one id per generation run
     review_reason = Column(String, nullable=True)  # why a generated exercise awaits review; set = not ready until accepted
+    # AI-made content (DM-16/17): `machine_made` stays for good; `draft` keeps it out of study and search until the learner accepts it.
+    machine_made = Column(Boolean, nullable=False, default=False, server_default="false")
+    draft = Column(Boolean, nullable=False, default=False, server_default="false")
     accepted_answers = Column(JSON, nullable=True)  # extra answers that count as right besides `answer` (the display answer); None = just `answer`
     content = Column(JSON, nullable=True)  # structured data for type_in_the_blank/select_in_the_blank/matching/organize/true_false/quizz
     
@@ -27,7 +30,9 @@ class Exercise(BaseFeatureModel):
         A generated exercise waits for review; its content must fit its type (else the runner would crash);
         a dictation needs a clip for every line."""
         from ...services.exercises.content import conversation_json_ok, exercise_content_ok, reading_stored_ok   # local: services import models
-        needs = ["review"] if self.review_reason else []
+        needs = ["draft"] if getattr(self, "draft", False) else []
+        if self.review_reason:
+            needs.append("review")
         try:
             fits = (conversation_json_ok(self.question, self.answer) if self.exercise_type == "conversation"   # the runner reads question/answer
                     else reading_stored_ok(self.content) if self.exercise_type == "reading"   # stored shape differs from the model's
@@ -55,6 +60,8 @@ class Exercise(BaseFeatureModel):
             "category": self.category,
             "generation_batch_id": self.generation_batch_id,
             "review_reason": self.review_reason,
+            "machine_made": self.machine_made,
+            "draft": self.draft,
             "needs": self.needs,
             "related_vocabulary": [v.id for v in self.related_vocabulary],
             "related_calligraphy": [c.id for c in self.related_calligraphy],

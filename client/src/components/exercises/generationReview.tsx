@@ -32,7 +32,7 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
     const closeRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
-        getExercisesByLesson(lessonId).then((list: Exercise[]) => setEntries(list.filter((e) => e.review_reason).map(toEntry)), () => setError("failed"));
+        getExercisesByLesson(lessonId).then((list: Exercise[]) => setEntries(list.filter((e) => e.draft || e.review_reason).map(toEntry)), () => setError("failed"));
     }, [lessonId]);
 
     const finish = () => { router.refresh(); onClose(); };
@@ -48,7 +48,7 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
     const accept = async (e: Entry) => {
         const r = e.row;
         await updateExercise(e.id, { exercise_type: r.exercise_type as Exercise["exercise_type"], question: r.question, answer: r.answer, text_support: r.text_support ?? undefined,
-                                      content: (r.content ?? undefined) as Exercise["content"], lesson_id: lessonId, review_reason: null });
+                                      content: (r.content ?? undefined) as Exercise["content"], lesson_id: lessonId, review_reason: null, draft: false });
         return e.id;
     };
     const remove = async (e: Entry) => { await deleteExercise(e.id); return e.id; };
@@ -72,7 +72,7 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
                                 <li key={e.id} className="card flex flex-col gap-2">
                                     <p className="flex flex-wrap items-center gap-2">
                                         <span className="badge">{EXERCISE_TYPE_KEY[e.row.exercise_type ?? ""] ? t(EXERCISE_TYPE_KEY[e.row.exercise_type ?? ""]) : e.row.exercise_type}</span>
-                                        <span className="badge badge-warn"><span className="sr-only">{t("reviewReasonLabel")}: </span>{e.reason}</span>
+                                        {e.reason && <span className="badge badge-warn"><span className="sr-only">{t("reviewReasonLabel")}: </span>{e.reason}</span>}
                                     </p>
                                     {editing.includes(e.id)
                                         ? <ExerciseEditor row={e.row} onChange={(p) => patch(e.id, p)} />

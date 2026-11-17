@@ -146,6 +146,15 @@ class LanguageService:
         Returns:
             Created Language object if successful, else None
         """
+        from ...core.languages import language_for, language_for_iso2
+        supported = language_for(data.iso1) if data.iso1 else language_for_iso2(data.target_iso639_2t)
+        if supported is None:
+            raise ValueError("a course needs a supported language (iso1)")
+        if session.query(Language).filter(Language.user_id == data.user_id, Language.iso1 == supported.iso1).first():
+            raise ValueError(f"you already have a {supported.name} course")
+        data.iso1, data.target_iso639_2t = supported.iso1, supported.iso2
+        data.name = data.name or supported.name
+        data.flag = data.flag or supported.flag
         last = session.query(func.max(Language.position)).filter(Language.user_id == data.user_id).scalar()
         language = Language(
             position=0 if last is None else last + 1,
@@ -153,6 +162,7 @@ class LanguageService:
             user_id=data.user_id,
             name=data.name,
             alias=data.alias,
+            iso1=data.iso1,
             flag=data.flag,
             level=data.level,
             description=data.description,
@@ -225,11 +235,19 @@ class LanguageService:
             logger.warning(f"Language not found: {language_id}")
             return None
 
-        update_data = data.model_dump(exclude={'current_lesson_id', 'id', 'user_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
+        update_data = data.model_dump(exclude={'iso1', 'target_iso639_2t', 'current_lesson_id', 'id', 'user_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
 
         for key, value in update_data.items():
             if value is not None:
                 setattr(existing, key, value)
+
+        if data.iso1 and existing.iso1 is None:
+            # A course the registry migration could not match: the owner picks its supported language once.
+            from ...core.languages import language_for
+            supported = language_for(data.iso1)
+            if session.query(Language).filter(Language.user_id == existing.user_id, Language.iso1 == supported.iso1).first():
+                raise ValueError(f"you already have a {supported.name} course")
+            existing.iso1, existing.target_iso639_2t = supported.iso1, supported.iso2
 
         if data.tags is not None:
             existing.tags = resolve_related(data.tags, Tag, session)

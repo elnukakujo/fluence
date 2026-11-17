@@ -27,7 +27,7 @@ export type ScopeParams =
   | { scope: "lesson"; lesson_id: string }
   | { scope: "tag"; tag_id: string }
   | { scope: "source"; source_id: string }
-  | { scope: "type"; type: string; radicals?: boolean }
+  | { scope: "type"; type: string }
   | { scope: "free"; ids: string[] };
 
 function scopeQuery(p: ScopeParams): URLSearchParams {
@@ -35,7 +35,7 @@ function scopeQuery(p: ScopeParams): URLSearchParams {
   if (p.scope === "lesson") q.set("lesson_id", p.lesson_id);
   if (p.scope === "tag") q.set("tag_id", p.tag_id);
   if (p.scope === "source") q.set("source_id", p.source_id);
-  if (p.scope === "type") { q.set("type", p.type); if (p.radicals) q.set("radicals", "1"); }
+  if (p.scope === "type") { q.set("type", p.type); }
   if (p.scope === "free") q.set("ids", p.ids.join(","));
   return q;
 }
@@ -56,6 +56,6 @@ export function queueHref(languageId: string, params: ScopeParams): string {
 }
 
 /** The daily review queue was finished: validates today for the streak (once per day). */
-export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean }> {
+export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean; just_validated: boolean }> {
   return apiFetch(`/api/review/${languageId}/complete`, { method: "POST", body: { cards }, errorMessage: "Failed to complete the review" });
 }

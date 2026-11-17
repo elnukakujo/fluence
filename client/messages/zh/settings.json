@@ -5,7 +5,15 @@
     "learning": "学习",
     "aiFeatures": "AI 功能",
     "endpoints": "端点",
-    "goals": "学习目标"
+    "goals": "学习目标",
+    "uploads": "上传",
+    "pace": "节奏",
+    "review": "复习内容",
+    "answer": "答题方式",
+    "see": "显示",
+    "skills": "技能",
+    "ai": "AI",
+    "study": "学习细节"
   },
   "profile": {
     "title": "个人资料",
@@ -45,14 +53,9 @@
     }
   },
   "preferences": {
-    "title": "学习偏好",
+    "title": "复习计划与搭配",
     "nativeLanguages": "母语",
-    "dailyGoal": "每日目标",
-    "dailyGoalUnit": "分钟 / 天",
-    "exerciseTypes": "偏好的练习类型",
-    "dailyGoalAria": "每日目标（分钟）",
-    "dailyGoalValueAria": "每日目标分钟数",
-    "dailyHint": "你希望每天学习多长时间。每日复习和学习目标会据此调整。"
+    "exerciseTypes": "偏好的练习类型"
   },
   "aiFeatures": {
     "title": "AI 功能",
@@ -69,7 +72,12 @@
     "tts": "文本转语音",
     "ttsDesc": "单词、句子和字符的音频",
     "resetDefaults": "重置为默认值",
-    "saveSuccessLabel": "功能已保存"
+    "saveSuccessLabel": "功能已保存",
+    "openEndpoints": "设置端点",
+    "needEndpoint_text": "导师反馈以及句子和词语建议需要一个已启用的文本端点。",
+    "needTest_text": "导师反馈以及句子和词语建议需要你的文本端点通过连接测试。",
+    "needEndpoint_tts": "语音合成需要一个已启用的音频端点。",
+    "needTest_tts": "语音合成需要你的音频端点通过连接测试。"
   },
   "buttons": {
     "save": "保存更改",
@@ -84,5 +92,24 @@
   "sectionsAriaLabel": "设置分区",
   "createAccountTagline": "创建账号，开始学习。",
   "alreadyRegistered": "已有账号？",
-  "signInLink": "登录"
+  "signInLink": "登录",
+  "uploads": {
+    "title": "我的上传",
+    "description": "你导入的文档。删除会移除文件、其解析副本和导入记录；已加入课程的词语会保留。",
+    "empty": "没有上传。",
+    "delete": "删除",
+    "confirm": "删除“{name}”？此操作无法撤销。",
+    "failedLoad": "无法加载你的上传",
+    "failedDelete": "无法删除此上传"
+  },
+  "sections": {
+    "profile": "个人资料",
+    "learning": "学习",
+    "learningHint": "学习多少，以及怎么学。",
+    "ai": "AI",
+    "aiHint": "连接你自己的 AI 服务；应用不内置任何服务。",
+    "study": "学习细节",
+    "studyHint": "很少修改：此课程、答题方式、复习计划、技能。",
+    "admin": "管理"
+  }
 }

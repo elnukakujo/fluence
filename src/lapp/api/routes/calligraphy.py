@@ -8,6 +8,7 @@ from ...core.exceptions import DuplicateEntityError
 from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...utils.helpers import score_drawing
+from ...utils.request import parse_json
 
 bp = Blueprint('calligraphy', __name__, url_prefix='/api/calligraphy')
 calligraphy_service = CalligraphyService()
@@ -225,7 +226,7 @@ def create_calligraphy():
     try:
         # Validate request data
         on_conflict = request.json.pop('on_conflict', None) if request.json else None
-        data = CalligraphyDict(**request.json)
+        data = parse_json(CalligraphyDict)
         require_write(data.lesson_id)
 
         # Create calligraphy
@@ -379,7 +380,7 @@ def update_calligraphy(calligraphy_id: str):
     """
     try:
         require_write(calligraphy_id)
-        data = CalligraphyDict(**request.json)
+        data = parse_json(CalligraphyDict)
 
         calligraphy = calligraphy_service.update(calligraphy_id, data, as_dict=True)
         

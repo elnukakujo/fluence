@@ -359,5 +359,7 @@
     "excellent": "非常好",
     "good": "不错",
     "keepGoing": "继续加油"
-  }
+  },
+  "generateInInbox": "它们会留在收件箱，直到你接受。",
+  "generateOpenInbox": "打开收件箱"
 }

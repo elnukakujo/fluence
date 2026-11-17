@@ -52,7 +52,7 @@ export default function LogsSection() {
   };
 
   return (
-    <SectionCard title={t("title")}>
+    <SectionCard title={t("title")} fold>
       <p className="text-sm opacity-60">
         {t("description")}
       </p>

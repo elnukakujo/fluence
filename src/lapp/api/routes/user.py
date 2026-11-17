@@ -8,6 +8,7 @@ from ...services.system_data import UserService
 from ...core.auth import login_required, admin_required, require_self_or_admin, current_user_id
 from ...core.database import db_manager
 from ...models.system_data import User as UserModel
+from ...utils.request import parse_json
 user_service = UserService()
 
 bp = Blueprint('user', __name__, url_prefix='/api/user')
@@ -127,7 +128,7 @@ def create_user():
 
     try:
         # Validate request data
-        data = UserDict(**request.json)
+        data = parse_json(UserDict)
 
         # Public signup (unauthenticated) -> pending approval; admin-created -> approved.
         user = user_service.create(data, as_dict=True, approved=current_user_id() is not None)
@@ -204,7 +205,7 @@ def update_user(user_id: str):
     """
     try:
         require_self_or_admin(user_id)
-        data = UserDict(**request.json)
+        data = parse_json(UserDict)
 
         user = user_service.update(user_id, data, as_dict=True)
 

@@ -6,12 +6,12 @@ import SharedBadge from "../collaboration/sharedBadge";
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 
-type Counts = { voc: number; gram: number; call: number; ex: number };
+type Counts = { voc?: number; gram?: number; call?: number; ex?: number };       // a kind the course does not study is left out
 
 /** The lesson's identity (title, shared badge, description), how much of each kind it holds, and as children its main action. */
 export default function LessonHeaderCard({ lesson, counts, children }: { lesson: Lesson; counts?: Counts; children?: React.ReactNode }) {
     const t = useTranslations("study");
-    const kinds = counts ? ([["voc", counts.voc], ["gram", counts.gram], ["call", counts.call], ["ex", counts.ex]] as const) : [];
+    const kinds = counts ? (["voc", "gram", "call", "ex"] as const).flatMap((k) => counts[k] === undefined ? [] : [[k, counts[k]] as const]) : [];
     return (
         <section className="card tile-hero grid gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
             <div className="flex min-w-0 flex-col gap-3">

@@ -81,16 +81,15 @@ def test_source_scope(db):
     assert "gram_G1" not in ids(queue(Scope("source", source_id="src_S1")))
 
 
-def test_type_scope_radicals_only(db):
+def test_type_scope_keeps_the_type(db):
     seed(db)
-    assert {c["id"] for c in queue(Scope("type", element_type="character", radicals=True)) if c["kind"] == "calligraphy"} == {"call_C0"}
     assert {c["kind"] for c in queue(Scope("type", element_type="grammar"))} <= {"grammar", "exercise"}
 
 
 def test_free_scope_returns_exactly_the_ids_and_ignores_the_time_budget(db):
     seed(db)
     asked = ["voc_V0", "gram_G1", "call_C2", "ex_E1"]
-    cards = queue(Scope("free", ids=asked), daily_goal_minutes=1)
+    cards = queue(Scope("free", ids=asked), reviews_per_day=1)
     assert ids(cards) == set(asked) and {c.get("side") for c in cards if c["id"] == "voc_V0"} == {"front", "back"}
 
 
@@ -114,7 +113,7 @@ def test_bonus_items_follow_the_menu_and_are_never_unstarted(db):
     seed(db)
     StudyGoalService().upsert(U, L, "week", 1, 0, 0)          # the menu: one new vocabulary
     ScoreService().record_side(U, "voc_V3", "front", "recognition", 1.0, "typed")      # a started word outside the menu
-    cards = queue(Scope(), daily_goal_minutes=20)
+    cards = queue(Scope(), reviews_per_day=20)
     voc = {c["id"]: c["bonus"] for c in cards if c["kind"] == "vocabulary"}
     assert voc.get("voc_V3") is True and sum(1 for b in voc.values() if not b) == 1
     assert set(voc) <= {"voc_V3", next(i for i, b in voc.items() if not b)}              # V1/V2 (unstarted) never ride along
@@ -149,3 +148,14 @@ def test_queue_route_takes_a_scope_and_rejects_a_bad_one(app, db):
     assert c.get(f"/api/review/{L}/queue?scope=lesson").status_code == 400            # id missing
     assert c.get(f"/api/review/{L}/queue?scope=nope").status_code == 400
     assert c.get(f"/api/review/{L}").status_code == 200                                  # the daily alias
+
+
+def test_a_course_without_calligraphy_serves_none(db):
+    from lapp.models.system_data import CourseSetting
+    seed(db)
+    lesson = Scope("lesson", lesson_id="lesson_L2")
+    assert any(c["id"].startswith("call_") for c in queue(lesson))
+    with db.session_scope() as s:
+        db.insert(CourseSetting(id="cs_1", user_id=U, language_id=L, key="element_types", value=["vocabulary", "grammar", "exercises"]), session=s, commit=False)
+    cards = queue(lesson)
+    assert cards and not any(c["id"].startswith("call_") for c in cards)

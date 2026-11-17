@@ -43,6 +43,7 @@ class ApiEndpoint(BaseModel):
     voice_gender: Optional[str] = None  # "male" | "female" | None
     api_format: str = "openai"
     auth_type: str = "bearer"
+    test: Optional[dict] = None   # {passed, at, config_hash}: written by the server only (the client value is discarded)
 
     @field_validator("provider")
     @classmethod
@@ -90,7 +91,8 @@ class UserPreferencesDict(BaseModel):
     voc_side_pattern: Optional[dict] = None
     exercise_type_prefs: Optional[dict] = None
     review_layout: Optional[list] = None
-    daily_goal_minutes: Optional[int] = 20
+    new_per_week: Optional[int] = 15
+    reviews_per_day: Optional[int] = 40
     timezone: Optional[str] = None
     streak_min_answers: Optional[int] = 20
     last_updated: Optional[datetime] = None
@@ -162,7 +164,7 @@ class UserPreferencesDict(BaseModel):
     @field_validator("exercise_type_prefs")
     @classmethod
     def _validate_type_prefs(cls, v: Optional[dict]) -> Optional[dict]:
-        from ..features.exercise import VALID_EXERCISE_TYPES
+        from ...services.exercises.registry import EXERCISE_TYPES as VALID_EXERCISE_TYPES
         if v is None:
             return None
         for k, mode in v.items():
@@ -182,11 +184,11 @@ class UserPreferencesDict(BaseModel):
         out, seen = [], set()
         for sec in v:
             t = sec.get("type") if isinstance(sec, dict) else None
-            minutes = sec.get("minutes") if isinstance(sec, dict) else None
+            count = sec.get("count") if isinstance(sec, dict) else None
             if t not in REVIEW_SECTION_TYPES or t in seen:
                 raise ValueError(f"Unknown or repeated review section: {t}")
-            if minutes is not None and (not isinstance(minutes, int) or isinstance(minutes, bool) or minutes <= 0):
-                raise ValueError("section minutes must be a positive integer or null")
+            if count is not None and (not isinstance(count, int) or isinstance(count, bool) or count <= 0):
+                raise ValueError("section count must be a positive integer or null")
             seen.add(t)
-            out.append({"type": t, "minutes": minutes})
+            out.append({"type": t, "count": count})
         return out

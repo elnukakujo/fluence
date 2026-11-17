@@ -3,6 +3,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
+from ..audio import exercise_type_offered
 from ..features.study_constants import (BOOST_FACTOR, GEN_CALL_PER_EXERCISE, GEN_GRAMMAR_EXERCISES, GEN_GUARANTEE_READING_FROM, GEN_MAX,
                                         GEN_MIN, GEN_MULTI_ITEM, GEN_READING_WEIGHT, GEN_VOC_PER_EXERCISE)
 from ..exercises.registry import EXERCISE_TYPES
@@ -38,7 +39,7 @@ def _type_weights(type_prefs: Optional[dict], tts_enabled: bool, advanced: bool 
     weights = {}
     for t in EXERCISE_TYPES:
         mode = effective_mode(type_prefs, t, None)
-        if mode == "ban" or (t == "dictation" and not tts_enabled) or (t in ADVANCED_TYPES and not advanced):
+        if mode == "ban" or not exercise_type_offered(t, tts_enabled) or (t in ADVANCED_TYPES and not advanced):
             continue
         weights[t] = (BOOST_FACTOR if mode == "boost" else 1.0) * (GEN_READING_WEIGHT if t == "reading" else 1.0)
     return weights

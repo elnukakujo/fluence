@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 from ..core.database import db_manager
 from ..services import TTSService, PassageService, WordService, CharacterService
 from ..services.system_data import UserPreferencesService
-from ..utils.llm_providers import resolve_api
+from ..services.capabilities import gated_api
 from ..utils import get_language_by_iso2t
 from ..schemas.components import CharacterDict, PassageDict, WordDict
 from ..models.components import Passage, Character, Word
@@ -113,7 +113,7 @@ def generate_missing_component_audio(app: Flask):
                     if language.user_id not in ai_tts_by_user:
                         prefs = user_preferences_service.get_by_user_id(language.user_id, session=session)
                         enabled = prefs is None or prefs.ai_tts_enabled is not False
-                        api = resolve_api(prefs, "tts") if prefs else None
+                        api = gated_api(prefs, "tts") if prefs else None
                         ai_tts_by_user[language.user_id] = (enabled, api)
                     enabled, api = ai_tts_by_user[language.user_id]
                     if not enabled:

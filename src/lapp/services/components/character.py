@@ -18,7 +18,13 @@ from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
 RADICAL_LANGUAGES = {"zho", "jpn"}      # the languages with a radical dictionary (DM-50: Korean has none)
-NO_CHARACTER_LANGUAGES = {"kor"}      # DM-50: Korean has no Character/radical element type
+
+
+def has_characters(iso2: str | None) -> bool:
+    """DM-50: read from the language registry (Korean has no Character/radical element type)."""
+    from ...core.languages import language_for_iso2
+    supported = language_for_iso2(iso2)
+    return supported.has_characters if supported else True      # unknown (legacy) courses keep working
 
 
 def _clean_readings(readings: list) -> list:
@@ -182,7 +188,7 @@ class CharacterService:
             )
 
         language = db_manager.find_by_attr(model_class=Language, attr_values={"id": data.language_id}, session=session)
-        if language and language.target_iso639_2t in NO_CHARACTER_LANGUAGES:
+        if language and not has_characters(language.target_iso639_2t):
             raise ValueError("this language has no characters")          # DM-50
 
         source_iso1 = get_language_by_iso2t(language.source_iso639_2t).iso1 if language else None

@@ -112,7 +112,6 @@ class UserService:
                 user_id=user_id,
                 native_language_iso639_2=user_data.preferences.native_language_iso639_2 if user_data.preferences else [],
                 learning_goals=user_data.preferences.learning_goals if user_data.preferences else "",
-                daily_goal_minutes=user_data.preferences.daily_goal_minutes if user_data.preferences else 20,
                 ai_feedback_enabled=user_data.preferences.ai_feedback_enabled if user_data.preferences else True,
                 ai_learnable_sentence_enabled=user_data.preferences.ai_learnable_sentence_enabled if user_data.preferences else True,
                 ai_example_sentence_enabled=user_data.preferences.ai_example_sentence_enabled if user_data.preferences else True,
@@ -169,7 +168,6 @@ class UserService:
                 user_id=user_id,
                 native_language_iso639_2=update_data.preferences.native_language_iso639_2 if update_data.preferences else [],
                 learning_goals=update_data.preferences.learning_goals if update_data.preferences else "",
-                daily_goal_minutes=update_data.preferences.daily_goal_minutes if update_data.preferences else 20,
                 ai_feedback_enabled=update_data.preferences.ai_feedback_enabled if update_data.preferences else True,
                 ai_learnable_sentence_enabled=update_data.preferences.ai_learnable_sentence_enabled if update_data.preferences else True,
                 ai_example_sentence_enabled=update_data.preferences.ai_example_sentence_enabled if update_data.preferences else True,
@@ -246,11 +244,20 @@ class UserService:
         from ...models.containers import Language
         from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking
 
+        from .collaboration import CollaborationService
+        CollaborationService().release_user(user_id, session=session)       # collaborators keep copies (DM-25)
+
         for row in db_manager.find_all(UserSession, filters={"user_id": user_id}, session=session):
             db_manager.delete(row, session=session, commit=False)
 
         if user.preferences:
             user_preferences_service.delete(id=user.preferences.id, session=session)
+
+        from ...models.system_data import CourseSetting, LessonGate, OverrideFlag, Score
+        from ...models.data_collection import LearnerDay, WeeklySnapshot
+        for model in (Score, OverrideFlag, LessonGate, CourseSetting, LearnerDay, WeeklySnapshot):     # the learner's own progress goes with them
+            for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
+                db_manager.delete(row, session=session, commit=False)
 
         for model in (CommitmentLog, DailyStats, ProgressTracking, StudyGoal, ExerciseUserPref):
             for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):

@@ -178,28 +178,7 @@
    8.0
   ],
   [
-   "ex_E2",
-   null,
-   null,
-   false,
-   5.5
-  ],
-  [
    "voc_V0",
-   "back",
-   null,
-   false,
-   8.0
-  ],
-  [
-   "ex_E4",
-   null,
-   null,
-   false,
-   5.5
-  ],
-  [
-   "voc_V2",
    "back",
    null,
    false,
@@ -213,11 +192,32 @@
    8.0
   ],
   [
+   "voc_V2",
+   "back",
+   null,
+   false,
+   8.0
+  ],
+  [
    "voc_V4",
    "back",
    null,
    false,
    8.0
+  ],
+  [
+   "ex_E2",
+   null,
+   "ex",
+   true,
+   5.5
+  ],
+  [
+   "ex_E4",
+   null,
+   "ex",
+   true,
+   5.5
   ]
  ],
  "layout_sections": [
@@ -229,35 +229,7 @@
    8.0
   ],
   [
-   "voc_V2",
-   "front",
-   "voc",
-   false,
-   8.0
-  ],
-  [
-   "voc_V4",
-   "front",
-   "voc",
-   false,
-   8.0
-  ],
-  [
    "voc_V0",
-   "back",
-   "voc",
-   false,
-   8.0
-  ],
-  [
-   "voc_V2",
-   "back",
-   "voc",
-   false,
-   8.0
-  ],
-  [
-   "voc_V4",
    "back",
    "voc",
    false,
@@ -295,7 +267,7 @@
    "ex_E4",
    null,
    "ex",
-   false,
+   true,
    5.5
   ]
  ]

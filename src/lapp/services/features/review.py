@@ -17,7 +17,7 @@ from .study_constants import LEECH_CANDIDATES, LEECH_CONFUSABLE_RATIO, SPARE_EXE
 
 from .review_queue import (  # noqa: F401  (re-exported: tests and callers import the helpers from here)
     Scope, build_queue, card_seconds, collect_candidates, item_skill, order_bucket, pair_vocabulary, plan_budgets, quotas,
-    section_budgets, section_minutes,
+    section_budgets,
 )
 
 
@@ -27,7 +27,7 @@ class ReviewService:
     No persisted SRS state: every card's "should review now" priority is
     computed from fields it already has (created_at / last_seen_at / difficulty
     / score) via review_priority(). The queue interleaves the three flashcard
-    types and is capped by the user's daily_goal_minutes.
+    types and is capped by the user's reviews per day.
     """
 
     @transactional

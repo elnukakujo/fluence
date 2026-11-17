@@ -313,7 +313,7 @@ export default function EndpointCard({
                     type={showKey ? "text" : "password"}
                     value={endpoint.api_key ?? ""}
                     onChange={(e) => onUpdate({ ...endpoint, api_key: e.target.value || undefined })}
-                    placeholder={t("apiKeyPlaceholder")}
+                    placeholder={endpoint.has_key && !endpoint.api_key ? "••••••••" : t("apiKeyPlaceholder")}
                     disabled={disabled}
                   />
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex gap-0.5">

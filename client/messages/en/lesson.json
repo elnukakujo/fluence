@@ -23,5 +23,6 @@
   "merging": "Merging…",
   "mergeFailed": "Could not merge the lessons",
   "mergeInvalid": "Choose two different lessons of this language to merge.",
-  "backToLanguage": "Back to the language"
+  "backToLanguage": "Back to the language",
+  "formHeading": "Lesson"
 }

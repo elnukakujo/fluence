@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, CheckCircle2, Minus, Plus, Sparkles, X } from "lucide-react";
 import { getActiveGeneration, getGeneration, startGeneration, suggestGeneration, undoGenerationBatch, type GenerationJob } from "@/api/exercise";
@@ -214,6 +215,7 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
                                 <p className="text-base font-medium">{t("generateSaved", { count: job.result.saved })}</p>
                             </div>
                         )}
+                        {phase === "done" && job?.result && <p className="text-sm text-muted">{t("generateInInbox")} <Link href="/inbox" className="link">{t("generateOpenInbox")}</Link></p>}
 
                         {phase === "error" && (
                             <p role="alert" className="callout flex items-start gap-2"><AlertTriangle size={18} aria-hidden className="mt-0.5 shrink-0" /><span>{error}</span></p>

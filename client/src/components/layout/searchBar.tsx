@@ -9,6 +9,7 @@ const BADGE_COLORS: Record<SearchCategory, string> = {
   container: "bg-pink-100 text-pink-800",
   feature: "bg-yellow-100 text-yellow-800",
   component: "bg-blue-100 text-blue-800",
+  label: "bg-green-100 text-green-800",
 };
 
 export default function SearchBar({ currentUserId, autoFocus = false }: { currentUserId: string | null; autoFocus?: boolean }) {
@@ -111,6 +112,8 @@ export default function SearchBar({ currentUserId, autoFocus = false }: { curren
     if (result.type === "passage" && result.language_id) {
       return `/languages/${result.language_id}/passage/${result.id}`;
     }
+
+    if (result.type === "tag" || result.type === "source") return `/${result.type}s/${result.id}`;
 
     return `/${result.type}/${result.id}`;
   };

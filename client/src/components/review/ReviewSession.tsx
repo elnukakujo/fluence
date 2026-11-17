@@ -61,7 +61,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const finish = () => {          // the queue's last card was answered: the day counts for the streak, once
         if (finishedRef.current || !languageId || options?.completeOnFinish === false) return;
         finishedRef.current = true;
-        completeReview(languageId, queue.length).then((r) => setStreak(r.validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
+        completeReview(languageId, queue.length).then((r) => setStreak(r.just_validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
     };
     const last = remaining.length === 1;
     useEffect(() => { if (last && graded) finish(); });

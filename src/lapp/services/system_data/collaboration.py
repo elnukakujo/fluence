@@ -7,6 +7,19 @@ from ...core.database import db_manager, transactional
 from ...models.system_data import Collaboration
 
 
+_MERGE_FIELDS = {"word": ("translation", "phonetic", "word_type", "word_gender"),
+                 "character": ("phonetic", "meaning", "radical", "strokes"),
+                 "passage": ("translation",)}
+MERGE_CHOICES = ("keep", "overwrite", "merge")
+
+
+class MergeConflicts(Exception):
+    """A full merge meets items that exist on both sides with different content: the owner decides each one (DM-24)."""
+    def __init__(self, conflicts: list[dict]):
+        super().__init__(f"{len(conflicts)} conflicting item(s)")
+        self.conflicts = conflicts
+
+
 class CollaborationService:
     @transactional
     def invite(self, master_id: str, collaborator_id: str, target_type: str, target_id: str,
@@ -15,6 +28,7 @@ class CollaborationService:
         """Invite a collaborator (idempotent). For a language target the master may offer `mode`
         ('full' | 'partial'; partial needs `lesson_ids` of that language). Lesson targets take neither."""
         from ...models.containers import Lesson
+        self._require_common_native_language(master_id, collaborator_id, session)
         if target_type == "lesson":
             if mode is not None or lesson_ids is not None:
                 raise ValueError("a lesson invite takes no mode or lesson_ids")
@@ -61,6 +75,17 @@ class CollaborationService:
         session.add(collab)
         session.flush()
         return collab
+
+    @staticmethod
+    def _native_languages(user_id: str, session: Session) -> set[str]:
+        from ...models.system_data import UserPreferences
+        prefs = session.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
+        return set((prefs.native_language_iso639_2 if prefs else None) or ["eng"])      # no preferences = the default, English
+
+    def _require_common_native_language(self, a: str, b: str, session: Session) -> None:
+        """DM-45: sharing needs at least one native language in common (TODO(owner): tighten to all?)."""
+        if not self._native_languages(a, session) & self._native_languages(b, session):
+            raise ValueError("you can only share with someone who has a native language in common with you")
 
     def _offer_more_lessons(self, collab: Collaboration, lesson_ids: list[str], session: Session) -> None:
         """An invitee who already accepted a partial offer gets further lessons as lesson-only
@@ -221,8 +246,11 @@ class CollaborationService:
             self._replicate_language(lang_id, user_id, session=session)
 
     @transactional
-    def consent(self, collaboration_id: str, session: Optional[Session] = None) -> Optional[Collaboration]:
-        """Master approves a full merge: merge the collaborator's same-ISO language into the target."""
+    def consent(self, collaboration_id: str, decisions: Optional[dict] = None,
+                session: Optional[Session] = None) -> Optional[Collaboration]:
+        """Master approves a full merge: merge the collaborator's same-ISO language into the target. Items that exist on both
+        sides with different content need a decision each (`decisions`: {incoming element id: keep|overwrite|merge}); without
+        them `MergeConflicts` is raised and nothing changes."""
         from ...models.containers import Language
         collab = session.query(Collaboration).filter(Collaboration.id == collaboration_id).first()
         if not collab or collab.mode != "full" or collab.status != "awaiting_master_consent":
@@ -235,7 +263,7 @@ class CollaborationService:
                 Language.source_iso639_2t == target.source_iso639_2t,
             ).first()
             if collab_lang:
-                self.merge_language(collab_lang.id, collab.target_id, collab.collaborator_id, session=session)
+                self.merge_language(collab_lang.id, collab.target_id, collab.collaborator_id, decisions=decisions, session=session)
         collab.status = "accepted"
         session.flush()
         return collab
@@ -299,6 +327,9 @@ class CollaborationService:
         from ...models.system_data import LessonShare
         lesson_ids = [l.id for l in session.query(Lesson).filter(
             Lesson.language_id == collab.target_id).all()]
+        for lesson_id in lesson_ids:
+            if session.query(LessonShare.id).filter(LessonShare.lesson_id == lesson_id, LessonShare.user_id == collab.collaborator_id).first():
+                self._fork(collab.collaborator_id, "lesson", lesson_id, session)      # DM-58: they keep a copy, their scores follow it
         if lesson_ids:
             session.query(LessonShare).filter(
                 LessonShare.user_id == collab.collaborator_id,
@@ -310,6 +341,7 @@ class CollaborationService:
         """Drop every collaboration pointing at a language/lesson that is about to be deleted
         (a language also takes its lessons' invitations), so no dangling invites survive."""
         from ...models.containers import Lesson
+        self.release_copies(target_type, target_id, session=session)
         q = session.query(Collaboration)
         if target_type == "language":
             lesson_ids = [l for (l,) in session.query(Lesson.id).filter(Lesson.language_id == target_id).all()]
@@ -322,12 +354,49 @@ class CollaborationService:
         q.delete(synchronize_session=False)
 
     @transactional
+    def release_copies(self, target_type: str, target_id: str, session: Optional[Session] = None) -> None:
+        """Before the owner deletes a language or lesson (DM-25/58): every active collaborator gets their own copy and keeps their
+        scores (they follow the copy); the owner's container, children and scores go with the delete as before."""
+        from ...models.containers import Lesson
+        from ...models.system_data import LessonShare
+        forked_languages: set[str] = set()
+        if target_type == "language":
+            for c in session.query(Collaboration).filter(
+                    Collaboration.target_type == "language", Collaboration.target_id == target_id,
+                    Collaboration.status == "accepted", or_(Collaboration.mode.is_(None), Collaboration.mode == "full")).all():
+                self._fork(c.collaborator_id, "language", target_id, session)
+                forked_languages.add(c.collaborator_id)
+            lesson_ids = [l for (l,) in session.query(Lesson.id).filter(Lesson.language_id == target_id).all()]
+        else:
+            lesson_ids = [target_id]
+        for share in session.query(LessonShare).filter(LessonShare.lesson_id.in_(lesson_ids)).all() if lesson_ids else []:
+            if share.user_id not in forked_languages:
+                self._fork(share.user_id, "lesson", share.lesson_id, session)
+            session.delete(share)
+        session.flush()
+
+    @transactional
+    def release_user(self, user_id: str, session: Optional[Session] = None) -> None:
+        """A user is being deleted: copies for everyone who shared in their languages, then every share and invitation that
+        involves them goes (as owner, collaborator or editor)."""
+        from ...models.containers import Language
+        from ...models.system_data import ChangeLog, LessonShare
+        for (language_id,) in session.query(Language.id).filter(Language.user_id == user_id).all():
+            self.purge_target("language", language_id, session=session)
+        session.query(LessonShare).filter(or_(LessonShare.user_id == user_id, LessonShare.owner_id == user_id)).delete(synchronize_session=False)
+        session.query(ChangeLog).filter(ChangeLog.user_id == user_id).delete(synchronize_session=False)
+        session.query(Collaboration).filter(or_(Collaboration.master_id == user_id, Collaboration.collaborator_id == user_id)).delete(synchronize_session=False)
+        session.flush()
+
+    @transactional
     def leave_lesson(self, lesson_id: str, user_id: str, session: Optional[Session] = None) -> None:
         """Unshare one lesson; if the user holds no remaining shares on its language, end the
         language collaboration so the master can invite them again."""
         from ...models.containers import Lesson
         from ...models.system_data import LessonShare
         from .lesson_share import LessonShareService
+        if LessonShareService().is_recipient(user_id, lesson_id, session=session):
+            self._fork(user_id, "lesson", lesson_id, session)             # DM-58: unsharing leaves them a copy; nobody's score changes
         LessonShareService().unshare(lesson_id, user_id, session=session)
         lesson = session.query(Lesson).filter(Lesson.id == lesson_id).first()
         if lesson is None:
@@ -471,9 +540,47 @@ class CollaborationService:
         self._remap_scores(collaborator_id, element_map, lesson_map, session)
 
     @transactional
+    def merge_conflicts(self, source_language_id: str, target_language_id: str, session: Optional[Session] = None) -> list[dict]:
+        """Items of `source` that already exist in `target` (same word / character / passage text) with different content:
+        `[{id, kind, key, existing, incoming, diff}]`, `id` being the incoming element's id (the key of a decision)."""
+        from ...models.components import Character, Passage, Word
+        out = []
+        for kind, model, key_field in (("word", Word, "word"), ("character", Character, "character"), ("passage", Passage, "text")):
+            fields = _MERGE_FIELDS[kind]
+            for incoming in session.query(model).filter(model.language_id == source_language_id).all():
+                existing = session.query(model).filter(model.language_id == target_language_id,
+                                                       getattr(model, key_field) == getattr(incoming, key_field)).first()
+                if existing is None:
+                    continue
+                diff = [f for f in fields if getattr(incoming, f) not in (None, "") and getattr(existing, f) not in (None, "")
+                        and getattr(incoming, f) != getattr(existing, f)]
+                if diff:
+                    out.append({"id": incoming.id, "kind": kind, "key": getattr(incoming, key_field), "diff": diff,
+                                "existing": {f: getattr(existing, f) for f in fields}, "incoming": {f: getattr(incoming, f) for f in fields}})
+        return out
+
+    @staticmethod
+    def _apply_decision(existing, incoming, fields: tuple, choice: str) -> None:
+        if choice == "overwrite":
+            for f in fields:
+                if getattr(incoming, f) not in (None, ""):
+                    setattr(existing, f, getattr(incoming, f))
+        elif choice == "merge":          # fill what the owner's item lacks, keep what it has
+            for f in fields:
+                if getattr(existing, f) in (None, "") and getattr(incoming, f) not in (None, ""):
+                    setattr(existing, f, getattr(incoming, f))
+
+    @transactional
     def merge_language(self, source_language_id: str, target_language_id: str,
-                       collaborator_id: str, session: Optional[Session] = None) -> None:
-        """Merge `source` language's lessons into `target`, remap the collaborator's Score, delete `source`."""
+                       collaborator_id: str, decisions: Optional[dict] = None,
+                       session: Optional[Session] = None) -> None:
+        """Merge `source` language's lessons into `target`, remap the collaborator's Score, delete `source`.
+        Conflicting items (see `merge_conflicts`) need a decision each, else `MergeConflicts` is raised before anything changes."""
+        decisions = decisions or {}
+        if source_language_id != target_language_id:
+            pending = [c for c in self.merge_conflicts(source_language_id, target_language_id, session=session) if decisions.get(c["id"]) not in MERGE_CHOICES]
+            if pending:
+                raise MergeConflicts(pending)
         from ...models.containers import Language, Lesson
         from ...models.components import Word, Character, Passage
         from ...models.features import Vocabulary, Grammar, Calligraphy, Exercise
@@ -496,21 +603,24 @@ class CollaborationService:
         feature_map: dict[str, str] = {}
         lesson_map: dict[str, str] = {}
 
-        def get_or_create_component(model, key_field, key_value, **fields):
+        def get_or_create_component(model, key_field, key_value, source_id=None, kind=None, **fields):
             existing = session.query(model).filter(
                 model.language_id == target_language_id,
                 getattr(model, key_field) == key_value,
             ).first()
+            if existing and source_id in decisions:
+                incoming = session.get(model, source_id)
+                self._apply_decision(existing, incoming, _MERGE_FIELDS[kind], decisions[source_id])
             return existing.id if existing else clone(model, language_id=target_language_id, **fields).id
 
         for w in session.query(Word).filter(Word.language_id == source_language_id).all():
-            word_map[w.id] = get_or_create_component(Word, "word", w.word, word=w.word, translation=w.translation,
+            word_map[w.id] = get_or_create_component(Word, "word", w.word, source_id=w.id, kind="word", word=w.word, translation=w.translation,
                                                      phonetic=w.phonetic, word_type=w.word_type, word_gender=w.word_gender)
         for c in session.query(Character).filter(Character.language_id == source_language_id).all():
-            char_map[c.id] = get_or_create_component(Character, "character", c.character, character=c.character,
+            char_map[c.id] = get_or_create_component(Character, "character", c.character, source_id=c.id, kind="character", character=c.character,
                                                      phonetic=c.phonetic, meaning=c.meaning, radical=c.radical, strokes=c.strokes)
         for p in session.query(Passage).filter(Passage.language_id == source_language_id).all():
-            pass_map[p.id] = get_or_create_component(Passage, "text", p.text, text=p.text, translation=p.translation)
+            pass_map[p.id] = get_or_create_component(Passage, "text", p.text, source_id=p.id, kind="passage", text=p.text, translation=p.translation)
 
         for lesson in session.query(Lesson).filter(Lesson.language_id == source_language_id).all():
             new_lesson = clone(Lesson, user_id=target_owner, language_id=target_language_id,

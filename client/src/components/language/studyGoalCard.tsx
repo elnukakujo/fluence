@@ -15,18 +15,17 @@ import InlineError from "@/components/ui/inlineError";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const PERIODS: StudyGoal["period"][] = ["week", "biweek", "month"];
-type Draft = Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "n_radicals" | "r_radicals" | "active" | "auto">;
+type Draft = Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "active" | "auto">;
 const KINDS: { kind: GoalKind; label: string; n: keyof Draft; r: keyof Draft; Icon: typeof BookOpen }[] = [
     { kind: "vocabulary", label: "section_voc", n: "n_vocabulary", r: "r_vocabulary", Icon: BookOpen },
     { kind: "grammar", label: "section_gram", n: "n_grammar", r: "r_grammar", Icon: PenLine },
     { kind: "calligraphy", label: "section_call", n: "n_calligraphy", r: "r_calligraphy", Icon: Brush },
 ];
-const BLANK: Draft = { period: "week", n_vocabulary: 0, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 0, r_grammar: 0, r_calligraphy: 0, n_radicals: 0, r_radicals: 0, active: true, auto: false };
+const BLANK: Draft = { period: "week", n_vocabulary: 0, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 0, r_grammar: 0, r_calligraphy: 0, active: true, auto: false };
 const draftOf = (s: StudyGoalState): Draft => s.goal ? {
     period: s.goal.period, active: s.goal.active, auto: s.goal.auto,
     n_vocabulary: s.goal.n_vocabulary, n_grammar: s.goal.n_grammar, n_calligraphy: s.goal.n_calligraphy,
     r_vocabulary: s.goal.r_vocabulary, r_grammar: s.goal.r_grammar, r_calligraphy: s.goal.r_calligraphy,
-    n_radicals: s.goal.n_radicals ?? 0, r_radicals: s.goal.r_radicals ?? 0,
 } : BLANK;
 
 /** Study goals, one card per language with two states. Unlocked: edit the period and the new / review quantities
@@ -46,6 +45,13 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     useEffect(() => {
         getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
     }, [userId]);
+
+    useEffect(() => {      // the pace numbers were saved: only what the suggestion and the totals rest on is re-read, never the numbers being edited
+        const reread = () => Object.keys(states).forEach((id) => getStudyGoal(id).then((fresh) =>
+            setStates((x) => ({ ...x, [id]: { ...x[id], suggested: fresh.suggested, targets: fresh.targets, kinds: fresh.kinds } }))).catch(() => {}));
+        window.addEventListener("study-goals-changed", reread);
+        return () => window.removeEventListener("study-goals-changed", reread);
+    }, [states]);
 
     useEffect(() => {
         if (!languageId || states[languageId]) return;
@@ -79,7 +85,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     const hasOwnMenu = !!progress && !!states[languageId]?.goal && !states[languageId].goal!.auto;   // a menu the user locked before
     const isLocked = hasOwnMenu && !editing.has(languageId);
     const submit = (e: React.FormEvent) => { e.preventDefault(); if (hasOwnMenu) setConfirming(true); else lock(false); };
-    // changing a quantity makes the goal the user's own (it stops following the daily minutes)
+    // changing a quantity makes the goal the user's own (it stops following your pace numbers)
     const edit = (patch: Partial<Draft>, own = false) => {
         setDrafts((d) => ({ ...d, [languageId]: { ...d[languageId], ...patch, ...(own ? { auto: false } : {}) } }));
     };
@@ -89,6 +95,12 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         n_vocabulary: suggested.n.vocabulary, n_grammar: suggested.n.grammar, n_calligraphy: suggested.n.calligraphy,
         r_vocabulary: suggested.r.vocabulary, r_grammar: suggested.r.grammar, r_calligraphy: suggested.r.calligraphy,
     });
+    const target = states[languageId]?.targets?.[draft?.period ?? "week"];
+    const sumN = draft ? draft.n_vocabulary + draft.n_grammar + draft.n_calligraphy : 0;
+    const sumR = draft ? draft.r_vocabulary + draft.r_grammar + draft.r_calligraphy : 0;
+    const mismatch = !!target && !draft?.auto && (sumN !== target.n || sumR !== target.r);     // the suggested split may round off by one: it is always allowed
+    const shown = KINDS.filter((k) => !states[languageId]?.kinds || states[languageId].kinds!.includes(k.kind));       // the types this course studies
+    const sameAsSuggested = !!suggested && shown.every(({ kind, n, r }) => draft?.[n] === suggested.n[kind] && draft?.[r] === suggested.r[kind]);
     const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
     return (
@@ -121,13 +133,6 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                     <span className="pill"><b>{progress.types[kind].r}</b>{t("goalColReview").toLowerCase()}</span>
                                 </li>
                             ))}
-                            {(progress.radicals?.n ?? 0) + (progress.radicals?.r ?? 0) > 0 && (
-                                <li className="lock-row">
-                                    <span className="lock-row-name"><Brush size={16} className="text-accent" aria-hidden />{t("goalRadicals")}</span>
-                                    <span className="pill"><b>{progress.radicals!.n}</b>{t("goalColNew").toLowerCase()}</span>
-                                    <span className="pill"><b>{progress.radicals!.r}</b>{t("goalColReview").toLowerCase()}</span>
-                                </li>
-                            )}
                         </ul>
                     </section>
                 )}
@@ -153,31 +158,25 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                             <span className={`inline-flex items-center gap-1.5 ${draft.auto ? "text-accent" : "text-muted"}`}>
                                 <Sparkles size={14} aria-hidden />{draft.auto ? t("goalAuto") : t("goalCustom")}
                             </span>
-                            {draft.auto
-                                ? <span className="text-muted">{t("goalAutoHint")}</span>
-                                : suggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
+                            {draft.auto && <span className="text-muted">{t("goalAutoHint")}</span>}
+                            {suggested && !sameAsSuggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
                         </div>
                         <div className="lock-rows grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-3" role="group" aria-label={t("goalQuantities")}>
                             <span aria-hidden />
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColNew")}</span>
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColReview")}</span>
-                            {KINDS.map(({ kind, label, n, r, Icon }) => (
+                            {shown.map(({ kind, label, n, r, Icon }) => (
                                 <div key={kind} className="contents">
                                     <span className="inline-flex items-center gap-2 text-sm"><Icon size={16} aria-hidden className="text-muted" />{t(label)}</span>
                                     <NumberField ariaLabel={`${t(label)}: ${t("goalColNew")}`} value={draft[n] as number} onChange={(v) => edit({ [n]: v === "" ? 0 : v }, true)} />
                                     <NumberField ariaLabel={`${t(label)}: ${t("goalColReview")}`} value={draft[r] as number} onChange={(v) => edit({ [r]: v === "" ? 0 : v }, true)} />
                                 </div>
                             ))}
-                            {/* the radicals quota is optional and never part of the suggestion: it stays 0 until the learner sets it */}
-                            <div className="contents">
-                                <span className="inline-flex items-center gap-2 text-sm"><Brush size={16} aria-hidden className="text-muted" />{t("goalRadicals")}</span>
-                                <NumberField ariaLabel={`${t("goalRadicals")}: ${t("goalColNew")}`} value={draft.n_radicals} onChange={(v) => edit({ n_radicals: v === "" ? 0 : v }, true)} />
-                                <NumberField ariaLabel={`${t("goalRadicals")}: ${t("goalColReview")}`} value={draft.r_radicals} onChange={(v) => edit({ r_radicals: v === "" ? 0 : v }, true)} />
-                            </div>
                         </div>
+                        {mismatch && target && <p className="text-sm text-danger" role="alert">{t("goalTotalsMismatch", { n: target.n, r: target.r, sumN, sumR })}</p>}
                         <ToggleRow label={t("goalActive")} description={t("goalActiveDesc")} checked={draft.active} onChange={(v) => edit({ active: v })} />
                         <div className="flex flex-wrap items-center gap-3">
-                            <SaveButton isLoading={saving} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
+                            <SaveButton isLoading={saving} disabled={mismatch} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
                             {hasOwnMenu && <button type="button" className="btn btn-secondary min-h-11" onClick={cancelEdit}>{t("goalCancel")}</button>}
                         </div>
                     </section>
