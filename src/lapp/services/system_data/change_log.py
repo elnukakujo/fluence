@@ -57,9 +57,9 @@ def _editor_of(session: Session, lesson_id: str) -> Optional[str]:
 
 
 @event.listens_for(Session, "before_flush")
-def _record(session: Session, flush_context, instances) -> None:
-    if session.info.get("change_log_off"):
-        return
+def _collect(session: Session, flush_context, instances) -> None:
+    """Note what the editor is changing (the before values are gone once the flush is done). Rows are written at commit:
+    allocating ids needs a savepoint, which a session cannot open while it is flushing."""
     pending = [(o, "create") for o in session.new] + [(o, "update") for o in session.dirty] + [(o, "delete") for o in session.deleted]
     for obj, op in pending:
         if type(obj).__name__ not in LOGGED or not getattr(obj, "lesson_id", None):
@@ -70,13 +70,20 @@ def _record(session: Session, flush_context, instances) -> None:
         if editor is None:
             continue
         before, after = _columns(obj, only_changed=(op == "update"))
-        session.info["change_log_off"] = True        # the entry's own id lookup and insert must not recurse into this hook
-        try:
-            session.add(ChangeLog(id=db_manager.generate_new_id(ChangeLog, session=session), lesson_id=obj.lesson_id, user_id=editor,
-                                  element_id=obj.id, op=op,
-                                  before=None if op == "create" else before, after=None if op == "delete" else after))
-        finally:
-            session.info.pop("change_log_off", None)
+        session.info.setdefault("change_log_pending", []).append(dict(
+            lesson_id=obj.lesson_id, user_id=editor, element_id=obj.id, op=op,
+            before=None if op == "create" else before, after=None if op == "delete" else after))
+
+
+@event.listens_for(Session, "before_commit")
+def _write(session: Session) -> None:
+    for entry in session.info.pop("change_log_pending", []):
+        session.add(ChangeLog(id=db_manager.generate_new_id(ChangeLog, session=session), **entry))
+
+
+@event.listens_for(Session, "after_rollback")
+def _drop(session: Session) -> None:
+    session.info.pop("change_log_pending", None)
 
 
 class ChangeLogService:
@@ -99,20 +106,16 @@ class ChangeLogService:
             raise PermissionError("only the lesson's owner can revert a change")
         model = kind_of(entry.element_id).model()
         obj = session.query(model).filter(model.id == entry.element_id).first()
-        session.info["change_log_off"] = True
-        try:
-            if entry.op == "create":
-                if obj is not None:
-                    session.delete(obj)
-            elif entry.op == "update":
-                if obj is None:
-                    return False
-                for key, value in (entry.before or {}).items():
-                    setattr(obj, key, value)
-            elif entry.op == "delete" and obj is None:
-                session.add(model(**{k: v for k, v in (entry.before or {}).items() if k not in ("created_at", "last_seen_at")}))
-            entry.reverted_at = datetime.now()
-            session.flush()
-        finally:
-            session.info.pop("change_log_off", None)
+        if entry.op == "create":
+            if obj is not None:
+                session.delete(obj)
+        elif entry.op == "update":
+            if obj is None:
+                return False
+            for key, value in (entry.before or {}).items():
+                setattr(obj, key, value)
+        elif entry.op == "delete" and obj is None:
+            session.add(model(**{k: v for k, v in (entry.before or {}).items() if k not in ("created_at", "last_seen_at")}))
+        entry.reverted_at = datetime.now()
+        session.flush()
         return True

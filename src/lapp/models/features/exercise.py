@@ -30,7 +30,7 @@ class Exercise(BaseFeatureModel):
         A generated exercise waits for review; its content must fit its type (else the runner would crash);
         a dictation needs a clip for every line."""
         from ...services.exercises.content import conversation_json_ok, exercise_content_ok, reading_stored_ok   # local: services import models
-        needs = ["draft"] if self.draft else []
+        needs = ["draft"] if getattr(self, "draft", False) else []
         if self.review_reason:
             needs.append("review")
         try:

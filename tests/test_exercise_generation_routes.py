@@ -82,9 +82,9 @@ def test_generate_saves_the_clean_ones_and_flags_the_doubtful(app, db, stub):
     assert job["result"]["saved"] == 2 and len(job["result"]["flagged"]) == 1
     exercises = {e["id"]: e for e in c.get("/api/exercise/lesson/lesson_L1").get_json()}
     flagged = exercises[job["result"]["flagged"][0]]
-    assert flagged["review_reason"] == "answer is wrong" and flagged["needs"] == ["review"]
-    ok = [e for e in exercises.values() if not e["review_reason"]]
-    assert len(ok) == 2 and all(e["needs"] == [] and e["generation_batch_id"] == job["result"]["batch_id"] and e["related_vocabulary"] == ["voc_V0"] for e in ok)
+    assert flagged["review_reason"] == "answer is wrong" and flagged["needs"] == ["draft", "review"]
+    ok = [e for e in exercises.values() if not e["review_reason"]]                # AI-made: drafts until accepted (DM-16)
+    assert len(ok) == 2 and all(e["needs"] == ["draft"] and e["machine_made"] and e["generation_batch_id"] == job["result"]["batch_id"] and e["related_vocabulary"] == ["voc_V0"] for e in ok)
 
 
 def test_generate_refuses_without_an_endpoint_an_empty_lesson_or_a_bad_count(app, db, stub):

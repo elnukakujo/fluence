@@ -255,6 +255,12 @@ class UserService:
         if user.preferences:
             user_preferences_service.delete(id=user.preferences.id, session=session)
 
+        from ...models.system_data import CourseSetting, LessonGate, OverrideFlag, Score
+        from ...models.data_collection import LearnerDay, WeeklySnapshot
+        for model in (Score, OverrideFlag, LessonGate, CourseSetting, LearnerDay, WeeklySnapshot):     # the learner's own progress goes with them
+            for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
+                db_manager.delete(row, session=session, commit=False)
+
         for model in (CommitmentLog, DailyStats, ProgressTracking, StudyGoal, ExerciseUserPref):
             for row in db_manager.find_all(model, filters={"user_id": user_id}, session=session):
                 db_manager.delete(row, session=session, commit=False)
