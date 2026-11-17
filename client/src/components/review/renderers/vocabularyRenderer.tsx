@@ -12,7 +12,7 @@ import LeechChoice from "@/components/elements/leechChoice";
 import { HINT_CAPS } from "@/utils/cardHints";
 import { scaffoldsFor, tierOf } from "@/utils/cardTier";
 import { isListenFirst } from "@/utils/listenFirst";
-import { gradeForTyped, gradeFromCloseness, matchesAnswer } from "@/utils/typedAnswer";
+import { blankQuality, gradeForTyped, matchesAnswer } from "@/utils/typedAnswer";
 import FlipCard from "../FlipCard";
 import type { ItemRenderer, RendererCtx } from "../types";
 
@@ -22,13 +22,12 @@ type Vocabulary = VocabularyBase & { leech?: Leech };
 /** A typed answer: graded by exact match, else by character closeness (a failed request keeps the exact-match grade). `null` = gave up. */
 async function answerTyped(c: RendererCtx<Vocabulary>, value: string | null) {
     const correct = value !== null && matchesAnswer(value, c.item.word);
-    const ms = c.elapsedMs();        // taken at submit: the request's latency never changes the speed bonus
-    let grade = gradeForTyped(correct, ms), diff: number[] | undefined;
+    let grade = gradeForTyped(correct), diff: number[] | undefined;
     if (value !== null && !correct && c.item.word.word) {
         c.setTypedPending(true);
         try {
             const r = await scoreTypedAnswer(value, c.item.word.word, c.languageId);
-            grade = gradeFromCloseness(r.closeness, ms);
+            grade = blankQuality(r.closeness);
             diff = r.diff;
         } catch { /* exact-match grade */ }
         c.setTypedPending(false);

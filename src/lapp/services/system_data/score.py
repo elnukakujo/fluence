@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, tzinfo
+from datetime import date, datetime, tzinfo
 from statistics import mean
 from typing import Optional
 
@@ -9,7 +9,7 @@ from ...core.database import db_manager, transactional
 from ...models.system_data import Score
 from ...utils.element_kinds import kind_of
 from ...utils.scoring import (
-    EVIDENCE_WEIGHTS, STABILITY_CAP_DAYS, ScoreState, apply_answer, effective_score, is_weak, level_for,
+    DAY_GAIN_CAP, EVIDENCE_WEIGHTS, STABILITY_CAP_DAYS, ScoreState, apply_answer, effective_score, is_weak, level_for,
 )
 
 SIDES = ("front", "back")
@@ -103,6 +103,16 @@ def _vocabulary(parent_rows: list, side_rows: dict, now: datetime) -> Optional[_
         skills=skills, sides={sd: {"score": s.score, "difficulty": s.difficulty} for sd, s in sides.items()})
 
 
+@dataclass
+class PriorityInput:
+    """What `review_priority` needs for one element (decay applied), plus whether today's gain cap is reached."""
+    score: float
+    stability: float
+    last_seen_at: Optional[datetime]
+    lapses: int             # wrong answers among the last 8 (the engine's `recent`)
+    capped: bool            # every skill already gained DAY_GAIN_CAP today: more answers earn nothing (spec G3)
+
+
 class ScoreService:
     @transactional
     def record(self, user_id: str, element_id: str, skill: str, quality: float, evidence_type: str,
@@ -127,6 +137,8 @@ class ScoreService:
         # difficulty follows stability (1 = about to be forgotten) so readers that still use it keep working until Task 8
         row.difficulty = round(1 - min(new.stability, STABILITY_CAP_DAYS) / STABILITY_CAP_DAYS, 4)
         session.flush()
+        from ..features.study_goal import StudyGoalService      # lazy: features import this module
+        StudyGoalService().mark_succeeded(user_id, element_id, now, session=session)    # reached known once = succeeded for good (DM-53)
         return row
 
     @transactional
@@ -193,6 +205,30 @@ class ScoreService:
             return {}
         found = self._collect(session, user_id, list(element_ids), now or datetime.now())
         return {eid: self._view(user_id, eid, s) for eid, s in found.items()}
+
+    @transactional
+    def priority_inputs(self, user_id: str, element_ids: list[str], now: datetime, today: date,
+                        session: Optional[Session] = None) -> dict[str, PriorityInput]:
+        """Review-priority inputs per element that has a score row. A vocabulary id combines its sides (mean score,
+        least stable, most recent, most lapses); `today` is the learner's day for the gain cap."""
+        ids = set(element_ids)
+        wanted = ids | {side_id(i, s) for i in ids if _is_voc_parent(i) for s in SIDES}
+        by_el: dict = {}
+        for r in session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(wanted)).all():
+            by_el.setdefault(r.element_id, []).append(r)
+        out = {}
+        for eid in ids:
+            rows = by_el.get(eid, [])
+            if _is_voc_parent(eid):
+                rows = rows + [r for s in SIDES for r in by_el.get(side_id(eid, s), [])]
+            if not rows:
+                continue
+            seen = [r.last_seen_at for r in rows if r.last_seen_at]
+            out[eid] = PriorityInput(
+                score=mean(_effective(r, now) for r in rows), stability=min(r.stability for r in rows),
+                last_seen_at=max(seen) if seen else None, lapses=max(r.recent.count("0") for r in rows),
+                capped=all(r.day_date == today and r.day_gain >= DAY_GAIN_CAP for r in rows))
+        return out
 
     @transactional
     def set(self, user_id: str, element_id: str, score: float, difficulty: float,

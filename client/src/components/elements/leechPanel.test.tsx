@@ -21,6 +21,17 @@ describe("LeechPanel", () => {
         expect(screen.getByText(/book/)).toBeInTheDocument();
     });
 
+    it("shows how close the card is to leaving (n/3 right in a row) and what it is confused with", () => {
+        render(<LeechPanel id="voc_1" leech={{ ...leech, correct_in_row: 2, confusable: { word: "日本人", translation: "Japanese person" } }} note={null} />);
+        expect(screen.getByTestId("leech-leaving")).toHaveTextContent("2/3 correct in a row");
+        expect(screen.getByText(/日本人.*Japanese person/)).toBeInTheDocument();
+    });
+
+    it("starts at 0/3 when the server sent no streak", () => {
+        render(<LeechPanel id="voc_1" leech={leech} note={null} />);
+        expect(screen.getByTestId("leech-leaving")).toHaveTextContent("0/3");
+    });
+
     it("saves the note when the field is left, only if it changed", async () => {
         render(<LeechPanel id="voc_1" leech={{ ...leech, parts: [] }} note="old" />);
         const field = screen.getByLabelText("Your memory trick");

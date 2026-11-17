@@ -90,5 +90,6 @@
   "goalEditingFirst": "Choose a period and quantities, then lock them to build your menu.",
   "goalEditingKeep": "Your current menu stays active until you lock again.",
   "goalLock": "Lock goals",
-  "goalLocked": "Locked"
+  "goalLocked": "Locked",
+  "lessonContents": "Contents of this lesson"
 }

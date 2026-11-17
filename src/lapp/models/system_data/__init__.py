@@ -8,7 +8,9 @@ from .score import Score
 from .lesson_share import LessonShare
 from .ingestion_job import IngestionJob
 from .exercise_user_pref import ExerciseUserPref
+from .override_flag import OverrideFlag
 from .study_goal import StudyGoal, StudyGoalItem
+from .lesson_gate import LessonGate
 
 __all__ = [
     "User",
@@ -21,6 +23,8 @@ __all__ = [
     "LessonShare",
     "IngestionJob",
     "ExerciseUserPref",
+    "OverrideFlag",
     "StudyGoal",
     "StudyGoalItem",
+    "LessonGate",
 ]

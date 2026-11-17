@@ -254,7 +254,13 @@ class EvaluatorService:
         if not correct_text:
             logger.warning(f"Could not retrieve correct text for Exercise {ex_id}. Returning score of 0.")
             raise ValueError("Correct text not found for the given exercise ID.")
+        # any accepted answer may be the one the learner matched: keep the best-scoring reference
+        references = [correct_text, *(a for a in (exercise.accepted_answers or []) if a and a != correct_text)]
+        return max((self._score_against(ex_id, user_text, ref, exercise_type, target_lang_iso2t) for ref in references),
+                   key=lambda r: r["score"])
 
+    def _score_against(self, ex_id: str, user_text: str, correct_text: str, exercise_type: str,
+                       target_lang_iso2t: Optional[str]) -> dict[str, float | str]:
         # Get the weights for the specific exercise type
         x, y, z = self.exercises_scales[exercise_type]
 

@@ -11,7 +11,7 @@ from ...models.features import Vocabulary
 from ...models.system_data import Tag, Source, Score
 from ..containers import LessonService, LanguageService
 from ..components import WordService, PassageService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from ..system_data.score import SIDES
 
@@ -24,7 +24,7 @@ lesson_service = LessonService()
 language_service = LanguageService()
 word_service = WordService()
 passage_service = PassageService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 
@@ -305,10 +305,8 @@ class VocabularyService:
         for sd in ([side] if side else SIDES):
             updated = score_service.record_side(user_id, voc_id, sd, skill or SIDE_SKILL[sd], score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=vocabulary.lesson.language_id,
+        study_activity.record(
+            user_id, vocabulary.lesson.language_id, ProgressTrackingDict(
                 element_id=voc_id,
                 element_type="vocabulary",
                 element_status=level_for(updated.score),

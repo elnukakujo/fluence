@@ -50,5 +50,28 @@
   "updateCalligraphy": "Modifier la calligraphie",
   "calligraphyFlashcard": "Flashcard de calligraphie",
   "deleteCalligraphyButton": "Supprimer",
-  "updateInformations": "Modifier"
+  "updateInformations": "Modifier",
+  "reviewThis": "Réviser ceci",
+  "reviewIn": "Réviser en {name}",
+  "reviewByType": "Réviser par type",
+  "reviewByTypeHint": "Tout un type, dans l'ordre naturel, sans limite de temps.",
+  "queueTitle": {
+    "daily": "Révision du jour",
+    "lesson": "Révision de la leçon",
+    "tag": "Révision du tag",
+    "source": "Révision de la source",
+    "type": "Révision par type",
+    "free": "Pratique libre"
+  },
+  "typeLabel": {
+    "vocabulary": "Vocabulaire",
+    "grammar": "Grammaire",
+    "calligraphy": "Calligraphie",
+    "exercise": "Exercices"
+  },
+  "studyActions": "Étudier",
+  "lessonsTitle": "Leçons",
+  "manage": "Gérer",
+  "reviewLesson": "Réviser cette leçon",
+  "backToLanguage": "Retour à la langue"
 }

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Literal
 from pydantic import BaseModel, field_validator
+from zoneinfo import available_timezones
 
 VALID_PROVIDERS = {
     "openai", "deepseek", "ollama", "kimi", "groq", "mistral", "mistral_ocr",
@@ -90,6 +91,8 @@ class UserPreferencesDict(BaseModel):
     exercise_type_prefs: Optional[dict] = None
     review_layout: Optional[list] = None
     daily_goal_minutes: Optional[int] = 20
+    timezone: Optional[str] = None
+    streak_min_answers: Optional[int] = 20
     last_updated: Optional[datetime] = None
     ai_feedback_enabled: Optional[bool] = True
     ai_learnable_sentence_enabled: Optional[bool] = True
@@ -104,6 +107,20 @@ class UserPreferencesDict(BaseModel):
     ai_tts_model: Optional[str] = None
     ai_endpoints: Optional[list] = None
     user: Optional[dict] = None
+
+    @field_validator("timezone")
+    @classmethod
+    def _validate_timezone(cls, value: Optional[str]) -> Optional[str]:
+        if value and value not in available_timezones():
+            raise ValueError(f"unknown time zone: {value}")
+        return value or None
+
+    @field_validator("streak_min_answers")
+    @classmethod
+    def _validate_streak_min(cls, value: Optional[int]) -> Optional[int]:
+        if value is not None and not 1 <= value <= 1000:
+            raise ValueError("streak_min_answers must be between 1 and 1000")
+        return value
 
     @field_validator("ai_gen_api_base_url", "ai_tts_api_base_url")
     @classmethod

@@ -29,6 +29,7 @@
   "completedAll": "You have completed all exercises!",
   "backToLesson": "Back to Lesson",
   "nextExercise": "Next Exercise",
+  "iWasRight": "I was right",
   "noAudio": "No audio",
   "remove": "Remove",
   "addSpeaker": "+ Add speaker",
@@ -43,6 +44,7 @@
   "blank": "Blank",
   "options": "Options (comma-separated, optional)",
   "answer": "Answer",
+  "acceptedAnswers": "Other accepted answers (one per line)",
   "textAfterBlank": "Text after this blank",
   "textBeforeFirstBlank": "Text before first blank",
   "pairs": "Pairs",
@@ -352,5 +354,10 @@
     }
   },
   "speaker": "Speaker",
-  "audioSlot": "Audio slot"
+  "audioSlot": "Audio slot",
+  "speakingLabel": {
+    "excellent": "Excellent",
+    "good": "Good",
+    "keepGoing": "Keep going"
+  }
 }

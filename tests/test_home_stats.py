@@ -1,0 +1,57 @@
+"""Home headline numbers (spec 3 Task 6): coverage and mean-of-seen apart, fading = succeeded now below known, relative heatmap bands, no NaN when empty."""
+import math
+from datetime import datetime
+
+from test_study_goal import D0, _goal, _seed
+from lapp.services.features import StudyGoalService
+from lapp.services.data_collection import home_stats
+from lapp.models.system_data import User
+from lapp.services.system_data import ScoreService
+
+U = "user_U1"
+
+
+def test_empty_learner_has_no_nan(db):
+    with db.session_scope() as s:
+        db.insert(User(id=U, username="a", email="a@x.com"), session=s, commit=False)
+    out = home_stats.home(U, "UTC")
+    assert out["streak"] == 0 and out["languages"] == [] and len(out["weeks"]) == home_stats.HEATMAP_WEEKS
+    assert all(w["answers"] == 0 for w in out["weeks"]) and out["week_delta"] == 0
+    assert all(isinstance(b, int) and b >= 1 for b in out["heatmap_bands"])
+
+
+def test_language_without_scores_renders_zeros(db):
+    _seed(db)
+    lang = home_stats.home(U, "UTC")["languages"][0]
+    assert lang["levels"] == {"learning": 0, "known": 0, "mastered": 0} and lang["coverage"] == 0.0 and lang["mean_seen"] is None
+    assert not any(isinstance(v, float) and math.isnan(v) for v in lang.values() if not isinstance(v, dict))
+
+
+def test_coverage_and_mean_of_seen_are_separate_fields(db):
+    _seed(db)
+    ScoreService().set(U, "voc_V0", score=50.0, difficulty=0.5)
+    ScoreService().set(U, "voc_V1", score=90.0, difficulty=0.5)
+    lang = home_stats.home(U, "UTC")["languages"][0]
+    assert abs(lang["coverage"] - 2 / 9) < 1e-9                       # 2 of 9 elements ever scored
+    assert abs(lang["mean_seen"] - 70.0) < 1.0                         # mean of the seen ones only, unseen excluded
+    assert lang["levels"] == {"learning": 1, "known": 0, "mastered": 1}
+
+
+def test_fading_counts_succeeded_items_now_below_known(db):
+    _seed(db)
+    svc = StudyGoalService()
+    _goal(svc, n_vocabulary=1, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle(U, "lang_L1", today=D0)
+    ScoreService().set(U, "voc_V0", score=80.0, difficulty=0.5)
+    svc.mark_succeeded(U, "voc_V0", datetime.now())
+    assert home_stats.home(U, "UTC")["languages"][0]["fading"] == 0
+    ScoreService().set(U, "voc_V0", score=30.0, difficulty=0.5)
+    assert home_stats.home(U, "UTC")["languages"][0]["fading"] == 1
+
+
+def test_heatmap_bands_scale_with_the_learners_median():
+    light = home_stats.heatmap_bands([0, 4, 6, 8, 0])
+    heavy = home_stats.heatmap_bands([0, 40, 60, 80, 0])
+    assert light == sorted(light) and heavy == sorted(heavy)
+    assert all(h > l for h, l in zip(heavy, light))
+    assert home_stats.heatmap_bands([]) == [1, 1, 2]                 # nobody active yet: median 1

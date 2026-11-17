@@ -32,6 +32,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const languageId = options?.languageId;
     const t = useTranslations("elements");
     const tStudy = useTranslations("study");
+    const backHref = languageId && options?.finishAction !== "lesson" ? `/languages/${languageId}` : undefined;   // the URL's parent would be the daily review for a scoped queue
     const backLabel = options?.finishAction === "lesson" ? t("backToLesson") : t("backToLanguage");
     const [done, setDone] = useState<string[]>([]);   // finished or skipped cards
     const startTimeRef = useRef<number>(performance.now());
@@ -94,7 +95,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
                 <EmptyState>{t("nothingToReview")}</EmptyState>
-                <BackButton>{backLabel}</BackButton>
+                <BackButton href={backHref}>{backLabel}</BackButton>
             </article>
         );
     }
@@ -206,7 +207,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                                     {t("nextButton")}
                                 </button>
                             ) : (
-                                <BackButton onBefore={finish}>{backLabel}</BackButton>
+                                <BackButton onBefore={finish} href={backHref}>{backLabel}</BackButton>
                             )}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />

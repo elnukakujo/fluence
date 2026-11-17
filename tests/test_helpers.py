@@ -2,37 +2,32 @@
 
 Run: `uv run python tests/test_helpers.py` (no pytest needed).
 """
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 
-from lapp.utils.helpers import (
-    compute_recency_weight,
-    review_priority,
-)
+from lapp.utils.helpers import review_priority
 
-
-def test_recency_weight_boosts_stale_items():
-    today = date.today()
-    fresh = compute_recency_weight(created_at=today - timedelta(days=10), last_seen_at=today)
-    stale = compute_recency_weight(created_at=today - timedelta(days=10), last_seen_at=today - timedelta(days=9))
-    assert stale > fresh  # longer since last seen → more forgetting → higher weight
+NOW = datetime(2026, 11, 16, 12, 0)
 
 
-def test_review_priority_ranks_stale_above_fresh():
-    today = date.today()
-    created_at = today - timedelta(days=30)
-    stale = review_priority(created_at=created_at, last_seen_at=today - timedelta(days=10), difficulty=0.5, score=80)
-    fresh = review_priority(created_at=created_at, last_seen_at=today, difficulty=0.5, score=80)
-    assert stale > fresh  # longer since seen → more forgetting → higher priority
+def prio(score=50, stability=2.0, days_ago=1, lapses=0):
+    return review_priority(score, stability, NOW - timedelta(days=days_ago) if days_ago is not None else None, lapses, NOW)
 
 
-def test_review_priority_boosts_difficult_and_new_cards():
-    today = date.today()
-    created_at = today - timedelta(days=30)
-    mastered = review_priority(created_at=created_at, last_seen_at=today, difficulty=0.1, score=90)
-    hard = review_priority(created_at=created_at, last_seen_at=today, difficulty=0.9, score=90)
-    new_card = review_priority(created_at=created_at, last_seen_at=today, difficulty=0.1, score=10)
-    assert hard > mastered              # hard cards surface even when just seen
-    assert new_card > mastered          # low-score (just-introduced) cards repeat
+def test_lower_score_ranks_higher():
+    assert prio(score=10) > prio(score=50) > prio(score=90)
+
+
+def test_longer_unseen_ranks_higher_relative_to_stability():
+    assert prio(days_ago=10) > prio(days_ago=1)
+    assert prio(stability=1.0, days_ago=4) > prio(stability=8.0, days_ago=4)   # same gap, less stable = more overdue
+
+
+def test_more_lapses_rank_higher():
+    assert prio(lapses=3) > prio(lapses=1) > prio(lapses=0)
+
+
+def test_never_seen_has_nothing_overdue():
+    assert prio(score=0, days_ago=None) == 1.0 and prio(score=0, days_ago=None) < prio(score=0, days_ago=30)
 
 
 def test_base_element_id():

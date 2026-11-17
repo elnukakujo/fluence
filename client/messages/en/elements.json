@@ -117,5 +117,8 @@
   "formMediaSection": "Media",
   "formOrganisationSection": "Tags and sources",
   "formRequiredNote": "* required",
-  "removeExampleWord": "Remove example word"
+  "removeExampleWord": "Remove example word",
+  "leechLeaving": "Leaving the leech list: {count}/{total} correct in a row",
+  "leechConfusable": "Easily mixed up with {word} ({translation})",
+  "bulkPractice": "Practise"
 }

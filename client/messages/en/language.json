@@ -14,9 +14,6 @@
   "totalTimeStudied": "Total Time Studied",
   "longestStreak": "Longest Streak",
   "lastUpdated": "Last Updated",
-  "daily": "Daily",
-  "commitmentTab": "Commitment",
-  "dailyStats": "Daily Stats",
   "streakDay": "Streak day",
   "buildingStreak": "Building streak",
   "reviewed": "Reviewed",
@@ -77,5 +74,7 @@
   "deleteLanguagesBody": "This permanently deletes the languages below with all their lessons and items.",
   "deleteNLanguages": "Delete {count, plural, one {# language} other {# languages}}",
   "deletedLanguages": "Deleted {count, plural, one {# language} other {# languages}}",
-  "goalTab": "Study goal"
+  "weekDelta": "{delta} vs last week",
+  "heatmapLegend": "Answers per day, by band",
+  "todayTitle": "Today"
 }

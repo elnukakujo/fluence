@@ -11,7 +11,6 @@ const KINDS: [GoalKind, string, typeof BookOpen][] = [
 ];
 const DAY = 86_400_000;
 const SEGMENT: Record<GoalKind, string> = { vocabulary: "voc", grammar: "gram", calligraphy: "call" };
-const COLS = ["", "sm:grid-cols-1", "sm:grid-cols-2", "sm:grid-cols-3"]; // static so Tailwind generates them
 
 /** The period's menu on the language overview: per type, the new elements to learn and the old ones to review,
  *  each with its own bar, and the list of what is on the menu. Renders nothing without a goal. */
@@ -48,64 +47,72 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
     );
 
     return (
-        <section className="flex flex-col gap-4" aria-labelledby="goal-overview">
-            <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <div className="flex flex-col gap-0.5">
+        <section className="flex flex-col gap-3" aria-labelledby="goal-overview">
+            <header className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
                     <h4 id="goal-overview" className="inline-flex items-center gap-2 font-serif text-base text-ink"><Target size={18} aria-hidden />{t("goalMenuTitle")}</h4>
-                    <p className="text-sm text-muted">
+                    <p className="text-xs text-muted">
                         {t(`period_${p.period}`)} · {day(p.cycle_start)} – {day(p.cycle_end)}
                         {p.active ? ` · ${t("goalDaysLeft", { n: daysLeft })}` : ""}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     {!p.active && <span className="badge">{t("goalPaused")}</span>}
-                    <Link href={settingsHref} className="btn btn-secondary min-h-11 inline-flex items-center gap-2"><Settings size={16} aria-hidden />{t("goalEdit")}</Link>
+                    <Link href={settingsHref} aria-label={t("goalEdit")} title={t("goalEdit")} className="btn btn-secondary min-h-11 min-w-11 inline-flex items-center justify-center"><Settings size={16} aria-hidden /></Link>
                 </div>
             </header>
             {p.next.pending && <p className="text-sm text-muted" role="note">{t("goalNextPeriod", { date: day(p.next.start) })}</p>}
             {tiles.length > 0 && (
-                <ul className={`grid gap-3 list-none pl-0 ${COLS[tiles.length]}`}>
+                <ul className="grid grid-cols-1 gap-2 list-none pl-0">
                     {tiles.map(([kind, label, Icon]) => {
                         const row = p.types[kind];
                         const mine = p.items.filter((i) => i.kind === kind);
                         return (
                             <li key={kind} className="goal-tile">
-                                <span className="inline-flex items-center gap-2 text-sm text-muted"><Icon size={16} aria-hidden />{t(label)}</span>
-                                {row.n > 0 && (
-                                    <div className="flex flex-col gap-1">
-                                        <p className="flex items-baseline justify-between text-sm"><span>{t("goalColNew")}</span>
-                                            <span className="text-lg font-semibold tabular-nums" aria-label={t("goalProgress", { mastered: row.mastered, picked: row.picked })}>{row.mastered}<span className="text-sm font-normal text-muted"> / {row.picked}</span></span></p>
-                                        <ProgressBar thin current={row.mastered} total={Math.max(row.picked, 1)} showLabel={false} showPercent={false} ariaLabel={`${t(label)}: ${t("goalColNew")}`} />
-                                        {row.picked < row.n && (
-                                            <span className="badge badge-warn self-start" title={t("goalShortHint")}><TriangleAlert size={12} aria-hidden />{t("goalShort", { picked: row.picked, n: row.n })}</span>
-                                        )}
-                                    </div>
-                                )}
-                                {row.r > 0 && (
-                                    <div className="flex flex-col gap-1">
-                                        <p className="flex items-baseline justify-between text-sm"><span>{t("goalColReview")}</span>
-                                            <span className="text-lg font-semibold tabular-nums" aria-label={t("goalReviewProgress", { done: row.review_done, picked: row.review_picked })}>{row.review_done}<span className="text-sm font-normal text-muted"> / {row.review_picked}</span></span></p>
-                                        <ProgressBar thin accent current={row.review_done} total={Math.max(row.review_picked, 1)} showLabel={false} showPercent={false} ariaLabel={`${t(label)}: ${t("goalColReview")}`} />
-                                        {row.review_picked < row.r && (
-                                            <span className="badge badge-warn self-start" title={t("goalReviewShortHint")}><TriangleAlert size={12} aria-hidden />{t("goalReviewShort", { picked: row.review_picked, n: row.r })}</span>
-                                        )}
-                                    </div>
-                                )}
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="inline-flex items-center gap-2 text-sm font-medium text-ink"><Icon size={16} aria-hidden />{t(label)}</span>
+                                    {row.carried > 0 && <span className="text-xs text-muted">{t("goalCarried", { n: row.carried })}</span>}
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {row.n > 0 && (
+                                        <Meter title={t("goalColNew")} aria={t("goalProgress", { mastered: row.mastered, picked: row.picked })} value={row.mastered} total={row.picked}
+                                            barLabel={`${t(label)}: ${t("goalColNew")}`} short={row.picked < row.n ? t("goalShort", { picked: row.picked, n: row.n }) : undefined} hint={t("goalShortHint")} />
+                                    )}
+                                    {row.r > 0 && (
+                                        <Meter accent title={t("goalColReview")} aria={t("goalReviewProgress", { done: row.review_done, picked: row.review_picked })} value={row.review_done} total={row.review_picked}
+                                            barLabel={`${t(label)}: ${t("goalColReview")}`} short={row.review_picked < row.r ? t("goalReviewShort", { picked: row.review_picked, n: row.r }) : undefined} hint={t("goalReviewShortHint")} />
+                                    )}
+                                </div>
                                 {mine.length > 0 && (
-                                    <details className="text-sm">
-                                        <summary className="cursor-pointer text-muted min-h-8 inline-flex items-center">{t("goalElements", { n: mine.length })}</summary>
+                                    <details className="text-xs">
+                                        <summary className="cursor-pointer text-muted min-h-6 inline-flex items-center">{t("goalElements", { n: mine.length })}</summary>
                                         <div className="flex flex-col gap-2 pt-1">
                                             {group(mine.filter((i) => i.role === "new"), t("goalColNew"))}
                                             {group(mine.filter((i) => i.role === "review"), t("goalColReview"))}
                                         </div>
                                     </details>
                                 )}
-                                {row.carried > 0 && <span className="text-xs text-muted">{t("goalCarried", { n: row.carried })}</span>}
                             </li>
                         );
                     })}
                 </ul>
             )}
         </section>
+    );
+}
+
+/** One bar of a goal tile: caption, `done / picked`, and, when the language has fewer elements than the goal asks for, a warning icon
+ *  (its sentence is the tooltip and, for a screen reader, hidden text). */
+function Meter({ title, aria, value, total, barLabel, short, hint, accent = false }: { title: string; aria: string; value: number; total: number; barLabel: string; short?: string; hint: string; accent?: boolean }) {
+    return (
+        <div className="flex min-w-0 flex-col gap-1">
+            <p className="flex items-baseline justify-between gap-1 text-xs text-muted">
+                <span className="inline-flex items-center gap-1">{title}
+                    {short && <span title={`${short}. ${hint}`} className="inline-flex text-warning"><TriangleAlert size={12} aria-hidden /><span className="sr-only">{short}</span></span>}
+                </span>
+                <span className="text-base font-semibold tabular-nums text-ink" aria-label={aria}>{value}<span className="text-xs font-normal text-muted"> / {total}</span></span>
+            </p>
+            <ProgressBar thin accent={accent} current={value} total={Math.max(total, 1)} showLabel={false} showPercent={false} ariaLabel={barLabel} />
+        </div>
     );
 }

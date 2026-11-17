@@ -38,6 +38,22 @@ describe("review card: type the word", () => {
         expect(screen.getByText("Right!")).toBeInTheDocument();
     });
 
+    it("how long the answer took never changes the score posted (speed is not scored)", async () => {
+        const posted: number[] = [];
+        for (const waitMs of [500, 20000]) {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+            const { unmount } = render(<ReviewFlashCard cards={[voc("back")]} />);
+            await user.type(screen.getByLabelText("Type the word"), "猫");
+            vi.advanceTimersByTime(waitMs);
+            await user.click(screen.getByRole("button", { name: "Check" }));
+            posted.push(api.updateScoreById.mock.calls.at(-1)![1].similarity);
+            unmount();
+            vi.useRealTimers();
+        }
+        expect(posted).toEqual([1, 1]);
+    });
+
     it("a wrong answer is graded again and shows the word", async () => {
         render(<ReviewFlashCard cards={[voc("back")]} />);
         await userEvent.type(screen.getByLabelText("Type the word"), "狗");

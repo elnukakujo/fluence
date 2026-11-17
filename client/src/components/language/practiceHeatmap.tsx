@@ -23,12 +23,19 @@ function parseDateKey(key: string): Date {
     return new Date(year, month - 1, day);
 }
 
-function intensityLevel(itemsReviewed: number): 0 | 1 | 2 | 3 | 4 {
+// Upper edges of bands 1..3 (band 4 is everything above). The server sends them relative to the learner's own median busy day (DM-47).
+export const DEFAULT_BANDS = [4, 14, 29];
+
+function intensityLevel(itemsReviewed: number, bands: number[]): 0 | 1 | 2 | 3 | 4 {
     if (itemsReviewed <= 0) return 0;
-    if (itemsReviewed < 5) return 1;
-    if (itemsReviewed < 15) return 2;
-    if (itemsReviewed < 30) return 3;
+    if (itemsReviewed <= bands[0]) return 1;
+    if (itemsReviewed <= bands[1]) return 2;
+    if (itemsReviewed <= bands[2]) return 3;
     return 4;
+}
+
+function bandLabels(bands: number[]): string[] {
+    return [`1–${bands[0]}`, `${bands[0] + 1}–${bands[1]}`, `${bands[1] + 1}–${bands[2]}`, `${bands[2] + 1}+`];
 }
 
 function formatDuration(ms: number): string {
@@ -41,7 +48,7 @@ function formatDuration(ms: number): string {
 // A user can have one DailyStats row per language per day — sum them into one bucket per date.
 type DayTotals = { items_reviewed: number; items_correct: number; time_studied_ms: number };
 
-export default function PracticeHeatmap({ history }: { history: DailyStats[] }) {
+export default function PracticeHeatmap({ history, bands = DEFAULT_BANDS, weekDelta }: { history: DailyStats[]; bands?: number[]; weekDelta?: number }) {
     const t = useTranslations("language");
     // Rendered via position: fixed (not a CSS ::after tooltip) because the
     // heatmap's ancestor scroll container sets overflow-x: auto, which per
@@ -83,10 +90,13 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
     }
 
     return (
-        <section className="flex flex-col gap-2 text-sm">
-            <div className="flex items-center justify-between gap-4">
-                <h4 className="font-serif text-base text-ink">{t("practiceHistory")}</h4>
-                <span className="text-xs text-muted">{t("recentActivity")}</span>
+        <section className="card flex flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-0.5">
+                <h2 className="section-title">{t("practiceHistory")}</h2>
+                <span className="text-xs text-muted">
+                    {t("recentActivity")}
+                    {weekDelta !== undefined && ` · ${t("weekDelta", { delta: `${weekDelta > 0 ? "+" : ""}${weekDelta}` })}`}
+                </span>
             </div>
             <div className="heatmap-scroll">
                 <div className="heatmap-grid">
@@ -95,7 +105,7 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
                             {week.map((day) => {
                                 const key = localDateKey(day);
                                 const entry = byDate.get(key);
-                                const level = day > today ? undefined : intensityLevel(entry?.items_reviewed ?? 0);
+                                const level = day > today ? undefined : intensityLevel(entry?.items_reviewed ?? 0, bands);
                                 const dayLabel = day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
                                 const title = entry
                                     ? `${dayLabel}\n${entry.items_reviewed} reviewed (${entry.items_correct} correct)\n${formatDuration(entry.time_studied_ms)} studied`
@@ -104,6 +114,8 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
                                     <div
                                         key={key}
                                         className={level !== undefined ? `heatmap-cell heatmap-level-${level}` : "heatmap-cell heatmap-cell-empty"}
+                                        role="img"
+                                        aria-label={title.replace(/\n/g, ", ")}
                                         onMouseEnter={(e) => setHovered({ x: e.clientX, y: e.clientY, text: title })}
                                         onMouseMove={(e) => setHovered({ x: e.clientX, y: e.clientY, text: title })}
                                         onMouseLeave={() => setHovered(null)}
@@ -114,6 +126,11 @@ export default function PracticeHeatmap({ history }: { history: DailyStats[] }) 
                     ))}
                 </div>
             </div>
+            <ul className="flex list-none flex-wrap items-center gap-x-3 gap-y-1 pl-0 text-xs text-muted" aria-label={t("heatmapLegend")}>
+                {bandLabels(bands).map((label, i) => (
+                    <li key={label} className="flex items-center gap-1"><span className={`heatmap-cell heatmap-level-${i + 1}`} aria-hidden />{label}</li>
+                ))}
+            </ul>
             {hovered && (
                 <div
                     className="heatmap-tooltip"

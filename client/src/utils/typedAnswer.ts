@@ -1,5 +1,4 @@
 import { STUDY } from "@/shared/studyConstants";
-import { FAST_MS } from "./cardHints";
 
 const squash = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "");
 const plain = (s: string) => squash(s).normalize("NFD").replace(/[\p{M}\d]/gu, "");   // no tone marks, no tone digits
@@ -11,21 +10,14 @@ export function matchesAnswer(input: string, word: { word?: string; phonetic?: s
     return typed === squash(word.word ?? "") || (!!word.phonetic && plain(input) !== "" && plain(input) === plain(word.phonetic));
 }
 
-/** The score a typed answer earns before any hint cap: wrong 0, right 0.75, right and quick 1. */
-export function gradeForTyped(correct: boolean, ms: number): number {
-    return !correct ? 0 : ms < FAST_MS ? 1 : 0.75;
+/** The score a typed answer earns before any hint cap: wrong 0, right 1. How long it took never counts (flip time only suggests a grade, `suggestedGrade`). */
+export function gradeForTyped(correct: boolean): number {
+    return correct ? 1 : 0;
 }
 
 // At or above FULL a near miss earns the full hit; below FLOOR nothing.
 export const TYPED_FULL = STUDY.typed.full;
 export const TYPED_FLOOR = STUDY.typed.floor;
-
-/** The score a typed answer that is not an exact match earns from its character closeness (0..1): full hit near-perfect, linear to 0 at the floor. */
-export function gradeFromCloseness(closeness: number, ms: number): number {
-    if (closeness >= TYPED_FULL) return gradeForTyped(true, ms);
-    if (closeness <= TYPED_FLOOR) return 0;
-    return (0.75 * (closeness - TYPED_FLOOR)) / (TYPED_FULL - TYPED_FLOOR);
-}
 
 /** The quality one typed blank earns from its closeness to the answer: a near-perfect fill is a full hit, linear to 0 at the floor. */
 export function blankQuality(closeness: number): number {

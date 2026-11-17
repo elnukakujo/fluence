@@ -7,6 +7,8 @@ import logging
 from ...services.data_collection import DailyStatsService
 from ...services.system_data import UserService
 from ...services.containers import LanguageService
+from ...services.system_data.prefs_view import prefs_for
+from ...utils.learner_clock import learner_today
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 
 logger = logging.getLogger(__name__)
@@ -97,7 +99,7 @@ def get_daily_stats_history():
     start_date_param = request.args.get('start_date')
     end_date_param = request.args.get('end_date')
     start_date = date.fromisoformat(start_date_param) if start_date_param else user.created_at.date()
-    end_date = date.fromisoformat(end_date_param) if end_date_param else date.today()
+    end_date = date.fromisoformat(end_date_param) if end_date_param else learner_today(prefs_for(user_id).timezone)
 
     history = daily_stats_service.get_range_for_user(
         user_id=user_id,

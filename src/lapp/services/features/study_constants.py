@@ -1,7 +1,6 @@
 """Stand-in values for study preferences. Every one is a `TODO(user)`: ask before changing."""
 
 BOOST_FACTOR = 1.5          # TODO(user): review-priority multiplier for boosted exercises
-STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review to validate the day
 
 # Without any study goal the daily review still works: new elements are drawn at random from the first N unstarted
 # ones of each type (lesson order); seen elements come back by review priority. TODO(user): stand-ins.

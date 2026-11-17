@@ -95,6 +95,8 @@ class UserPreferencesService:
             exercise_type_prefs=data.exercise_type_prefs or {},
             review_layout=data.review_layout,
             daily_goal_minutes=data.daily_goal_minutes,
+            timezone=data.timezone,
+            streak_min_answers=data.streak_min_answers or 20,
             ai_feedback_enabled=data.ai_feedback_enabled,
             ai_learnable_sentence_enabled=data.ai_learnable_sentence_enabled,
             ai_example_sentence_enabled=data.ai_example_sentence_enabled,

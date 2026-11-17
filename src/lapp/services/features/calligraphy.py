@@ -13,7 +13,7 @@ from ...models.system_data import Source, Tag, Score
 from ...core.database import db_manager, transactional, resolve_related, stack_related
 from ..containers import LessonService, LanguageService
 from ..components import CharacterService, WordService, PassageService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from ...utils.scoring import level_for
 
@@ -22,7 +22,7 @@ language_service = LanguageService()
 character_service = CharacterService()
 passage_service = PassageService()
 word_service = WordService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 class CalligraphyService:
@@ -378,10 +378,8 @@ class CalligraphyService:
         previous_score = previous.score if previous else 0.0
         updated = score_service.record(user_id, calligraphy_id, skill or "recall", score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=calligraphy.lesson.language_id,
+        study_activity.record(
+            user_id, calligraphy.lesson.language_id, ProgressTrackingDict(
                 element_id=calligraphy_id,
                 element_type="calligraphy",
                 element_status=level_for(updated.score),

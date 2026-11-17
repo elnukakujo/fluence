@@ -1,11 +1,11 @@
 import ReviewSession from "@/components/review/ReviewSession";
-import { getReviewCards } from "@/api/review";
+import { getQueue } from "@/api/review";
 import { getTranslations } from "next-intl/server";
 
 export default async function ReviewPage({ params }: { params: Promise<{ language_id: string }> }) {
     const t = await getTranslations("languages");
     const { language_id } = await params;
-    const cards = await getReviewCards(language_id);
+    const cards = await getQueue(language_id, { scope: "daily" });
 
     return (
         <main>

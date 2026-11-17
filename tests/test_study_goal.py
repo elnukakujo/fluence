@@ -8,6 +8,7 @@ from lapp.models.components import Word, Character
 from lapp.models.features import Vocabulary, Grammar, Calligraphy
 from lapp.services.auth import AuthService
 from lapp.services.features import StudyGoalService
+from lapp.services.features.lesson_gate import GateService
 from lapp.schemas.system_data.user_preferences import UserPreferencesDict
 from lapp.services.features.study_constants import default_goal_quantities
 from lapp.services.system_data import ScoreService, UserPreferencesService
@@ -15,7 +16,7 @@ from lapp.services.system_data import ScoreService, UserPreferencesService
 D0 = date(2026, 1, 1)
 
 
-def _seed(db, n=3):
+def _seed(db, n=3, gate_open=True):
     with db.session_scope() as s:
         for u in ("user_U1", "user_U2"):
             db.insert(User(id=u, username=u, email=f"{u}@x.com"), session=s, commit=False)
@@ -29,6 +30,8 @@ def _seed(db, n=3):
             db.insert(Grammar(id=f"gram_G{i}", lesson_id=lesson, title=f"g{i}", explanation="e"), session=s, commit=False)
             db.insert(Character(id=f"char_C{i}", language_id="lang_L1", character=f"c{i}"), session=s, commit=False)
             db.insert(Calligraphy(id=f"call_C{i}", lesson_id=lesson, character_id=f"char_C{i}"), session=s, commit=False)
+    if gate_open:                    # the soft gate (first lesson known) is exercised in test_goal_flags.py
+        GateService().unlock("user_U1", "lang_L1", "lesson_A")
 
 
 def _goal(svc, **kw):

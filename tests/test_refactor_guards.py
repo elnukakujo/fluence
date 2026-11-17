@@ -15,6 +15,7 @@ KNOWN = {   # file -> why it still reads a prefix
     "services/system_data/score.py": "voc_ side ids; replaced by the scoring engine in spec 2",
     "services/features/study_goal.py": "_PREFIX_TYPE; spec 3 (goal flags)",
     "services/features/review.py": "voc_/call_ side cards; spec 3 queue split",
+    "services/features/review_queue.py": "voc_ side cards, moved out of review.py in the spec 3 split",
     "api/routes/collaboration.py": "lang_/lesson_ share target; spec 4",
 }
 

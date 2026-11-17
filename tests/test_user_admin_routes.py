@@ -28,6 +28,15 @@ def test_public_signup_creates_nonadmin_user(app, db):
     assert res.get_json()['user']['approved'] is False
 
 
+def test_first_signup_is_an_approved_admin_who_can_log_in(app, db):
+    client = app.test_client()
+    res = client.post('/api/user/', json={"username": "demo", "email": "demo@example.com", "password": "demo"})
+    assert res.status_code == 201
+    user = res.get_json()['user']
+    assert user['is_admin'] is True and user['approved'] is True
+    assert client.post('/api/auth/login', json={'email': 'demo@example.com', 'password': 'demo'}).status_code == 200
+
+
 def test_pending_user_cannot_login(app, db):
     _user_with_session(db, "user_U1", "a", "a@x.com", is_admin=True)
     client = app.test_client()

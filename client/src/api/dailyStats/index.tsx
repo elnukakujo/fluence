@@ -1,5 +1,6 @@
 import { apiFetch } from "../apiFetch";
 import DailyStats from "@/interface/dataCollection/DailyStats";
+import HomeStats from "@/interface/dataCollection/HomeStats";
 
 export async function getTodayDailyStats(userId: string, languageId: string): Promise<DailyStats | null> {
   const params = new URLSearchParams({
@@ -26,4 +27,8 @@ export async function getDailyStatsById(dailyStatsId: string, userId: string): P
   return apiFetch(`/api/daily-stats/${dailyStatsId}?${params.toString()}`, {
     errorMessage: `Failed to fetch daily stats ${dailyStatsId}`,
   });
+}
+
+export async function getHomeStats(): Promise<HomeStats> {
+  return apiFetch("/api/stats/home", { errorMessage: "Failed to fetch the home stats", cache: "no-store" });
 }

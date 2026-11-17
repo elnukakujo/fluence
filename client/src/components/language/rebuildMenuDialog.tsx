@@ -24,7 +24,7 @@ export default function RebuildMenuDialog({ open, mastered, redraw, onConfirm, o
         <div className="dialog-backdrop" onKeyDown={onKeyDown}>
             <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="rebuild-title">
                 <h2 id="rebuild-title" className="text-lg font-semibold">{t("goalRebuildTitle")}</h2>
-                <ul className="flex flex-col gap-1 text-sm">
+                <ul className="flex list-none flex-col gap-1 pl-0 text-sm">
                     <li>{t("goalRebuildKept", { count: mastered })}</li>
                     <li>{t("goalRebuildRedraw", { count: redraw })}</li>
                 </ul>

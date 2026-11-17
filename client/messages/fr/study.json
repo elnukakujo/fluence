@@ -90,5 +90,6 @@
   "goalEditingFirst": "Choisissez une période et des quantités, puis verrouillez-les pour construire votre menu.",
   "goalEditingKeep": "Votre menu actuel reste actif jusqu'à ce que vous verrouilliez à nouveau.",
   "goalLock": "Verrouiller les objectifs",
-  "goalLocked": "Verrouillé"
+  "goalLocked": "Verrouillé",
+  "lessonContents": "Contenu de la leçon"
 }
