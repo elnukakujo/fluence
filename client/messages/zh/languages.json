@@ -67,8 +67,9 @@
     "vocabulary": "词汇",
     "grammar": "语法",
     "calligraphy": "书法",
-    "character": "汉字",
-    "characterRadicals": "部首",
     "exercise": "练习"
-  }
+  },
+  "studyActions": "学习",
+  "lessonsTitle": "课程",
+  "manage": "管理"
 }

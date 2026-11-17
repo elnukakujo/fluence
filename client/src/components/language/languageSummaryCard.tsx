@@ -1,14 +1,13 @@
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { LanguageSummary } from "@/interface/dataCollection/HomeStats";
 import LevelMiniBar from "./levelMiniBar";
 
-/** Home card per language: level mini-bar, what the daily review would serve now (LS-24), fading and coverage (never mixed with the average). */
+/** The numbers of one language on the home card: level mini-bar, what the daily review would serve now (LS-24), fading and
+ *  coverage (never mixed with the average). The card around it is `LanguageOverviewCard`. */
 export default function LanguageSummaryCard({ language }: { language: LanguageSummary }) {
     const t = useTranslations("home");
     return (
-        <Link href={`/languages/${language.id}`} className="card flex flex-col gap-3 transition hover:-translate-y-0.5 hover:bg-accent-soft hover:shadow-md">
-            <h3 className="font-serif text-lg text-ink line-clamp-1">{language.name}</h3>
+        <div className="flex flex-col gap-3">
             <LevelMiniBar {...language.levels} />
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted">
                 <dt>{t("due")}</dt>
@@ -22,6 +21,6 @@ export default function LanguageSummaryCard({ language }: { language: LanguageSu
                 <dt>{t("minutesToday")}</dt>
                 <dd className="text-ink">{language.minutes_today}</dd>
             </dl>
-        </Link>
+        </div>
     );
 }

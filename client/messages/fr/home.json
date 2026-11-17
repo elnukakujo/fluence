@@ -20,5 +20,7 @@
   "coverage": "Vu",
   "meanSeen": "Moyenne des vus",
   "minutesToday": "Minutes aujourd'hui",
-  "nextUp": "À suivre"
+  "nextUp": "À suivre",
+  "yourLanguages": "Vos langues",
+  "reviewNow": "{count, plural, =0 {Rien à réviser} one {Réviser # carte due} other {Réviser # cartes dues}}"
 }

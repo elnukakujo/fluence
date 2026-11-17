@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type HomeStats from "@/interface/dataCollection/HomeStats";
 import HomeHeadline from "./homeHeadline";
 import LanguageSummaryCard from "./languageSummaryCard";
+import LanguageOverviewCard from "./languageOverviewCard";
 import LevelMiniBar from "./levelMiniBar";
 import PracticeHeatmap, { DEFAULT_BANDS } from "./practiceHeatmap";
 
@@ -27,10 +28,16 @@ describe("home stats", () => {
 
   it("the card shows levels, due and minutes, and coverage apart from the average of seen", () => {
     render(<LanguageSummaryCard language={summary} />);
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/languages/lang_1");
     expect(screen.getByText("12 cards · about 9 min")).toBeInTheDocument();
     expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("71")).toBeInTheDocument();
+  });
+
+  it("one card per language: it opens the language and carries the daily review button with the due count", () => {
+    render(<LanguageOverviewCard language={{ id: "lang_1", name: "Japanese", alias: "", flag: "", level: 0, score: 0, target_iso639_2t: "jpn", source_iso639_2t: "eng" } as never} summary={summary} />);
+    expect(screen.getByRole("link", { name: /Japanese/ })).toHaveAttribute("href", "/languages/lang_1");
+    expect(screen.getByRole("link", { name: /Review 12 due cards/ })).toHaveAttribute("href", "/languages/lang_1/review");
+    expect(screen.getByText("12 cards · about 9 min")).toBeInTheDocument();
   });
 
   it("the headline sums fading items over all languages", () => {

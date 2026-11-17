@@ -7,12 +7,13 @@ import SharedBadge from "../collaboration/sharedBadge";
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 
-export default function LanguageHeaderCard({ language }: { language: Language }) {
+/** The language's identity and, as children, its study actions (the primary one is the daily review). */
+export default function LanguageHeaderCard({ language, children }: { language: Language; children?: React.ReactNode }) {
     const t = useTranslations("language");
     return (
-        <section className="card flex flex-col space-y-2">
+        <section className="card flex flex-col gap-3">
             <header className="flex items-baseline gap-2">
-                <h1>{language.flag} {language.name} ({language.alias})</h1>
+                <h1>{language.flag} {language.name}{language.alias ? ` (${language.alias})` : ""}</h1>
                 {language.collaborators && language.collaborators.length > 0 && (
                     <SharedBadge count={language.collaborators.length} />
                 )}
@@ -21,25 +22,14 @@ export default function LanguageHeaderCard({ language }: { language: Language })
                     <SharedBadge partial count={language.partial_collaborators.length} />
                 )}
             </header>
-            <div className="index-divider pt-3 flex flex-col space-y-2">
-                <div className="grid gap-2 sm:grid-cols-2">
-                    {language.source_iso639_2t && (
-                        <div className="card flex flex-col gap-1 p-3">
-                            <p className="badge w-fit">{t("from")}</p>
-                            <p className="font-medium">{ISO639_2T_to_LANGUAGE[language.source_iso639_2t]}</p>
-                        </div>
-                    )}
-                    {language.target_iso639_2t && (
-                        <div className="card flex flex-col gap-1 p-3">
-                            <p className="badge w-fit">{t("to")}</p>
-                            <p className="font-medium">{ISO639_2T_to_LANGUAGE[language.target_iso639_2t]}</p>
-                        </div>
-                    )}
-                </div>
-                {language.description && <div className="pt-3 flex flex-col space-y-2">
-                    <Markdown remarkPlugins={[remarkGfm]}>{language.description}</Markdown>
-                </div>}
-            </div>
+            <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                {language.source_iso639_2t && <><span className="badge">{t("from")}</span>{ISO639_2T_to_LANGUAGE[language.source_iso639_2t]}</>}
+                {language.target_iso639_2t && <><span className="badge">{t("to")}</span>{ISO639_2T_to_LANGUAGE[language.target_iso639_2t]}</>}
+            </p>
+            {language.description && <div className="prose-sm text-muted">
+                <Markdown remarkPlugins={[remarkGfm]}>{language.description}</Markdown>
+            </div>}
+            {children && <div className="index-divider">{children}</div>}
         </section>
     );
 }

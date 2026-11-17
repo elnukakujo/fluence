@@ -14,7 +14,7 @@ export default function LanguageStatsPanel({ dailyStats, commitmentLog, studyGoa
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="btn-row border-b border-dashed border-[var(--border)] pb-2">
+            <div className="btn-row flex-wrap border-b border-dashed border-[var(--border)] pb-2">
                 <button
                     className={`btn ${view === 'daily' ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => setView('daily')}

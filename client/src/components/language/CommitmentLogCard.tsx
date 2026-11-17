@@ -30,7 +30,7 @@ export default function CommitmentLogCard({ commitmentLog }: { commitmentLog: Co
                 <DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} message={t("lastUpdatedMessage")} withTime />
             </div>
 
-            <div className="flex flex-row gap-3 overflow-x-auto">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
                 <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
                     <p className="text-xs uppercase tracking-wide text-muted">{t("daysActive")}</p>
                     <div className="index-divider" />

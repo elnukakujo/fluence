@@ -1,56 +1,48 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type Language from '@/interface/containers/Language';
+import type { LanguageSummary } from '@/interface/dataCollection/HomeStats';
 import { languageProficiencySystems, getLevelLabel } from '@/utils/language_iso639';
 import SharedBadge from '../collaboration/sharedBadge';
 import ScoreDisplay from '../ui/displays/scoreDisplay';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import LanguageSummaryCard from './languageSummaryCard';
 
-export default function LanguageOverviewCard({ language }: { language: Language }) {
+/** The home card of one language. The whole card opens the language; with the learner's numbers it also carries the daily review button. */
+export default function LanguageOverviewCard({ language, summary }: { language: Language; summary?: LanguageSummary }) {
     const t = useTranslations("language");
-    const router = useRouter();
-
-    const handleCardClick = () => {
-        router.push(`/languages/${language.id}`);
-    };
-
+    const tHome = useTranslations("home");
     const system = languageProficiencySystems[language.target_iso639_2t ?? ""];
     const levelLabel = getLevelLabel(system, language.level);
-
     const sourceLanguage = languageProficiencySystems[language.source_iso639_2t ?? ""];
 
     return (
-        <button
-            className="card overview-card flex flex-col gap-2 overflow-hidden text-left cursor-pointer transition hover:-translate-y-0.5 hover:bg-accent-soft hover:shadow-md"
-            onClick={handleCardClick}
-        >
+        <article className="card lang-card">
             <header className="flex flex-col gap-1">
-                <p className="text-2xl">{language.flag}</p>
-                <h3 className="font-serif text-lg text-ink line-clamp-2">{language.name} ({language.alias})</h3>
-                <span className="text-xs flex flex-row gap-1 items-center text-muted">
-                    <p>{t("from")}</p>
-                    <p className="badge">{sourceLanguage?.englishName ?? 'Unknown'}</p>
-                </span>
-            </header>
-            <div className="index-divider line-clamp-4 flex-1 text-sm text-muted prose-sm">
-                <Markdown remarkPlugins={[remarkGfm]}>{language.description}</Markdown>
-            </div>
-            <footer>
-                <div className="flex items-center gap-2">
-                    <h5 className="text-xs uppercase tracking-wide text-muted">{levelLabel}</h5>
-                    {language.collaborators && language.collaborators.length > 0 && (
-                        <SharedBadge count={language.collaborators.length} />
-                    )}
+                <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-serif text-lg text-ink line-clamp-2">
+                        <Link href={`/languages/${language.id}`} className="stretched-link focus-visible:outline-none">
+                            {language.flag} {language.name}{language.alias ? ` (${language.alias})` : ""}
+                        </Link>
+                    </h3>
+                    <span className="badge shrink-0">{levelLabel}</span>
+                </div>
+                <span className="flex flex-wrap items-center gap-1 text-xs text-muted">
+                    {t("from")} <span className="badge">{sourceLanguage?.englishName ?? 'Unknown'}</span>
+                    {language.collaborators && language.collaborators.length > 0 && <SharedBadge count={language.collaborators.length} />}
                     {!!language.shared_lesson_count && <SharedBadge incoming count={language.shared_lesson_count} />}
                     {language.partial_collaborators && language.partial_collaborators.length > 0 && (
                         <SharedBadge partial count={language.partial_collaborators.length} />
                     )}
-                </div>
-                <ScoreDisplay score={language.score} />
-            </footer>
-        </button>
+                </span>
+            </header>
+            {summary ? <LanguageSummaryCard language={summary} /> : <ScoreDisplay score={language.score} />}
+            {summary && (
+                <Link href={`/languages/${language.id}/review`} className="btn btn-primary above-link min-h-11 justify-center">
+                    {tHome("reviewNow", { count: summary.due })}
+                </Link>
+            )}
+        </article>
     );
 }

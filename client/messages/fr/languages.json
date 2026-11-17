@@ -67,8 +67,9 @@
     "vocabulary": "Vocabulaire",
     "grammar": "Grammaire",
     "calligraphy": "Calligraphie",
-    "character": "Caractères",
-    "characterRadicals": "Radicaux",
     "exercise": "Exercices"
-  }
+  },
+  "studyActions": "Étudier",
+  "lessonsTitle": "Leçons",
+  "manage": "Gérer"
 }

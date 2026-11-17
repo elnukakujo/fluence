@@ -90,9 +90,9 @@ export default function PracticeHeatmap({ history, bands = DEFAULT_BANDS, weekDe
     }
 
     return (
-        <section className="flex flex-col gap-2 text-sm">
-            <div className="flex items-center justify-between gap-4">
-                <h4 className="font-serif text-base text-ink">{t("practiceHistory")}</h4>
+        <section className="card flex flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-0.5">
+                <h2 className="section-title">{t("practiceHistory")}</h2>
                 <span className="text-xs text-muted">
                     {t("recentActivity")}
                     {weekDelta !== undefined && ` · ${t("weekDelta", { delta: `${weekDelta > 0 ? "+" : ""}${weekDelta}` })}`}

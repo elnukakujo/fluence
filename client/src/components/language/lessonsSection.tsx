@@ -265,7 +265,7 @@ function LessonsContent({
                     }))}
                     onReorder={ids => reorderLessons(languageId, ids)} />
             ) : filtered.length > 0 ? (
-                <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 list-none">
+                <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 list-none pl-0">
                     {filtered.map(lesson => (
                         <li key={lesson.id}>
                             <LessonOverviewCard language_code={language_code} lesson={lesson} shared={lesson.shared} />

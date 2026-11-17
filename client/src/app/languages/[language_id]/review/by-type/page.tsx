@@ -2,11 +2,8 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { queueHref } from "@/api/review";
 
-// Each choice opens the same queue page with a `type` scope; radicals are the characters that are some character's key radical.
-const TYPES = [
-    { type: "vocabulary" }, { type: "grammar" }, { type: "calligraphy" }, { type: "character" },
-    { type: "character", radicals: true }, { type: "exercise" },
-] as const;
+// Each choice opens the same queue page with a `type` scope. Characters and radicals are calligraphy cards, so they have no chip of their own.
+const TYPES = ["vocabulary", "grammar", "calligraphy", "exercise"] as const;
 
 export default async function ReviewByTypePage({ params }: { params: Promise<{ language_id: string }> }) {
     const t = await getTranslations("languages");
@@ -16,11 +13,9 @@ export default async function ReviewByTypePage({ params }: { params: Promise<{ l
             <h1>{t("reviewByType")}</h1>
             <p className="text-muted">{t("reviewByTypeHint")}</p>
             <ul className="mt-4 flex list-none flex-wrap gap-3 pl-0">
-                {TYPES.map((x) => (
-                    <li key={`${x.type}${"radicals" in x ? "-radicals" : ""}`}>
-                        <Link className="btn btn-secondary" href={queueHref(language_id, { scope: "type", type: x.type, radicals: "radicals" in x })}>
-                            {t(`typeLabel.${x.type}${"radicals" in x ? "Radicals" : ""}`)}
-                        </Link>
+                {TYPES.map((type) => (
+                    <li key={type}>
+                        <Link className="btn btn-secondary" href={queueHref(language_id, { scope: "type", type })}>{t(`typeLabel.${type}`)}</Link>
                     </li>
                 ))}
             </ul>
