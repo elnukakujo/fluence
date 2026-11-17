@@ -20,6 +20,7 @@ from ...utils.scoring import INITIAL_STABILITY_DAYS
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from ..system_data.prefs_view import PrefsView, prefs_for
+from ..system_data.settings import resolve
 from ..system_data.score import SIDES, side_id
 from ...utils.helpers import base_element_id
 from .card_time import estimate_seconds, pace_ratios
@@ -215,6 +216,9 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
     ids = _scope_ids(scope, session) if scope.kind in ("tag", "source", "free") else set()
     keep = _keep_in_scope(scope, ids)
     models = (MODEL_OF_TYPE[scope.element_type],) if scope.kind == "type" and scope.element_type in MODEL_OF_TYPE else (Vocabulary, Grammar, Calligraphy)
+    wanted = resolve(user_id, language_id, "element_types", session=session) if scope.kind not in ("type", "free") else None     # the course's own choice; a named type or card is always served
+    if wanted is not None:
+        models = tuple(m for m in models if kind_of[m] in wanted)
     scoped_cards = {}
     for model in (Vocabulary, Grammar, Calligraphy):
         cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all() if model in models else []
@@ -253,6 +257,8 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
             buckets[model] = order_bucket(items, lambda c: priority_for(inputs, c.id, now), goal_rank, set(), capped)
 
     exercises, modes = _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type_prefs, models, session)
+    if wanted is not None and "exercises" not in wanted:
+        exercises, modes = [], {}
     return Candidates(user_id, language_id, session, scope, preferences, lesson_title_by_id, buckets, exercises, modes, now, today, bonus_ids)
 
 

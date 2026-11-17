@@ -46,12 +46,6 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
     }, [userId]);
 
-    useEffect(() => {      // the pace numbers were saved: unlocked goals changed on the server
-        const reread = () => { setStates({}); setDrafts({}); };
-        window.addEventListener("study-goals-changed", reread);
-        return () => window.removeEventListener("study-goals-changed", reread);
-    }, []);
-
     useEffect(() => {
         if (!languageId || states[languageId]) return;
         getStudyGoal(languageId)
@@ -94,6 +88,11 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         n_vocabulary: suggested.n.vocabulary, n_grammar: suggested.n.grammar, n_calligraphy: suggested.n.calligraphy,
         r_vocabulary: suggested.r.vocabulary, r_grammar: suggested.r.grammar, r_calligraphy: suggested.r.calligraphy,
     });
+    const target = states[languageId]?.targets?.[draft?.period ?? "week"];
+    const sumN = draft ? draft.n_vocabulary + draft.n_grammar + draft.n_calligraphy : 0;
+    const sumR = draft ? draft.r_vocabulary + draft.r_grammar + draft.r_calligraphy : 0;
+    const mismatch = !!target && !draft?.auto && (sumN !== target.n || sumR !== target.r);     // the suggested split may round off by one: it is always allowed
+    const sameAsSuggested = !!suggested && KINDS.every(({ kind, n, r }) => draft?.[n] === suggested.n[kind] && draft?.[r] === suggested.r[kind]);
     const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
     return (
@@ -151,9 +150,8 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                             <span className={`inline-flex items-center gap-1.5 ${draft.auto ? "text-accent" : "text-muted"}`}>
                                 <Sparkles size={14} aria-hidden />{draft.auto ? t("goalAuto") : t("goalCustom")}
                             </span>
-                            {draft.auto
-                                ? <span className="text-muted">{t("goalAutoHint")}</span>
-                                : suggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
+                            {draft.auto && <span className="text-muted">{t("goalAutoHint")}</span>}
+                            {suggested && !sameAsSuggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
                         </div>
                         <div className="lock-rows grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-3" role="group" aria-label={t("goalQuantities")}>
                             <span aria-hidden />
@@ -167,9 +165,10 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                 </div>
                             ))}
                         </div>
+                        {mismatch && target && <p className="text-sm text-danger" role="alert">{t("goalTotalsMismatch", { n: target.n, r: target.r, sumN, sumR })}</p>}
                         <ToggleRow label={t("goalActive")} description={t("goalActiveDesc")} checked={draft.active} onChange={(v) => edit({ active: v })} />
                         <div className="flex flex-wrap items-center gap-3">
-                            <SaveButton isLoading={saving} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
+                            <SaveButton isLoading={saving} disabled={mismatch} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
                             {hasOwnMenu && <button type="button" className="btn btn-secondary min-h-11" onClick={cancelEdit}>{t("goalCancel")}</button>}
                         </div>
                     </section>

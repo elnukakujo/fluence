@@ -7,7 +7,7 @@ import PresetPicker from "./presetPicker";
  *  goal changes) until Save. */
 export function PaceBlock() {
     return (
-        <SettingsGroup group="pace" quiet describe={false} onSaved={() => window.dispatchEvent(new Event("study-goals-changed"))}   // saved numbers refit the unlocked goals: the goal card re-reads
+        <SettingsGroup group="pace" quiet describe={false}
             lead={(fill, draft) => <PresetPicker onPick={fill} current={draft} />}
             fields={[
                 { key: "new_per_week", kind: "number", min: 0, max: 1000 },
@@ -20,7 +20,7 @@ export function PaceBlock() {
 /** Appearance: the score after each answer, saved as you pick. Interface language and theme live in the top bar. */
 export function AppearanceBlock() {
     return (
-        <SettingsGroup group="see" autosave quiet describe={false} fields={[{ key: "show_scores", kind: "toggle" }]} />
+        <SettingsGroup group="see" autosave describe={false} fields={[{ key: "show_scores", kind: "toggle" }]} />
     );
 }
 

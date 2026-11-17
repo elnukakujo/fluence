@@ -23,5 +23,6 @@
   "merging": "正在合并…",
   "mergeFailed": "无法合并课程",
   "mergeInvalid": "请选择此语言的两门不同课程进行合并。",
-  "backToLanguage": "返回语言页面"
+  "backToLanguage": "返回语言页面",
+  "formHeading": "课程"
 }

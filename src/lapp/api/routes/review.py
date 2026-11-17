@@ -118,10 +118,10 @@ def complete_review(language_id: str):
           required: true
     responses:
         200:
-            description: "{streak: current streak length, validated: whether today is now a streak day}"
+            description: "{streak: current streak length, validated: whether today is a streak day, just_validated: this call made it one}"
     """
     require_write(language_id)
     remember_timezone(current_user_id(), request.headers.get('X-Timezone'))
     status = StudyActivity().complete_queue(current_user_id(), language_id)
     WeeklySnapshotService().catch_up(current_user_id(), prefs_for(current_user_id()).timezone)       # a missed week is written on the first visit after it closed
-    return jsonify({"streak": status.streak, "validated": status.validated})
+    return jsonify({"streak": status.streak, "validated": status.validated, "just_validated": status.just_validated})

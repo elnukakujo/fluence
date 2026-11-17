@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import SectionCard from "@/components/ui/sectionCard";
 import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import SaveButton from "./saveButton";
 import { getSettingsGroup, saveSettingsGroup } from "@/api/settings";
 
@@ -27,11 +28,9 @@ export default function SkillsSection() {
         }, () => setError(tc("loadFailed")));
     }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
-    const toggle = (kind: string, skill: string) => setChosen((c) => {
-        const on = c[kind].includes(skill);
-        if (on && c[kind].length === 1) return c;              // never zero skills
-        return { ...c, [kind]: on ? c[kind].filter((s) => s !== skill) : [...(options?.[kind] ?? []).filter((s) => s === skill || c[kind].includes(s))] };
-    });
+    const pick = (kind: string, skills: string[]) => {       // never zero skills; the menu keeps the order of the matrix
+        if (skills.length) setChosen((c) => ({ ...c, [kind]: (options?.[kind] ?? []).filter((x) => skills.includes(x)) }));
+    };
 
     const save = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,15 +45,8 @@ export default function SkillsSection() {
             {error && <InlineError>{error}</InlineError>}
             <form onSubmit={save} className="flex flex-col gap-3">
                 {Object.entries(options).filter(([, skills]) => skills.length > 1).map(([kind, skills]) => (
-                    <fieldset key={kind} className="flex flex-wrap items-center gap-4 border-0 p-0">
-                        <legend className="mb-1 text-sm font-medium">{t(`kinds.${kind}`)}</legend>
-                        {skills.map((skill) => (
-                            <label key={skill} className="flex min-h-11 items-center gap-2 text-sm">
-                                <input type="checkbox" checked={chosen[kind]?.includes(skill) ?? false} onChange={() => toggle(kind, skill)} disabled={saving} />
-                                {t(`skill.${skill}`)}
-                            </label>
-                        ))}
-                    </fieldset>
+                    <ClassicSelectMenu key={kind} multiple label={t(`kinds.${kind}`)} options={skills} optionLabel={(o) => t(`skill.${o}`)}
+                        selectedOption={chosen[kind] ?? []} onChange={(v) => pick(kind, v as string[])} disabled={saving} className="w-full max-w-sm" />
                 ))}
                 <div className="flex justify-end"><SaveButton isLoading={saving} onSuccessLabel={tc("saved")} /></div>
             </form>

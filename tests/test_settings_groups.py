@@ -89,17 +89,14 @@ def test_other_users_course_is_refused(app, db):
     assert _put(c, "see", {"show_phonetics": "never"}, language_id="lang_L2").status_code == 403
 
 
-def test_saving_pace_refits_goal_quantities_and_keeps_the_locked_menu(app, db):
+def test_saving_pace_leaves_every_goal_alone(app, db):
     from lapp.models.system_data import StudyGoal
     c = _client(app, db)
     with db.session_scope() as s:
-        db.insert(Language(id="lang_L2", user_id="user_U1", name="Spanish", iso1="es", target_iso639_2t="spa"), session=s, commit=False)
-        db.insert(StudyGoal(id="goal_OPEN", user_id="user_U1", language_id="lang_L1", period="week"), session=s, commit=False)
-        db.insert(StudyGoal(id="goal_LOCK", user_id="user_U1", language_id="lang_L2", period="week", n_vocabulary=7, locked={"start": "2026-01-01", "period": "week"}), session=s, commit=False)
+        db.insert(StudyGoal(id="goal_OPEN", user_id="user_U1", language_id="lang_L1", period="week", n_vocabulary=7), session=s, commit=False)
     assert _put(c, "pace", {"new_per_week": 30, "reviews_per_day": 80}).status_code == 200
     with db.session_scope() as s:
-        open_, locked = s.get(StudyGoal, "goal_OPEN"), s.get(StudyGoal, "goal_LOCK")
-        assert open_.n_vocabulary > 9 and locked.n_vocabulary > 9 and locked.locked == {"start": "2026-01-01", "period": "week"}
+        assert s.get(StudyGoal, "goal_OPEN").n_vocabulary == 7
 
 
 def test_element_types_never_offer_components():

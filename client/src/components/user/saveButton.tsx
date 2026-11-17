@@ -9,10 +9,12 @@ export default function SaveButton({
   children,
   isLoading = false,
   onSuccessLabel,
+  disabled = false,
 }: {
   children?: React.ReactNode;
   isLoading?: boolean;
   onSuccessLabel?: string;
+  disabled?: boolean;
 }) {
   const t = useTranslations("settings.buttons");
   const defaultLabel = children ?? t("save");
@@ -38,7 +40,7 @@ export default function SaveButton({
   }
 
   return (
-    <button type="submit" className="btn btn-primary" disabled={isLoading}>
+    <button type="submit" className="btn btn-primary" disabled={isLoading || disabled}>
       {isLoading ? <Spinner /> : defaultLabel}
     </button>
   );

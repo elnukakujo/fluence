@@ -5,7 +5,8 @@ import SubmitButton from "@/components/ui/buttons/submitButton";
 import {getUserById} from "@/api/user";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AutoWidthInput from "@/components/ui/input/autoWidthInput";
+import Field from "@/components/ui/field";
+import { FormActions, FormLayout, FormSection, FORM_LABEL } from "@/components/elements/formParts";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { createLanguage, getSupportedLanguages, updateLanguage, type SupportedLanguage } from "@/api/language";
@@ -118,67 +119,56 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
         }
     };
 
+    const tEl = useTranslations("elements");
     return (
-        <form className="flex flex-col space-y-4 items-center" onSubmit={handleSubmit}>
-            <ClassicSelectMenu
-                label={t("languageName")}
-                options={supported.map((l) => l.name)}
-                selectedOption={name}
-                disabled={isUpdate && Boolean(language?.iso1)}
-                onChange={(value) => {
-                    const picked = supported.find((l) => l.name === (value as string));
-                    if (!picked) return;
-                    setName(picked.name);
-                    setTargetIso639_2t(picked.iso2);
-                    setFlag(picked.flag);
-                    setLevel(0);
-                }}
-                required
-            />
-
-            <AutoWidthInput
-                value={alias || ""}
-                label={t("alias")}
-                onChange={(e) => setAlias(e.target.value)}
-                placeholder={t("enterAlias")}
-            />
-
-            <AutoSizeTextArea
-                value={description || ""}
-                onChange={(e) => setDescription(e.target.value)}
-                label={t("description")}
-                placeholder={t("enterDescription")}
-            />
-
-            <ClassicSelectMenu
-                label={t("level")}
-                options={levelOptions}
-                selectedOption={levelOptions[level]}
-                onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
-                required
-            />
-
-            <ClassicSelectMenu
-                label={t("languageUsedToStudy")}
-                options={knownLanguageISO639_2T.map(iso => ISO639_2T_to_LANGUAGE[iso] || iso)}
-                selectedOption={ISO639_2T_to_LANGUAGE[sourceIso639_2t || ""] || ""}
-                onChange={(value) => setSourceIso639_2t(LANGUAGE_to_ISO639_2T[value as string] || "")}
-                required
-            />
-
-            <TagSelector
-                selectedTagIds={selectedTagIds}
-                onTagsChange={setSelectedTagIds}
-                elementId={languageData.id!}
-            />
-
-            <SourceSelector
-                selectedSourceIds={selectedSourceIds}
-                onSourcesChange={setSelectedSourceIds}
-                elementId={languageData.id!}
-            />
-
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateLanguage")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addLanguage")}</SubmitButton>}
-        </form>
+        <FormLayout onSubmit={handleSubmit}>
+            <FormSection title={t("formHeading")} columns={2}>
+                <ClassicSelectMenu
+                    label={t("languageName")}
+                    options={supported.map((l) => l.name)}
+                    selectedOption={name}
+                    disabled={isUpdate && Boolean(language?.iso1)}
+                    onChange={(value) => {
+                        const picked = supported.find((l) => l.name === (value as string));
+                        if (!picked) return;
+                        setName(picked.name);
+                        setTargetIso639_2t(picked.iso2);
+                        setFlag(picked.flag);
+                        setLevel(0);
+                    }}
+                    required
+                    className="w-full"
+                />
+                <ClassicSelectMenu
+                    label={t("languageUsedToStudy")}
+                    options={knownLanguageISO639_2T.map(iso => ISO639_2T_to_LANGUAGE[iso] || iso)}
+                    selectedOption={ISO639_2T_to_LANGUAGE[sourceIso639_2t || ""] || ""}
+                    onChange={(value) => setSourceIso639_2t(LANGUAGE_to_ISO639_2T[value as string] || "")}
+                    required
+                    className="w-full"
+                />
+                <ClassicSelectMenu
+                    label={t("level")}
+                    options={levelOptions}
+                    selectedOption={levelOptions[level]}
+                    onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
+                    required
+                    className="w-full"
+                />
+                <Field label={t("alias")} labelClassName={FORM_LABEL}>
+                    <input className="input" value={alias || ""} onChange={(e) => setAlias(e.target.value)} placeholder={t("enterAlias")} />
+                </Field>
+            </FormSection>
+            <FormSection title={t("formDetailsSection")} columns={1}>
+                <AutoSizeTextArea value={description || ""} onChange={(e) => setDescription(e.target.value)} label={t("description")} placeholder={t("enterDescription")} />
+            </FormSection>
+            <FormSection title={tEl("formOrganisationSection")} columns={1}>
+                <TagSelector selectedTagIds={selectedTagIds} onTagsChange={setSelectedTagIds} elementId={languageData.id!} />
+                <SourceSelector selectedSourceIds={selectedSourceIds} onSourcesChange={setSelectedSourceIds} elementId={languageData.id!} />
+            </FormSection>
+            <FormActions note={tEl("formRequiredNote")}>
+                <SubmitButton isLoading={isSubmitting}>{isUpdate ? t("updateLanguage") : t("addLanguage")}</SubmitButton>
+            </FormActions>
+        </FormLayout>
     );
 }

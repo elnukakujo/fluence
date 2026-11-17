@@ -76,5 +76,7 @@
   "deletedLanguages": "已删除 {count} 种语言",
   "weekDelta": "较上周 {delta}",
   "heatmapLegend": "每日回答数分档",
-  "todayTitle": "今天"
+  "todayTitle": "今天",
+  "formHeading": "语言",
+  "formDetailsSection": "详情"
 }

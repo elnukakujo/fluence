@@ -148,3 +148,14 @@ def test_queue_route_takes_a_scope_and_rejects_a_bad_one(app, db):
     assert c.get(f"/api/review/{L}/queue?scope=lesson").status_code == 400            # id missing
     assert c.get(f"/api/review/{L}/queue?scope=nope").status_code == 400
     assert c.get(f"/api/review/{L}").status_code == 200                                  # the daily alias
+
+
+def test_a_course_without_calligraphy_serves_none(db):
+    from lapp.models.system_data import CourseSetting
+    seed(db)
+    lesson = Scope("lesson", lesson_id="lesson_L2")
+    assert any(c["id"].startswith("call_") for c in queue(lesson))
+    with db.session_scope() as s:
+        db.insert(CourseSetting(id="cs_1", user_id=U, language_id=L, key="element_types", value=["vocabulary", "grammar", "exercises"]), session=s, commit=False)
+    cards = queue(lesson)
+    assert cards and not any(c["id"].startswith("call_") for c in cards)

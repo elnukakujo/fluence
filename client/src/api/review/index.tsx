@@ -56,6 +56,6 @@ export function queueHref(languageId: string, params: ScopeParams): string {
 }
 
 /** The daily review queue was finished: validates today for the streak (once per day). */
-export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean }> {
+export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean; just_validated: boolean }> {
   return apiFetch(`/api/review/${languageId}/complete`, { method: "POST", body: { cards }, errorMessage: "Failed to complete the review" });
 }

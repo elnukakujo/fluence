@@ -27,6 +27,7 @@ import ImportButton from "@/components/ingestion/importButton";
 import LessonItems from "@/components/elements/itemSelection";
 import { getTranslations } from "next-intl/server";
 import { queueHref } from "@/api/review";
+import { getSettingsGroup } from "@/api/settings";
 
 
 export default async function Lesson({ params }: { params: Promise<{ language_id: string, lesson_id: string }> }) {
@@ -41,10 +42,12 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
     const calligraphies: Calligraphy[] =  await getCalligraphyByLesson(lesson_id);
     const exercises: Exercise[] = await getExercisesByLesson(lesson_id);
 
+    const types = ((await getSettingsGroup("review", language_id).catch(() => null))?.values.element_types as string[] | undefined) ?? ["vocabulary", "grammar", "calligraphy", "exercises"];   // this course's own choice
+    const shows = { voc: types.includes("vocabulary"), gram: types.includes("grammar"), call: types.includes("calligraphy"), ex: types.includes("exercises") };
     const base = `/languages/${language_id}/lesson/${lesson_id}`;
     return (
         <main className="flex flex-col gap-6">
-            <LessonHeaderCard lesson={lesson} counts={{ voc: vocabularies.length, gram: grammars.length, call: calligraphies.length, ex: exercises.length }}>
+            <LessonHeaderCard lesson={lesson} counts={{ voc: shows.voc ? vocabularies.length : undefined, gram: shows.gram ? grammars.length : undefined, call: shows.call ? calligraphies.length : undefined, ex: shows.ex ? exercises.length : undefined }}>
                 <nav aria-label={t("studyActions")} className="flex flex-wrap gap-2">
                     <NavButton path={queueHref(language_id, { scope: "lesson", lesson_id })} className="btn btn-primary min-h-11">
                         <p>{t("reviewLesson")}</p>
@@ -56,10 +59,10 @@ export default async function Lesson({ params }: { params: Promise<{ language_id
             </LessonHeaderCard>
             <div className="dash-grid">
                 <LessonItems isOwner={isOwner} userId={userId ?? ""} lessonId={lesson_id} languageId={language_id} className="grid min-w-0 items-start gap-4 md:grid-cols-2">
-                    <VocabularyList vocProps={vocabularies} />
-                    <GrammarList gramProps={grammars} />
-                    <CalligraphyList callProps={calligraphies} />
-                    <ExerciseList exProps={exercises} isOwner={isOwner} />
+                    {shows.voc && <VocabularyList vocProps={vocabularies} />}
+                    {shows.gram && <GrammarList gramProps={grammars} />}
+                    {shows.call && <CalligraphyList callProps={calligraphies} />}
+                    {shows.ex && <ExerciseList exProps={exercises} isOwner={isOwner} />}
                 </LessonItems>
                 <aside className="dash-aside">
                     <ElementPerformanceCard element={lesson} />

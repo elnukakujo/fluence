@@ -6,7 +6,8 @@ import SubmitButton from "@/components/ui/buttons/submitButton";
 import { getLanguageById } from "@/api/language";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import AutoWidthInput from "@/components/ui/input/autoWidthInput";
+import Field from "@/components/ui/field";
+import { FormActions, FormLayout, FormSection, FORM_LABEL } from "@/components/elements/formParts";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import TagSelector from "@/components/tags/tagSelector";
@@ -83,43 +84,32 @@ export default function LessonForm({ lesson, language_id }: { lesson?: Partial<L
         }
     };
 
+    const tEl = useTranslations("elements");
     return (
-        <form className="flex flex-col space-y-4 items-center" onSubmit={handleSubmit}>
-            <AutoWidthInput
-                value={title}
-                label={t("lessonTitle")}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("enterLessonTitle")}
-                required={true}
-            />
-
-            <AutoSizeTextArea
-                value={description || ""}
-                label={t("description")}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("enterLessonDescription")}
-            />
-
-            <ClassicSelectMenu
-                label={t("level")}
-                options={levelOptions}
-                selectedOption={levelOptions[level]}
-                onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
-                required
-            />
-
-            <TagSelector
-                selectedTagIds={selectedTagIds}
-                onTagsChange={setSelectedTagIds}
-                elementId={lessonData.id!}
-            />
-            <SourceSelector
-                selectedSourceIds={selectedSourceIds}
-                onSourcesChange={setSelectedSourceIds}
-                elementId={lessonData.id!}
-            />
-
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateLesson")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addLesson")}</SubmitButton>}
-        </form>
+        <FormLayout onSubmit={handleSubmit}>
+            <FormSection title={t("formHeading")} columns={2}>
+                <Field label={t("lessonTitle")} required labelClassName={FORM_LABEL}>
+                    <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("enterLessonTitle")} />
+                </Field>
+                <ClassicSelectMenu
+                    label={t("level")}
+                    options={levelOptions}
+                    selectedOption={levelOptions[level]}
+                    onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
+                    required
+                    className="w-full"
+                />
+                <div className="sm:col-span-full">
+                    <AutoSizeTextArea value={description || ""} label={t("description")} onChange={(e) => setDescription(e.target.value)} placeholder={t("enterLessonDescription")} />
+                </div>
+            </FormSection>
+            <FormSection title={tEl("formOrganisationSection")} columns={1}>
+                <TagSelector selectedTagIds={selectedTagIds} onTagsChange={setSelectedTagIds} elementId={lessonData.id!} />
+                <SourceSelector selectedSourceIds={selectedSourceIds} onSourcesChange={setSelectedSourceIds} elementId={lessonData.id!} />
+            </FormSection>
+            <FormActions note={tEl("formRequiredNote")}>
+                <SubmitButton isLoading={isSubmitting}>{isUpdate ? t("updateLesson") : t("addLesson")}</SubmitButton>
+            </FormActions>
+        </FormLayout>
     );
 }

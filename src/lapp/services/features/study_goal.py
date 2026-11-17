@@ -121,6 +121,13 @@ class StudyGoalService:
         return self.get(user_id, language_id, session=session)
 
     @transactional
+    def targets(self, user_id: str, session: Optional[Session] = None) -> dict:
+        """What a goal's quantities must add up to, per period: {period: {"n": total new, "r": total review}} from the pace numbers."""
+        prefs = self._preferences(user_id, session)
+        new, rev = (prefs.new_per_week, prefs.reviews_per_day) if prefs else (15, 40)
+        return {k: {"n": round(new * d / 7), "r": round(rev * d / 7)} for k, d in PERIOD_DAYS.items()}
+
+    @transactional
     def suggested(self, user_id: str, period: str = DEFAULT_GOAL_PERIOD, session: Optional[Session] = None) -> dict:
         """The suggested quantities for the user's new per week and reviews per day: {"n": {type: n}, "r": {type: r}}."""
         return self._suggested(user_id, period, session)
