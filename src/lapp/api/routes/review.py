@@ -37,7 +37,6 @@ def get_scoped_queue(language_id: str):
         - {name: tag_id, in: query, type: string}
         - {name: source_id, in: query, type: string}
         - {name: type, in: query, type: string, description: vocabulary, grammar, calligraphy, character or exercise}
-        - {name: radicals, in: query, type: string, description: "1 = only the characters that are radicals (with type=character)"}
         - {name: ids, in: query, type: string, description: comma-separated element ids (scope=free)}
     responses:
         200: {description: "Queue items: the card fields plus kind, skill, bonus, est_seconds, leech"}
@@ -49,7 +48,7 @@ def get_scoped_queue(language_id: str):
     if kind not in SCOPES or (kind in needs and not a.get(needs[kind])) or (kind == 'free' and not a.get('ids')):
         return jsonify({'error': 'unknown scope or missing id'}), 400
     return _queue(language_id, Scope(kind=kind, lesson_id=a.get('lesson_id'), tag_id=a.get('tag_id'), source_id=a.get('source_id'),
-                                     element_type=a.get('type'), radicals=a.get('radicals') == '1',
+                                     element_type=a.get('type'),
                                      ids=[i for i in a.get('ids', '').split(',') if i]))
 
 

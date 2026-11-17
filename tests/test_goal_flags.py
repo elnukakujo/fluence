@@ -1,4 +1,4 @@
-"""Goal flags (spec 3 Task 3): succeeded is permanent, the soft gate never re-closes, rebuild keeps succeeded items, radicals quota is optional."""
+"""Goal flags (spec 3 Task 3): succeeded is permanent, the soft gate never re-closes, rebuild keeps succeeded items."""
 import importlib.util
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -86,24 +86,6 @@ def test_rebuild_keep_mastered_keeps_succeeded_and_refills_to_the_new_quantity(d
     items = {i.element_id for i in db.get_session().query(StudyGoalItem).all()}
     assert "voc_V0" in items
     assert len(open_ids(svc) | {"voc_V0"}) == 4 and svc.progress(U, L, today=D0)["types"]["vocabulary"]["mastered"] == 1
-
-
-def test_radicals_quota_is_optional_and_never_blocks(db):
-    _seed(db)
-    with db.session_scope() as s:
-        s.get(Character, "char_C1").key_radical_id = "char_C0"                          # C0 is a radical
-    svc = StudyGoalService()
-    _goal(svc, n_vocabulary=0, n_grammar=0, n_calligraphy=1)
-    assert open_ids(svc) == {"call_C0"} and svc.get(U, L)["n_radicals"] == 0           # default: nothing extra
-    svc.reset(U, L, today=D0, keep_mastered=False)
-    _goal(svc, n_vocabulary=0, n_grammar=0, n_calligraphy=1, n_radicals=1)
-    svc.reset(U, L, today=D0, keep_mastered=False)
-    items = {i.element_id: i.radical for i in svc.ensure_cycle(U, L, today=D0)}
-    assert items == {"call_C0": True, "call_C1": False}                                # the radical, plus the regular pick
-    svc.reset(U, L, today=D0, keep_mastered=False)
-    with db.session_scope() as s:
-        s.get(Character, "char_C1").key_radical_id = None                               # no radical left: the rest still flows
-    assert open_ids(svc) == {"call_C0"}
 
 
 def test_migration_backfill_stamps_known_items_and_opens_gates(db):

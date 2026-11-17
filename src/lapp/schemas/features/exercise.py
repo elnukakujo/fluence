@@ -3,9 +3,7 @@ from pydantic import field_validator, model_validator
 
 from ..base import BaseFeatureDict
 
-from ...services.exercises.registry import EXERCISE_TYPES
 
-VALID_EXERCISE_TYPES = list(EXERCISE_TYPES)
 
 
 class ExerciseDict(BaseFeatureDict):
@@ -34,7 +32,8 @@ class ExerciseDict(BaseFeatureDict):
 
     @model_validator(mode='after')
     def _validate(self):
-        valid_exercise_types = VALID_EXERCISE_TYPES
+        from ...services.exercises.registry import EXERCISE_TYPES     # here, not at the top: the services package imports these schemas
+        valid_exercise_types = list(EXERCISE_TYPES)
         if self.exercise_type not in valid_exercise_types:
             raise ValueError(f"Invalid exercise_type: {self.exercise_type}. Must be one of {valid_exercise_types}.")
 

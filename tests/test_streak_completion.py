@@ -5,11 +5,14 @@ Run: `uv run pytest tests/test_streak_completion.py`
 from datetime import datetime, timedelta
 
 from lapp.models.containers.language import Language
-from lapp.models.data_collection.daily_stats import DailyStats
+from lapp.models.data_collection import LearnerDay
+from lapp.utils.learner_clock import learner_today
 from lapp.models.system_data import User
 from lapp.services.auth import AuthService
 from lapp.services.data_collection.commitment_log import CommitmentLogService
+from lapp.schemas.data_collection.progress_tracking import ProgressTrackingDict
 from lapp.services.data_collection.daily_stats import DailyStatsService
+from lapp.services.data_collection.study_activity import StudyActivity
 
 stats = DailyStatsService()
 
@@ -20,39 +23,47 @@ def _seed(db):
         db.insert(Language(id="lang_S1", user_id="user_S1", name="J"), session=s, commit=False)
 
 
+def _validate():
+    """One answer today, then the finished queue: the way a day becomes a streak day."""
+    StudyActivity().record("user_S1", "lang_S1", ProgressTrackingDict(
+        element_id="voc_1", element_type="vocabulary", element_status="learning", score_before=0.0, score_after=10.0, result=True, duration_ms=1000.0), tz="UTC")
+    StudyActivity().complete_queue("user_S1", "lang_S1", tz="UTC")
+
+
 def _today(): return stats.get_today_for_user("user_S1", "lang_S1", as_dict=True)
 def _longest(): return CommitmentLogService().get_for_user("user_S1", "lang_S1", as_dict=True)["longest_streak_ever"]
 
 
 def test_validate_day_sets_streak_and_log(db):
     _seed(db)
-    stats.validate_day("user_S1", "lang_S1")
+    _validate()
     t = _today()
     assert t["streak_day"] is True and t["current_streak_length"] == 1 and _longest() == 1
 
 
 def test_validate_day_twice_is_idempotent(db):
     _seed(db)
-    stats.validate_day("user_S1", "lang_S1")
-    stats.validate_day("user_S1", "lang_S1")
+    _validate()
+    _validate()
     assert _today()["current_streak_length"] == 1 and _longest() == 1
 
 
 def test_streak_continues_from_yesterday(db):
     _seed(db)
     with db.session_scope() as s:
-        db.insert(DailyStats(id="daily_Y", user_id="user_S1", language_id="lang_S1", items_reviewed=1, items_correct=1,
-                             time_studied_ms=0, streak_day=True, current_streak_length=3,
-                             created_at=datetime.now() - timedelta(days=1)), session=s, commit=False)
-    stats.validate_day("user_S1", "lang_S1")
+        db.insert(LearnerDay(id="day_Y", user_id="user_S1", day=learner_today("UTC") - timedelta(days=1), answers=20, validated=True, streak_length=3),
+                  session=s, commit=False)
+    _validate()
     assert _today()["current_streak_length"] == 4
 
 
-def test_route_zero_cards_does_not_validate_and_cards_do(app, db):
+def test_route_validates_only_after_an_answer(app, db):
     _seed(db)
     c = app.test_client()
     c.set_cookie('session_token', AuthService().create_session("user_S1", remember=False))
-    assert c.post('/api/review/lang_S1/complete', json={"cards": 0}).get_json() == {"streak": 0, "validated": False}
-    assert c.post('/api/review/lang_S1/complete', json={"cards": 5}).get_json() == {"streak": 1, "validated": True}
-    assert c.post('/api/review/lang_S1/complete', json={"cards": 5}).get_json() == {"streak": 1, "validated": True}
+    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 0, "validated": False}
+    StudyActivity().record("user_S1", "lang_S1", ProgressTrackingDict(
+        element_id="voc_1", element_type="vocabulary", element_status="learning", score_before=0.0, score_after=10.0, result=True, duration_ms=1000.0), tz="UTC")
+    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 1, "validated": True}
+    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 1, "validated": True}
     assert _longest() == 1

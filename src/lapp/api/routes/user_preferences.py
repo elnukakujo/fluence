@@ -5,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 from ...schemas.system_data import UserPreferencesDict
 from ...services.system_data import UserPreferencesService
-from ...services.features import StudyGoalService
 from ...core.auth import login_required, require_owns, current_user_id
 from ...utils.request import parse_json
 user_preferences_service = UserPreferencesService()
@@ -153,9 +152,6 @@ def update_user_preferences(pref_id: str):
 
         pref = user_preferences_service.update(pref_id, data, as_dict=True)
 
-        if pref and data.daily_goal_minutes is not None:
-            StudyGoalService().refresh_auto_goals(pref['user_id'])      # suggested goals follow the daily minutes
-
         if pref:
             return jsonify({
                 'success': True,
@@ -245,27 +241,6 @@ def put_settings_group(group: str):
         require_owns(language_id)
     try:
         result = settings_service.update_group(current_user_id(), group, values, language_id)
-    except settings_service.SettingsError as e:
-        return jsonify({'error': str(e)}), 400
-    if 'daily_goal_minutes' in values:
-        StudyGoalService().refresh_auto_goals(current_user_id())      # suggested goals follow the daily minutes
-    return jsonify(result)
-
-
-@bp.route('/preset', methods=['POST'])
-@login_required
-def apply_preset():
-    """Apply a pace preset (casual|standard|intensive); skills and other groups are untouched.
-    ---
-    tags:
-      - UserPreferences
-    responses:
-      200: {description: The pace group after the preset}
-      400: {description: Unknown preset}
-    """
-    from ...services.system_data import settings as settings_service
-    try:
-        result = settings_service.apply_preset(current_user_id(), (request.get_json(silent=True) or {}).get('name'))
     except settings_service.SettingsError as e:
         return jsonify({'error': str(e)}), 400
     return jsonify(result)

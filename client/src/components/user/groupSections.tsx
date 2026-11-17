@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import SettingsGroup from "./settingsGroup";
 import PresetPicker from "./presetPicker";
 import { setThemeCookie } from "./theme";
 
-/** Learning pace: daily minutes and streak minimum, with the presets as the quick way to fill them (applied at once; the form re-reads). */
+/** Learning pace: the three numbers you choose (new per week, reviews per day, answers for a streak day). A preset only fills them in; nothing is saved (and no
+ *  goal changes) until Save. */
 export function PaceBlock() {
-    const [version, setVersion] = useState(0);
     return (
-        <SettingsGroup key={version} group="pace" quiet describe={false}
-            lead={<PresetPicker onApplied={() => setVersion((v) => v + 1)} />}
+        <SettingsGroup group="pace" quiet describe={false}
+            lead={(fill) => <PresetPicker onPick={fill} />}
             fields={[
-                { key: "daily_goal_minutes", kind: "number", min: 5, max: 60, step: 5 },
+                { key: "new_per_week", kind: "number", min: 0, max: 1000 },
+                { key: "reviews_per_day", kind: "number", min: 0, max: 1000 },
                 { key: "streak_min_answers", kind: "number", min: 1, max: 1000 },
             ]} />
     );

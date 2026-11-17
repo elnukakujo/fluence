@@ -55,12 +55,7 @@
   "preferences": {
     "title": "复习计划与搭配",
     "nativeLanguages": "母语",
-    "dailyGoal": "每日目标",
-    "dailyGoalUnit": "分钟 / 天",
-    "exerciseTypes": "偏好的练习类型",
-    "dailyGoalAria": "每日目标（分钟）",
-    "dailyGoalValueAria": "每日目标分钟数",
-    "dailyHint": "你希望每天学习多长时间。每日复习和学习目标会据此调整。"
+    "exerciseTypes": "偏好的练习类型"
   },
   "aiFeatures": {
     "title": "AI 功能",

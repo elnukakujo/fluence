@@ -34,13 +34,11 @@
     "streak_min_answers": "Réponses pour valider un jour de série",
     "streak_min_answersDesc": "Le nombre de réponses d'un jour pour qu'il compte dans votre série.",
     "new_per_week": "Nouveaux éléments par semaine",
-    "new_per_weekDesc": "Combien de nouveaux mots, points de grammaire et caractères vous visez par semaine.",
+    "new_per_weekDesc": "Combien de nouveaux mots, points de grammaire et caractères vous visez chaque semaine. Vos objectifs d'étude les suivent.",
     "reviews_per_day": "Révisions par jour",
-    "reviews_per_dayDesc": "Combien d'éléments vous visez à réviser par jour.",
+    "reviews_per_dayDesc": "Combien de cartes vous visez dans la révision du jour. Vos objectifs d'étude les suivent.",
     "soft_gate": "Suggérer d'abord les leçons précédentes",
-    "soft_gateDesc": "Le nouveau contenu attend que la première leçon soit connue ; vous pouvez toujours passer outre.",
-    "daily_goal_minutes": "Minutes d'étude par jour",
-    "daily_goal_minutesDesc": "Combien de temps vous voulez étudier chaque jour (5 à 60). La révision du jour et les objectifs s'y adaptent."
+    "soft_gateDesc": "Le nouveau contenu attend que la première leçon soit connue ; vous pouvez toujours passer outre."
   },
   "review": {
     "title": "Ce que je révise",
@@ -94,7 +92,7 @@
   },
   "presets": {
     "title": "Préréglages",
-    "description": "Un point de départ : touchez-en un pour régler votre rythme. Les compétences ne changent pas.",
+    "description": "Un point de départ : touchez-en un pour régler votre rythme et vos objectifs d'étude. Les compétences ne changent pas.",
     "casual": "Tranquille",
     "standard": "Standard",
     "intensive": "Intensif",

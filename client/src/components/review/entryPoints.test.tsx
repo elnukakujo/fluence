@@ -27,7 +27,7 @@ describe("every entry point mounts the one shell with only {items, options}", ()
     ["lesson calligraphy", async () => CallPage({ params: Promise.resolve({ language_id: "l1", lesson_id: "ls1" }) })],
     ["tag", async () => QueuePage({ params: Promise.resolve({ language_id: "l1" }), searchParams: Promise.resolve({ scope: "tag", tag_id: "tag_1" }) })],
     ["source", async () => QueuePage({ params: Promise.resolve({ language_id: "l1" }), searchParams: Promise.resolve({ scope: "source", source_id: "src_1" }) })],
-    ["type", async () => QueuePage({ params: Promise.resolve({ language_id: "l1" }), searchParams: Promise.resolve({ scope: "type", type: "character", radicals: "1" }) })],
+    ["type", async () => QueuePage({ params: Promise.resolve({ language_id: "l1" }), searchParams: Promise.resolve({ scope: "type", type: "character" }) })],
     ["free", async () => QueuePage({ params: Promise.resolve({ language_id: "l1" }), searchParams: Promise.resolve({ scope: "free", ids: "voc_1,gram_2" }) })],
     ["daily", async () => DailyPage({ params: Promise.resolve({ language_id: "l1" }) })],
   ];

@@ -48,9 +48,9 @@ def _prefs(**kw):
 
 LEARNERS = {
     "no_preferences": lambda: None,
-    "weekly_goal": lambda: (_prefs(daily_goal_minutes=8), StudyGoalService().upsert("user_U1", "lang_L1", "week", 3, 1, 1)),
-    "layout_sections": lambda: _prefs(daily_goal_minutes=6, review_layout=[{"type": "call", "minutes": None}, {"type": "voc", "minutes": 2},
-                                                                          {"type": "gram", "minutes": None}, {"type": "ex", "minutes": None}]),
+    "weekly_goal": lambda: (_prefs(reviews_per_day=8), StudyGoalService().upsert("user_U1", "lang_L1", "week", 3, 1, 1)),
+    "layout_sections": lambda: _prefs(reviews_per_day=6, review_layout=[{"type": "call", "count": None}, {"type": "voc", "count": 2},
+                                                                          {"type": "gram", "count": None}, {"type": "ex", "count": None}]),
 }
 
 

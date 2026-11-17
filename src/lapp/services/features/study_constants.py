@@ -24,19 +24,20 @@ PACE_MIN_MS = 2000          # a card is never counted faster than this ...
 PACE_MAX_FACTOR = 5         # ... or slower than this many times its estimate (an idle tab)
 SPARE_EXERCISES = 5         # ready exercises sent along as replacements for skipped or broken ones
 
-# Default study goal, scaled by the user's daily minutes. TODO(user): stand-ins anchored on the 20 min/day example
-# (20 new vocabulary, 5 grammar, 10 calligraphy a week); the review share is half of the new quantity.
+# Default study goal, from the learner's new per week and reviews per day (the presets set them, the learner can change them).
+# TODO(user): stand-ins: the split across the types (20 : 5 : 10, as before) and reading "reviews per day" as the review
+# elements of a 7-day period (a longer period scales it).
 DEFAULT_GOAL_PERIOD = "week"
-DEFAULT_GOAL_ANCHOR_MINUTES = 20
-DEFAULT_NEW_AT_ANCHOR = {"vocabulary": 20, "grammar": 5, "calligraphy": 10}
-DEFAULT_REVIEW_SHARE = 0.5
+DEFAULT_GOAL_SHARE = {"vocabulary": 4, "grammar": 1, "calligraphy": 2}
 
 
-def default_goal_quantities(daily_minutes: int) -> dict:
-    """{"n": {type: new}, "r": {type: review}} for a daily time: linear in the minutes, at least 1 of each."""
-    scale = max(daily_minutes, 1) / DEFAULT_GOAL_ANCHOR_MINUTES
-    new = {k: max(1, int(v * scale + 0.5)) for k, v in DEFAULT_NEW_AT_ANCHOR.items()}   # half up
-    return {"n": new, "r": {k: max(1, int(v * DEFAULT_REVIEW_SHARE + 0.5)) for k, v in new.items()}}
+def default_goal_quantities(new_per_week: int, reviews_per_day: int, period_days: int = 7) -> dict:
+    """{"n": {type: new}, "r": {type: review}} per period, split by DEFAULT_GOAL_SHARE (at least 1 of each unless the total is 0)."""
+    def split(total: float) -> dict:
+        whole, parts = round(total), sum(DEFAULT_GOAL_SHARE.values())
+        return {k: (max(1, int(whole * v / parts + 0.5)) if whole else 0) for k, v in DEFAULT_GOAL_SHARE.items()}   # half up
+    scale = period_days / 7
+    return {"n": split(new_per_week * scale), "r": split(reviews_per_day * scale)}
 
 
 # AI exercise generation for a lesson. TODO(user): stand-ins for every number below.

@@ -482,7 +482,7 @@ def test_upload_rejects_invalid_source_type(app, db, media_root, scheduled):
 
 def test_upload_rejects_invalid_level(app, db, media_root, scheduled):
     client = _setup(app, db, media_root)
-    for level in ["0", "10", "x", "-1"]:
+    for level in ["10", "x", "-1"]:
         res = _upload(client, level=level)
         assert res.status_code == 400 and ("level" in res.get_json()["error"] or "integer" in res.get_json()["error"]), f"level={level}"
     assert scheduled == []

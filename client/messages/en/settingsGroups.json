@@ -34,13 +34,11 @@
     "streak_min_answers": "Answers for a streak day",
     "streak_min_answersDesc": "The answers you give in a day for it to count in your streak.",
     "new_per_week": "New items per week",
-    "new_per_weekDesc": "How many new words, grammar points and characters you aim to start each week.",
+    "new_per_weekDesc": "How many new words, grammar points and characters you aim to start each week. Your study goals follow it.",
     "reviews_per_day": "Reviews per day",
-    "reviews_per_dayDesc": "How many items you aim to review each day.",
+    "reviews_per_dayDesc": "How many cards you aim to answer in your daily review. Your study goals follow it.",
     "soft_gate": "Suggest earlier lessons first",
-    "soft_gateDesc": "New material waits until the first lesson is known; you can always override.",
-    "daily_goal_minutes": "Daily study minutes",
-    "daily_goal_minutesDesc": "How long you want to study each day (5 to 60). Your daily review and study goals adapt to it."
+    "soft_gateDesc": "New material waits until the first lesson is known; you can always override."
   },
   "review": {
     "title": "What I review",
@@ -94,7 +92,7 @@
   },
   "presets": {
     "title": "Presets",
-    "description": "A starting point: tap one to fill your pace. Skills are not changed.",
+    "description": "A starting point: tap one to fill your pace and your study goals. Skills are not changed.",
     "casual": "Casual",
     "standard": "Standard",
     "intensive": "Intensive",

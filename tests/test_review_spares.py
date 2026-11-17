@@ -19,7 +19,7 @@ def _seed(db, n=12, broken=0):
             db.insert(Exercise(id=f"ex_S{i}", lesson_id="lesson_L1", exercise_type="translate", question=f"say {i}", answer="ok"), session=s, commit=False)
         for i in range(broken):
             db.insert(Exercise(id=f"ex_B{i}", lesson_id="lesson_L1", exercise_type="quizz", question="q", answer="a", review_reason="check"), session=s, commit=False)
-    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", daily_goal_minutes=1))
+    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", reviews_per_day=20))
 
 
 def _cards():

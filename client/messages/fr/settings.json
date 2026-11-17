@@ -55,12 +55,7 @@
   "preferences": {
     "title": "Plan et mélange de révision",
     "nativeLanguages": "Langues maternelles",
-    "dailyGoal": "Objectif quotidien",
-    "dailyGoalUnit": "min / jour",
-    "exerciseTypes": "Types d'exercices préférés",
-    "dailyGoalAria": "Objectif quotidien en minutes",
-    "dailyGoalValueAria": "Valeur de l'objectif quotidien en minutes",
-    "dailyHint": "Combien de temps vous voulez étudier chaque jour. Votre révision quotidienne et vos objectifs s'y adaptent."
+    "exerciseTypes": "Types d'exercices préférés"
   },
   "aiFeatures": {
     "title": "Fonctions IA",

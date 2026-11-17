@@ -21,7 +21,7 @@ _spec.loader.exec_module(mig)
     ("voc_side_pattern", {"mode": "cycle", "cycle": ["F", "F", "B"]}),
     ("voc_side_pattern", {"mode": "split"}),
     ("exercise_type_prefs", {"essay": "ban", "quizz": "boost"}),
-    ("review_layout", [{"type": "voc", "minutes": None}, {"type": "gram", "minutes": 5}]),
+    ("review_layout", [{"type": "voc", "count": None}, {"type": "gram", "count": 5}]),
 ])
 def test_valid(field, value):
     assert getattr(UserPreferencesDict(**{field: value}), field) == value
@@ -37,7 +37,7 @@ def test_valid(field, value):
     ("review_layout", [{"type": "voc"}, {"type": "voc"}]),
     ("review_layout", [{"type": "x"}]),
     ("review_layout", []),
-    ("review_layout", [{"type": "voc", "minutes": 0}]),
+    ("review_layout", [{"type": "voc", "count": 0}]),
 ])
 def test_invalid(field, value):
     with pytest.raises(ValidationError):
@@ -52,11 +52,11 @@ def _user(db):
 def test_round_trip(db):
     _user(db)
     data = UserPreferencesDict(user_id="user_U1", voc_side_pattern={"mode": "split"},
-                               exercise_type_prefs={"essay": "ban"}, review_layout=[{"type": "ex", "minutes": None}])
+                               exercise_type_prefs={"essay": "ban"}, review_layout=[{"type": "ex", "count": None}])
     out = UserPreferencesService().create(data, as_dict=True)
     assert out["voc_side_pattern"] == {"mode": "split"} and out["exercise_type_prefs"] == {"essay": "ban"}
-    upd = UserPreferencesService().update(out["id"], UserPreferencesDict(review_layout=[{"type": "voc", "minutes": 3}]), as_dict=True)
-    assert upd["review_layout"] == [{"type": "voc", "minutes": 3}] and upd["exercise_type_prefs"] == {"essay": "ban"}
+    upd = UserPreferencesService().update(out["id"], UserPreferencesDict(review_layout=[{"type": "voc", "count": 3}]), as_dict=True)
+    assert upd["review_layout"] == [{"type": "voc", "count": 3}] and upd["exercise_type_prefs"] == {"essay": "ban"}
 
 
 def test_unique_user_exercise(db):
@@ -73,10 +73,10 @@ def test_migrate_preferred_types(db):
     _user(db)
     with db.engine.begin() as conn:
         conn.execute(text("ALTER TABLE user_preferences ADD COLUMN preferred_exercise_types JSON"))
-        conn.execute(text("INSERT INTO user_preferences (id, user_id, native_language_iso639_2, daily_goal_minutes, "
+        conn.execute(text("INSERT INTO user_preferences (id, user_id, native_language_iso639_2, "
                           "ai_feedback_enabled, ai_learnable_sentence_enabled, ai_example_sentence_enabled, ai_example_word_enabled, "
                           "ai_tts_enabled, exercise_type_prefs, preferred_exercise_types) VALUES "
-                          "('pref_P1','user_U1','[\"eng\"]',20,true,true,true,true,true,'{}','[\"essay\"]')"))
+                          "('pref_P1','user_U1','[\"eng\"]',true,true,true,true,true,'{}','[\"essay\"]')"))
         mig.migrate_preferred_types(conn)
         got = conn.execute(text("SELECT exercise_type_prefs FROM user_preferences")).scalar_one()
     assert got == {"essay": "boost"}

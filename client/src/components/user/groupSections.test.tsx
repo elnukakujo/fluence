@@ -7,7 +7,7 @@ import { AnswerBlock, AppearanceBlock, PaceBlock } from "./groupSections";
 import { pick } from "@/test/selectMenu";
 import CourseSettings from "./courseSettings";
 
-const api = vi.hoisted(() => ({ getSettingsGroup: vi.fn(), saveSettingsGroup: vi.fn(), applyPreset: vi.fn() }));
+const api = vi.hoisted(() => ({ getSettingsGroup: vi.fn(), saveSettingsGroup: vi.fn() }));
 vi.mock("@/api/settings", () => api);
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
@@ -26,18 +26,20 @@ describe("settings blocks", () => {
         await waitFor(() => expect(api.saveSettingsGroup).toHaveBeenCalledWith("answer", { hints_enabled: false }));
     });
 
-    it("pace holds the daily minutes, the streak minimum and the three presets with their exact numbers, and applies one", async () => {
-        api.getSettingsGroup.mockResolvedValue(group({ daily_goal_minutes: 20, streak_min_answers: 20 }));
-        api.applyPreset.mockResolvedValue(group({}));
+    it("pace holds new per week, reviews per day, the streak minimum and the three presets with their exact numbers, and a preset only fills the form until Save", async () => {
+        api.getSettingsGroup.mockResolvedValue(group({ new_per_week: 15, reviews_per_day: 40, streak_min_answers: 20 }));
         render(<PaceBlock />);
-        expect(await screen.findByText("Daily study minutes")).toBeInTheDocument();
+        expect(await screen.findByText("Reviews per day")).toBeInTheDocument();
         for (const [n, r, s] of [[5, 20, 10], [15, 40, 20], [30, 80, 40]]) {
             expect(screen.getByText(`${n} new items per week`)).toBeInTheDocument();
             expect(screen.getByText(`${r} reviews per day`)).toBeInTheDocument();
             expect(screen.getByText(`Streak day: ${s} answers`)).toBeInTheDocument();
         }
         await userEvent.click(screen.getByRole("button", { name: "Apply the Casual preset" }));
-        await waitFor(() => expect(api.applyPreset).toHaveBeenCalledWith("casual"));
+        expect(api.saveSettingsGroup).not.toHaveBeenCalled();                      // a tap saves nothing
+        expect(screen.getByRole("spinbutton", { name: /Reviews per day/ })).toHaveValue(20);
+        await userEvent.click(screen.getByRole("button", { name: /save/i }));
+        await waitFor(() => expect(api.saveSettingsGroup).toHaveBeenCalledWith("pace", { new_per_week: 5, reviews_per_day: 20, streak_min_answers: 10 }));
     });
 
     it("per-course settings share one course menu and one Save, each group saved for that course", async () => {

@@ -17,7 +17,7 @@ export default function SettingsGroup({ group, fields, onSaved, extra, lead, qui
     fields: Field[];
     onSaved?: (values: Record<string, SettingValue>) => void;
     extra?: React.ReactNode;
-    lead?: React.ReactNode;       // above the fields (e.g. the presets)
+    lead?: React.ReactNode | ((fill: (values: Record<string, SettingValue>) => void) => React.ReactNode);   // above the fields (e.g. the presets, which only fill the form)
     describe?: boolean;           // show the group's one-line description
     autosave?: boolean;           // discrete controls only: each change is saved at once, no Save button
     quiet?: boolean;
@@ -50,7 +50,7 @@ export default function SettingsGroup({ group, fields, onSaved, extra, lead, qui
             {describe && <p className="text-sm text-muted">{t("description")}</p>}
             {error && <InlineError>{error}</InlineError>}
             <form className="flex flex-col gap-1" onSubmit={(e) => { e.preventDefault(); save(Object.fromEntries(changed.map((k) => [k, draft[k]]))); }}>
-                {lead}
+                {typeof lead === "function" ? lead((values) => setDraft((d) => ({ ...d, ...values }))) : lead}
                 {fields.map((f) => (
                     <FieldControl key={f.key} field={f} value={draft[f.key]} disabled={saving} t={t} to={to}
                         onChange={(v) => { setDraft((d) => ({ ...d, [f.key]: v })); if (autosave) save({ [f.key]: v }); }} />

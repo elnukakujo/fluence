@@ -34,13 +34,11 @@
     "streak_min_answers": "连续天数所需答题数",
     "streak_min_answersDesc": "一天内答题达到此数才计入连续天数。",
     "new_per_week": "每周新内容",
-    "new_per_weekDesc": "每周计划开始学习的新词、语法点和汉字数量。",
+    "new_per_weekDesc": "你每周打算开始学习多少新单词、语法点和汉字。你的学习目标会随之调整。",
     "reviews_per_day": "每日复习数",
-    "reviews_per_dayDesc": "每天计划复习的内容数量。",
+    "reviews_per_dayDesc": "你每日复习打算回答多少张卡片。你的学习目标会随之调整。",
     "soft_gate": "优先建议前面的课",
-    "soft_gateDesc": "在第一课掌握之前，新内容会等待；你随时可以跳过。",
-    "daily_goal_minutes": "每日学习分钟数",
-    "daily_goal_minutesDesc": "你每天想学习多久（5 到 60）。每日复习和学习目标会据此调整。"
+    "soft_gateDesc": "在第一课掌握之前，新内容会等待；你随时可以跳过。"
   },
   "review": {
     "title": "我要复习的内容",
@@ -94,7 +92,7 @@
   },
   "presets": {
     "title": "预设",
-    "description": "一个起点：点一下即可设置节奏。技能不会改变。",
+    "description": "一个起点：点一下即可设置节奏和学习目标。技能不会改变。",
     "casual": "轻松",
     "standard": "标准",
     "intensive": "强化",

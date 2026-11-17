@@ -12,7 +12,6 @@ import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_i
 import ProgressBar from "@/components/ui/progressBar";
 import Spinner from "@/components/ui/spinner";
 
-const DAILY_GOAL_OPTIONS = ["5", "10", "15", "20", "30", "45", "60"];
 
 export default function UserForm({ user, navDisabled = false, onSuccess }: {
     user?: User | Partial<User>;
@@ -36,7 +35,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const [nativeLangs, setNativeLangs] = useState<string[]>(
         userData.preferences?.native_language_iso639_2 || (!isUpdate && isLocale(locale) ? nativeFromLocale(locale) : []),
     );
-    const [dailyGoal, setDailyGoal] = useState<string>((userData.preferences?.daily_goal_minutes ?? 20).toString());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [stepError, setStepError] = useState("");
@@ -74,7 +72,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             preferences: {
                 user_id: userData.id!,
                 native_language_iso639_2: skip ? (isLocale(locale) ? nativeFromLocale(locale) : []) : nativeLangs,
-                daily_goal_minutes: skip ? 20 : parseInt(dailyGoal),
             },
         };
         try {
@@ -188,12 +185,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             selectedOption={nativeLangs.map((iso) => ISO639_2T_to_LANGUAGE[iso] ?? iso)}
                             onChange={(selected) => setNativeLangs((selected as string[]).map((name) => LANGUAGE_to_ISO639_2T[name] ?? name))}
                             multiple
-                        />
-                        <ClassicSelectMenu
-                            label={t("dailyGoal")}
-                            options={DAILY_GOAL_OPTIONS}
-                            selectedOption={dailyGoal}
-                            onChange={(selected) => setDailyGoal(selected as string)}
                         />
                     </article>
                     <div className="flex w-full gap-2">

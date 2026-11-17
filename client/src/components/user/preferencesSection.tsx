@@ -105,9 +105,9 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
                   <>
                     <span className="badge">{i + 1}</span>
                     <span className="flex-1 min-w-24">{ts(`section_${id}`)}</span>
-                    <NumberField min={1} ariaLabel={ts("minutesFor", { section: ts(`section_${id}`) })} value={sec.minutes ?? ""} placeholder="–"
-                      onChange={(v) => setPlan(plan.map((s, j) => (j === i ? { ...s, minutes: v === "" ? null : v } : s)))} />
-                    <span className="text-sm text-muted">{ts("minutes")}</span>
+                    <NumberField min={1} ariaLabel={ts("countFor", { section: ts(`section_${id}`) })} value={sec.count ?? ""} placeholder="–"
+                      onChange={(v) => setPlan(plan.map((s, j) => (j === i ? { ...s, count: v === "" ? null : v } : s)))} />
+                    <span className="text-sm text-muted">{ts("cards")}</span>
                     <button type="button" className="btn btn-secondary min-h-11 min-w-11" aria-label={ts("removeItem", { name: ts(`section_${id}`) })} onClick={() => setPlan(plan.filter((_, j) => j !== i))}><X size={16} aria-hidden /></button>
                   </>
                 );
@@ -118,7 +118,7 @@ export default function PreferencesSection({ preferences }: { preferences: Parti
             <div className="flex flex-wrap items-center gap-2">
               {plan.length === 0 && <span className="text-sm text-muted">{ts("planEmpty")}</span>}
               {missing.map((s) => (
-                <button key={s} type="button" className="filter-chip inline-flex items-center gap-1 min-h-11 px-4 text-sm" onClick={() => setPlan([...plan, { type: s, minutes: null }])}>
+                <button key={s} type="button" className="filter-chip inline-flex items-center gap-1 min-h-11 px-4 text-sm" onClick={() => setPlan([...plan, { type: s, count: null }])}>
                   <Plus size={14} aria-hidden />{ts(`section_${s}`)}
                 </button>
               ))}

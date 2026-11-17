@@ -9,7 +9,6 @@ from typing import Any, Callable, Optional
 from ...core.database import db_manager, transactional
 from ...models.system_data import CourseSetting, UserPreferences
 from ...utils.element_kinds import _KINDS
-from .presets import PRESETS
 
 ELEMENT_TYPES = ("vocabulary", "grammar", "calligraphy", "exercises", "passages")      # characters and radicals are calligraphy cards
 LOCALES = ("en", "fr", "zh")
@@ -78,7 +77,6 @@ class Setting:
 
 SETTINGS: dict[str, Setting] = {
     # 1 Learning pace
-    "daily_goal_minutes": Setting("pace", "account", 20, _int_between(5, 60, 5)),
     "streak_min_answers": Setting("pace", "account", 20, _int_between(1, 1000)),
     "new_per_week": Setting("pace", "account", 15, _int_between(0, 1000)),
     "reviews_per_day": Setting("pace", "account", 40, _int_between(0, 1000)),
@@ -197,11 +195,3 @@ def update_group(user_id: str, group: str, values: dict, language_id: Optional[s
                                       user_id=user_id, language_id=language_id, key=key, value=value))
     session.flush()
     return read_group(user_id, group, language_id, session=session)
-
-
-@transactional
-def apply_preset(user_id: str, name: str, session=None) -> dict:
-    """Pace only: sets new/week, reviews/day and the streak minimum; skills and everything else stay."""
-    if name not in PRESETS:
-        raise SettingsError(f"unknown preset: {name}")
-    return update_group(user_id, "pace", dict(PRESETS[name]), session=session)

@@ -15,6 +15,3 @@ export const getSettingsGroup = (group: GroupName, languageId?: string): Promise
 /** Updates only the given keys of one group; a course key needs the language, `null` on it removes the override. */
 export const saveSettingsGroup = (group: GroupName, values: Record<string, SettingValue>, languageId?: string): Promise<SettingsGroup> =>
     apiFetch(`/api/pref/settings/${group}`, { method: "PUT", body: { values, language_id: languageId }, errorMessage: "Could not save these settings" });
-
-export const applyPreset = (name: string): Promise<SettingsGroup> =>
-    apiFetch("/api/pref/preset", { method: "POST", body: { name }, errorMessage: "Could not apply this preset" });

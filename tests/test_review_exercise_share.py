@@ -8,7 +8,7 @@ from lapp.services import ReviewService
 from lapp.services.system_data import ScoreService, UserPreferencesService
 
 
-def _seed(db, vocab_score, n=12, minutes=2, layout=None, unseen=0):
+def _seed(db, vocab_score, n=12, cards=20, layout=None, unseen=0):
     """n vocabularies, each with a ready translate exercise linked to it; `unseen` more pairs with no score."""
     with db.session_scope() as s:
         db.insert(User(id="user_U1", username="a", email="a@x.com"), session=s, commit=False)
@@ -23,7 +23,7 @@ def _seed(db, vocab_score, n=12, minutes=2, layout=None, unseen=0):
             db.insert(ex, session=s, commit=False)
     for i in range(n):
         ScoreService().set("user_U1", f"voc_{i}", vocab_score, 0.5)
-    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", daily_goal_minutes=minutes, review_layout=layout))
+    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", reviews_per_day=cards, review_layout=layout))
 
 
 def _queue():
@@ -34,13 +34,13 @@ def _exercises(ids): return [i for i in ids if i.startswith("ex_")]
 
 
 def test_low_knowledge_gives_few_exercises(db):
-    _seed(db, 25, n=40, minutes=5)
-    assert len(_exercises(_queue())) <= 13      # share ~0.22 of 300 s at ~6 s each
+    _seed(db, 25, n=40, cards=50)
+    assert len(_exercises(_queue())) <= 13      # share ~0.22 of 50 cards
 
 
 def test_high_knowledge_gives_many_exercises(db):
-    _seed(db, 80, n=40, minutes=5)
-    assert len(_exercises(_queue())) >= 24      # share 0.5 of 300 s at ~6 s each
+    _seed(db, 80, n=40, cards=50)
+    assert len(_exercises(_queue())) >= 24      # share 0.5 of 50 cards
 
 
 def test_exercise_on_unseen_elements_never_appears(db):
@@ -49,8 +49,8 @@ def test_exercise_on_unseen_elements_never_appears(db):
     assert ex and not {f"ex_{i}" for i in range(4, 8)} & set(ex)
 
 
-def test_menu_exercise_minutes_still_win(db):
-    _seed(db, 50, layout=[{"type": "voc", "minutes": 1}, {"type": "ex", "minutes": 1}])
+def test_menu_exercise_counts_still_win(db):
+    _seed(db, 50, layout=[{"type": "voc", "count": 1}, {"type": "ex", "count": 1}])
     assert _exercises(_queue())
 
 

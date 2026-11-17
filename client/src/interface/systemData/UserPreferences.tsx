@@ -9,7 +9,8 @@ export default interface UserPreferences {
     voc_side_pattern?: VocSidePattern | null;
     exercise_type_prefs?: Record<string, "boost" | "ban">;
     review_layout?: ReviewSection[] | null;
-    daily_goal_minutes?: number;
+    new_per_week?: number;
+    reviews_per_day?: number;
     last_updated: string; // ISO date string
     ai_feedback_enabled?: boolean;
     ai_learnable_sentence_enabled?: boolean;
@@ -35,7 +36,7 @@ export type VocSidePattern =
 
 export interface ReviewSection {
     type: "voc" | "gram" | "ex" | "call";
-    minutes: number | null;
+    count: number | null;
 }
 
 export interface ApiEndpointConfig {

@@ -19,8 +19,8 @@ def get_study_goal(language_id: str):
     """
     require_write(language_id)
     user_id = current_user_id()
-    goal = service.ensure_default(user_id, language_id)       # no goal yet: the suggested one for the daily minutes
-    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id)})
+    goal = service.ensure_default(user_id, language_id)       # no goal yet: the suggested one for the pace
+    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, goal["period"] if goal else "week")})
 
 
 @bp.route('/<language_id>', methods=['PUT'])
@@ -42,10 +42,10 @@ def put_study_goal(language_id: str):
         goal = service.upsert(user_id, language_id, data.get('period'), data.get('n_vocabulary', 0),
                               data.get('n_grammar', 0), data.get('n_calligraphy', 0), data.get('active', True),
                               data.get('r_vocabulary', 0), data.get('r_grammar', 0), data.get('r_calligraphy', 0),
-                              bool(data.get('auto', False)), n_radicals=data.get('n_radicals', 0), r_radicals=data.get('r_radicals', 0))
+                              bool(data.get('auto', False)))
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id)})
+    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, goal["period"])})
 
 
 @bp.route('/<language_id>/reset', methods=['POST'])

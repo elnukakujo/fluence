@@ -163,7 +163,7 @@ def test_routes(app, db):
     c = app.test_client()
     c.set_cookie("session_token", AuthService().create_session("user_U1", remember=False))
     first = c.get("/api/study-goal/lang_L1").get_json()      # no preferences row in this test, so no default goal either
-    assert first["goal"] is None and first["progress"] is None and first["suggested"]["n"]["vocabulary"] == 20
+    assert first["goal"] is None and first["progress"] is None and first["suggested"]["n"]["vocabulary"] == 9
     assert c.put("/api/study-goal/lang_L1", json={"period": "day"}).status_code == 400
     ok = c.put("/api/study-goal/lang_L1", json={"period": "biweek", "n_vocabulary": 2, "n_grammar": 1, "n_calligraphy": 0})
     assert ok.status_code == 200 and ok.get_json()["progress"]["types"]["vocabulary"]["picked"] == 2
@@ -172,68 +172,34 @@ def test_routes(app, db):
     assert other.get("/api/study-goal/lang_L1").status_code == 403
 
 
-def test_default_quantities_scale_with_the_daily_minutes():
-    assert default_goal_quantities(20) == {"n": {"vocabulary": 20, "grammar": 5, "calligraphy": 10}, "r": {"vocabulary": 10, "grammar": 3, "calligraphy": 5}}
-    assert default_goal_quantities(40)["n"] == {"vocabulary": 40, "grammar": 10, "calligraphy": 20}
-    tiny = default_goal_quantities(1)
+def test_default_quantities_follow_new_per_week_and_reviews_per_day():
+    assert default_goal_quantities(15, 40) == {"n": {"vocabulary": 9, "grammar": 2, "calligraphy": 4}, "r": {"vocabulary": 23, "grammar": 6, "calligraphy": 11}}
+    assert default_goal_quantities(30, 40)["n"] == {"vocabulary": 17, "grammar": 4, "calligraphy": 9}
+    assert default_goal_quantities(14, 40, 14)["n"] == {"vocabulary": 16, "grammar": 4, "calligraphy": 8}      # a two-week period doubles it
+    tiny = default_goal_quantities(1, 1)
     assert all(v >= 1 for v in tiny["n"].values()) and all(v >= 1 for v in tiny["r"].values())
+    assert set(default_goal_quantities(0, 0)["n"].values()) == {0}
 
 
-def _prefs(minutes):
-    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", daily_goal_minutes=minutes))
+def _prefs(new_per_week):
+    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", new_per_week=new_per_week))
 
 
 def test_ensure_default_gives_a_language_the_suggested_goal(db):
     _seed(db)
     svc = StudyGoalService()
     assert svc.ensure_default("user_U1", "lang_L1") is None            # no preferences yet: nothing to base it on
-    _prefs(40)
+    _prefs(30)
     goal = svc.ensure_default("user_U1", "lang_L1")
-    assert goal["auto"] and goal["period"] == "week" and goal["n_vocabulary"] == 40 and goal["r_calligraphy"] == 10
+    assert goal["auto"] and goal["period"] == "week" and goal["n_vocabulary"] == 17 and goal["r_calligraphy"] == 11
     assert svc.ensure_default("user_U1", "lang_L1")["id"] == goal["id"]  # not recreated
-
-
-def test_a_manual_save_makes_the_goal_the_users_own_and_it_stops_following_the_minutes(db):
-    _seed(db)
-    _prefs(20)
-    svc = StudyGoalService()
-    svc.ensure_default("user_U1", "lang_L1")
-    svc.refresh_auto_goals("user_U1")
-    _goal(svc)                                                          # manual: auto defaults to False
-    svc.refresh_auto_goals("user_U1")
-    assert svc.get("user_U1", "lang_L1")["n_vocabulary"] == 2 and not svc.get("user_U1", "lang_L1")["auto"]
-
-
-def test_auto_goal_follows_a_change_of_daily_minutes_from_the_next_period(db):
-    _seed(db)
-    _prefs(20)
-    svc = StudyGoalService()
-    svc.ensure_default("user_U1", "lang_L1")
-    svc.progress("user_U1", "lang_L1", today=D0)                         # locks the menu at 20 min
-    with db.session_scope() as s:
-        from lapp.models.system_data import UserPreferences
-        s.query(UserPreferences).filter_by(user_id="user_U1").first().daily_goal_minutes = 40
-    svc.refresh_auto_goals("user_U1")
-    assert svc.get("user_U1", "lang_L1")["n_vocabulary"] == 40
-    p = svc.progress("user_U1", "lang_L1", today=D0)
-    assert p["types"]["vocabulary"]["n"] == 20 and p["next"]["pending"] and p["next"]["n"]["vocabulary"] == 40   # running period untouched
 
 
 def test_upsert_auto_uses_the_suggested_numbers_whatever_is_sent(db):
     _seed(db)
-    _prefs(20)
+    _prefs(15)
     goal = StudyGoalService().upsert("user_U1", "lang_L1", "month", 1, 1, 1, True, 0, 0, 0, True)
-    assert goal["auto"] and goal["period"] == "month" and goal["n_vocabulary"] == 20
-
-
-def test_changing_the_daily_minutes_through_the_api_updates_suggested_goals(app, db):
-    _seed(db)
-    pref = UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", daily_goal_minutes=20), as_dict=True)
-    StudyGoalService().ensure_default("user_U1", "lang_L1")
-    c = app.test_client()
-    c.set_cookie("session_token", AuthService().create_session("user_U1", remember=False))
-    assert c.put(f"/api/pref/{pref['id']}", json={"daily_goal_minutes": 40}).status_code == 200
-    assert StudyGoalService().get("user_U1", "lang_L1")["n_vocabulary"] == 40
+    assert goal["auto"] and goal["period"] == "month" and goal["n_vocabulary"] == 37
 
 
 def test_reset_unlocks_the_running_menu_and_rebuilds_from_current_quantities(db):

@@ -35,19 +35,13 @@ FEATURE_MODELS = (Vocabulary, Grammar, Calligraphy, Exercise)
 # TODO(user): stand-in value.
 VOC_SIDE_GAP = 3
 
-EMPTY_MEAN = {Vocabulary: 8.0, Grammar: 30.0, Calligraphy: 15.0, Exercise: 10.0}   # only used for a type with no cards
 SECTION_MODELS = {"voc": Vocabulary, "gram": Grammar, "ex": Exercise, "call": Calligraphy}
 
 
-def section_minutes(layout: list[dict], daily_goal_minutes: int) -> dict[str, float]:
-    """Minutes per section: its own, else an equal share of the daily goal."""
-    share = daily_goal_minutes / max(len(layout), 1)
-    return {sec["type"]: sec.get("minutes") or share for sec in layout}
-
-
-def section_budgets(layout: list[dict], daily_goal_minutes: int, mean_seconds: dict[str, float]) -> dict[str, int]:
-    """Cards per section: its minutes over that type's mean seconds per card (at least 1)."""
-    return {t: max(1, round(minutes * 60 / mean_seconds[t])) for t, minutes in section_minutes(layout, daily_goal_minutes).items()}
+def section_budgets(layout: list[dict], reviews_per_day: int) -> dict[str, int]:
+    """Cards per section: its own count, else an equal share of the day's reviews (at least 1)."""
+    share = max(1, round(reviews_per_day / max(len(layout), 1)))
+    return {sec["type"]: sec.get("count") or share for sec in layout}
 
 
 def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set, capped_ids: frozenset = frozenset()) -> list:
@@ -62,13 +56,13 @@ def order_bucket(items: list, priority_of, goal_rank: dict, boosted_ids: set, ca
     return sorted(items, key=key, reverse=True)
 
 
-def quotas(lengths: dict, cap_seconds: float, mean_seconds: dict) -> dict:
-    """How many cards each type contributes to a round-robin queue costing at most `cap_seconds` (always at least one card)."""
+def quotas(lengths: dict, cap: float, mean_seconds: dict) -> dict:
+    """How many cards each type contributes to a round-robin queue costing at most `cap` (always at least one card; a card costs 1)."""
     left, out, spent, added = dict(lengths), {m: 0 for m in lengths}, 0.0, True
     while added:
         added = False
         for m in FEATURE_MODELS:
-            if left.get(m, 0) > 0 and (spent == 0 or spent + mean_seconds[m] <= cap_seconds):
+            if left.get(m, 0) > 0 and (spent == 0 or spent + mean_seconds[m] <= cap):
                 out[m] += 1
                 left[m] -= 1
                 spent += mean_seconds[m]
@@ -127,7 +121,6 @@ class Scope:
     tag_id: Optional[str] = None
     source_id: Optional[str] = None
     element_type: Optional[str] = None
-    radicals: bool = False
     ids: list[str] = field(default_factory=list)
 
 
@@ -150,9 +143,8 @@ class Candidates:
 
 @dataclass
 class Budgets:
-    """How much fits: cards per type (`quota`), the exercise quota when there is no layout, seconds per card."""
-    cap_seconds: float
-    daily_goal_minutes: int
+    """How much fits: cards per type (`quota`), the exercise quota when there is no layout. A card counts for 1."""
+    cap: float          # cards in the day's queue (the learner's reviews per day)
     mean_model: dict
     quota: dict
     ex_quota: Optional[int]
@@ -173,14 +165,14 @@ def _scope_ids(scope: Scope, session) -> set:
     return {r[0] for r in session.execute(link.select().with_only_columns(link.c.element_id).where(col == wanted))}
 
 
-def _keep_in_scope(scope: Scope, ids: set, radical_ids: set):
+def _keep_in_scope(scope: Scope, ids: set):
     """Predicate on a Vocabulary/Grammar/Calligraphy card for the non-daily scopes (a tagged lesson, word or character
     brings its cards)."""
     def keep(card) -> bool:
         if scope.kind == "lesson":
             return True                                         # the lesson filter is applied by the query
         if scope.kind == "type":
-            return not scope.radicals or getattr(card, "character_id", None) in radical_ids
+            return True
         return card.id in ids or card.lesson_id in ids or getattr(card, "word_id", None) in ids or getattr(card, "character_id", None) in ids
     return keep
 
@@ -221,9 +213,7 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
     kind_of = {m: k for k, (m, _n, _r) in TYPES.items()}
 
     ids = _scope_ids(scope, session) if scope.kind in ("tag", "source", "free") else set()
-    radical_ids = ({c.key_radical_id for c in session.query(Character).filter(Character.language_id == language_id) if c.key_radical_id}
-                   if scope.radicals else set())
-    keep = _keep_in_scope(scope, ids, radical_ids)
+    keep = _keep_in_scope(scope, ids)
     models = (MODEL_OF_TYPE[scope.element_type],) if scope.kind == "type" and scope.element_type in MODEL_OF_TYPE else (Vocabulary, Grammar, Calligraphy)
     scoped_cards = {}
     for model in (Vocabulary, Grammar, Calligraphy):
@@ -301,25 +291,22 @@ def card_seconds(card, paces) -> float:
 
 
 def plan_budgets(cands: Candidates, prefs: PrefsView, goal: Optional[dict], now: Optional[datetime]) -> Budgets:
-    """How many cards of each type fit in the learner's daily minutes (`goal` and `now` are for the decay-aware planner)."""
+    """How many cards of each type fit in the learner's reviews per day (`goal` and `now` are for the decay-aware planner)."""
     session, user_id, buckets, exercises = cands.session, cands.user_id, cands.buckets, cands.exercises
     preferences = cands.preferences
-    daily_goal_minutes = prefs.daily_minutes
-    cap_seconds = daily_goal_minutes * 60
+    cap = prefs.reviews_per_day
     if cands.scope.kind != "daily":     # lesson / tag / source / type / free review: everything in scope, no time budget, no quotas (RE-4..6)
         quota = {**{m: len(b) for m, b in buckets.items()}, Exercise: len(exercises)}
         pattern = preferences.voc_side_pattern if preferences else None
-        return Budgets(float("inf"), daily_goal_minutes, {}, quota, None, None, pattern, pace_ratios(user_id, session))
+        return Budgets(float("inf"), {}, quota, None, None, pattern, pace_ratios(user_id, session))
     layout = preferences.review_layout if preferences else None
     pattern = preferences.voc_side_pattern if preferences else None
 
     paces = pace_ratios(user_id, session)
-    est = lambda c: card_seconds(c, paces)
-    mean_model = {m: sum(map(est, pool)) / len(pool) if pool else EMPTY_MEAN[m] for m, pool in {**buckets, Exercise: exercises}.items()}
-    mean_sec = {sec: mean_model[m] for sec, m in SECTION_MODELS.items()}
+    mean_model = {m: 1.0 for m in (*buckets, Exercise)}     # every card counts for one
 
     # Cards per type, to know which lessons are in play and how far "all front, then all back" can go.
-    budgets = section_budgets(layout, daily_goal_minutes, mean_sec) if layout else None
+    budgets = section_budgets(layout, cap) if layout else None
     ex_quota = None     # only the free (no menu) queue is capped by the rising share
     if budgets:
         quota = {m: 0 for m in FEATURE_MODELS}
@@ -328,14 +315,14 @@ def plan_budgets(cands: Candidates, prefs: PrefsView, goal: Optional[dict], now:
             quota[m] = min(len(exercises) if m is Exercise else len(buckets[m]), left)
     else:
         # Flashcards first on their own budget to read the learner's knowledge, then the exercises take their rising share of the time.
-        flash = quotas({m: len(b) for m, b in buckets.items()}, cap_seconds, mean_model)
+        flash = quotas({m: len(b) for m, b in buckets.items()}, cap, mean_model)
         chosen = {i[0].id if isinstance(i, tuple) else i.id: None for m in buckets for i in buckets[m][:flash[m]]}
         shown = ScoreService().get_many(user_id, list(chosen), session=session)
         share = exercise_share(knowledge([shown[i].score or 0.0 if i in shown else 0.0 for i in chosen]))
-        ex_quota = exercise_quota(share, cap_seconds, mean_model[Exercise], len(exercises))
-        quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: 0}, cap_seconds - ex_quota * mean_model[Exercise], mean_model)
+        ex_quota = exercise_quota(share, cap, mean_model[Exercise], len(exercises))
+        quota = quotas({**{m: len(b) for m, b in buckets.items()}, Exercise: 0}, cap - ex_quota * mean_model[Exercise], mean_model)
         quota[Exercise] = ex_quota
-    return Budgets(cap_seconds, daily_goal_minutes, mean_model, quota, ex_quota, layout, pattern, paces)
+    return Budgets(cap, mean_model, quota, ex_quota, layout, pattern, paces)
 
 
 def build_queue(cands: Candidates, budgets: Budgets) -> tuple[list, list, list]:
@@ -345,7 +332,7 @@ def build_queue(cands: Candidates, budgets: Budgets) -> tuple[list, list, list]:
     session, user_id = cands.session, cands.user_id
     buckets, exercises = dict(cands.buckets), cands.exercises
     quota, ex_quota, layout, pattern = budgets.quota, budgets.ex_quota, budgets.layout, budgets.pattern
-    est = lambda c: card_seconds(c, budgets.paces)
+    est = lambda c: 1.0      # every card counts for one
 
     buckets[Vocabulary] = pair_vocabulary(buckets[Vocabulary], quota[Vocabulary], split=bool(pattern and pattern.get("mode") == "split"))
 
@@ -371,7 +358,7 @@ def build_queue(cands: Candidates, budgets: Budgets) -> tuple[list, list, list]:
     queue: list = []
     sections: list = []
     if layout:
-        seconds = {t: m * 60 for t, m in section_minutes(layout, budgets.daily_goal_minutes).items()}
+        seconds = section_budgets(layout, budgets.cap)
         for sec in layout:
             model, left = SECTION_MODELS[sec["type"]], seconds[sec["type"]]
             while buckets[model] and (left == seconds[sec["type"]] or est(buckets[model][0]) <= left):   # a section always serves its first card
@@ -391,7 +378,7 @@ def build_queue(cands: Candidates, budgets: Budgets) -> tuple[list, list, list]:
                 for _ in range(turns[model]):
                     if model is Exercise and ex_quota is not None and taken_ex >= ex_quota:
                         break
-                    if buckets[model] and (not queue or spent + est(buckets[model][0]) <= budgets.cap_seconds):
+                    if buckets[model] and (not queue or spent + est(buckets[model][0]) <= budgets.cap):
                         card = pop_card(buckets[model], queue, model, picker)
                         queue.append(card)
                         sections.append(None)

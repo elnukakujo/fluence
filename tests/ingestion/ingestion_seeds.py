@@ -2,7 +2,7 @@
 from lapp.models.containers import Language, Lesson
 from lapp.models.system_data import User, UserPreferences
 from lapp.services.auth import AuthService
-from endpoint_helpers import tested
+from endpoint_helpers import passed_endpoint
 
 TEXT_ENDPOINT = {"name": "ds", "api_type": "text_gen", "base_url": "https://api.deepseek.com/v1",
                  "api_key": "k", "model": "deepseek-chat", "is_active": True}
@@ -13,7 +13,7 @@ OCR_ENDPOINT = {"name": "vision", "api_type": "ocr", "base_url": "https://api.op
 def make_user(db, uid, endpoints=(TEXT_ENDPOINT,)):
     with db.session_scope() as s:
         db.insert(User(id=uid, username=uid, email=f"{uid}@x.com"), session=s, commit=False)
-        db.insert(UserPreferences(id=f"pref_{uid}", user_id=uid, ai_endpoints=[tested(e) for e in endpoints]),
+        db.insert(UserPreferences(id=f"pref_{uid}", user_id=uid, ai_endpoints=[passed_endpoint(e) for e in endpoints]),
                   session=s, commit=False)
 
 

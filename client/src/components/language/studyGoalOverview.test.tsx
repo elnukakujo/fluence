@@ -6,7 +6,7 @@ import StudyGoalOverview from "./studyGoalOverview";
 
 const row = (n: number, picked: number, mastered: number, carried = 0, r = 0, review_picked = 0, review_done = 0) => ({ n, picked, mastered, carried, r, review_picked, review_done });
 const state = (active = true, pending = false) => ({
-    goal: { id: "g", language_id: "l", period: "week" as const, start_date: "2026-11-05", n_vocabulary: 20, n_grammar: 0, n_calligraphy: 8, r_vocabulary: 10, r_grammar: 0, r_calligraphy: 0, n_radicals: 0, r_radicals: 0, active, auto: false },
+    goal: { id: "g", language_id: "l", period: "week" as const, start_date: "2026-11-05", n_vocabulary: 20, n_grammar: 0, n_calligraphy: 8, r_vocabulary: 10, r_grammar: 0, r_calligraphy: 0, active, auto: false },
     progress: { period: "week", active, cycle_start: "2026-11-05", cycle_end: "2026-11-12",
         types: { vocabulary: row(20, 20, 5, 3, 10, 10, 4), grammar: row(0, 0, 0), calligraphy: row(8, 8, 8) },
         items: [

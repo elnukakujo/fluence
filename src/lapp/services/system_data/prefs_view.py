@@ -10,7 +10,7 @@ from ...core.database import db_manager, transactional
 from ...models.system_data import UserPreferences
 
 STREAK_MIN_ANSWERS_DEFAULT = 20
-DAILY_MINUTES_DEFAULT = 20
+REVIEWS_PER_DAY_DEFAULT = 40
 
 
 @dataclass
@@ -18,7 +18,7 @@ class PrefsView:
     timezone: str | None = None
     streak_min_answers: int = STREAK_MIN_ANSWERS_DEFAULT
     enabled_skills: dict[str, set[str]] = field(default_factory=dict)
-    daily_minutes: int = DAILY_MINUTES_DEFAULT
+    reviews_per_day: int = REVIEWS_PER_DAY_DEFAULT
 
 
 def prefs_for(user_id: str, language_id: str | None = None, session=None) -> PrefsView:
@@ -28,7 +28,7 @@ def prefs_for(user_id: str, language_id: str | None = None, session=None) -> Pre
     return PrefsView(timezone=row.timezone,
                      enabled_skills={k: set(v) for k, v in (row.enabled_skills or {}).items()},
                      streak_min_answers=row.streak_min_answers or STREAK_MIN_ANSWERS_DEFAULT,
-                     daily_minutes=row.daily_goal_minutes or DAILY_MINUTES_DEFAULT)
+                     reviews_per_day=row.reviews_per_day or REVIEWS_PER_DAY_DEFAULT)
 
 
 @transactional

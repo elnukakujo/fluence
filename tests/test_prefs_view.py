@@ -14,19 +14,19 @@ def _user(db):
 def test_defaults_for_a_user_without_a_row(db):
     _user(db)
     p = prefs_for("user_U1")
-    assert (p.timezone, p.streak_min_answers, p.daily_minutes, p.enabled_skills) == (None, 20, 20, {})
+    assert (p.timezone, p.streak_min_answers, p.reviews_per_day, p.enabled_skills) == (None, 20, 40, {})
 
 
 def test_reads_the_stored_values(db):
     _user(db)
-    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", daily_goal_minutes=35,
+    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1", reviews_per_day=35,
                                                         timezone="Pacific/Auckland", streak_min_answers=12))
     p = prefs_for("user_U1")
-    assert (p.timezone, p.streak_min_answers, p.daily_minutes) == ("Pacific/Auckland", 12, 35)
+    assert (p.timezone, p.streak_min_answers, p.reviews_per_day) == ("Pacific/Auckland", 12, 35)
 
 
 def test_to_dict_exposes_the_new_fields(db):
     _user(db)
     UserPreferencesService().create(UserPreferencesDict(user_id="user_U1"))
     d = UserPreferencesService().get_by_user_id("user_U1", as_dict=True)
-    assert d["daily_goal_minutes"] == 20 and d["timezone"] is None and d["streak_min_answers"] == 20
+    assert d["reviews_per_day"] == 40 and d["timezone"] is None and d["streak_min_answers"] == 20
