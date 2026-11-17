@@ -1,6 +1,6 @@
 """One read of the preferences the study engine needs, with defaults when the learner has no row.
 
-Spec 4 adds the screens and the per-skill switches; until then `enabled_skills` is empty (= every skill on).
+`enabled_skills` ({kind name: skills}, from the Skills settings) is empty = every skill on. TODO(owner): scoring does not read it yet (`score_cascade.aggregate` still gets all skills).
 """
 from dataclasses import dataclass, field
 
@@ -26,6 +26,7 @@ def prefs_for(user_id: str, language_id: str | None = None, session=None) -> Pre
     if row is None:
         return PrefsView()
     return PrefsView(timezone=row.timezone,
+                     enabled_skills={k: set(v) for k, v in (row.enabled_skills or {}).items()},
                      streak_min_answers=row.streak_min_answers or STREAK_MIN_ANSWERS_DEFAULT,
                      daily_minutes=row.daily_goal_minutes or DAILY_MINUTES_DEFAULT)
 

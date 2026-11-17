@@ -202,6 +202,74 @@ def list_providers():
     return jsonify(PROVIDER_LIST)
 
 
+@bp.route('/settings/<group>', methods=['GET'])
+@login_required
+def get_settings_group(group: str):
+    """One settings group (pace|review|answer|see|skills), resolved for `?language_id=` (course values override the account's).
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: "{values, scopes, overridden}"}
+      400: {description: Unknown group}
+    """
+    from ...services.system_data import settings as settings_service
+    if group not in settings_service.GROUPS:
+        return jsonify({'error': f'unknown group: {group}'}), 400
+    language_id = request.args.get('language_id')
+    if language_id:
+        require_owns(language_id)
+    return jsonify(settings_service.read_group(current_user_id(), group, language_id))
+
+
+@bp.route('/settings/<group>', methods=['PUT'])
+@login_required
+def put_settings_group(group: str):
+    """Update only the given keys of one group. Body: `{"values": {...}, "language_id": "..."}`; course keys need the
+    language, and `null` on a course key removes its override.
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: "The group after the update"}
+      400: {description: Unknown group, key or value}
+    """
+    from ...services.system_data import settings as settings_service
+    body = request.get_json(silent=True) or {}
+    values = body.get('values')
+    if not isinstance(values, dict):
+        return jsonify({'error': 'values must be an object'}), 400
+    language_id = body.get('language_id')
+    if language_id:
+        require_owns(language_id)
+    try:
+        result = settings_service.update_group(current_user_id(), group, values, language_id)
+    except settings_service.SettingsError as e:
+        return jsonify({'error': str(e)}), 400
+    if 'daily_goal_minutes' in values:
+        StudyGoalService().refresh_auto_goals(current_user_id())      # suggested goals follow the daily minutes
+    return jsonify(result)
+
+
+@bp.route('/preset', methods=['POST'])
+@login_required
+def apply_preset():
+    """Apply a pace preset (casual|standard|intensive); skills and other groups are untouched.
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: The pace group after the preset}
+      400: {description: Unknown preset}
+    """
+    from ...services.system_data import settings as settings_service
+    try:
+        result = settings_service.apply_preset(current_user_id(), (request.get_json(silent=True) or {}).get('name'))
+    except settings_service.SettingsError as e:
+        return jsonify({'error': str(e)}), 400
+    return jsonify(result)
+
+
 @bp.route('/notice', methods=['POST'])
 @login_required
 def acknowledge_provider_notice():

@@ -37,6 +37,18 @@ class UserPreferences(Base):
     # Multiple named API endpoints stored as JSON array of dicts:
     # [{"name": "Local Llama", "api_type": "text_gen", "base_url": "...", "api_key": "...", "model": "...", "is_active": true}, ...]
     ai_endpoints = Column(JSON, default=list)
+    # Settings groups 1-4 (account scope); course-scope values live in `course_setting`.
+    new_per_week = Column(Integer, default=15, server_default="15", nullable=False)
+    reviews_per_day = Column(Integer, default=40, server_default="40", nullable=False)
+    interface_language = Column(String, nullable=True)                     # null = the browser's
+    theme = Column(String, default="system", server_default="system", nullable=False)
+    show_scores = Column(Boolean, default=False, server_default="false", nullable=False)
+    hints_enabled = Column(Boolean, default=True, server_default="true", nullable=False)
+    retry_wrong = Column(Boolean, default=True, server_default="true", nullable=False)
+    calligraphy_draw_first = Column(Boolean, default=True, server_default="true", nullable=False)
+    calligraphy_stroke_guide = Column(Boolean, default=True, server_default="true", nullable=False)
+    audio_autoplay = Column(Boolean, default=False, server_default="false", nullable=False)
+    enabled_skills = Column(JSON, nullable=True)                           # {kind name: [skill, ...]}; null/absent = every skill
     # Base URLs whose one-time "this provider receives your text" notice the user has acknowledged.
     provider_notices_seen = Column(JSON, default=list)
 
@@ -81,6 +93,17 @@ class UserPreferences(Base):
             "ai_tts_api_base_url": self.ai_tts_api_base_url,
             "ai_tts_has_key": bool(self.ai_tts_api_key),
             "ai_tts_model": self.ai_tts_model,
+            "new_per_week": self.new_per_week,
+            "reviews_per_day": self.reviews_per_day,
+            "interface_language": self.interface_language,
+            "theme": self.theme,
+            "show_scores": self.show_scores,
+            "hints_enabled": self.hints_enabled,
+            "retry_wrong": self.retry_wrong,
+            "calligraphy_draw_first": self.calligraphy_draw_first,
+            "calligraphy_stroke_guide": self.calligraphy_stroke_guide,
+            "audio_autoplay": self.audio_autoplay,
+            "enabled_skills": self.enabled_skills or {},
             "provider_notices_seen": self.provider_notices_seen or [],
             "ai_endpoints": [self._public_endpoint(e) for e in self.ai_endpoints or []],
         }
