@@ -71,5 +71,7 @@
   },
   "studyActions": "Study",
   "lessonsTitle": "Lessons",
-  "manage": "Manage"
+  "manage": "Manage",
+  "reviewLesson": "Review this lesson",
+  "backToLanguage": "Back to Language"
 }

@@ -11,7 +11,6 @@ const KINDS: [GoalKind, string, typeof BookOpen][] = [
 ];
 const DAY = 86_400_000;
 const SEGMENT: Record<GoalKind, string> = { vocabulary: "voc", grammar: "gram", calligraphy: "call" };
-const COLS = ["", "sm:grid-cols-1", "sm:grid-cols-2", "sm:grid-cols-3"]; // static so Tailwind generates them
 
 /** The period's menu on the language overview: per type, the new elements to learn and the old ones to review,
  *  each with its own bar, and the list of what is on the menu. Renders nothing without a goal. */
@@ -64,7 +63,7 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
             </header>
             {p.next.pending && <p className="text-sm text-muted" role="note">{t("goalNextPeriod", { date: day(p.next.start) })}</p>}
             {tiles.length > 0 && (
-                <ul className={`grid gap-3 list-none pl-0 ${COLS[tiles.length]}`}>
+                <ul className="grid grid-cols-1 gap-2 list-none pl-0">
                     {tiles.map(([kind, label, Icon]) => {
                         const row = p.types[kind];
                         const mine = p.items.filter((i) => i.kind === kind);

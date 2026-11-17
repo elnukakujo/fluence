@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import StatTile from "@/components/ui/statTile";
 import type DailyStats from "@/interface/dataCollection/DailyStats";
 
 export default function DailyStatsCard({ dailyStats }: { dailyStats: DailyStats }) {
@@ -17,32 +18,12 @@ export default function DailyStatsCard({ dailyStats }: { dailyStats: DailyStats 
                 <span className="text-xs text-muted">{dailyStats.streak_day ? t("streakDay") : t("buildingStreak")}</span>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("reviewed")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{dailyStats.items_reviewed}</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("correct")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{dailyStats.items_correct}</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("accuracy")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{accuracy}%</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("studyTime")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{studiedMinutes} min</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("currentStreak")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{dailyStats.current_streak_length}</p>
-                </div>
+            <div className="stat-chips">
+                <StatTile label={t("reviewed")}>{dailyStats.items_reviewed}</StatTile>
+                <StatTile label={t("correct")}>{dailyStats.items_correct}</StatTile>
+                <StatTile label={t("accuracy")}>{accuracy}%</StatTile>
+                <StatTile label={t("studyTime")}>{studiedMinutes} min</StatTile>
+                <StatTile label={t("currentStreak")}>{dailyStats.current_streak_length}</StatTile>
             </div>
         </section>
     );

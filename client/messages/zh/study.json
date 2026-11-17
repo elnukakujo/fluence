@@ -90,5 +90,6 @@
   "goalEditingFirst": "选择周期和数量，然后锁定以生成菜单。",
   "goalEditingKeep": "再次锁定之前，当前菜单继续生效。",
   "goalLock": "锁定目标",
-  "goalLocked": "已锁定"
+  "goalLocked": "已锁定",
+  "lessonContents": "本课内容"
 }

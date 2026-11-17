@@ -1,6 +1,7 @@
 "use client"
 import { useTranslations } from "next-intl"
 import type CommitmentLog from "@/interface/dataCollection/CommitmentLog"
+import StatTile from "@/components/ui/statTile"
 import DateDisplay from "@/components/ui/displays/dateDisplay"
 
 export default function CommitmentLogCard({ commitmentLog }: { commitmentLog: CommitmentLog | null }) {
@@ -30,32 +31,11 @@ export default function CommitmentLogCard({ commitmentLog }: { commitmentLog: Co
                 <DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} message={t("lastUpdatedMessage")} withTime />
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-3">
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("daysActive")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{commitmentLog.days_active}</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("totalItemsReviewed")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{commitmentLog.total_items_reviewed}</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("totalTimeStudied")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{formatMs(commitmentLog.total_time_ms)}</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("longestStreak")}</p>
-                    <div className="index-divider" />
-                    <p className="stat-value">{commitmentLog.longest_streak_ever}</p>
-                </div>
-                <div className="card flex flex-1 min-w-[7rem] flex-col gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t("lastUpdated")}</p>
-                    <div className="index-divider" />
-                    <div className="text-sm font-medium"><DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} withTime /></div>
-                </div>
+            <div className="stat-chips">
+                <StatTile label={t("daysActive")}>{commitmentLog.days_active}</StatTile>
+                <StatTile label={t("totalItemsReviewed")}>{commitmentLog.total_items_reviewed}</StatTile>
+                <StatTile label={t("totalTimeStudied")}>{formatMs(commitmentLog.total_time_ms)}</StatTile>
+                <StatTile label={t("longestStreak")}>{commitmentLog.longest_streak_ever}</StatTile>
             </div>
         </section>
     )

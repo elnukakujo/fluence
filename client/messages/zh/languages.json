@@ -71,5 +71,7 @@
   },
   "studyActions": "学习",
   "lessonsTitle": "课程",
-  "manage": "管理"
+  "manage": "管理",
+  "reviewLesson": "复习本课",
+  "backToLanguage": "返回语言"
 }
