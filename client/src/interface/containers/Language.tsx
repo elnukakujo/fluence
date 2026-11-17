@@ -4,6 +4,7 @@ import Lesson from './Lesson';
 export default interface Language extends BaseContainer {
     name: string;
     alias?: string;
+    iso1?: string;
     flag?: string;
     target_iso639_2t?: string;
     source_iso639_2t?: string;

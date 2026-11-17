@@ -38,3 +38,13 @@ export async function deleteLanguage(languageId: string) {
 export const reorderLanguages = (ids: string[]) => apiFetch("/api/languages/reorder", { method: "POST", body: { ids }, errorMessage: "Failed to reorder languages" });
 
 export const bulkDeleteLanguages = (ids: string[]): Promise<{ deleted: number }> => apiFetch("/api/languages/bulk-delete", { method: "POST", body: { ids }, errorMessage: "Failed to delete languages" });
+
+
+export type SupportedLanguage = {
+    iso1: string; iso2: string; name: string; flag: string;
+    has_characters: boolean; has_calligraphy: boolean; has_phonetics: boolean; levels: string[];
+};
+
+/** The nine languages a course can be created for (server registry). */
+export const getSupportedLanguages = (): Promise<SupportedLanguage[]> =>
+    apiFetch("/api/languages/supported", { errorMessage: "Failed to load the supported languages" });

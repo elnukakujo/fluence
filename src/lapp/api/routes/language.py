@@ -54,6 +54,21 @@ def get_all_user_languages(user_id: str):
     return jsonify(ScoreService().merge(current_user_id(), _with_shared_counts(languages)))
 
 
+@bp.route('/supported', methods=['GET'])
+@login_required
+def supported_languages():
+    """The languages a course can be created for (the registry in core/languages.py).
+    ---
+    tags:
+      - Languages
+    responses:
+      200:
+        description: The nine supported languages with their capabilities
+    """
+    from ...core.languages import SUPPORTED
+    return jsonify([l.to_dict() for l in SUPPORTED.values()])
+
+
 @bp.route('/<language_id>', methods=['GET'])
 @login_required
 def get_language(language_id: str):
@@ -155,6 +170,8 @@ def create_language():
             
     except ValidationError as e:
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/<language_id>', methods=['PUT', 'PATCH'])

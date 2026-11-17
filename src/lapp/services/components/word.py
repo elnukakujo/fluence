@@ -17,7 +17,7 @@ score_service = ScoreService()
 
 logger = logging.getLogger(__name__)
 
-from .character import NO_CHARACTER_LANGUAGES
+from .character import has_characters
 
 class WordService:
     @transactional
@@ -97,7 +97,7 @@ class WordService:
 
         characters: dict[str, Character] = {}
 
-        if len(enriched_data["characters"]) > 0 and not (language and language.target_iso639_2t in NO_CHARACTER_LANGUAGES):   # DM-50
+        if len(enriched_data["characters"]) > 0 and (not language or has_characters(language.target_iso639_2t)):   # DM-50
             logger.debug(f"Enriched characters for word '{data.word}': {enriched_data['characters']}")
             from .character import CharacterService
             from ...schemas.components import CharacterDict

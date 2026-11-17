@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { languageProficiencySystems } from "@/utils/language_iso639";
 import SubmitButton from "@/components/ui/buttons/submitButton";
 import {getUserById} from "@/api/user";
 import { useEffect, useState } from "react";
@@ -9,10 +8,10 @@ import { useRouter } from "next/navigation";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
-import { createLanguage, updateLanguage } from "@/api/language";
+import { createLanguage, getSupportedLanguages, updateLanguage, type SupportedLanguage } from "@/api/language";
 import type Language from "@/interface/containers/Language";
 import TagSelector from "@/components/tags/tagSelector";
-import { LANGUAGE_to_ISO639_2T, LANGUAGE_FLAGS } from "@/utils/language_iso639";
+import { LANGUAGE_to_ISO639_2T } from "@/utils/language_iso639";
 import SourceSelector from "@/components/sources/sourceSelector";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import User from "@/interface/systemData/User";
@@ -77,18 +76,18 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
         fetchKnownLanguages();
     }, [userId]);
 
-    const [levelOptions, setLevelOptions] = useState<string[]>(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']); // Default options if no target language is selected
-    useEffect(() => {
-        if (targetIso639_2t) {
-            setLevelOptions(languageProficiencySystems[targetIso639_2t].levels.map((l) => l.code));
-        }
-    }, [targetIso639_2t]);
+    // A course is one of the supported languages: the server registry drives the choices, flag and level table.
+    const [supported, setSupported] = useState<SupportedLanguage[]>([]);
+    useEffect(() => { getSupportedLanguages().then(setSupported).catch(() => setSupported([])); }, []);
+    const chosen = supported.find((l) => l.name === name);
+    const levelOptions = chosen?.levels ?? ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         const element: Partial<Language> = {
             name,
+            iso1: chosen?.iso1,
             alias: alias || undefined,
             description: description || undefined,
             level,
@@ -123,28 +122,19 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
         <form className="flex flex-col space-y-4 items-center" onSubmit={handleSubmit}>
             <ClassicSelectMenu
                 label={t("languageName")}
-                options={Object.keys(LANGUAGE_to_ISO639_2T)}
+                options={supported.map((l) => l.name)}
                 selectedOption={name}
+                disabled={isUpdate && Boolean(language?.iso1)}
                 onChange={(value) => {
-                    const selected = value as string;
-                    setName(selected);
-                    setTargetIso639_2t(LANGUAGE_to_ISO639_2T[selected] || "");
-                    setFlag(LANGUAGE_FLAGS[selected] || "");
+                    const picked = supported.find((l) => l.name === (value as string));
+                    if (!picked) return;
+                    setName(picked.name);
+                    setTargetIso639_2t(picked.iso2);
+                    setFlag(picked.flag);
+                    setLevel(0);
                 }}
                 required
             />
-            {(name === "Custom" || (!Object.keys(LANGUAGE_to_ISO639_2T).includes(name) && name !== "")) && (
-                <AutoWidthInput
-                    value={name}
-                    label={t("customLanguageName")}
-                    onChange={(e) => {
-                        setName(e.target.value);
-                        setTargetIso639_2t(LANGUAGE_to_ISO639_2T[e.target.value] || "");
-                    }}
-                    placeholder={t("enterLanguageName")}
-                    required
-                />
-            )}
 
             <AutoWidthInput
                 value={alias || ""}
@@ -167,15 +157,6 @@ export default function LanguageForm({language}: { language?: Partial<Language> 
                 onChange={(value) => setLevel(levelOptions.indexOf(value as string))}
                 required
             />
-
-            {(name === "Custom" || (!Object.keys(LANGUAGE_to_ISO639_2T).includes(name) && name !== "")) && (
-                <AutoWidthInput
-                    value={flag || ""}
-                    label={t("flag")}
-                    onChange={(e) => setFlag(e.target.value)}
-                    placeholder={t("enterFlagEmoji")}
-                />
-            )}
 
             <ClassicSelectMenu
                 label={t("languageUsedToStudy")}
