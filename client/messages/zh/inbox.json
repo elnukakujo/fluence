@@ -1,0 +1,12 @@
+{
+  "title": "收件箱",
+  "intro": "AI 生成的练习会先放在这里，接受后才会进入你的学习。",
+  "empty": "没有待审核的内容。",
+  "acceptAll": "全部接受",
+  "rejectAll": "全部拒绝",
+  "accept": "接受",
+  "reject": "拒绝",
+  "machineMade": "机器生成",
+  "loadFailed": "无法加载收件箱",
+  "actionFailed": "操作失败，请重试"
+}

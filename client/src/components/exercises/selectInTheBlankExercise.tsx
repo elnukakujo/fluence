@@ -1,10 +1,8 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
-import { updateScoreById } from "@/api/process";
-import type Exercise from "@/interface/features/Exercise";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { useAttemptScoring } from "./useAttemptScoring";
 import { useEffect, useState } from "react";
-import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslations } from "next-intl";
@@ -26,17 +24,11 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
 
     const [wordBank, setWordBank] = useState<string[]>([]);
     const [filledAnswers, setFilledAnswers] = useState<(string | null)[]>(Array(blanks.length).fill(null));
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const [attempts, setAttempts] = useState(0);
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts >= 3, onFinished);
+    const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
 
     useEffect(() => {
         setWordBank(shuffle(allOptions));
         setFilledAnswers(Array(blanks.length).fill(null));
-        setIsCorrect(false);
-        setAttempts(0);
-        startTimeRef.current = performance.now();
     }, [exercise]);
 
     if (!content) return <MissingContentNotice />;
@@ -57,7 +49,7 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
 
     const handleBlankClick = (blankIdx: number) => {
         if (attempts >= 3) return; // No more attempts allowed
-        if (isCorrect) return;
+        if (correct) return;
         const word = filledAnswers[blankIdx];
         if (!word) return;
         setFilledAnswers(prev => {
@@ -71,17 +63,13 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (filledAnswers.every((ans, idx) => ans === correctAnswers[idx])) {
-            setIsCorrect(true);
-            const duration_ms = Math.round(performance.now() - startTimeRef.current);
-            updateScoreById(exercise.id!, 1, duration_ms, false, attempts + 1).catch(console.error);
+        const parts = filledAnswers.map((ans, idx) => (ans === correctAnswers[idx] ? 1 : 0));
+        if (parts.every((p) => p === 1)) {
+            submit(1, { parts });
+        } else if (attempts >= 2) {
+            submit(0, { final: true, parts }); // the third miss: the blanks it got right still credit their elements
         } else {
-            const newAttempts = attempts + 1;
-            setAttempts(newAttempts);
-            if (attempts >= 2) {
-                const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                updateScoreById(exercise.id!, 0, duration_ms, false, newAttempts).catch(console.error);
-            }
+            miss();
         }
     };
 
@@ -103,7 +91,7 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
                     type="button"
                     key={`blank-${idx}`}
                     onClick={() => handleBlankClick(idx)}
-                    className={`inline-block min-w-12 mx-1 px-2 border-b-2 text-center ${isCorrect
+                    className={`inline-block min-w-12 mx-1 px-2 border-b-2 text-center ${correct
                         ? 'border-success text-success'
                         : 'border-border'
                     } ${filled ? 'cursor-pointer' : 'cursor-default'}`}
@@ -144,7 +132,7 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
                 {renderSegments()}
             </div>
 
-            {!isCorrect && attempts < 3 && (
+            {!correct && attempts < 3 && (
                 <button
                     type="submit"
                     className="btn btn-primary"
@@ -154,8 +142,8 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
             )}
 
             {attempts > 0 && (
-                <div className={`card mt-4 ${isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? (
+                <div className={`card mt-4 ${correct ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
+                    {correct ? (
                         <>
                             <p>{t("wellDone")}</p>
                             <p>{t("correctAnswers")}</p>
@@ -168,7 +156,7 @@ export default function SelectInTheBlankExercise({ exercise, onFinished }: Omit<
                     ) : (
                         <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>
                     )}
-                    {attempts >= 3 && !isCorrect && (
+                    {attempts >= 3 && !correct && (
                         <div className="mt-2">
                             <p className="font-medium">{t("correctAnswersLabel")}</p>
                             <div className="flex gap-2 mt-1">

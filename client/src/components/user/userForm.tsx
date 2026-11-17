@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Ring } from "ldrs/react";
-import "ldrs/react/Ring.css";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { nativeFromLocale, isLocale } from "@/i18n/locales";
@@ -12,8 +10,8 @@ import User from "@/interface/systemData/User";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import { LANGUAGE_to_ISO639_2T, ISO639_2T_to_LANGUAGE } from "@/utils/language_iso639";
 import ProgressBar from "@/components/ui/progressBar";
+import Spinner from "@/components/ui/spinner";
 
-const DAILY_GOAL_OPTIONS = ["5", "10", "15", "20", "30", "45", "60"];
 
 export default function UserForm({ user, navDisabled = false, onSuccess }: {
     user?: User | Partial<User>;
@@ -37,7 +35,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
     const [nativeLangs, setNativeLangs] = useState<string[]>(
         userData.preferences?.native_language_iso639_2 || (!isUpdate && isLocale(locale) ? nativeFromLocale(locale) : []),
     );
-    const [dailyGoal, setDailyGoal] = useState<string>((userData.preferences?.daily_goal_minutes ?? 20).toString());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [stepError, setStepError] = useState("");
@@ -75,7 +72,6 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
             preferences: {
                 user_id: userData.id!,
                 native_language_iso639_2: skip ? (isLocale(locale) ? nativeFromLocale(locale) : []) : nativeLangs,
-                daily_goal_minutes: skip ? 20 : parseInt(dailyGoal),
             },
         };
         try {
@@ -190,19 +186,13 @@ export default function UserForm({ user, navDisabled = false, onSuccess }: {
                             onChange={(selected) => setNativeLangs((selected as string[]).map((name) => LANGUAGE_to_ISO639_2T[name] ?? name))}
                             multiple
                         />
-                        <ClassicSelectMenu
-                            label={t("dailyGoal")}
-                            options={DAILY_GOAL_OPTIONS}
-                            selectedOption={dailyGoal}
-                            onChange={(selected) => setDailyGoal(selected as string)}
-                        />
                     </article>
                     <div className="flex w-full gap-2">
                         <button type="button" className="btn btn-secondary flex-1" onClick={handleBack}>
                             {t("back")}
                         </button>
                         <button type="submit" className="btn btn-primary flex-1" disabled={isSubmitting}>
-                            {isSubmitting ? <Ring size={16} color="#fff" /> : isUpdate ? t("saveChanges") : t("createAccount")}
+                            {isSubmitting ? <Spinner /> : isUpdate ? t("saveChanges") : t("createAccount")}
                         </button>
                     </div>
                     {!isUpdate && (

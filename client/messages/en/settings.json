@@ -5,7 +5,15 @@
     "learning": "Learning",
     "aiFeatures": "AI Features",
     "endpoints": "Endpoints",
-    "goals": "Study goals"
+    "goals": "Study goals",
+    "uploads": "Uploads",
+    "pace": "Pace",
+    "review": "What I review",
+    "answer": "How I answer",
+    "see": "What I see",
+    "skills": "Skills",
+    "ai": "AI",
+    "study": "Study details"
   },
   "profile": {
     "title": "Profile",
@@ -45,14 +53,9 @@
     }
   },
   "preferences": {
-    "title": "Learning Preferences",
+    "title": "Review plan and mix",
     "nativeLanguages": "Native Languages",
-    "dailyGoal": "Daily Goal",
-    "dailyGoalUnit": "min / day",
-    "exerciseTypes": "Preferred Exercise Types",
-    "dailyGoalAria": "Daily goal in minutes",
-    "dailyGoalValueAria": "Daily goal minutes value",
-    "dailyHint": "How long you want to study each day. Your daily review and study goals adapt to it."
+    "exerciseTypes": "Preferred Exercise Types"
   },
   "aiFeatures": {
     "title": "AI Features",
@@ -69,7 +72,12 @@
     "tts": "Text-to-Speech",
     "ttsDesc": "Audio for words, sentences, and characters",
     "resetDefaults": "Reset to defaults",
-    "saveSuccessLabel": "Features saved"
+    "saveSuccessLabel": "Features saved",
+    "openEndpoints": "Set up the endpoint",
+    "needEndpoint_text": "Tutor feedback and the sentence and word suggestions need an active text endpoint.",
+    "needTest_text": "Tutor feedback and the sentence and word suggestions need your text endpoint to pass its connection test.",
+    "needEndpoint_tts": "Text-to-speech needs an active audio endpoint.",
+    "needTest_tts": "Text-to-speech needs your audio endpoint to pass its connection test."
   },
   "buttons": {
     "save": "Save changes",
@@ -84,5 +92,24 @@
   "sectionsAriaLabel": "Settings sections",
   "createAccountTagline": "Create your account to start learning.",
   "alreadyRegistered": "Already registered?",
-  "signInLink": "Sign in"
+  "signInLink": "Sign in",
+  "uploads": {
+    "title": "My uploads",
+    "description": "Documents you imported. Deleting one removes the file, its parsed copy and the import itself; words already added to your lessons stay.",
+    "empty": "No uploads.",
+    "delete": "Delete",
+    "confirm": "Delete “{name}”? This cannot be undone.",
+    "failedLoad": "Could not load your uploads",
+    "failedDelete": "Could not delete this upload"
+  },
+  "sections": {
+    "profile": "Profile",
+    "learning": "Learning",
+    "learningHint": "How much you study, and how.",
+    "ai": "AI",
+    "aiHint": "Connect your own AI service; nothing is bundled.",
+    "study": "Study details",
+    "studyHint": "Rarely changed: this course, answering, review plan, skills.",
+    "admin": "Admin"
+  }
 }

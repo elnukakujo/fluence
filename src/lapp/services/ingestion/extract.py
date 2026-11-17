@@ -31,6 +31,7 @@ class RawItem(BaseModel):
     translation: str | None = None
     phonetic: str | None = None
     word_type: str | None = None
+    word_gender: str | None = None
 
     @field_validator("word", "quote")
     @classmethod
@@ -39,10 +40,16 @@ class RawItem(BaseModel):
             raise ValueError("empty")
         return v.strip()
 
-    @field_validator("translation", "phonetic", "word_type")
+    @field_validator("translation", "phonetic", "word_type", "word_gender")
     @classmethod
     def _blank_is_none(cls, v: str | None) -> str | None:
         return (v or "").strip() or None
+
+    @field_validator("word_gender")
+    @classmethod
+    def _known_gender(cls, v: str | None) -> str | None:
+        v = (v or "").lower()[:1]  # "masculine"/"Fem." -> "m"/"f"; anything else is left for the user
+        return v if v in ("m", "f", "n", "c") else None
 
     @field_validator("word_type")
     @classmethod
@@ -69,9 +76,10 @@ def _system_prompt(target: str, source: str | None) -> str:
         f"{translate}"
         "- Invent nothing else: no extra entries, no corrections.\n"
         "- An entry that is a whole sentence (not a word or a short phrase) is still extracted, with `word_type` \"sentence\".\n"
+        "- For a noun in a language with grammatical gender, give `word_gender`: \"m\", \"f\", \"n\" or \"c\" (common). Use the article or marker the text prints (der/die/das, le/la, el/la, il/la...); if it prints none, use your own knowledge of the word. Otherwise null.\n"
         "- For every item give a `quote`: a short span copied verbatim from the text that contains the word.\n"
         "- Reply with ONLY a JSON array, no prose. Each item: "
-        f'{{"word": str, "translation": {tr}, "phonetic": str|null, "word_type": str|null, "quote": str}}.\n'
+        f'{{"word": str, "translation": {tr}, "phonetic": str|null, "word_type": str|null, "word_gender": "m"|"f"|"n"|"c"|null, "quote": str}}.\n'
         "- If the text has no vocabulary, reply []."
     )
 

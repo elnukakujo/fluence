@@ -2,24 +2,22 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import SubmitButton from "@/components/ui/buttons/submitButton";
-import { useRouter } from "next/navigation";
-import AutoWidthInput from "@/components/ui/input/autoWidthInput";
+import Field from "@/components/ui/field";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import TagSelector from "@/components/tags/tagSelector";
 import { createVocabulary, updateVocabulary } from "@/api/vocabulary";
 import MediaLoader from "@/components/media/mediaLoader";
 import Vocabulary from "@/interface/features/Vocabulary";
 import Passage from "@/interface/components/Passage";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faAdd, faTrash } from "@fortawesome/free-solid-svg-icons";
 import SourceSelector from "@/components/sources/sourceSelector";
-import ConflictError from "@/api/conflictError";
 import ConflictDialog from "@/components/ui/dialogs/conflictDialog";
+import ExampleSentencesEditor from "./exampleSentencesEditor";
+import { useElementForm } from "./useElementForm";
+import { FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
 export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vocabulary | Partial<Vocabulary>; lesson_id: string}) {
     const t = useTranslations("vocabulary");
-    const router = useRouter();
-    const isUpdate = Boolean(vocabulary?.id);
+    const tEl = useTranslations("elements");
 
     let vocabularyData: Partial<Vocabulary>;
     if (!vocabulary) {
@@ -51,200 +49,58 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
     const [wordAudioUrl, setWordAudioUrl] = useState<string[]>(vocabularyData.word?.audio_files || []);
 
     const [exampleSentences, setExampleSentences] = useState<Partial<Passage>[]>(vocabularyData.example_sentences!);
-    const [selectedTagIds, setSelectedTagIds] = useState<string[]>(vocabularyData.tags ? vocabularyData.tags.map(tag => tag.id!) : []);
-    const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>(vocabularyData.sources ? vocabularyData.sources.map(source => source.id!) : []);
-    const [conflict, setConflict] = useState<ConflictError | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const buildElement = (): Partial<Vocabulary> => ({
-        word: {
-            word: word,
-            translation: translation,
-            word_type: type,
-            word_gender: gender,
-            phonetic: phonetic,
-            image_files: wordImageUrl,
-            audio_files: wordAudioUrl
-        },
-        example_sentences: exampleSentences,
-        lesson_id: lesson_id,
-        tags: selectedTagIds.map(tagId => ({ id: tagId })),
-        sources: selectedSourceIds.map(sourceId => ({ id: sourceId }))
+    const shell = useElementForm<Vocabulary>({
+        existing: vocabularyData, lessonId: lesson_id, noun: "vocabulary",
+        messages: { createFailure: t("createFailure"), updateFailure: t("updateFailure"), resolveConflictError: t("resolveConflictError") },
+        build: (shared) => ({
+            word: {
+                word: word,
+                translation: translation,
+                word_type: type,
+                word_gender: gender,
+                phonetic: phonetic,
+                image_files: wordImageUrl,
+                audio_files: wordAudioUrl
+            },
+            example_sentences: exampleSentences,
+            ...shared,
+        }),
+        create: createVocabulary, update: updateVocabulary,
+        mergeInto: (element, resolved) => Object.assign(element.word!, resolved),
     });
 
-    // Extract language_id from current URL
-    const languageIdFromPath = () => window.location.pathname.split('/')[2]; // From /languages/LANG_ID/...
-
-    const submit = async (element: Partial<Vocabulary>, onConflict?: "keep" | "overwrite" | "merge") => {
-        if (isUpdate) {
-            await updateVocabulary(vocabularyData.id!, element);
-        } else {
-            await createVocabulary(element, onConflict);
-        }
-        router.push(`/languages/${languageIdFromPath()}/lesson/${lesson_id}`);
-        router.refresh();
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const element = buildElement();
-
-        setIsSubmitting(true);
-        try {
-            await submit(element);
-        } catch (error) {
-            if (error instanceof ConflictError) {
-                setConflict(error);
-                return;
-            }
-            console.error(`Failed to ${isUpdate ? "update" : "create"} vocabulary:`, error);
-            alert(isUpdate ? t("updateFailure") : t("createFailure"));
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const resolveConflict = async (element: Partial<Vocabulary>, onConflict: "keep" | "overwrite" | "merge") => {
-        setConflict(null);
-        setIsSubmitting(true);
-        try {
-            await submit(element, onConflict);
-        } catch (error) {
-            console.error("Failed to resolve vocabulary conflict:", error);
-            alert(t("resolveConflictError"));
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleKeepExisting = () => resolveConflict(buildElement(), "keep");
-    const handleOverwrite = () => resolveConflict(buildElement(), "overwrite");
-    const handleManualResolve = (resolvedFields: Record<string, string>) => {
-        const element = buildElement();
-        Object.assign(element.word!, resolvedFields);
-        resolveConflict(element, "merge");
-    };
-
-    const handleExampleSentenceChange = (index: number, field: "text" | "translation" | "image_files" | "audio_files", value: string | string[]) => {
-        setExampleSentences(prevSentences => {
-            const updatedSentences = [...prevSentences];
-            const sentenceToUpdate = updatedSentences[index] || { text: "", translation: "", image_files: [], audio_files: [] };
-            
-            if (field === "text" || field === "translation") {
-                sentenceToUpdate[field] = value as string;
-            } else if (field === "image_files" || field === "audio_files") {
-                sentenceToUpdate[field] = value as string[];
-            }
-            
-            updatedSentences[index] = sentenceToUpdate;
-            return updatedSentences;
-        });
-    };
-
+    const types = ['noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article', 'preposition', 'conjunction', 'particle', 'interjection', 'numeral', 'classifier', 'auxiliary', 'modal'];
     return (
         <>
-        {conflict && (
-            <ConflictDialog
-                error={conflict}
-                onKeep={handleKeepExisting}
-                onOverwrite={handleOverwrite}
-                onManualResolve={handleManualResolve}
-                onCancel={() => setConflict(null)}
-            />
-        )}
-        <form
-            className="flex flex-col space-y-12"
-            onSubmit={handleSubmit}
-        >
-            <article className="flex flex-col space-y-2 items-center">
-                <h3>{t("formHeading")}</h3>
-                <AutoWidthInput
-                    value={word}
-                    label={t("wordLabel")}
-                    onChange={(e) => setWord(e.target.value)}
-                    placeholder={t("wordPlaceholder")}
-                    required={true}
-                />
-                <AutoWidthInput
-                    value={translation}
-                    label={t("translationLabel")}
-                    onChange={(e) => setTranslation(e.target.value)}
-                    placeholder={t("translationPlaceholder")}
-                />
-                <ClassicSelectMenu
-                    label={t("wordTypeLabel")}
-                    options={[
-                        'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'article',
-                        'preposition', 'conjunction', 'particle', 'interjection', 'numeral',
-                        'classifier', 'auxiliary', 'modal'
-                    ]}
-                    selectedOption={type}
-                    onChange={(value) => setType(value as typeof type)}
-                />
-                <ClassicSelectMenu
-                    label={t("genderLabel")}
-                    options={[
-                        'm', 'f', 'n', 'c', ''
-                    ]}
-                    selectedOption={gender || ""}
-                    onChange={(value) => setGender(value as typeof gender)}
-                />
-                <AutoWidthInput
-                    value={phonetic || ""}
-                    label={t("phoneticLabel")}
-                    onChange={(e) => setPhonetic(e.target.value)}
-                    placeholder={t("phoneticPlaceholder")}
-                />
+        {shell.conflictProps && <ConflictDialog {...shell.conflictProps} />}
+        <FormLayout onSubmit={shell.handleSubmit}>
+            <FormSection title={t("formHeading")} columns={3}>
+                <Field label={t("wordLabel")} required labelClassName={FORM_LABEL}>
+                    <input className="input" value={word} onChange={(e) => setWord(e.target.value)} placeholder={t("wordPlaceholder")} />
+                </Field>
+                <Field label={t("translationLabel")} labelClassName={FORM_LABEL}>
+                    <input className="input" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder={t("translationPlaceholder")} />
+                </Field>
+                <Field label={t("phoneticLabel")} labelClassName={FORM_LABEL}>
+                    <input className="input" value={phonetic || ""} onChange={(e) => setPhonetic(e.target.value)} placeholder={t("phoneticPlaceholder")} />
+                </Field>
+                <ClassicSelectMenu label={t("wordTypeLabel")} options={types} selectedOption={type} onChange={(value) => setType(value as typeof type)} />
+                <ClassicSelectMenu label={t("genderLabel")} options={['m', 'f', 'n', 'c', '']} selectedOption={gender || ""} onChange={(value) => setGender(value as typeof gender)} />
+            </FormSection>
+            <FormSection title={tEl("formMediaSection")} columns={1}>
                 <MediaLoader imageUrl={wordImageUrl} setImageUrl={setWordImageUrl} audioUrl={wordAudioUrl} setAudioUrl={setWordAudioUrl} />
-            </article>
-            <TagSelector
-                selectedTagIds={selectedTagIds}
-                onTagsChange={setSelectedTagIds}
-                elementId={vocabularyData.id!}
-            />
-            <SourceSelector
-                selectedSourceIds={selectedSourceIds}
-                onSourcesChange={setSelectedSourceIds}
-                elementId={vocabularyData.id!}
-            />
-            <article className="flex flex-col space-y-2 items-center">
-                <h3>{t("exampleSentencesHeading")}</h3>
-                {exampleSentences.map((sentence, key) => (
-                    <section className="flex flex-col space-y-2 items-center" key={key}>
-                        <button
-                            className="btn btn-danger h-fit px-2 py-1"
-                            onClick={() => {
-                                setExampleSentences(prev => prev.filter((_, index) => index !== key));
-                            }}
-                        >
-                            <FontAwesomeIcon icon={faTrash}/>
-                        </button>
-                        <AutoWidthInput
-                            label={t("exampleSentenceLabel")}
-                            value={sentence.text || ""}
-                            required
-                            onChange={(e) => handleExampleSentenceChange(key, "text", e.target.value)}
-                        />
-                        <AutoWidthInput
-                            label={t("exampleSentenceTranslationLabel")}
-                            value={sentence.translation || ""}
-                            onChange={(e) => handleExampleSentenceChange(key, "translation", e.target.value)}
-                        />
-                        <MediaLoader imageUrl={sentence.image_files} setImageUrl={handleExampleSentenceChange.bind(null, key, "image_files")} audioUrl={sentence.audio_files} setAudioUrl={handleExampleSentenceChange.bind(null, key, "audio_files")} />
-                    </section>
-                ))}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setExampleSentences(prev => [...prev, { text: "", translation: "", image_files: [], audio_files: [] }]);
-                    }}
-                    className="btn btn-primary"
-                >
-                    <FontAwesomeIcon icon={faAdd}/>
-                </button>
-            </article>
-            {isUpdate ? <SubmitButton isLoading={isSubmitting}>{t("updateButton")}</SubmitButton> : <SubmitButton isLoading={isSubmitting}>{t("addButton")}</SubmitButton>}
-        </form>
+            </FormSection>
+            <ExampleSentencesEditor heading={t("exampleSentencesHeading")} labels={{ sentence: t("exampleSentenceLabel"), translation: t("exampleSentenceTranslationLabel") }}
+                sentences={exampleSentences} setSentences={setExampleSentences} />
+            <FormSection title={tEl("formOrganisationSection")} columns={1}>
+                <TagSelector selectedTagIds={shell.selectedTagIds} onTagsChange={shell.setSelectedTagIds} elementId={vocabularyData.id!} />
+                <SourceSelector selectedSourceIds={shell.selectedSourceIds} onSourcesChange={shell.setSelectedSourceIds} elementId={vocabularyData.id!} />
+            </FormSection>
+            <FormActions note={tEl("formRequiredNote")}>
+                <SubmitButton isLoading={shell.isSubmitting}>{shell.isUpdate ? t("updateButton") : t("addButton")}</SubmitButton>
+            </FormActions>
+        </FormLayout>
         </>
     );
 }

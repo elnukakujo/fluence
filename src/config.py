@@ -41,8 +41,6 @@ _BASE_DATABASE_URL = _normalize_database_url(_DATABASE_URL)
 
 class Config:
     """Base configuration for personal use"""
-    # Auth
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-secret-change-me')
     # Comma-separated allowed frontend origins (CORS). Defaults cover local dev
     # (Next.js on 3000 or 8080); set to your production domain for deployment.
     FRONTEND_ORIGIN = os.environ.get(

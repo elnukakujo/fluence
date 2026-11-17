@@ -1,20 +1,19 @@
 "use client";
 
-import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
-import { evaluateText, updateScoreById } from "@/api/process";
+import { type ExerciseRunnerProps } from "./exerciseFinish";
+import { evaluateText } from "@/api/process";
+import { useAttemptScoring } from "./useAttemptScoring";
+import { blankQuality } from "@/utils/typedAnswer";
 import type Exercise from "@/interface/features/Exercise";
 import { useEffect, useState } from "react";
-import { useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslations } from "next-intl";
 import AutoWidthInput from "@/components/ui/input/autoWidthInput";
-import { getLevelForScore } from "@/utils/speech_levels";
-import { Ring } from 'ldrs/react';
-//@ts-ignore
-import 'ldrs/react/Ring.css';
+import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
+import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 
 export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -25,23 +24,16 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
     const correctAnswers = blanks.map(b => b.answer);
 
     const [filledAnswers, setFilledAnswers] = useState<(string | null)[]>(Array(blanks.length).fill(null));
-    const [isCorrect, setIsCorrect] = useState<boolean>(false);
-    const [attempts, setAttempts] = useState(0);
-    const hasFeedback = isCorrect || attempts > 0;
+    const { attempts, correct, submit, miss } = useAttemptScoring(exercise, onFinished);
+    const hasFeedback = correct || attempts > 0;
     const [currentLevel, setCurrentLevel] = useState<{ label: string; description: string, stars: string } | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const startTimeRef = useRef<number>(performance.now());
-    useFinished(isCorrect || attempts >= 3, onFinished);
-
     useEffect(() => {
         setFilledAnswers(Array(blanks.length).fill(null));
-        setIsCorrect(false);
-        setAttempts(0);
         setCurrentLevel(null);
         setIsLoading(false);
         setFeedbackMessage(null);
-        startTimeRef.current = performance.now();
     }, [exercise]);
 
     if (!content) return <MissingContentNotice />;
@@ -55,18 +47,14 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
 
         evaluateText(exercise.id!, userText).then((result) => {
             setFeedbackMessage(result.feedback);
-            setCurrentLevel(getLevelForScore(result.score, "type_in_the_blank"));
+            setCurrentLevel(getExerciseLevel("type_in_the_blank", result.score, t));
+            const parts = (result.blanks as number[] | undefined)?.map(blankQuality);   // each blank credits the element it tests
             if (result.correct === true) {
-                setIsCorrect(true);
-                const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                updateScoreById(exercise.id!, result.score, duration_ms, false, attempts + 1).catch(console.error);
+                submit(result.score, { final: true, correct: true, parts });
+            } else if (attempts >= 2) {
+                submit(result.score, { final: true, correct: false, parts }); // the third miss
             } else {
-                const newAttempts = attempts + 1;
-                setAttempts(newAttempts);
-                if (newAttempts >= 3) {
-                    const duration_ms = Math.round(performance.now() - startTimeRef.current);
-                    updateScoreById(exercise.id!, result.score, duration_ms, false, newAttempts).catch(console.error);
-                }
+                miss();
             }
             setIsLoading(false);
         }).catch((error) => {
@@ -101,10 +89,10 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
                             return next;
                         });
                     }}
-                    disabled={isCorrect || attempts >= 3}
+                    disabled={correct || attempts >= 3}
                     className={`input inline-block mx-1 text-center ${
                         hasFeedback
-                        ? isCorrect
+                        ? correct
                             ? 'border-success text-success'
                             : 'border-danger text-danger'
                         : ''
@@ -128,29 +116,13 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
                 {renderSegments()}
             </div>
 
-            {!isCorrect && attempts < 3 && (
-                <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={isLoading}
-                >
-                    {isLoading ? (
-                        <Ring
-                            size="24"
-                            stroke="2"
-                            bgOpacity="0"
-                            speed="3"
-                            color="white"
-                        />
-                    ) : (
-                        <p>{t("checkAnswers")}</p>
-                    )}
-                </button>
+            {!correct && attempts < 3 && (
+                <CheckButton label={t("checkAnswers")} loading={isLoading} />
             )}
 
             {hasFeedback && (
-                <div className={`card mt-4 ${isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                    {isCorrect ? (
+                <FeedbackPanel correct={correct}>
+                    {correct ? (
                         <>
                             <p>{t("wellDone")}</p>
                         </>
@@ -164,7 +136,7 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
                         {feedbackMessage}
                     </p>
                     {currentLevel && <p>{t("level")}{currentLevel.label} ({currentLevel.stars})</p>}
-                    {attempts >= 3 && !isCorrect && (
+                    {attempts >= 3 && !correct && (
                         <div className="mt-2">
                             <p className="font-medium">{t("correctAnswersLabel")}</p>
                             <div className="flex gap-2 mt-1">
@@ -174,7 +146,7 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
                             </div>
                         </div>
                     )}
-                </div>
+                </FeedbackPanel>
             )}
         </form>
     );

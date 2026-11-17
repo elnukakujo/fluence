@@ -6,20 +6,6 @@ from ..utils import synthesize_speech, detect_text_language
 
 logger = logging.getLogger(__name__)
 
-# Verified against http://192.168.1.139:8880/voices (Kokoro server)
-# Convention: {lang}_{gender} — en_f, en_m, es_f, es_m, etc.
-_VOICE_MAP: dict[str, dict[str, str]] = {
-    "en": {"female": "en_f", "male": "en_m"},
-    "es": {"female": "es_f", "male": "es_m"},
-    "fr": {"female": "fr_f"},                          # no male voice
-    "ja": {"female": "ja_f", "male": "ja_m"},
-    "zh": {"female": "zh_f", "male": "zh_m"},
-    "hi": {"female": "hi_f"},                          # no male voice
-    "it": {"female": "it_f"},                          # no male voice
-    "pt": {"female": "pt_f"},                          # no male voice
-}
-_VOICE_FALLBACK = "en_f"
-
 # ElevenLabs multilingual voice ids (work across languages via eleven_multilingual_v2).
 _ELEVENLABS_VOICES: dict[str, str] = {
     "female": "21m00Tcm4TlvDq8ikWAM",  # Rachel
@@ -104,7 +90,7 @@ class TTSService:
         try:
             logger.info(f"Generating TTS for: {text}")
 
-            # Voice resolution: explicit override > target-language > language+gender > language-female > fallback.
+            # Voice resolution: the endpoint's own voice; ElevenLabs and Google derive theirs (multilingual id / language code).
             # Prefer the caller's target language over guessing from the text —
             # single CJK chars like 犬 are shared across ja/zh and langdetect misreads them.
             if not api.get("voice"):
@@ -124,19 +110,13 @@ class TTSService:
                         voice = _GOOGLE_LANG_MAP.get(iso1, "en-US")
                         logger.info(f"Selected Google language code '{voice}' (lang={iso1})")
                     else:
-                        iso1 = language_code or detect_text_language(text).iso1
-                        voices = _VOICE_MAP.get(iso1, {})
-                        # ponytail: if male voice doesn't exist for this language, fall back to female
-                        voice = voices.get(gender) or voices.get("female") or _VOICE_FALLBACK
-                        logger.info(f"Selected voice '{voice}' (lang={iso1}, gender={gender})")
+                        # No built-in voices (DM-39): the voice is the one set on the learner's endpoint.
+                        raise ValueError("No voice is set on your TTS endpoint: choose one in Settings")
                     api = {**api, "voice": voice}
+                except ValueError:
+                    raise
                 except Exception:
-                    if is_elevenlabs:
-                        fallback = _ELEVENLABS_VOICES["female"]
-                    elif is_google:
-                        fallback = "en-US"
-                    else:
-                        fallback = _VOICE_FALLBACK
+                    fallback = _ELEVENLABS_VOICES["female"] if is_elevenlabs else "en-US"
                     api = {**api, "voice": fallback}
                     logger.info(f"Voice detection failed, using fallback '{fallback}'")
 

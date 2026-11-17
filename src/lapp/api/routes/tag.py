@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 from ...services import TagService
 from ...schemas.system_data import TagDict
 from ...core.auth import login_required, require_owns, current_user_id
+from ...utils.request import parse_json
 
 bp = Blueprint('tag', __name__, url_prefix='/api/tags')
 tag_service = TagService()
@@ -125,7 +126,7 @@ def create_tag():
     """
     try:
         # Validate request data
-        data = TagDict(**request.json)
+        data = parse_json(TagDict)
         data.user_id = current_user_id()
 
         # Create tag
@@ -185,7 +186,7 @@ def update_tag(tag_id: str):
     """
     try:
         require_owns(tag_id)
-        data = TagDict(**request.json)
+        data = parse_json(TagDict)
 
         tag = tag_service.update(tag_id, data, as_dict=True)
         
@@ -288,7 +289,8 @@ def add_tag_to_element():
             return jsonify({'error': 'Failed to add tag to element'}), 400
             
     except Exception as e:
-        return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+        logger.exception("Unhandled error in a route")
+        return jsonify({'error': 'An error occurred', 'details': 'An unexpected error occurred'}), 500
     
 @bp.route('/remove_tag', methods=['POST'])
 @login_required
@@ -350,7 +352,8 @@ def remove_tag_from_element():
             return jsonify({'error': 'Failed to remove tag from element'}), 400
             
     except Exception as e:
-        return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+        logger.exception("Unhandled error in a route")
+        return jsonify({'error': 'An error occurred', 'details': 'An unexpected error occurred'}), 500
 
 @bp.route('/merge', methods=['POST'])
 @login_required

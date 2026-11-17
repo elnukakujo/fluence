@@ -8,7 +8,7 @@ type Values = Record<string, string | number | null | undefined>;
 const show = (v: string | number | null | undefined) => (v === null || v === undefined ? "" : String(v));
 
 // Existing / new / result side by side; the result starts as the new value and is sent as an overwrite.
-const FIELD_KEYS = ["word", "translation", "phonetic", "word_type", "type", "meaning", "radical", "strokes"];
+const FIELD_KEYS = ["word", "translation", "phonetic", "word_type", "word_gender", "type", "meaning", "radical", "strokes"];
 // Field names are identifiers from the API; known ones get a translated label.
 export const fieldName = (t: (k: string) => string, f: string) => (FIELD_KEYS.includes(f) ? t(`field_${f}`) : f.replace("_", " "));
 

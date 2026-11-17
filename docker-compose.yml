@@ -43,8 +43,10 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-    ports:
-      - "${LAPP_PORT:-5050}:${LAPP_PORT:-5050}"
+    # The API is reached only through the frontend (same-origin rewrites), so its port is not published.
+    # To reach it directly (debugging): docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+    expose:
+      - "5050"
     volumes:
       - ${PROD_MEDIA_ROOT:-./media}:/app/media
       - ${PROD_BACKUP_ROOT:-./backups}:/app/backups

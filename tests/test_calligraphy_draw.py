@@ -77,6 +77,15 @@ def test_draw_calligraphy_rejects_non_owner(app, db):
     assert res.status_code == 403
 
 
+def test_draw_rejects_out_of_range_similarity(app, db):
+    _seed_calligraphy(db)
+    client = _client_with_user(app, db, "user_U1", "a", "a@x.com")
+    res = client.post('/api/calligraphy/draw', json={
+        'calligraphy_id': 'call_C1', 'similarity': 50, 'stroke_order_errors': 0, 'duration_ms': 100,
+    })
+    assert res.status_code == 400
+
+
 def _hint_flags(db):
     from lapp.models.data_collection import ProgressTracking
     with db.session_scope() as s:

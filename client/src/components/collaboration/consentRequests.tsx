@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { GitMerge } from "lucide-react";
-import { listAwaitingConsent, consent, decline } from "@/api/collaboration";
+import { listAwaitingConsent, consent, decline, type MergeChoice, type MergeConflict } from "@/api/collaboration";
+import { ApiError } from "@/api/apiFetch";
+import MergeConflictsDialog from "./mergeConflictsDialog";
+import InlineError from "@/components/ui/inlineError";
 
 type Request = Awaited<ReturnType<typeof listAwaitingConsent>>[number];
 
@@ -13,6 +16,7 @@ export default function ConsentRequests() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState<{ id: string; conflicts: MergeConflict[] } | null>(null);
 
   async function load() {
     setRequests(await listAwaitingConsent());
@@ -21,13 +25,18 @@ export default function ConsentRequests() {
 
   useEffect(() => { load(); }, []);
 
-  async function answer(id: string, action: typeof consent) {
+  async function answer(id: string, action: typeof consent, decisions?: Record<string, MergeChoice>) {
     setBusy(id);
     try {
-      await action(id);
+      await action(id, decisions);
+      setAsking(null);
       await load();
       setError(null);
     } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && Array.isArray(e.body?.conflicts)) {
+        setAsking({ id, conflicts: e.body.conflicts as MergeConflict[] });      // the owner decides each conflicting item
+        return;
+      }
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setBusy(null);
@@ -39,7 +48,8 @@ export default function ConsentRequests() {
   return (
     <section className="flex flex-col gap-2" aria-label={t("mergeRequests")}>
       <h2 className="font-serif">{t("mergeRequests")}</h2>
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+      {error && <InlineError>{error}</InlineError>}
+      {asking && <MergeConflictsDialog conflicts={asking.conflicts} onCancel={() => setAsking(null)} onConfirm={(d) => answer(asking.id, consent, d)} />}
       <ul className="flex flex-col gap-2">
         {requests.map((r) => (
           <li key={r.id} className="card flex items-center justify-between gap-3">

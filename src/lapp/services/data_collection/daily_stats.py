@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime
 from typing import Optional
 
 import logging
@@ -9,10 +9,8 @@ from sqlalchemy.orm import Session
 from ...core.database import db_manager, transactional
 from ...models.data_collection.daily_stats import DailyStats
 from ...models.data_collection.progress_tracking import ProgressTracking
-from ..system_data import UserPreferencesService
-user_preferences_service = UserPreferencesService()
-from .commitment_log import CommitmentLogService
-commitment_log_service = CommitmentLogService()
+from ...utils.learner_clock import learner_today
+from ..system_data.prefs_view import prefs_for
 
 class DailyStatsService:
     def _serialize(
@@ -34,31 +32,6 @@ class DailyStatsService:
         if not as_dict:
             return entries
         return [entry.to_dict(include_relations=include_relations) for entry in entries]
-
-    @transactional
-    def has_reached_daily_goal_today(
-        self,
-        user_id: str,
-        language_id: str,
-        session: Optional[Session] = None
-    ) -> bool:
-        """Whether today's streak goal was already hit before this call (used to
-        stamp a ProgressTracking row with the state at write time — NOT whether
-        this specific review session/answer is "complete")."""
-        today: datetime.date = datetime.now().date()
-        language_stats = db_manager.find_by_attr(
-            model_class=DailyStats,
-            attr_values={"user_id": user_id, "language_id": language_id},
-            session=session,
-            many=True
-        )
-
-        today_stats = None
-        for stats in list(language_stats or []):
-            if stats.created_at.date() == today:
-                today_stats = stats
-                break
-        return today_stats.streak_day is True if today_stats else False
 
     @transactional
     def get_by_id(
@@ -109,25 +82,28 @@ class DailyStatsService:
         self,
         user_id: str,
         language_id: str,
+        day: Optional[date] = None,
         session: Optional[Session] = None,
         as_dict: bool = False,
         include_relations: bool = True,
     ) -> DailyStats | dict | None:
-        """Get today's DailyStats entry for a specific user and language, creating it if needed."""
-        today = datetime.now().date()
+        """The day's DailyStats entry for a user and language (the learner's day, default today), created if needed.
+        Its streak fields mirror the learner-wide streak (`LearnerDay`), not a per-language one."""
+        from .study_activity import status_for
+        day = day or learner_today(prefs_for(user_id, language_id, session).timezone)
         entry = (
             session.query(DailyStats)
             .filter(
                 DailyStats.user_id == user_id,
                 DailyStats.language_id == language_id,
-                func.date(DailyStats.created_at) == today,
+                func.date(DailyStats.created_at) == day,
             )
             .first()
         )
-
         if entry is None:
-            entry = self.create(user_id=user_id, language_id=language_id, session=session)
-
+            entry = self.create(user_id=user_id, language_id=language_id, day=day, session=session)
+        status = status_for(user_id, day, session)
+        entry.streak_day, entry.current_streak_length = status.validated, status.streak
         return self._serialize(entry, as_dict, include_relations)
 
     def create(
@@ -135,6 +111,7 @@ class DailyStatsService:
         user_id: str,
         language_id: str,
         session: Session,
+        day: Optional[date] = None,
     ) -> DailyStats:
         entry = DailyStats(
             id=db_manager.generate_new_id(model_class=DailyStats, session=session),
@@ -145,6 +122,8 @@ class DailyStatsService:
             time_studied_ms=0,
             streak_day=False,
             current_streak_length=0,
+            # created_at carries the learner's day (its date part is what every query matches on)
+            created_at=datetime.combine(day, datetime.now().time()) if day else datetime.now(),
         )
         result = db_manager.insert(obj=entry, session=session, commit=False)
         if result is None:
@@ -152,77 +131,39 @@ class DailyStatsService:
         return result
 
     @transactional
-    def validate_day(self, user_id: str, language_id: str, session: Optional[Session] = None, as_dict: bool = False) -> DailyStats | dict:
-        """Mark today a streak day (time goal reached, or the daily review finished). Idempotent: once per day."""
-        daily_stats = self.get_today_for_user(user_id=user_id, language_id=language_id, session=session)
-        if daily_stats.streak_day:
-            return self._serialize(daily_stats, as_dict, False)
-        daily_stats.streak_day = True
-        logger.info(f"User {user_id} just achieved a streak day for language {language_id}!")
-
-        yesterday = (datetime.now() - timedelta(days=1)).date()
-        previous = (
-            session.query(DailyStats)
-            .filter(
-                DailyStats.user_id == user_id,
-                DailyStats.language_id == language_id,
-                DailyStats.streak_day.is_(True),
-                func.date(DailyStats.created_at) == yesterday,
-            )
-            .order_by(DailyStats.created_at.desc())
-            .first()
-        )
-        daily_stats.current_streak_length = previous.current_streak_length + 1 if previous else 1
-        if db_manager.modify(obj=daily_stats, session=session, commit=False) is None:
-            raise RuntimeError("Failed to validate the day")
-        commitment_log_service.apply_daily_stats(daily_stats_id=daily_stats.id, session=session)
-        return self._serialize(daily_stats, as_dict, False)
+    def mark_streak_day(self, user_id: str, language_id: str, day: date, length: int, session: Optional[Session] = None) -> DailyStats:
+        """Stamp the language's row of a validated learner day (the learner's streak, once)."""
+        entry = self.get_today_for_user(user_id, language_id, day=day, session=session)
+        entry.streak_day, entry.current_streak_length = True, length
+        db_manager.modify(obj=entry, session=session, commit=False)
+        return entry
 
     def update(
         self,
         progress_tracking_id: str,
         session: Session,
+        day: Optional[date] = None,
     ) -> DailyStats:
-        """
-        Apply a progress tracking entry to today's daily stats row.
-
-        This method expects an open session owned by the caller.
-        """
+        """Count a progress tracking entry on the learner's day: items, correct, time. Time never validates a day."""
         progress_tracking = db_manager.find_by_attr(
             model_class=ProgressTracking,
             attr_values={"id": progress_tracking_id},
             session=session,
         )
-
         if progress_tracking is None:
             raise ValueError(f"ProgressTracking entry not found: {progress_tracking_id}")
 
         daily_stats: DailyStats = self.get_today_for_user(
             user_id=progress_tracking.user_id,
             language_id=progress_tracking.language_id,
+            day=day,
             session=session,
         )
-
-        if daily_stats is None:
-            raise RuntimeError("Failed to load or create today's daily stats entry")
-
         daily_stats.items_reviewed += 1
         if progress_tracking.result is True:
             daily_stats.items_correct += 1
         daily_stats.time_studied_ms += int(progress_tracking.duration_ms)
-
-        user_preferences = user_preferences_service.get_by_user_id(user_id=progress_tracking.user_id, session=session)
-        if user_preferences is None:
-            logger.warning(f"User preferences not found for user {progress_tracking.user_id}. Skipping streak day check.")
-            daily_goal_ms = 20 * 60 * 1000  # Default to 20 minutes if user preferences are missing
-        else:
-            daily_goal_ms = user_preferences.daily_goal_minutes * 60 * 1000
-
         result = db_manager.modify(obj=daily_stats, session=session, commit=False)
         if result is None:
             raise RuntimeError(f"Failed to update daily stats entry for progress tracking {progress_tracking_id}")
-
-        if daily_stats.time_studied_ms >= daily_goal_ms:
-            self.validate_day(progress_tracking.user_id, progress_tracking.language_id, session=session)
-
         return result

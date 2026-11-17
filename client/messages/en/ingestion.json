@@ -200,6 +200,7 @@
   "field_phonetic": "phonetic",
   "field_word_type": "word type",
   "field_type": "type",
+  "field_word_gender": "gender",
   "field_meaning": "meaning",
   "field_radical": "radical",
   "field_strokes": "strokes",

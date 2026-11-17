@@ -15,7 +15,11 @@ class ProgressTracking(BaseDataCollectionModel):
     duration_ms = Column(Float, nullable=False)
     hint_used = Column(Boolean, nullable=True)
     attempt_number = Column(Integer, nullable=True)
-    session_completed = Column(Boolean, nullable=True)
+    daily_goal_reached_before = Column(Boolean, nullable=True)     # the learner's day was already validated when this answer came in (was `session_completed`)
+    skill = Column(String, nullable=True)
+    evidence_type = Column(String, nullable=True)
+    level_before = Column(String, nullable=True)
+    level_after = Column(String, nullable=True)
 
     # Foreign keys
     element_id = Column(String, nullable=False)  # No FK — BaseElementModel is abstract
@@ -49,7 +53,7 @@ class ProgressTracking(BaseDataCollectionModel):
             "duration_ms": self.duration_ms,
             "hint_used": self.hint_used,
             "attempt_number": self.attempt_number,
-            "session_completed": self.session_completed,
+            "daily_goal_reached_before": self.daily_goal_reached_before,
         }
         if include_relations:
             base["element"] = self.get_element().to_dict() if self.get_element() else None

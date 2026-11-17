@@ -4,9 +4,11 @@ from werkzeug.exceptions import HTTPException
 import logging
 logger = logging.getLogger(__name__)
 
+from ...core.auth import login_required
 from ...services import MediaService
 
 bp = Blueprint('media', __name__)
+_PRIVATE_DIRS = {'ingestion', 'parse_cache'}
 
 # Required because MediaService depends on current_app context which may not be available at import time
 def get_media_service() -> MediaService:
@@ -16,6 +18,7 @@ def get_media_service() -> MediaService:
 @bp.route('/media/<path:filename>', methods=['GET'])
 @bp.route('/media_dev/<path:filename>', methods=['GET'])
 @bp.route('/media_test/<path:filename>', methods=['GET'])
+@login_required
 def serve_media(filename: str):
     """
     Serve media files (images, audio).
@@ -43,6 +46,9 @@ def serve_media(filename: str):
         404:
             description: Not Found - File does not exist
     """
+    # Per-job upload folders and the parse cache are private; the owner reaches them through /api/ingestion.
+    if filename.lstrip("/\\").split("/", 1)[0] in _PRIVATE_DIRS:
+        abort(404)
     try:
         media_root, file_path = get_media_service().get_file_path(filename)
         
@@ -63,6 +69,7 @@ def serve_media(filename: str):
 
 
 @bp.route('/media/upload/image', methods=['POST'])
+@login_required
 def upload_image():
     """
     Upload an image file.
@@ -127,10 +134,11 @@ def upload_image():
             
     except Exception as e:
         logger.error(f"Image upload error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/upload/audio', methods=['POST'])
+@login_required
 def upload_audio():
     """
     Upload an audio file.
@@ -195,10 +203,11 @@ def upload_audio():
             
     except Exception as e:
         logger.error(f"Audio upload error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/delete/', methods=['DELETE'])
+@login_required
 def delete_media():
     """
     Delete a media file.
@@ -256,10 +265,11 @@ def delete_media():
         
     except Exception as e:
         logger.error(f"Delete media error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/info/<path:filename>', methods=['GET'])
+@login_required
 def media_info(filename: str):
     """
     Get information about a media file.
@@ -293,4 +303,4 @@ def media_info(filename: str):
         raise
     except Exception as e:
         logger.error(f"Media info error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500

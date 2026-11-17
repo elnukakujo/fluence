@@ -2,19 +2,7 @@
 
 import type { ExerciseRunnerProps } from "./exerciseFinish";
 import CorrectAnswer from "./correctAnswer";
-import EssayExercise from "./essayExercise";
-import AnsweringExercise from "./answeringExercise";
-import TypeInTheBlankExercise from "./typeInTheBlankExercise";
-import MatchingExercise from "./matchingExercise";
-import OrganizeExercise from "./organizeExercise";
-import TranslateExercise from "./translateExercise";
-import TrueFalseExercise from "./trueFalseExercise";
-import SpeakingExercise from "./speakingExercise";
-import ConversationExercise from "./conversationExercise";
-import SelectInTheBlankExercise from "./selectInTheBlankExercise";
-import QuizzExercise from "./quizzExercise";
-import ReadingExercise from "./readingExercise";
-import DictationExercise from "./dictationExercise";
+import { exerciseTypeInfo } from "./exerciseTypes";
 
 /** Renders a single exercise with its interactive component, by type. */
 export default function ExerciseRunner({ exercise, onFinished, gaveUp = false }: ExerciseRunnerProps) {
@@ -25,20 +13,8 @@ export default function ExerciseRunner({ exercise, onFinished, gaveUp = false }:
 }
 
 function render(exercise: ExerciseRunnerProps["exercise"], onFinished?: () => void) {
-    switch (exercise.exercise_type) {
-        case "essay": return <EssayExercise exercise={exercise} onFinished={onFinished} />;
-        case "answering": return <AnsweringExercise exercise={exercise} onFinished={onFinished} />;
-        case "type_in_the_blank": return <TypeInTheBlankExercise exercise={exercise} onFinished={onFinished} />;
-        case "select_in_the_blank": return <SelectInTheBlankExercise exercise={exercise} onFinished={onFinished} />;
-        case "matching": return <MatchingExercise exercise={exercise} onFinished={onFinished} />;
-        case "organize": return <OrganizeExercise exercise={exercise} onFinished={onFinished} />;
-        case "translate": return <TranslateExercise exercise={exercise} onFinished={onFinished} />;
-        case "true_false": return <TrueFalseExercise exercise={exercise} onFinished={onFinished} />;
-        case "speaking": return <SpeakingExercise exercise={exercise} onFinished={onFinished} />;
-        case "conversation": return <ConversationExercise exercise={exercise} onFinished={onFinished} />;
-        case "quizz": return <QuizzExercise exercise={exercise} onFinished={onFinished} />;
-        case "reading": return <ReadingExercise exercise={exercise} onFinished={onFinished} />;
-        case "dictation": return <DictationExercise exercise={exercise} onFinished={onFinished} />;
-        default: return null;
-    }
+    const info = exerciseTypeInfo(exercise.exercise_type);
+    if (!info) return null;
+    const Runner = info.Runner;
+    return <Runner exercise={exercise} onFinished={onFinished} />;
 }

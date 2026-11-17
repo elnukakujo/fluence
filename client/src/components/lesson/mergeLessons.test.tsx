@@ -32,7 +32,7 @@ describe("MergeLessons", () => {
     renderIt();
     expect(screen.getByLabelText("Title")).toHaveValue("Alpha + Beta");
     expect(screen.getByLabelText("Description")).toHaveValue("About alpha");
-    expect(screen.getByLabelText("Level")).toHaveValue("3");
+    expect(screen.getByRole("combobox", { name: "Level" }).parentElement).toHaveTextContent("B2");
   });
 
   it("copies a field from either lesson", async () => {
@@ -42,7 +42,7 @@ describe("MergeLessons", () => {
     await userEvent.click(screen.getByRole("button", { name: "Use B's description" }));
     expect(screen.getByLabelText("Description")).toHaveValue("About beta");
     await userEvent.click(screen.getByRole("button", { name: "Use A's level" }));
-    expect(screen.getByLabelText("Level")).toHaveValue("1");
+    expect(screen.getByRole("combobox", { name: "Level" }).parentElement).toHaveTextContent("A2");
   });
 
   it("says what will happen", () => {

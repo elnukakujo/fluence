@@ -24,6 +24,7 @@ from ..utils import (
 )
 from ..utils.typed_similarity import closeness
 from .features import ExerciseService
+from .exercises.registry import EXERCISE_TYPES, exercise_type
 from .feedback import FeedbackService
 
 # Exercises answered by typing target-language text against one reference answer (free-form types are excluded).
@@ -49,16 +50,7 @@ class EvaluatorService:
     def stt_pipe(self):
         return get_stt_pipe()
 
-    exercises_scales = {
-        "translate": (0.6, 0.2, 0.2),
-        "organize": (0.5, 0.1, 0.4),
-        "type_in_the_blank": (0.5, 0.1, 0.4),
-        "essay": (0.4, 0.4, 0.2),
-        "answering": (0.6, 0.3, 0.1),
-        "speaking": (0.3, 0.1, 0.6),
-        "conversation": (0.3, 0.1, 0.6),
-        "dictation": (0.0, 0.0, 1.0),   # token overlap only (spec)
-    }
+    exercises_scales = {t: exercise_type(t).scale for t in EXERCISE_TYPES if exercise_type(t).scale is not None}  # from the exercise registry
 
     exercises_thresholds = {
         "speaking":0.70,
@@ -241,6 +233,12 @@ class EvaluatorService:
         return {"score": x * similarity + y * grammar + z * usage, "similarity": similarity, "grammar_error_rate": grammar,
                 "token_difference_rate": usage, "user_answer": user_text, "correct_answer": ""}
 
+    @staticmethod
+    def blank_closeness(blanks: list[dict], user_text: str, iso1: Optional[str] = None) -> list[float]:
+        """Closeness (0..1) of each typed blank to its answer; `user_text` is the blanks joined by ", " (the form the client sends)."""
+        parts = user_text.split(", ")
+        return [round(closeness(parts[i] if i < len(parts) else "", b["answer"], iso1=iso1), 4) for i, b in enumerate(blanks)]
+
     def _evaluate_text(
         self,
         ex_id: str,
@@ -256,7 +254,13 @@ class EvaluatorService:
         if not correct_text:
             logger.warning(f"Could not retrieve correct text for Exercise {ex_id}. Returning score of 0.")
             raise ValueError("Correct text not found for the given exercise ID.")
+        # any accepted answer may be the one the learner matched: keep the best-scoring reference
+        references = [correct_text, *(a for a in (exercise.accepted_answers or []) if a and a != correct_text)]
+        return max((self._score_against(ex_id, user_text, ref, exercise_type, target_lang_iso2t) for ref in references),
+                   key=lambda r: r["score"])
 
+    def _score_against(self, ex_id: str, user_text: str, correct_text: str, exercise_type: str,
+                       target_lang_iso2t: Optional[str]) -> dict[str, float | str]:
         # Get the weights for the specific exercise type
         x, y, z = self.exercises_scales[exercise_type]
 
@@ -393,11 +397,12 @@ class EvaluatorService:
                     exercise=exercise,
                 )
 
-                return {
-                    "correct": results["score"] > threshold,
-                    "score": results["score"],
-                    "feedback": feedback,
-                }
+                out = {"correct": results["score"] > threshold, "score": results["score"], "feedback": feedback}
+                blanks = (exercise.content or {}).get("blanks") if exercise.exercise_type == "type_in_the_blank" and input_type == "text" else None
+                if blanks:       # per-blank closeness, so each blank can credit its own element
+                    language = get_language_by_iso2t(target_lang_code) if target_lang_code else None
+                    out["blanks"] = self.blank_closeness(blanks, user_input, language.iso1 if language else None)
+                return out
         except Exception:
             logger.error("evaluate failed for ex_id=%s:\n%s", ex_id, traceback.format_exc())
             return {"correct": False, "score": 0.0, "feedback": "Evaluation unavailable. Please try again."}

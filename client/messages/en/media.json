@@ -34,5 +34,7 @@
   "mediaLoaderUploadAudio": "Upload Audio",
   "mediaLoaderClearAudios": "Clear Audio(s)",
   "mediaLoaderPreview": "Preview",
-  "imageViewerResetZoom": "Reset zoom"
+  "imageViewerResetZoom": "Reset zoom",
+  "mediaLoaderRemoveImage": "Remove image",
+  "mediaLoaderRemoveAudio": "Remove audio"
 }

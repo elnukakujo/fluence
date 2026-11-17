@@ -21,10 +21,14 @@ import {
 } from "@/lib/ingestion/review";
 import PagePanel from "./pagePanel";
 import ReviewCard from "./reviewCard";
+import EmptyState from "@/components/ui/emptyState";
+import Field from "@/components/ui/field";
+import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const TAB_KEY: Record<RowKind, string> = { vocabulary: "vocabulary", grammar: "grammar", calligraphy: "calligraphy", exercise: "exercises" };
 const MERGE_FIELDS: Partial<Record<RowKind, string[]>> = {
-  vocabulary: ["translation", "phonetic", "word_type"], calligraphy: ["meaning", "phonetic", "radical", "strokes"],
+  vocabulary: ["translation", "phonetic", "word_type", "word_gender"], calligraphy: ["meaning", "phonetic", "radical", "strokes"],
 };
 const SELECT_KIND: Record<RowKind, Kind> = { vocabulary: "voc", grammar: "gram", calligraphy: "call", exercise: "ex" };
 const rowLabel = (r: Row) => r.title || r.word || r.character || r.question?.slice(0, 40) || r.candidate.quote;
@@ -233,14 +237,12 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           preview={row.explanation ? <div className="grammar-preview overflow-x-auto"><Markdown remarkPlugins={[remarkGfm]}>{row.explanation}</Markdown></div> : undefined}
           badge={generated ? t("generatedBadge") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
           badgeTitle={generated ? t("generatedBadgeTitle") : confirmedTitle}>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("title")}</span>
+          <Field label={t("title")}>
             <input className="input" value={row.title || ""} onChange={(e) => patch(c.id, { title: e.target.value })} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="field-label">{t("explanation")}</span>
+          </Field>
+          <Field label={t("explanation")}>
             <textarea className="input input-grow min-h-40" value={row.explanation || ""} onChange={(e) => patch(c.id, { explanation: e.target.value })} />
-          </label>
+          </Field>
           {row.original_text && (
             <details className="text-sm">
               <summary className="cursor-pointer">{t("originalPageText")}</summary>
@@ -278,11 +280,9 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const invalid = has("content_invalid");
       return (
         <ReviewCard {...common} summary={
-            <select className="input min-h-11 w-auto max-w-full" aria-label={t("changeType")} value={row.exercise_type ?? ""} disabled={reloadingId === c.id}
-              onChange={(e) => changeType(row, e.target.value)}>
-              {!row.exercise_type && <option value="">{t("exerciseFallback")}</option>}
-              {Object.entries(EXERCISE_TYPE_KEY).map(([id, key]) => <option key={id} value={id}>{tEx(key)}</option>)}
-            </select>}
+            <ClassicSelectMenu className="w-64 max-w-full" ariaLabel={t("changeType")} disabled={reloadingId === c.id} placeholder={t("exerciseFallback")}
+              options={Object.keys(EXERCISE_TYPE_KEY)} optionLabel={(id) => tEx(EXERCISE_TYPE_KEY[id as keyof typeof EXERCISE_TYPE_KEY])}
+              selectedOption={row.exercise_type ?? ""} onChange={(v) => changeType(row, v as string)} />}
           preview={<ExerciseBody row={row} />}
           onReload={() => setRegenId(regenId === c.id ? null : c.id)} reloading={reloadingId === c.id}
           footer={<>
@@ -299,7 +299,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     const exists = c.flags.some((f) => f.code.startsWith("already_in_")) && c.existing ? c.existing : null;
     return (
       <ReviewCard {...common} existing={exists}
-        summary={<><strong>{row.word}</strong> {row.phonetic && <span className="opacity-70">{row.phonetic} </span>}— {row.translation}{row.word_type && <span className="opacity-60"> ({row.word_type})</span>}</>}
+        summary={<><strong>{row.word}</strong> {row.phonetic && <span className="opacity-70">{row.phonetic} </span>}— {row.translation}{row.word_type && <span className="opacity-60"> ({row.word_type}{row.word_gender && `, ${row.word_gender}`})</span>}</>}
         badge={generated ? t("generatedTranslation") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
         badgeTitle={generated ? t("generatedTranslationTitle") : confirmedTitle}>
         <div className="flex flex-wrap gap-3">
@@ -309,12 +309,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
               <input className="input" value={row[key] || ""} onChange={(e) => patch(c.id, { [key]: e.target.value })} />
             </label>
           ))}
-          <label className="flex min-w-32 flex-col gap-1">
-            <span className="field-label">{t("field_type")}</span>
-            <select className="input" value={row.word_type || ""} onChange={(e) => patch(c.id, { word_type: e.target.value })}>
-              {WORD_TYPES.map((w) => <option key={w} value={w}>{w || "—"}</option>)}
-            </select>
-          </label>
+          <ClassicSelectMenu className="w-44" label={t("field_type")} options={[...WORD_TYPES]} selectedOption={row.word_type || ""} onChange={(v) => patch(c.id, { word_type: v as string })} />
+          <ClassicSelectMenu className="w-32" label={t("field_word_gender")} options={["", "m", "f", "n", "c"]} selectedOption={row.word_gender || ""} onChange={(v) => patch(c.id, { word_gender: v as string })} />
         </div>
       </ReviewCard>
     );
@@ -343,7 +339,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
           </div>
         )}
 
-        {counts.total === 0 && groups.length === 0 && <p className="card">{t("nothingFound")}</p>}
+        {counts.total === 0 && groups.length === 0 && <EmptyState className="card">{t("nothingFound")}</EmptyState>}
 
         <SelectionScope key={active} canSelect={groups.length > 0} bar={reviewBar} barWidth="max-w-3xl" className="flex flex-col gap-3">
         {groups.length > 0 && (
@@ -375,7 +371,7 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
         </SelectionScope>
 
         {counts.undecided > 0 && <p role="status" className="text-sm">{t("undecidedNotice", { count: counts.undecided })}</p>}
-        {error && <p role="alert" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+        {error && <InlineError>{error}</InlineError>}
         <div className="btn-row flex-wrap">
           <button type="button" className="btn btn-primary" disabled={saving || counts.selected === 0} onClick={add}>
             {saving ? t("addingButton") : addLabel(counts.selected)}

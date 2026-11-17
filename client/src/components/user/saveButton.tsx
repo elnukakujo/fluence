@@ -2,18 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Ring } from "ldrs/react";
-import "ldrs/react/Ring.css";
 import { Check } from "lucide-react";
+import Spinner from "@/components/ui/spinner";
 
 export default function SaveButton({
   children,
   isLoading = false,
   onSuccessLabel,
+  disabled = false,
 }: {
   children?: React.ReactNode;
   isLoading?: boolean;
   onSuccessLabel?: string;
+  disabled?: boolean;
 }) {
   const t = useTranslations("settings.buttons");
   const defaultLabel = children ?? t("save");
@@ -39,8 +40,8 @@ export default function SaveButton({
   }
 
   return (
-    <button type="submit" className="btn btn-primary" disabled={isLoading}>
-      {isLoading ? <Ring size={16} color="#fff" /> : defaultLabel}
+    <button type="submit" className="btn btn-primary" disabled={isLoading || disabled}>
+      {isLoading ? <Spinner /> : defaultLabel}
     </button>
   );
 }

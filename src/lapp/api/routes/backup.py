@@ -6,10 +6,12 @@ Provides API endpoints for:
 - Restoring from backups
 - Listing available backups
 - Getting backup statistics
+- Downloading a backup file (admin)
 - Deleting old backups
 """
 import logging
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, send_from_directory
+from ...core.auth import admin_required
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,7 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('backup', __name__, url_prefix='/api/backup')
 
 @bp.route('/create', methods=['POST'])
+@admin_required
 def create_backup():
     """
     Create a manual database backup.
@@ -68,11 +71,12 @@ def create_backup():
         logger.error(f"Backup creation error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
 @bp.route('/restore', methods=['POST'])
+@admin_required
 def restore_backup():
     """
     Restore database from a backup.
@@ -151,11 +155,12 @@ def restore_backup():
         logger.error(f"Restore error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
 @bp.route('/list', methods=['GET'])
+@admin_required
 def list_backups():
     """
     List all available backups with details.
@@ -224,11 +229,12 @@ def list_backups():
         logger.error(f"List backups error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
 @bp.route('/info', methods=['GET'])
+@admin_required
 def backup_info():
     """
     Get backup system information and statistics.
@@ -285,11 +291,44 @@ def backup_info():
         logger.error(f"Backup info error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
+@bp.route('/download/<backup_file>', methods=['GET'])
+@admin_required
+def download_backup(backup_file: str):
+    """
+    Download a backup dump (admin only).
+    ---
+    tags:
+        - Backup
+    parameters:
+        - in: path
+          name: backup_file
+          required: true
+          type: string
+    responses:
+        200:
+            description: The backup file
+        400:
+            description: Invalid backup filename
+        403:
+            description: Admin access required
+        404:
+            description: Backup file not found
+    """
+    backup_dir = current_app.backup_manager.backup_dir
+    if not backup_file.startswith('backup_') or not backup_file.endswith('.dump'):
+        return jsonify({'success': False, 'error': 'Invalid backup filename'}), 400
+    if not (backup_dir / backup_file).is_file():
+        return jsonify({'success': False, 'error': f'Backup file not found: {backup_file}'}), 404
+    # send_from_directory also rejects path traversal.
+    return send_from_directory(backup_dir, backup_file, as_attachment=True)
+
+
 @bp.route('/delete/<backup_file>', methods=['DELETE'])
+@admin_required
 def delete_backup(backup_file: str):
     """
     Delete a specific backup file.
@@ -382,11 +421,12 @@ def delete_backup(backup_file: str):
         logger.error(f"Delete backup error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
 @bp.route('/cleanup', methods=['POST'])
+@admin_required
 def cleanup_old_backups():
     """
     Manually trigger cleanup of old backups.
@@ -437,5 +477,5 @@ def cleanup_old_backups():
         logger.error(f"Cleanup error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500

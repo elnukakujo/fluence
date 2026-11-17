@@ -1,0 +1,5 @@
+# Publishes the backend port on the host. Not part of the default stack: the API is private to the compose network.
+services:
+  backend:
+    ports:
+      - "${LAPP_PORT:-5050}:${LAPP_PORT:-5050}"

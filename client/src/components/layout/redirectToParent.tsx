@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { forgetVisit } from "@/lib/navHistory";
 import { usePathname, useRouter } from "next/navigation";
 
 // Bad URL or failed page (e.g. expired session): walk up one path segment at a time until a page
@@ -11,6 +12,7 @@ export default function RedirectToParent({ reset }: { reset?: () => void }) {
   const atRoot = pathname === "/";
 
   useEffect(() => {
+    queueMicrotask(() => forgetVisit(pathname));   // after the navbar (a parent) has recorded this path in the same commit
     if (!atRoot) router.replace(pathname.replace(/\/[^/]*\/?$/, "") || "/");
   }, [pathname, atRoot, router]);
 

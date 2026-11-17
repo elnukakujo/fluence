@@ -1,3 +1,5 @@
+import { apiFetch } from "@/api/apiFetch";
+
 export type Point = { x: number; y: number };
 export type Stroke = Point[];
 
@@ -7,12 +9,22 @@ export type Stroke = Point[];
 // use ever matters.
 const DATA_BASE = "https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1";
 
-export async function loadStrokeData(character: string): Promise<Stroke[] | null> {
+const cache = new Map<string, Promise<Stroke[] | null>>();
+
+export function loadStrokeData(character: string): Promise<Stroke[] | null> {
+  let p = cache.get(character);
+  if (!p) {
+    p = fetchStrokeData(character);
+    cache.set(character, p);
+    p.then((s) => { if (!s) cache.delete(character); }); // a miss may be a network blip: ask again next time
+  }
+  return p;
+}
+
+async function fetchStrokeData(character: string): Promise<Stroke[] | null> {
   try {
-    const res = await fetch(`${DATA_BASE}/${encodeURIComponent(character)}.json`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data.medians) return null;
+    const data = await apiFetch<{ medians?: number[][][] }>(`${DATA_BASE}/${encodeURIComponent(character)}.json`, { errorMessage: "Failed to load stroke data" });
+    if (!data?.medians) return null;
     const strokes = data.medians.map((pts: number[][]) => pts.map(([x, y]) => ({ x, y })));
     // hanzi-writer-data is Y-up (0 = bottom); the canvas is Y-down (0 = top).
     return normalizeStrokes(flipStrokesY(strokes));

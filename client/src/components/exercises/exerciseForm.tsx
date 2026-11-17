@@ -23,6 +23,9 @@ import { type ReadingRow, type DictationRow, readingContent, readingRows, dictat
 import {
     type BlankRow, BlankContentEditor, QuizzContentEditor, MatchingContentEditor, ReadingContentEditor, DictationContentEditor, OrganizeContentEditor,
 } from "./contentEditors";
+import InlineError from "@/components/ui/inlineError";
+import { categoryOf, getExamCategories } from "@/utils/language_iso639";
+import { categoryLabel } from "@/utils/groupByCategory";
 
 const STRUCTURED_TYPES: NonNullable<Exercise["exercise_type"]>[] = [
     "type_in_the_blank", "select_in_the_blank", "matching", "organize", "true_false", "quizz",
@@ -54,6 +57,7 @@ export default function ExerciseForm({
     exercise,
     lesson_id,
     lessonElements,
+    languageIso,
 }: {
     exercise?: Exercise | Partial<Exercise>;
     lesson_id: string;
@@ -63,6 +67,13 @@ export default function ExerciseForm({
     const t = useTranslations("exercises");
     const router = useRouter();
     const isUpdate = Boolean(exercise?.id);
+    // The type dropdown lists the types under the language's exam sections (Reading, Listening...), in the exam's order.
+    const categories = getExamCategories(languageIso);
+    const slugOf = (o: string) => categoryOf(o, categories);
+    const extra = [...new Set(EXERCISE_TYPE_OPTIONS.map(slugOf).filter((c): c is string => !!c && !categories.some((k) => k.slug === c)))];   // sections the exam lacks (e.g. writing for JLPT)
+    const typeGroups = [...categories.map((c) => c.slug), ...extra, null]
+        .map((slug) => ({ label: slug ? categoryLabel(t, slug) : t("categoryOther"), options: EXERCISE_TYPE_OPTIONS.filter((o) => slugOf(o) === slug) }))
+        .filter((g) => g.options.length > 0);
 
     let exerciseData: Partial<Exercise>;
     if (!exercise) {
@@ -85,6 +96,7 @@ export default function ExerciseForm({
     const [exerciseType, setExerciseType] = useState<Exercise["exercise_type"]>(exerciseData.exercise_type);
     const [question, setQuestion] = useState<string>(exerciseData.question || "");
     const [answer, setAnswer] = useState<string>(exerciseData.answer || "");
+    const [acceptedText, setAcceptedText] = useState<string>((exerciseData.accepted_answers ?? []).join("\n"));   // one extra accepted answer per line
     const [supportText, setSupportText] = useState<string>(exerciseData.text_support || "");
 
     const [imageUrl, setImageUrl] = useState<string[]>(exerciseData.image_files ?? []);
@@ -104,7 +116,7 @@ export default function ExerciseForm({
     );
     const [blanks, setBlanks] = useState<BlankRow[]>(
         existingContent && "blanks" in existingContent
-            ? existingContent.blanks.map(b => ({ answer: b.answer, options: (b.options ?? []).join(", ") }))
+            ? existingContent.blanks.map(b => ({ answer: b.answer, options: (b.options ?? []).join(", "), element_id: b.element_id }))
             : [{ answer: "", options: "" }]
     );
     const [pairs, setPairs] = useState<[string, string][]>(
@@ -228,13 +240,16 @@ export default function ExerciseForm({
                 segments,
                 blanks: blanks.map(b => ({
                     answer: b.answer,
+                    ...(b.element_id ? { element_id: b.element_id } : {}),
                     ...(b.options.trim() ? { options: b.options.split(",").map(o => o.trim()).filter(Boolean) } : {}),
                 })),
             };
             normalizedQuestion = segments.join("__");
             normalizedAnswer = blanks.map(b => b.answer).join(", ");
         } else if (exerciseType === "matching") {
-            content = { pairs };
+            const ids = existingContent && "element_ids" in existingContent ? existingContent.element_ids : undefined;
+            // the ids line up with the pairs by position: kept only while the pair count is unchanged
+            content = { pairs, ...(ids && ids.length === pairs.length ? { element_ids: ids } : {}) };
             normalizedQuestion = "Matching exercise";
             normalizedAnswer = pairs.map(p => p.join(" - ")).join("; ");
         } else if (exerciseType === "organize") {
@@ -267,6 +282,7 @@ export default function ExerciseForm({
             image_files: imageUrl,
             audio_files: audioUrl,
             answer: normalizedAnswer,
+            accepted_answers: ["translate", "answering"].includes(exerciseType ?? "") ? acceptedText.split("\n").map(a => a.trim()).filter(Boolean) : [],
             content,
             lesson_id,
             related_vocabulary: relatedVocabularies,
@@ -308,6 +324,7 @@ export default function ExerciseForm({
             <ClassicSelectMenu
                 label={t("exerciseType")}
                 options={EXERCISE_TYPE_OPTIONS}
+                groups={typeGroups}
                 optionLabel={(v) => (EXERCISE_TYPE_KEY[v] ? t(EXERCISE_TYPE_KEY[v]) : undefined)}
                 selectedOption={exerciseType || ""}
                 onChange={(value) => setExerciseType(value as Exercise["exercise_type"])}
@@ -397,6 +414,10 @@ export default function ExerciseForm({
                         />
                     )}
 
+                    {["translate", "answering"].includes(exerciseType) && (
+                        <AutoSizeTextArea value={acceptedText} onChange={(e) => setAcceptedText(e.target.value)} label={t("acceptedAnswers")} />
+                    )}
+
                     <section className="flex flex-col space-y-4 w-full items-baseline">
                         <OpenCloseMenu
                             elements={lessonElements.vocabularies.map((item) => ({
@@ -422,7 +443,7 @@ export default function ExerciseForm({
                             setSelectedElements={setRelatedCalligraphies}
                             label={t("associatedCalligraphies")}
                         />
-                        {linkError && <p role="alert" className="text-sm text-red-600">{t("linkRequired")}</p>}
+                        {linkError && <InlineError>{t("linkRequired")}</InlineError>}
                     </section>
 
                     <TagSelector

@@ -8,10 +8,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...schemas.containers import LanguageDict
-from ...models.system_data import Source, Tag
+from ...models.system_data import LessonGate, Source, Tag
+from ...utils.scoring import KNOWN_FROM
 from ...models.containers import Language, Lesson
 from ...core.database import db_manager, transactional, resolve_related
 from ..system_data import ScoreService
+from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
 
@@ -26,37 +28,26 @@ class LanguageService:
             return languages
         return [language.to_dict(include_relations=include_relations) for language in languages]
 
-    def _find_current_lesson(self, language_id: str, score_threshold: float, user_id: Optional[str] = None, session: Optional[Session] = None) -> Optional[str]:
-        """
-        Find the first lesson ID for a given language with a score below a certain threshold.
+    def _find_current_lesson(self, language_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> Optional[str]:
+        """The language's current lesson (DM-18, SC-13): the first lesson that is not known yet (score below `KNOWN_FROM`).
 
-        Args:
-            language_id: The ID of the language.
-            score_threshold: The score threshold to compare against.
-            user_id: The user whose score rows to read; defaults to the language owner.
-            session: Optional SQLAlchemy session.
-
-        Returns:
-            The ID of the first lesson below the threshold, or None if all lessons meet/exceed the threshold.
-        """
+        Once the soft gate opened, the lesson it opened on counts as known for good (DM-46: decay never undoes it).
+        When every lesson is known, the last one. None for a language without lessons."""
         from .lesson import LessonService
-        lesson_service = LessonService()
-
-        lessons = lesson_service.get_all(
-            language_id=language_id,
-            session=session
-        )
+        lessons = LessonService().get_all(language_id=language_id, session=session)
         if user_id is None:
             lang = db_manager.find_by_attr(Language, {'id': language_id}, session=session)
             user_id = lang.user_id if lang else None
-        lesson_ids = [lesson.id for lesson in lessons]
-        score_map = score_service.get_many(user_id, lesson_ids, session=session)
+        gate = db_manager.find_by_attr(LessonGate, {'user_id': user_id, 'language_id': language_id}, session=session)
+        score_map = score_service.get_many(user_id, [lesson.id for lesson in lessons], session=session)
         for lesson in lessons:
+            if gate is not None and lesson.id == gate.unlocked_lesson_id:
+                continue
             s = score_map.get(lesson.id)
-            if s is None or s.score < score_threshold*100:
+            if s is None or s.score < KNOWN_FROM:
                 return lesson.id
         return lessons[-1].id if lessons else None
-        
+
     @transactional
     def get_by_user_id(
         self,
@@ -155,6 +146,15 @@ class LanguageService:
         Returns:
             Created Language object if successful, else None
         """
+        from ...core.languages import language_for, language_for_iso2
+        supported = language_for(data.iso1) if data.iso1 else language_for_iso2(data.target_iso639_2t)
+        if supported is None:
+            raise ValueError("a course needs a supported language (iso1)")
+        if session.query(Language).filter(Language.user_id == data.user_id, Language.iso1 == supported.iso1).first():
+            raise ValueError(f"you already have a {supported.name} course")
+        data.iso1, data.target_iso639_2t = supported.iso1, supported.iso2
+        data.name = data.name or supported.name
+        data.flag = data.flag or supported.flag
         last = session.query(func.max(Language.position)).filter(Language.user_id == data.user_id).scalar()
         language = Language(
             position=0 if last is None else last + 1,
@@ -162,6 +162,7 @@ class LanguageService:
             user_id=data.user_id,
             name=data.name,
             alias=data.alias,
+            iso1=data.iso1,
             flag=data.flag,
             level=data.level,
             description=data.description,
@@ -234,11 +235,19 @@ class LanguageService:
             logger.warning(f"Language not found: {language_id}")
             return None
 
-        update_data = data.model_dump(exclude={'current_lesson_id', 'id', 'user_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
+        update_data = data.model_dump(exclude={'iso1', 'target_iso639_2t', 'current_lesson_id', 'id', 'user_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
 
         for key, value in update_data.items():
             if value is not None:
                 setattr(existing, key, value)
+
+        if data.iso1 and existing.iso1 is None:
+            # A course the registry migration could not match: the owner picks its supported language once.
+            from ...core.languages import language_for
+            supported = language_for(data.iso1)
+            if session.query(Language).filter(Language.user_id == existing.user_id, Language.iso1 == supported.iso1).first():
+                raise ValueError(f"you already have a {supported.name} course")
+            existing.iso1, existing.target_iso639_2t = supported.iso1, supported.iso2
 
         if data.tags is not None:
             existing.tags = resolve_related(data.tags, Tag, session)
@@ -317,26 +326,11 @@ class LanguageService:
         )
 
         lesson_ids = [l.id for l in lessons]
-        score_map = score_service.get_many(user_id, lesson_ids, session=session)
-        if lesson_ids:
-            total_score = sum(score_map[lid].score if lid in score_map else 0.0 for lid in lesson_ids)
-            total_difficulty = sum(score_map[lid].difficulty if lid in score_map else 0.5 for lid in lesson_ids)
-            language_score = round(total_score / len(lesson_ids), 2)
-            language_difficulty = total_difficulty / len(lesson_ids)
-        else:
-            logger.warning(f"No lessons found for language: {language_id}")
-            language_score = 0.0
-            language_difficulty = 0.5
 
-        current_lesson_id = self._find_current_lesson(
-            language_id=language.id,
-            score_threshold=0.75,
-            user_id=user_id,
-            session=session
-        )
+        current_lesson_id = self._find_current_lesson(language_id=language.id, user_id=user_id, session=session)
 
-        result = score_service.set(user_id, language_id, language_score, language_difficulty,
-                                   current_lesson_id=current_lesson_id, touch=touch, session=session)
+        result = refresh(user_id, language_id, lesson_ids, digits=1, touch=touch,
+                         current_lesson_id=current_lesson_id, session=session)
 
         if result:
             logger.info(f"Updated language {language_id} score: {result.score}")

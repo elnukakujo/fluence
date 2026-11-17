@@ -3,10 +3,10 @@
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Copy, Check, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
-import { Ring } from "ldrs/react";
-//@ts-ignore
-import "ldrs/react/Ring.css";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
+import Spinner from "@/components/ui/spinner";
+import Field from "@/components/ui/field";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 export type ProviderOption = {
   value: string;
@@ -197,60 +197,39 @@ export default function EndpointCard({
         <div className="flex flex-col gap-3 pt-3 mt-3 border-t border-dashed border-[var(--color-border)]">
 
           {/* Step 1: Purpose */}
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("purpose")}</span>
-            <select
-              className="input"
-              value={endpoint.api_type ?? ""}
-              onChange={(e) => {
-                const newType = (e.target.value || undefined) as ApiEndpointConfig["api_type"];
-                const updates: ApiEndpointConfig = { ...endpoint, api_type: newType };
-                // Clear provider if the new purpose doesn't offer it
-                const current = endpoint.provider ? providers.find(p => p.value === endpoint.provider) : undefined;
-                if (current && !offeredFor(current, newType)) {
-                  updates.provider = undefined;
-                  updates.base_url = undefined;
-                }
-                onUpdate(updates);
-              }}
-              disabled={disabled}
-            >
-              <option value="">{t("selectPurpose")}</option>
-              {TYPE_OPTIONS.map(({ value, labelKey }) => (
-                <option key={value} value={value}>{t(labelKey)}</option>
-              ))}
-              {/* Legacy: "Both" can no longer be chosen, but saved endpoints keep it until changed */}
-              {endpoint.api_type === "both" && <option value="both">{t("testResults.legacy")}</option>}
-            </select>
-          </label>
+          <ClassicSelectMenu className="w-full" label={t("purpose")} disabled={disabled} searchable={false}
+            options={["", ...TYPE_OPTIONS.map((o) => o.value), ...(endpoint.api_type === "both" ? ["both"] : [])]}
+            optionLabel={(v) => (v === "" ? t("selectPurpose") : v === "both" ? t("testResults.legacy") : t(TYPE_OPTIONS.find((o) => o.value === v)!.labelKey))}
+            selectedOption={endpoint.api_type ?? ""}
+            onChange={(value) => {
+              const newType = ((value as string) || undefined) as ApiEndpointConfig["api_type"];
+              const updates: ApiEndpointConfig = { ...endpoint, api_type: newType };
+              // Clear provider if the new purpose doesn't offer it
+              const current = endpoint.provider ? providers.find(p => p.value === endpoint.provider) : undefined;
+              if (current && !offeredFor(current, newType)) {
+                updates.provider = undefined;
+                updates.base_url = undefined;
+              }
+              onUpdate(updates);
+            }} />
 
           {/* Step 2: Provider (appears after purpose is selected) */}
           {endpoint.api_type && (
-            <label className="flex flex-col gap-1">
-              <span className="text-sm opacity-70">{t("provider")}</span>
-              <select
-                className="input"
-                value={endpoint.provider ?? ""}
-                onChange={(e) => {
-                  const preset = providerMap[e.target.value];
-                  if (preset) {
-                    onUpdate({
-                      ...endpoint,
-                      provider: preset.value,
-                      base_url: endpoint.base_url || preset.base_url,
-                      api_format: preset.api_format,
-                      auth_type: preset.auth_type,
-                    });
-                  }
-                }}
-                disabled={disabled}
-              >
-                <option value="">{t("selectProvider")}</option>
-                {filteredProviders.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </label>
+            <ClassicSelectMenu className="w-full" label={t("provider")} disabled={disabled} options={["", ...filteredProviders.map((p) => p.value)]}
+              optionLabel={(v) => (v === "" ? t("selectProvider") : filteredProviders.find((p) => p.value === v)?.label)}
+              selectedOption={endpoint.provider ?? ""}
+              onChange={(value) => {
+                const preset = providerMap[value as string];
+                if (preset) {
+                  onUpdate({
+                    ...endpoint,
+                    provider: preset.value,
+                    base_url: endpoint.base_url || preset.base_url,
+                    api_format: preset.api_format,
+                    auth_type: preset.auth_type,
+                  });
+                }
+              }} />
           )}
 
           {/* Step 3: Connection (appears after provider is selected) */}
@@ -312,8 +291,9 @@ export default function EndpointCard({
               )}
 
               {/* Base URL */}
-              <label className="flex flex-col gap-1">
-                <span className="text-sm opacity-70">{t("baseUrl")}</span>
+              <Field label={t("baseUrl")} hint={<>{t("baseUrlHelp")}{baseUrlWarning && (
+                <span className="block" style={{ color: "var(--color-warning, #e6a817)" }}>⚠ {baseUrlWarning}</span>
+              )}</>}>
                 <input
                   className="input"
                   type="url"
@@ -322,11 +302,7 @@ export default function EndpointCard({
                   placeholder={t("baseUrlPlaceholder")}
                   disabled={disabled}
                 />
-                <span className="text-xs opacity-40">{t("baseUrlHelp")}</span>
-                {baseUrlWarning && (
-                  <span className="text-xs" style={{ color: "var(--color-warning, #e6a817)" }}>⚠ {baseUrlWarning}</span>
-                )}
-              </label>
+              </Field>
 
               {/* API Key */}
               <label className="flex flex-col gap-1">
@@ -337,7 +313,7 @@ export default function EndpointCard({
                     type={showKey ? "text" : "password"}
                     value={endpoint.api_key ?? ""}
                     onChange={(e) => onUpdate({ ...endpoint, api_key: e.target.value || undefined })}
-                    placeholder={t("apiKeyPlaceholder")}
+                    placeholder={endpoint.has_key && !endpoint.api_key ? "••••••••" : t("apiKeyPlaceholder")}
                     disabled={disabled}
                   />
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex gap-0.5">
@@ -383,7 +359,7 @@ export default function EndpointCard({
                     disabled={disabled || testDisabled || testing}
                   >
                     {testing ? (
-                      <Ring size={14} stroke={2} bgOpacity={0} speed={3} color="var(--color-foreground)" />
+                      <Spinner size={14} />
                     ) : (
                       t("testConnection")
                     )}
@@ -448,8 +424,7 @@ export default function EndpointCard({
           )}
 
           {/* Display Name */}
-          <label className="flex flex-col gap-1">
-            <span className="text-sm opacity-70">{t("displayName")}</span>
+          <Field label={t("displayName")}>
             <input
               className="input"
               type="text"
@@ -458,7 +433,7 @@ export default function EndpointCard({
               placeholder={t("displayNamePlaceholder")}
               disabled={disabled}
             />
-          </label>
+          </Field>
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-1">

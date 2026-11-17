@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Globe, Layers, Search, UserMinus, UserPlus, X } from "lucide-react";
 import { listUsers, listCollaborators, invite, remove, listLessonRecipients, unshareLesson, listLanguageLessons } from "@/api/collaboration";
-import ConfirmDialog from "@/components/user/confirmDialog";
+import ConfirmDialog from "@/components/ui/dialogs/confirmDialog";
+import EmptyState from "@/components/ui/emptyState";
+import InlineError from "@/components/ui/inlineError";
 
 // `shared` = a lesson recipient (access is the share itself, there is no collaboration row to cancel)
 type Collab = { id: string; status: string; mode?: string | null; shared?: boolean };
@@ -146,7 +148,7 @@ export default function InviteMenu({ targetType, targetId }: {
 
   return (
     <div className="flex flex-col gap-4">
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+      {error && <InlineError>{error}</InlineError>}
 
       {isLanguage && (
         <section aria-label={t("whatToShare")} className="flex flex-col gap-2">
@@ -173,7 +175,7 @@ export default function InviteMenu({ targetType, targetId }: {
                   </button>
                 )}
               </legend>
-              {lessons.length === 0 && <p className="px-1 py-2 text-sm text-muted">{t("noLessonsYet")}</p>}
+              {lessons.length === 0 && <EmptyState className="px-1 py-2 text-sm">{t("noLessonsYet")}</EmptyState>}
               <ul className="flex max-h-36 flex-col overflow-y-auto">
                 {lessons.map((l) => (
                   <li key={l.id}>

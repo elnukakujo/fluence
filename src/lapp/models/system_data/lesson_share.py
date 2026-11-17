@@ -18,4 +18,5 @@ class LessonShare(Base):
     id = Column(String, primary_key=True, index=True)
     lesson_id = Column(String, ForeignKey('lesson.id', ondelete='CASCADE'), nullable=False)
     user_id = Column(String, ForeignKey('user.id'), nullable=False)
+    owner_id = Column(String, ForeignKey('user.id'), nullable=True)   # the lesson's owner (who controls it)
     created_at = Column(DateTime, nullable=False, server_default=func.now())

@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { getLevelLabel, languageProficiencySystems } from "@/utils/language_iso639";
+import Field from "@/components/ui/field";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 export type SourceStepData = {
   source_title: string;
@@ -54,39 +56,24 @@ export default function SourceStep({ filename, onSourceChange, languageCode, sho
   return (
     <fieldset className="flex flex-col gap-4">
       <legend className="mb-1 text-base font-semibold">{t("sourceStepHeading")}</legend>
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{t("sourceTitleLabel")}</span>
+      <Field label={t("sourceTitleLabel")}>
         <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("sourceTitlePlaceholder")} required />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{t("sourceTypeLabel")}</span>
-        <select className="input" value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
-          {SOURCE_TYPES.map((s) => <option key={s} value={s}>{t(`sourceType_${s}`)}</option>)}
-        </select>
-      </label>
+      <ClassicSelectMenu className="w-full" label={t("sourceTypeLabel")} options={[...SOURCE_TYPES]} optionLabel={(s) => t(`sourceType_${s}`)}
+        selectedOption={sourceType} onChange={(v) => setSourceType(v as string)} />
 
-      <label className="flex flex-col gap-1">
-        <span className="field-label">{t("sourceDescriptionLabel")}</span>
+      <Field label={t("sourceDescriptionLabel")}>
         <textarea className="input input-grow" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("sourceDescriptionPlaceholder")} />
-      </label>
+      </Field>
 
       {showLevel && levelOptions.length > 0 && (
-        <label className="flex flex-col gap-1">
-          <span className="field-label">{t("levelLabel")}</span>
-          <select
-            className="input"
-            value={level}
-            onChange={(e) => setLevel(Number(e.target.value))}
-          >
-            {levelOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <span className="text-xs opacity-70">{t("levelApplied")}</span>
-        </label>
+        <div className="flex flex-col gap-1">
+          <ClassicSelectMenu className="w-full" label={t("levelLabel")} options={levelOptions.map((o) => String(o.value))}
+            optionLabel={(v) => levelOptions.find((o) => String(o.value) === v)?.label}
+            selectedOption={String(level)} onChange={(v) => setLevel(Number(v))} />
+          <p className="text-sm text-muted">{t("levelApplied")}</p>
+        </div>
       )}
     </fieldset>
   );

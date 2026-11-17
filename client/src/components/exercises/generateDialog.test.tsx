@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { pick, optionTexts } from "@/test/selectMenu";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ getExercisesByLesson: vi.fn().mockResolvedValue([{ id: "ex_f", lesson_id: "lesson_1", exercise_type: "essay", question: "Q", answer: "A", review_reason: "too hard" }]), suggestGeneration: vi.fn(), startGeneration: vi.fn(), getGeneration: vi.fn(), getActiveGeneration: vi.fn().mockResolvedValue(null), undoGenerationBatch: vi.fn() }));
@@ -138,7 +139,7 @@ describe("generate dialog: editable planned mix", () => {
     await userEvent.click(screen.getByRole("button", { name: "Remove one Essay" }));
     expect(screen.getByText(/5 of 6 placed/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();        // a slot is still free
-    await userEvent.selectOptions(screen.getByLabelText("Add a type"), "dictation");
+    await pick(screen.getByRole("combobox", { name: "Add a type" }), "Dictation");
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
     expect(row("Dictation")).toHaveTextContent("1");
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
@@ -151,15 +152,16 @@ describe("generate dialog: editable planned mix", () => {
     await userEvent.click(screen.getByRole("button", { name: "Remove one Quizz" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove one Quizz" }));
     expect(screen.queryByText("Quizz", { selector: "span.truncate" })).toBeNull();
-    expect(screen.getByRole("option", { name: "Quizz" })).toBeInTheDocument();
+    expect(await optionTexts(screen.getByRole("combobox", { name: "Add a type" }))).toContain("Quizz");
   });
 
   it("only offers the types the server allows", async () => {
     api.suggestGeneration.mockResolvedValue({ count: 6, mix: { essay: 4, quizz: 2 }, pool: 20, types: ["essay", "quizz", "translate"] });
     await open();
     await screen.findByLabelText("Number of exercises");
-    expect(screen.queryByRole("option", { name: "Dictation" })).toBeNull();
-    expect(screen.getByRole("option", { name: "Translate" })).toBeInTheDocument();
+    const offered = await optionTexts(screen.getByRole("combobox", { name: "Add a type" }));
+    expect(offered).not.toContain("Dictation");
+    expect(offered).toContain("Translate");
   });
 
   it("changing the total rescales the edited mix; Reset restores the suggestion", async () => {

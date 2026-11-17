@@ -5,6 +5,7 @@ import NavButton from "@/components/layout/navButton";
 import Source from "@/interface/systemData/Source";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { getTranslations } from "next-intl/server";
+import EmptyState from "@/components/ui/emptyState";
 
 export default async function SourcesPage() {
     const userId: string | null = await getCurrentUserId();
@@ -19,7 +20,7 @@ export default async function SourcesPage() {
                 <NavButton path="/sources/new">{t("newSource")}</NavButton>
             </div>
 
-            <LabelList kind="source" empty={<p className="text-muted">{t("noSourcesYet")}</p>}
+            <LabelList kind="source" empty={<EmptyState>{t("noSourcesYet")}</EmptyState>}
                 items={sources.map((x) => ({ id: x.id, label: x.title, description: x.description }))} />
         </div>
     );

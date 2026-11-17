@@ -24,6 +24,7 @@ def enrich_character(character_text: str, target_iso1: str, source_iso1: str) ->
         {
           "phonetic": "běi",
           "radical":  "匕",         # "" for non-CJK
+          "components": ["匕", "丿"],   # [] for non-CJK
           "meaning":  "nord",       # translated into source_iso1
         }
     """
@@ -43,6 +44,7 @@ def enrich_character(character_text: str, target_iso1: str, source_iso1: str) ->
     return {
         "phonetic": get_phonetic(character_text, target_iso1),
         "radical":  cjk["radical"],
+        "components": cjk["components"],   # first-level parts, [] for non-CJK
         "meaning":  meaning,
     }
  

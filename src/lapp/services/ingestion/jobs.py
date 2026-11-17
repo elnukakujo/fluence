@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+import hashlib
 import shutil
 import time
 from pathlib import Path
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 from ...core.database import db_manager, transactional
 from ...models.features import Calligraphy, Vocabulary
 from ...models.system_data import IngestionJob
-from ...utils.llm_providers import resolve_api
+from ...services.capabilities import gated_api
 from ...utils.model_api import ModelAPIError
 from ...utils.detect_language import get_language_by_iso2t
 from ..parsing import ParseError, parse, remote_engine_for
@@ -128,7 +129,14 @@ class IngestionJobService:
         return [job_id for (job_id,) in rows]
 
 
-def remove_job_files(media_root: str | Path, job_id: str) -> None:
+def remove_job_files(media_root: str | Path, job_id: str, file_path: str | None = None) -> None:
+    """Delete the job folder and, when the uploaded file is given, its parse cache (keyed by the file's hash)."""
+    if file_path:
+        upload = Path(media_root) / file_path
+        if upload.is_file():
+            sha = hashlib.sha256(upload.read_bytes()).hexdigest()
+            for cached in (Path(media_root) / "parse_cache").glob(f"{sha}-*.json"):
+                cached.unlink(missing_ok=True)
     shutil.rmtree(job_dir(media_root, job_id), ignore_errors=True)
 
 
@@ -203,13 +211,13 @@ def _prepare(app: Flask, svc: IngestionJobService, job_id: str) -> Optional[_Ctx
     if job is None:
         return None
     prefs = UserPreferencesService().get_by_user_id(job["user_id"])
-    text_api = resolve_api(prefs, "text_gen") if prefs else None
+    text_api = gated_api(prefs, "text_gen") if prefs else None
     if not text_api:
         svc.update(job_id, status="failed", error="No text-generation endpoint is configured in your settings")
         return None
     warnings: list[str] = []
     remote = None
-    if ocr_api := (resolve_api(prefs, "ocr") if prefs else None):
+    if ocr_api := (gated_api(prefs, "ocr") if prefs else None):
         try:
             remote = remote_engine_for(ocr_api)
         except ParseError as e:
@@ -258,7 +266,7 @@ def _attach_existing(job: dict, result) -> None:
         if any(f.code.startswith("already_in_") for f in c.flags):
             w = words.get_by_word(c.word, language_id=job["language_id"])
             if w:
-                c.existing = {"word": w.word, "translation": w.translation, "phonetic": w.phonetic, "word_type": w.word_type}
+                c.existing = {"word": w.word, "translation": w.translation, "phonetic": w.phonetic, "word_type": w.word_type, "word_gender": w.word_gender}
     for e in result.elements:
         if e.kind == "calligraphy":
             ch = chars.get_by_character(e.fields["character"], language_id=job["language_id"])

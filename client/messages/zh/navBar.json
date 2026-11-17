@@ -6,7 +6,10 @@
   "settings": "设置",
   "account": "账户",
   "openSearch": "搜索",
+  "lightTheme": "切换到浅色主题",
+  "darkTheme": "切换到深色主题",
   "closeSearch": "关闭搜索",
   "mainNav": "主导航",
-  "back": "返回"
+  "back": "返回",
+  "inboxCount": "收件箱：{count} 项待处理"
 }

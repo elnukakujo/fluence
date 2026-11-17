@@ -1,17 +1,15 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
 import DailyStats from "@/interface/dataCollection/DailyStats";
+import HomeStats from "@/interface/dataCollection/HomeStats";
 
 export async function getTodayDailyStats(userId: string, languageId: string): Promise<DailyStats | null> {
   const params = new URLSearchParams({
     user_id: userId,
     language_id: languageId,
   });
-  const res = await fetch(`${BASE_URL}/api/daily-stats/me/today?${params.toString()}`, {
-    method: "GET",
-    headers: await getAuthHeaders(),
+  return apiFetch(`/api/daily-stats/me/today?${params.toString()}`, {
+    errorMessage: "Failed to fetch today's daily stats",
   });
-  if (!res.ok) throw new Error("Failed to fetch today's daily stats");
-  return res.json();
 }
 
 export async function getDailyStatsHistory(userId: string, languageId?: string, startDate?: string, endDate?: string): Promise<DailyStats[]> {
@@ -19,20 +17,18 @@ export async function getDailyStatsHistory(userId: string, languageId?: string, 
   if (languageId) params.set("language_id", languageId);
   if (startDate) params.set("start_date", startDate);
   if (endDate) params.set("end_date", endDate);
-  const res = await fetch(`${BASE_URL}/api/daily-stats/me/history?${params.toString()}`, {
-    method: "GET",
-    headers: await getAuthHeaders(),
+  return apiFetch(`/api/daily-stats/me/history?${params.toString()}`, {
+    errorMessage: "Failed to fetch daily stats history",
   });
-  if (!res.ok) throw new Error("Failed to fetch daily stats history");
-  return res.json();
 }
 
 export async function getDailyStatsById(dailyStatsId: string, userId: string): Promise<DailyStats> {
   const params = new URLSearchParams({ user_id: userId });
-  const res = await fetch(`${BASE_URL}/api/daily-stats/${dailyStatsId}?${params.toString()}`, {
-    method: "GET",
-    headers: await getAuthHeaders(),
+  return apiFetch(`/api/daily-stats/${dailyStatsId}?${params.toString()}`, {
+    errorMessage: `Failed to fetch daily stats ${dailyStatsId}`,
   });
-  if (!res.ok) throw new Error(`Failed to fetch daily stats ${dailyStatsId}`);
-  return res.json();
+}
+
+export async function getHomeStats(): Promise<HomeStats> {
+  return apiFetch("/api/stats/home", { errorMessage: "Failed to fetch the home stats", cache: "no-store" });
 }

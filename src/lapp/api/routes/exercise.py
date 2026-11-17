@@ -5,10 +5,11 @@ from pydantic import ValidationError
 from ...services import ExerciseService
 from ...services.system_data import ScoreService, ExerciseUserPrefService, SourceService
 from ...schemas import ExerciseDict
+from ...schemas.answer import parse_exercise_answer
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...services.system_data import UserPreferencesService
-from ...utils.llm_providers import resolve_api
-
+from ...services.capabilities import capability_for, gated_api
+from ...utils.request import parse_json
 logger = logging.getLogger(__name__)
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
@@ -188,7 +189,7 @@ def create_exercise():
     """
     try:
         # Validate request data
-        data = ExerciseDict(**request.json)
+        data = parse_json(ExerciseDict)
         require_write(data.lesson_id)
 
         # Create exercise
@@ -298,7 +299,7 @@ def update_exercise(exercise_id: str):
     """
     try:
         require_write(exercise_id)
-        data = ExerciseDict(**request.json)
+        data = parse_json(ExerciseDict)
 
         exercise = exercise_service.update(exercise_id, data, as_dict=True)
         
@@ -345,7 +346,7 @@ def delete_exercise(exercise_id: str):
 @bp.route('/score', methods=['POST'])
 @login_required
 def score_exercise():
-    """Score an exercise.
+    """Credit the elements of an exercise attempt (only the final attempt counts).
     ---
     tags:
         - Exercise
@@ -355,53 +356,88 @@ def score_exercise():
           required: true
           schema:
             type: object
-            description: Score update object
             properties:
-                exercise_id:
-                    type: string
-                    example: "ex_E1"
-                    description: "ID of the exercise to score"
-                    required: true
-                score:
-                    type: number
-                    example: 0.8
-                    description: "The score for the exercise"
-                    required: true
-                attempt_number:
-                    type: integer
-                    example: 2
-                    description: "The number of attempts made for the exercise"
-                    required: false
+                exercise_id: {type: string, example: "ex_E1"}
+                results:
+                    type: array
+                    description: "One entry per blank / pair, or one per linked element at the exercise quality"
+                    items:
+                        type: object
+                        properties:
+                            element_id: {type: string, example: "voc_V1"}
+                            quality: {type: number, example: 1.0}
+                            skill: {type: string, enum: [recognition, recall]}
+                            evidence_type: {type: string, enum: [typed, spoken, self_grade, multiple_choice, matching]}
+                attempt: {type: integer, example: 2}
+                final: {type: boolean, description: "false posts nothing"}
+                duration_ms: {type: integer}
+                hint_used: {type: boolean}
     responses:
         200:
-            description: Exercise scored successfully
-            schema:
-                type: object
-                description: Updated Exercise object
+            description: "{success, correct, total}; no score is returned"
+        400:
+            description: Invalid body, or a result names an element the exercise is not linked to
         404:
             description: Exercise not found
     """
-    data = request.json
-    exercise_id = data['exercise_id']
+    data = request.json or {}
+    exercise_id = data.get('exercise_id')
     require_write(exercise_id)
-    score = float(data['score'])
-    duration_ms = float(data['duration_ms'])
-    hint_used = bool(data.get('hint_used', False))
-    attempt_number = int(data['attempt_number']) if data.get('attempt_number') is not None else None
+    try:
+        answer = parse_exercise_answer(data)
+        if not answer.final:
+            return jsonify({'success': True, 'credited': False})
+        counts = exercise_service.credit(
+            exercise_id, [r.model_dump() for r in answer.results], user_id=current_user_id(),
+            duration_ms=answer.duration_ms, hint_used=answer.hint_used, attempt=answer.attempt)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    if counts is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({'success': True, **counts})
 
-    exercise = exercise_service.update_score(
-        exercise_id,
-        score,
-        duration_ms=duration_ms,
-        hint_used=hint_used,
-        attempt_number=attempt_number,
-        user_id=current_user_id(),
-    )
+@bp.route('/<exercise_id>/override', methods=['POST'])
+@login_required
+def override_exercise(exercise_id: str):
+    """The learner says a wrong final attempt was right ("I was right"): credit it at full quality, once per attempt.
+    ---
+    tags:
+        - Exercise
+    parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+                attempt_id: {type: string, description: "One id per runner attempt, chosen by the client"}
+                results: {type: array, description: "The attempt's results, as posted to /score"}
+                attempt: {type: integer}
+                duration_ms: {type: integer}
+                hint_used: {type: boolean}
+    responses:
+        200:
+            description: "{credited: false} when nothing was wrong or the attempt was overridden before; else {credited: true, correct, total}"
+        400:
+            description: Invalid body
+        404:
+            description: Exercise not found
+    """
+    data = dict(request.json or {}, exercise_id=exercise_id, final=True)
+    require_write(exercise_id)
+    attempt_id = data.get('attempt_id')
+    if not attempt_id:
+        return jsonify({'error': 'attempt_id is required'}), 400
+    try:
+        answer = parse_exercise_answer(data)
+        out = exercise_service.override(exercise_id, current_user_id(), str(attempt_id), [r.model_dump() for r in answer.results],
+                                        answer.duration_ms, hint_used=answer.hint_used, attempt=answer.attempt)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    if out is None:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify({'success': True, **out})
 
-    if exercise:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'error': 'exercise not found'}), 404
 
 @bp.route('/<exercise_id>/line-audio', methods=['POST'])
 @login_required
@@ -420,9 +456,10 @@ def generate_line_audio(exercise_id: str):
     if not isinstance(line, int) or isinstance(line, bool):
         return jsonify({'error': 'line must be an integer'}), 400
     prefs = UserPreferencesService().get_by_user_id(current_user_id())
-    api = resolve_api(prefs, "tts") if prefs and prefs.ai_tts_enabled is not False else None
+    api = gated_api(prefs, "tts")
     if not api or not api.get("base_url"):
-        return jsonify({'error': 'tts_not_configured'}), 409
+        cap = capability_for(prefs, "tts")
+        return jsonify({'error': 'tts_not_configured', 'reason': cap.reason, 'needs': cap.needs}), 409
     try:
         return jsonify(exercise_service.add_line_audio(exercise_id, line, api))
     except FileNotFoundError:

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { LoaderCircle, Pause, Play, Square } from "lucide-react";
 import { pauseJob, resumeJob, stopJob } from "@/api/ingestion";
+import InlineError from "@/components/ui/inlineError";
 
 const BTN = "btn btn-secondary inline-flex min-h-11 min-w-11 items-center justify-center !p-0";
 
@@ -30,7 +31,7 @@ export default function JobControls({ jobId, paused = false, onStopped }: { jobI
         onClick={() => run(() => stopJob(jobId), () => onStopped?.(), () => undefined)}>
         {busy ? <LoaderCircle size={18} aria-hidden className="animate-spin motion-reduce:animate-none" /> : <Square size={16} aria-hidden fill="currentColor" />}
       </button>
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+      {error && <InlineError>{error}</InlineError>}
     </>
   );
 }

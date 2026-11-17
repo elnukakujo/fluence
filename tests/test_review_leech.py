@@ -1,4 +1,4 @@
-"""Leech cards: a card whose score fell LEECH_LAPSES times gets its lapses, the word's characters and one confusable word; the user's note rides on the score."""
+"""Leech cards: a card the engine flags as a leech (4 wrong of the last 8, any score) gets its lapses, the word's characters and one confusable word; the user's note rides on the score."""
 import itertools
 
 from lapp.models.components import Character, Word
@@ -8,7 +8,6 @@ from lapp.models.features import Calligraphy, Vocabulary
 from lapp.models.system_data import User
 from lapp.services import ReviewService
 from lapp.services.auth import AuthService
-from lapp.services.features.study_constants import LEECH_LAPSES
 from lapp.services.system_data import ScoreService
 
 _ids = itertools.count(1)
@@ -33,6 +32,8 @@ def _seed(db, other="日本人", other_translation="Japanese person"):
 
 
 def _history(db, element_id, down, up=0):
+    for _ in range(down):
+        ScoreService().record("user_U1", element_id, "recall", 0.0, "typed")
     with db.session_scope() as s:
         for before, after in [(50.0, 40.0)] * down + [(40.0, 50.0)] * up:
             db.insert(ProgressTracking(id=f"pt_{next(_ids)}", user_id="user_U1", language_id="lang_L1", element_id=element_id, element_type="vocabulary",
@@ -51,16 +52,16 @@ def _annotate(cards):
 
 def test_a_card_becomes_a_leech_at_the_lapse_threshold_and_improvements_do_not_count(db):
     _seed(db)
-    _history(db, "voc_V1", LEECH_LAPSES - 1, up=5)
+    _history(db, "voc_V1", 3, up=5)
     assert "leech" not in _annotate(_cards())[0]
     _history(db, "voc_V1", 1)
-    assert _annotate(_cards())[0]["leech"]["lapses"] == LEECH_LAPSES
+    assert _annotate(_cards())[0]["leech"]["lapses"] == 4
 
 
 def test_a_leech_vocabulary_lists_the_characters_of_its_word_and_a_calligraphy_leech_has_none(db):
     _seed(db)
-    _history(db, "voc_V1", LEECH_LAPSES)
-    _history(db, "call_C1", LEECH_LAPSES)
+    _history(db, "voc_V1", 4)
+    _history(db, "call_C1", 4)
     voc, call = _annotate(_cards())
     assert {p["character"]: p["meaning"] for p in voc["leech"]["parts"]} == {"日": "sun", "本": "book"}
     assert call["leech"]["parts"] == [] and call["leech"]["confusable"] is None
@@ -68,19 +69,19 @@ def test_a_leech_vocabulary_lists_the_characters_of_its_word_and_a_calligraphy_l
 
 def test_the_confusable_is_the_closest_other_word_of_the_language(db):
     _seed(db)
-    _history(db, "voc_V1", LEECH_LAPSES)
+    _history(db, "voc_V1", 4)
     assert _annotate(_cards())[0]["leech"]["confusable"] == {"word": "日本人", "translation": "Japanese person"}
 
 
 def test_no_close_word_means_no_confusable_and_a_synonym_is_never_one(db):
     _seed(db, other=None)
-    _history(db, "voc_V1", LEECH_LAPSES)
+    _history(db, "voc_V1", 4)
     assert _annotate(_cards())[0]["leech"]["confusable"] is None
 
 
 def test_a_word_with_the_same_translation_is_not_confusable(db):
     _seed(db, other_translation="japan")
-    _history(db, "voc_V1", LEECH_LAPSES)
+    _history(db, "voc_V1", 4)
     assert _annotate(_cards())[0]["leech"]["confusable"] is None
 
 
@@ -107,3 +108,22 @@ def test_note_route_saves_and_validates(app, db):
     assert c.put("/api/review/note/voc_V1", json={"note": "x" * 501}).status_code == 400
     assert c.put("/api/review/note/voc_V1", json={"note": 5}).status_code == 400
     assert c.put("/api/review/note/voc_NOPE", json={"note": "x"}).status_code == 404
+
+
+def test_a_leech_at_a_low_score_is_flagged_and_three_correct_in_a_row_clear_it(db):
+    _seed(db)
+    _history(db, "voc_V1", 4)
+    card = _annotate(_cards())[0]
+    assert card["leech"]["is_leech"]   # flagged at a score far below 60, card still in the list
+    for _ in range(3):
+        ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
+    assert "leech" not in _annotate(_cards())[0]
+
+
+def test_leech_panel_data_counts_the_correct_answers_in_a_row(db):
+    _seed(db)
+    _history(db, "voc_V1", 4)
+    assert _annotate(_cards())[0]["leech"]["correct_in_row"] == 0
+    for _ in range(2):
+        ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
+    assert _annotate(_cards())[0]["leech"]["correct_in_row"] == 2          # 3 in a row and it leaves

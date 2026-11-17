@@ -10,19 +10,21 @@ from ...services import ExerciseService
 from ...services.containers import LanguageService, LessonService
 from ...services.exercise_generation import jobs
 from ...services.exercise_generation.planner import offerable_types, plan_slots, suggest_count
-from ...services.exercise_generation.pool import lesson_pool
+from ...services.exercise_generation.pool import is_advanced, known_words, lesson_pool
 from ...services.features.study_constants import GEN_MAX
 from ...services.system_data import UserPreferencesService
-from ...utils.llm_providers import resolve_api
-
+from ...services.capabilities import capability_for, gated_api
 logger = logging.getLogger(__name__)
 bp = Blueprint("exercise_generation", __name__)
 
 
-def _offerable() -> list[str]:
-    """The exercise types the current user may ask for (not banned; dictation only with a TTS endpoint)."""
-    prefs = UserPreferencesService().get_by_user_id(current_user_id())
-    return offerable_types(prefs.exercise_type_prefs, prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None)
+def _offerable(lesson_id: str) -> list[str]:
+    """The exercise types the current user may ask for (not banned; dictation only with a TTS endpoint; essay/conversation once advanced)."""
+    user_id = current_user_id()
+    prefs = UserPreferencesService().get_by_user_id(user_id)
+    with db_manager.session_scope() as s:
+        advanced = is_advanced(known_words(lesson_id, user_id, s))
+    return offerable_types(prefs.exercise_type_prefs, gated_api(prefs, "tts") is not None, advanced)
 
 
 def _plan(lesson_id: str, count: int | None):
@@ -31,10 +33,10 @@ def _plan(lesson_id: str, count: int | None):
     with db_manager.session_scope() as s:
         pool = lesson_pool(lesson_id, user_id, s)
         prefs = UserPreferencesService().get_by_user_id(user_id, session=s)
-        tts = prefs.ai_tts_enabled is not False and resolve_api(prefs, "tts") is not None
+        tts = gated_api(prefs, "tts") is not None
         kinds = Counter(p.kind for p in pool)
         n = count if count is not None else suggest_count(kinds["vocabulary"], kinds["grammar"], kinds["calligraphy"])
-        return pool, plan_slots(pool, n, prefs.exercise_type_prefs, tts), n
+        return pool, plan_slots(pool, n, prefs.exercise_type_prefs, tts, advanced=is_advanced(known_words(lesson_id, user_id, s))), n
 
 
 @bp.route("/api/lesson/<lesson_id>/exercises/suggest", methods=["GET"])
@@ -51,7 +53,7 @@ def suggest(lesson_id: str):
     """
     require_write(lesson_id)
     pool, slots, _ = _plan(lesson_id, None)
-    return jsonify({"count": len(slots), "mix": dict(Counter(s.exercise_type for s in slots)), "pool": len(pool), "types": _offerable()})
+    return jsonify({"count": len(slots), "mix": dict(Counter(s.exercise_type for s in slots)), "pool": len(pool), "types": _offerable(lesson_id)})
 
 
 @bp.route("/api/lesson/<lesson_id>/exercises/generate", methods=["POST"])
@@ -74,13 +76,15 @@ def generate(lesson_id: str):
         return jsonify({"error": f"count must be a whole number from 1 to {GEN_MAX}"}), 400
     mix = (request.get_json(silent=True) or {}).get("mix")
     if mix is not None:
-        offered = set(_offerable())
+        offered = set(_offerable(lesson_id))
         ok = isinstance(mix, dict) and mix and all(t in offered and isinstance(n, int) and not isinstance(n, bool) and n > 0 for t, n in mix.items())
         if not ok or sum(mix.values()) != count:
             return jsonify({"error": "mix must map offered exercise types to positive whole numbers that add up to count"}), 400
-    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
-    if not api:
-        return jsonify({"error": "text_gen_not_configured"}), 409
+    prefs = UserPreferencesService().get_by_user_id(current_user_id())
+    cap = capability_for(prefs, "exercise_generation")
+    api = gated_api(prefs, "text_gen")
+    if not cap.enabled or not api:
+        return jsonify({"error": "text_gen_not_configured", "reason": cap.reason, "needs": cap.needs}), 409
     pool, slots, _ = _plan(lesson_id, count)
     if not pool or not slots:
         return jsonify({"error": "empty_lesson"}), 409

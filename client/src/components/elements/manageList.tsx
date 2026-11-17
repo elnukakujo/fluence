@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { moveItem } from "@/lib/lessonOrder";
 import { SelectAllRow, useItemSelection, type Kind } from "./itemSelection";
 import Tick from "./tick";
+import InlineError from "@/components/ui/inlineError";
 
 export type ManageItem = { id: string; title: string; subtitle?: string; owned: boolean };
 
@@ -65,7 +66,7 @@ export default function ManageList({ kind, items, onReorder, reorderLocked = fal
   return (
     <div className="flex flex-col gap-3">
       {reorderLocked && <p className="text-sm text-muted">{t("filterHidesReorder")}</p>}
-      {error && <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p>}
+      {error && <InlineError>{error}</InlineError>}
       <p role="status" aria-live="polite" className="sr-only">{announce}</p>
       <SelectAllRow kind={kind} entries={order.filter((id) => byId.has(id)).map((id) => [id, byId.get(id)!.title])} />
       <ul className="flex list-none flex-col gap-2 p-0">

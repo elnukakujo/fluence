@@ -42,5 +42,5 @@ def test_lesson_with_only_exercises_scores_zero(db):
 
 def test_exercise_result_still_reaches_linked_vocabulary(db):
     _seed(db, linked=True)
-    ExerciseService().update_score("ex_E1", 1.0, 1000, user_id=U)
+    ExerciseService().credit("ex_E1", [{"element_id": "voc_V1", "quality": 1.0, "skill": "recall", "evidence_type": "typed"}], user_id=U, duration_ms=1000)
     assert ScoreService().get(U, "voc_V1").score > 0.0

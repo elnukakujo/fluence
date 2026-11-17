@@ -11,10 +11,13 @@ from ...models.containers import Language
 from ...schemas.components import WordDict
 from ...utils import enrich_word, get_language_by_iso2t, stack_lists
 from ..system_data import ScoreService
+from ..system_data.score_cascade import refresh
 
 score_service = ScoreService()
 
 logger = logging.getLogger(__name__)
+
+from .character import has_characters
 
 class WordService:
     @transactional
@@ -94,7 +97,7 @@ class WordService:
 
         characters: dict[str, Character] = {}
 
-        if len(enriched_data["characters"]) > 0:
+        if len(enriched_data["characters"]) > 0 and (not language or has_characters(language.target_iso639_2t)):   # DM-50
             logger.debug(f"Enriched characters for word '{data.word}': {enriched_data['characters']}")
             from .character import CharacterService
             from ...schemas.components import CharacterDict
@@ -260,18 +263,7 @@ class WordService:
         ]
 
         feature_ids = [f.id for f in features]
-        score_map = score_service.get_many(user_id, feature_ids, session=session)
-        if feature_ids:
-            total_score = sum(score_map[fid].score if fid in score_map else 0.0 for fid in feature_ids)
-            total_difficulty = sum(score_map[fid].difficulty if fid in score_map else 0.5 for fid in feature_ids)
-            word_score = total_score / len(feature_ids)
-            word_difficulty = total_difficulty / len(feature_ids)
-        else:
-            logger.warning(f"No features found for word: {word_id}")
-            word_score = 0.0
-            word_difficulty = 0.5
-
-        result = score_service.set(user_id, word_id, word_score, word_difficulty, session=session)
+        result = refresh(user_id, word_id, feature_ids, session=session)
         if result:
             logger.info(f"Updated WordComponent {word_id} score to {result.score} and difficulty to {result.difficulty}")
 

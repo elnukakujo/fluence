@@ -16,6 +16,7 @@ from .word import bp as word_bp
 from .character import bp as character_bp
 from .passage import bp as passage_bp
 from .daily_stats import bp as daily_stats_bp
+from .stats import bp as stats_bp
 from .commitment_log import commitment_log_bp
 from .review import bp as review_bp
 from .study_goal import bp as study_goal_bp
@@ -24,6 +25,8 @@ from .collaboration import bp as collaboration_bp
 from .ingestion import bp as ingestion_bp
 from .element import bp as element_bp
 from .exercise_generation import bp as exercise_generation_bp
+from .capabilities import bp as capabilities_bp
+from .inbox import bp as inbox_bp
 __all__ = [
     language_bp,
     lesson_bp,
@@ -43,6 +46,7 @@ __all__ = [
     character_bp,
     passage_bp,
     daily_stats_bp,
+    stats_bp,
     commitment_log_bp,
     review_bp,
     study_goal_bp,
@@ -51,4 +55,6 @@ __all__ = [
     ingestion_bp,
     element_bp,
     exercise_generation_bp,
+    capabilities_bp,
+    inbox_bp,
 ]

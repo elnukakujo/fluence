@@ -1,3 +1,4 @@
+import typeMeta from "@/shared/exercise-types.json";
 export const LANGUAGE_to_ISO639_2T: Record<string, string> = {
     "Catalan": "cat",
     "Chinese": "zho",
@@ -710,11 +711,7 @@ export function getExamCategories(iso: string | undefined): ExamCategory[] {
   return (iso && languageProficiencySystems[iso]?.examCategories) || DEFAULT_EXAM_CATEGORIES;
 }
 
-const TYPE_CATEGORY: Record<string, string> = {
-  dictation: "listening", reading: "reading", answering: "reading", speaking: "speaking", conversation: "speaking", essay: "writing", translate: "writing",
-  quizz: "language_knowledge", matching: "language_knowledge", true_false: "language_knowledge", organize: "language_knowledge",
-  type_in_the_blank: "language_knowledge", select_in_the_blank: "language_knowledge",
-};
+const TYPE_CATEGORY: Record<string, string> = Object.fromEntries(typeMeta.map((t) => [t.name, t.category]));
 
 /** The exam section of an exercise, derived from its type. `language_knowledge` is JLPT-only: other exams file those types under reading.
  *  Other slugs are returned as is, even when the exam lacks them (the list still groups them). Unknown type -> null. */

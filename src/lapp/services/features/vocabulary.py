@@ -11,17 +11,20 @@ from ...models.features import Vocabulary
 from ...models.system_data import Tag, Source, Score
 from ..containers import LessonService, LanguageService
 from ..components import WordService, PassageService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from ..system_data.score import SIDES
+
+SIDE_SKILL = {"front": "recognition", "back": "recall"}   # a face tests one skill
 from ...core.database import db_manager, transactional, resolve_related, stack_related
-from ...utils import update_score, update_difficulty, stack_lists, status_for
+from ...utils.scoring import level_for
+from ...utils import stack_lists
 
 lesson_service = LessonService()
 language_service = LanguageService()
 word_service = WordService()
 passage_service = PassageService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 
@@ -285,6 +288,8 @@ class VocabularyService:
         hint_used: bool = False,
         user_id: Optional[str] = None,
         side: Optional[str] = None,
+        evidence_type: str = "self_grade",
+        skill: Optional[str] = None,       # None = the kind's default skill (internal cascades)
         session: Optional[Session] = None,
     ) -> Score | None:
         if side is not None and side not in SIDES:
@@ -296,17 +301,15 @@ class VocabularyService:
 
         previous = score_service.get(user_id, voc_id, session=session)
         previous_score = previous.score if previous else 0.0
-        # no side (old clients): one old step on each side
+        # no side (old clients): both sides; a face tests one skill (front recognition, back recall)
         for sd in ([side] if side else SIDES):
-            updated = score_service.record_side(user_id, voc_id, sd, score, step=1 if side is None else 2, session=session)
+            updated = score_service.record_side(user_id, voc_id, sd, skill or SIDE_SKILL[sd], score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=vocabulary.lesson.language_id,
+        study_activity.record(
+            user_id, vocabulary.lesson.language_id, ProgressTrackingDict(
                 element_id=voc_id,
                 element_type="vocabulary",
-                element_status=status_for(voc_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,

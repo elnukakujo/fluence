@@ -3,32 +3,21 @@ from pydantic import field_validator, model_validator
 
 from ..base import BaseFeatureDict
 
-VALID_EXERCISE_TYPES = [
-    "essay",
-    "answering",
-    "translate",
-    "organize",
-    "type_in_the_blank",
-    "select_in_the_blank",
-    "matching",
-    "true_false",
-    "speaking",
-    "conversation",
-    "quizz",
-    "reading",
-    "dictation",
-]
+
 
 
 class ExerciseDict(BaseFeatureDict):
     exercise_type: Optional[str] = None         # e.g., "type_in_the_blank", "multiple_choice"
     question: str
     answer: Optional[str] = None                # blank is stored as "" (an open-ended essay has none); the base schema turns "" into None
+    accepted_answers: Optional[list[str]] = None  # extra answers that count as right besides `answer` (the display answer)
     text_support: Optional[str] = None          # e.g., additional text information
     content: Optional[dict] = None              # structured data for the structured types below
     category: Optional[str] = None              # exam-section slug; free text on purpose (the client owns the table)
 
     generation_batch_id: Optional[str] = None   # AI generation run that made it
+    machine_made: Optional[bool] = None         # made by AI; stays set after acceptance
+    draft: Optional[bool] = None                # AI-made and not accepted yet: excluded from study and search
     review_reason: Optional[str] = None         # set = generated exercise awaiting review (explicit None on update clears it)
 
     related_vocabulary: Optional[list[str]] = None # e.g., ["voc_V1"]
@@ -43,7 +32,8 @@ class ExerciseDict(BaseFeatureDict):
 
     @model_validator(mode='after')
     def _validate(self):
-        valid_exercise_types = VALID_EXERCISE_TYPES
+        from ...services.exercises.registry import EXERCISE_TYPES     # here, not at the top: the services package imports these schemas
+        valid_exercise_types = list(EXERCISE_TYPES)
         if self.exercise_type not in valid_exercise_types:
             raise ValueError(f"Invalid exercise_type: {self.exercise_type}. Must be one of {valid_exercise_types}.")
 

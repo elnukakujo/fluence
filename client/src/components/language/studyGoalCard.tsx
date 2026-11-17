@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { BookOpen, Brush, Lock, LockOpen, PenLine, Sparkles } from "lucide-react";
-import SectionCard from "@/components/user/sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
 import NumberField from "@/components/ui/input/numberField";
@@ -11,6 +11,8 @@ import RebuildMenuDialog from "./rebuildMenuDialog";
 import { getAvailableLanguages } from "@/api/language";
 import { getStudyGoal, resetStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
 import type Language from "@/interface/containers/Language";
+import InlineError from "@/components/ui/inlineError";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 const PERIODS: StudyGoal["period"][] = ["week", "biweek", "month"];
 type Draft = Pick<StudyGoal, "period" | "n_vocabulary" | "n_grammar" | "n_calligraphy" | "r_vocabulary" | "r_grammar" | "r_calligraphy" | "active" | "auto">;
@@ -44,6 +46,13 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
     }, [userId]);
 
+    useEffect(() => {      // the pace numbers were saved: only what the suggestion and the totals rest on is re-read, never the numbers being edited
+        const reread = () => Object.keys(states).forEach((id) => getStudyGoal(id).then((fresh) =>
+            setStates((x) => ({ ...x, [id]: { ...x[id], suggested: fresh.suggested, targets: fresh.targets, kinds: fresh.kinds } }))).catch(() => {}));
+        window.addEventListener("study-goals-changed", reread);
+        return () => window.removeEventListener("study-goals-changed", reread);
+    }, [states]);
+
     useEffect(() => {
         if (!languageId || states[languageId]) return;
         getStudyGoal(languageId)
@@ -76,7 +85,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     const hasOwnMenu = !!progress && !!states[languageId]?.goal && !states[languageId].goal!.auto;   // a menu the user locked before
     const isLocked = hasOwnMenu && !editing.has(languageId);
     const submit = (e: React.FormEvent) => { e.preventDefault(); if (hasOwnMenu) setConfirming(true); else lock(false); };
-    // changing a quantity makes the goal the user's own (it stops following the daily minutes)
+    // changing a quantity makes the goal the user's own (it stops following your pace numbers)
     const edit = (patch: Partial<Draft>, own = false) => {
         setDrafts((d) => ({ ...d, [languageId]: { ...d[languageId], ...patch, ...(own ? { auto: false } : {}) } }));
     };
@@ -86,18 +95,20 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         n_vocabulary: suggested.n.vocabulary, n_grammar: suggested.n.grammar, n_calligraphy: suggested.n.calligraphy,
         r_vocabulary: suggested.r.vocabulary, r_grammar: suggested.r.grammar, r_calligraphy: suggested.r.calligraphy,
     });
+    const target = states[languageId]?.targets?.[draft?.period ?? "week"];
+    const sumN = draft ? draft.n_vocabulary + draft.n_grammar + draft.n_calligraphy : 0;
+    const sumR = draft ? draft.r_vocabulary + draft.r_grammar + draft.r_calligraphy : 0;
+    const mismatch = !!target && !draft?.auto && (sumN !== target.n || sumR !== target.r);     // the suggested split may round off by one: it is always allowed
+    const shown = KINDS.filter((k) => !states[languageId]?.kinds || states[languageId].kinds!.includes(k.kind));       // the types this course studies
+    const sameAsSuggested = !!suggested && shown.every(({ kind, n, r }) => draft?.[n] === suggested.n[kind] && draft?.[r] === suggested.r[kind]);
     const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
     return (
         <form onSubmit={submit}>
             <SectionCard title={t("goalTitle")}>
                 <p className="text-sm text-muted">{t("goalHint")}</p>
-                <label className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="opacity-70">{t("goalLanguage")}</span>
-                    <select className="input w-auto" value={languageId} onChange={(e) => setLanguageId(e.target.value)}>
-                        {languages.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                </label>
+                <ClassicSelectMenu className="w-full max-w-xs" label={t("goalLanguage")} options={languages.map((l) => l.id)}
+                    optionLabel={(id) => languages.find((l) => l.id === id)?.name} selectedOption={languageId} onChange={(v) => setLanguageId(v as string)} />
 
                 <RebuildMenuDialog open={confirming} mastered={progress?.rebuild?.mastered ?? 0} redraw={progress?.rebuild?.redraw ?? 0}
                     onConfirm={() => lock(true)} onCancel={() => setConfirming(false)} />
@@ -147,15 +158,14 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                             <span className={`inline-flex items-center gap-1.5 ${draft.auto ? "text-accent" : "text-muted"}`}>
                                 <Sparkles size={14} aria-hidden />{draft.auto ? t("goalAuto") : t("goalCustom")}
                             </span>
-                            {draft.auto
-                                ? <span className="text-muted">{t("goalAutoHint")}</span>
-                                : suggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
+                            {draft.auto && <span className="text-muted">{t("goalAutoHint")}</span>}
+                            {suggested && !sameAsSuggested && <button type="button" className="btn btn-secondary min-h-11" onClick={useSuggested}>{t("goalUseSuggested")}</button>}
                         </div>
                         <div className="lock-rows grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-3" role="group" aria-label={t("goalQuantities")}>
                             <span aria-hidden />
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColNew")}</span>
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColReview")}</span>
-                            {KINDS.map(({ kind, label, n, r, Icon }) => (
+                            {shown.map(({ kind, label, n, r, Icon }) => (
                                 <div key={kind} className="contents">
                                     <span className="inline-flex items-center gap-2 text-sm"><Icon size={16} aria-hidden className="text-muted" />{t(label)}</span>
                                     <NumberField ariaLabel={`${t(label)}: ${t("goalColNew")}`} value={draft[n] as number} onChange={(v) => edit({ [n]: v === "" ? 0 : v }, true)} />
@@ -163,9 +173,10 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                 </div>
                             ))}
                         </div>
+                        {mismatch && target && <p className="text-sm text-danger" role="alert">{t("goalTotalsMismatch", { n: target.n, r: target.r, sumN, sumR })}</p>}
                         <ToggleRow label={t("goalActive")} description={t("goalActiveDesc")} checked={draft.active} onChange={(v) => edit({ active: v })} />
                         <div className="flex flex-wrap items-center gap-3">
-                            <SaveButton isLoading={saving} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
+                            <SaveButton isLoading={saving} disabled={mismatch} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
                             {hasOwnMenu && <button type="button" className="btn btn-secondary min-h-11" onClick={cancelEdit}>{t("goalCancel")}</button>}
                         </div>
                     </section>
@@ -175,7 +186,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                     <summary>{t("goalHowTitle")}</summary>
                     <p className="mt-1">{t("goalHowBody")}</p>
                 </details>
-                {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+                {error && <InlineError>{error}</InlineError>}
             </SectionCard>
         </form>
     );

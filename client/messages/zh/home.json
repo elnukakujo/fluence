@@ -1,5 +1,27 @@
 {
   "greeting": "嘿 {name}！",
   "whatToStudy": "你今天想学什么？",
-  "createNewLanguage": "创建新语言"
+  "createNewLanguage": "创建新语言",
+  "headline": "今日概览",
+  "streak": "连续天数",
+  "streakDays": "{count} 天",
+  "today": "今天",
+  "todayProgress": "{answers} / {min} 次回答",
+  "streakDone": "今日已计入连续",
+  "fading": "正在遗忘",
+  "fadingHint": "曾经掌握，现在低于“已知”",
+  "level": {
+    "learning": "学习中",
+    "known": "已知",
+    "mastered": "已掌握"
+  },
+  "due": "待复习",
+  "dueValue": "{count} 张卡片 · 约 {minutes} 分钟",
+  "coverage": "已见",
+  "meanSeen": "已见平均分",
+  "minutesToday": "今日分钟数",
+  "nextUp": "接下来",
+  "yourLanguages": "你的语言",
+  "reviewNow": "{count, plural, =0 {暂无待复习} other {复习 # 张到期卡片}}",
+  "todayHint": "{left, plural, =0 {已达成今日目标} other {再回答 # 题即可记入连续天数}}"
 }

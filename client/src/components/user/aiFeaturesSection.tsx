@@ -1,26 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import SectionCard from "./sectionCard";
+import SectionCard from "@/components/ui/sectionCard";
 import ToggleRow from "./toggleRow";
 import SaveButton from "./saveButton";
 import { updateUserPreferences } from "@/api/userPreferences";
-import { AlertTriangle } from "lucide-react";
 import UserPreferences from "@/interface/systemData/UserPreferences";
-
-const DEFAULTS: Record<string, boolean> = {
-  feedback: true, learnable: true, example: true, word: true, tts: true,
-};
+import DisabledReason from "@/components/ui/displays/disabledReason";
+import { type Capability, type Feature, getCapabilities } from "@/api/capabilities";
 
 export default function AiFeaturesSection({
   prefId,
   preferences,
-  hasEndpoints,
 }: {
   prefId: string;
   preferences: Partial<UserPreferences>;
-  hasEndpoints: boolean;
 }) {
   const t = useTranslations("settings.aiFeatures");
   const [toggles, setToggles] = useState({
@@ -31,6 +26,8 @@ export default function AiFeaturesSection({
     tts: preferences.ai_tts_enabled ?? true,
   });
   const [saving, setSaving] = useState(false);
+  const [caps, setCaps] = useState<Record<Feature, Capability> | null>(null);
+  useEffect(() => { getCapabilities().then(setCaps, () => setCaps(null)); }, []);
 
   const FEATURES = [
     { key: "feedback", label: t("feedback"), desc: t("feedbackDesc") },
@@ -40,7 +37,12 @@ export default function AiFeaturesSection({
     { key: "tts", label: t("tts"), desc: t("ttsDesc") },
   ] as const;
 
-  const anyEnabled = Object.values(toggles).some(Boolean);
+  // One line per kind of endpoint, not per switch: the text features share one, text-to-speech has its own.
+  const need = (features: Feature[], kind: "text" | "tts") => {
+    const off = caps && features.map((f) => caps[f]).find((c) => !c.enabled && (c.needs === "endpoint" || c.needs === "test"));
+    return off ? { enabled: false, needs: off.needs, reason: t(`${off.needs === "test" ? "needTest" : "needEndpoint"}_${kind}`) } : null;
+  };
+  const reasons = [need(["text_gen", "tutor_feedback"], "text"), need(["tts"], "tts")].filter((r): r is NonNullable<typeof r> => r !== null);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,31 +72,19 @@ export default function AiFeaturesSection({
 
   return (
     <SectionCard title={t("title")}>
-      <p className="text-sm opacity-60">
-        {t("description")}
-      </p>
-
-      {anyEnabled && !hasEndpoints && (
-        <div
-          className="flex items-center gap-2 text-sm rounded-lg p-3"
-          style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
-          role="alert"
-        >
-          <AlertTriangle size={16} aria-hidden="true" />
-          <span>{t("enabledNoEndpoint")}</span>
-        </div>
-      )}
+      {reasons.map((r) => <DisabledReason key={r.reason} capability={r} linkLabel={t("openEndpoints")} settingsHref="#ai" />)}
 
       <form onSubmit={handleSave} className="flex flex-col gap-1">
         {FEATURES.map(({ key, label, desc }) => (
-          <ToggleRow
-            key={key}
-            label={label}
-            description={desc}
-            checked={toggles[key]}
-            onChange={(v) => setToggles((t) => ({ ...t, [key]: v }))}
-            disabled={saving}
-          />
+          <div key={key}>
+            <ToggleRow
+              label={label}
+              description={desc}
+              checked={toggles[key]}
+              onChange={(v) => setToggles((t) => ({ ...t, [key]: v }))}
+              disabled={saving}
+            />
+          </div>
         ))}
 
         <div className="flex items-center justify-between pt-3">

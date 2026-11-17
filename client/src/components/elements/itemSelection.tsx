@@ -29,7 +29,7 @@ export default function LessonItems({ isOwner, userId, lessonId, languageId, cla
 }) {
   return (
     <SelectionScope canSelect={isOwner} className={className}
-      bar={(b) => <ItemActionBar {...b} userId={userId} move={{ lessonId, languageId }} />}>
+      bar={(b) => <ItemActionBar {...b} userId={userId} move={{ lessonId, languageId }} practice={{ languageId }} />}>
       {children}
     </SelectionScope>
   );

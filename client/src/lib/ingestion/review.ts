@@ -8,6 +8,7 @@ export type Candidate = {
   translation?: string | null;
   phonetic?: string | null;
   word_type?: string | null;
+  word_gender?: string | null;
   quote: string;
   page: number; // 0-based document page
   page_end?: number; // last page, when a merged point spans several
@@ -49,6 +50,7 @@ export type Row = {
   translation?: string;
   phonetic?: string;
   word_type?: string;
+  word_gender?: string;
   on_conflict: ConflictMode | null; // null = a conflicting card the user has not decided yet
   merged?: boolean; // the result was chosen in the merge editor
   // For non-vocabulary elements
@@ -111,6 +113,7 @@ export function initialRows(candidates: Candidate[]): Row[] {
       row.word = candidate.word ?? "";
       row.translation = candidate.translation ?? "";
       row.phonetic = candidate.phonetic ?? "";
+      row.word_gender = candidate.word_gender ?? "";
       row.word_type = (WORD_TYPES as readonly string[]).includes(candidate.word_type ?? "") ? candidate.word_type ?? "" : "";
     }
     return row;
@@ -151,7 +154,7 @@ export function infoNotes(c: Candidate): string[] {
   return c.flags.filter((f) => f.severity === "info").map((f) => f.message);
 }
 
-export type AcceptItem = { word: string; translation?: string; phonetic?: string; word_type?: string; on_conflict: ConflictMode };
+export type AcceptItem = { word: string; translation?: string; phonetic?: string; word_type?: string; word_gender?: string; on_conflict: ConflictMode };
 export type AcceptElement = { kind: string; fields: Record<string, unknown> };
 export type AcceptPayload = { items: AcceptItem[]; elements?: AcceptElement[] };
 
@@ -210,7 +213,7 @@ export function toAcceptItems(rows: Row[]): AcceptPayload {
       const word = (r.word ?? "").trim();
       if (!word) continue;
       const item: AcceptItem = { word, on_conflict: r.on_conflict ?? "keep" };
-      for (const key of ["translation", "phonetic", "word_type"] as const) {
+      for (const key of ["translation", "phonetic", "word_type", "word_gender"] as const) {
         const value = (r[key] ?? "").trim();
         if (value) item[key] = value;
       }

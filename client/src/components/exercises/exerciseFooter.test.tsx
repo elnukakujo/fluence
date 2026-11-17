@@ -3,8 +3,8 @@ import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const updateScoreById = vi.fn().mockResolvedValue(undefined);
-vi.mock("@/api/process", () => ({ updateScoreById: (...a: unknown[]) => updateScoreById(...a) }));
+const scoreExercise = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/api/process", () => ({ scoreExercise: (...a: unknown[]) => scoreExercise(...a) }));
 
 import ExerciseFooter from "./exerciseFooter";
 import type Exercise from "@/interface/features/Exercise";
@@ -39,7 +39,7 @@ describe("ExerciseFooter", () => {
     it("I don't know records a 0 and gives up instead of advancing", () => {
         render(<ExerciseFooter {...base} finished={false} isLast={false} />);
         fireEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(updateScoreById).toHaveBeenCalledWith("ex_1", 0, expect.any(Number), false, 1);
+        expect(scoreExercise).toHaveBeenCalledWith("ex_1", expect.objectContaining({ final: true, hintUsed: false, attempt: 1, results: [expect.objectContaining({ quality: 0, skill: "recall" })] }));
         expect(base.onGiveUp).toHaveBeenCalledTimes(1);
         expect(base.onNext).not.toHaveBeenCalled();
     });

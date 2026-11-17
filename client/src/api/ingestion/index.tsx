@@ -1,4 +1,5 @@
-import { BASE_URL, getAuthHeaders } from "..";
+import { apiFetch } from "../apiFetch";
+import { BASE_URL } from "..";
 import type { AcceptElement, AcceptItem, Candidate } from "@/lib/ingestion/review";
 
 export type SourceMetadata = {
@@ -46,41 +47,27 @@ export type Structure = {
 
 export const ACTIVE_STATUSES: JobStatus[] = ["queued", "parsing", "pages", "extracting"];
 
-// The server explains itself ({error}); surface that instead of a generic message.
-async function fail(res: Response, fallback: string): Promise<never> {
-  const body = await res.json().catch(() => null);
-  throw new Error(body?.error || fallback);
-}
-
-export async function getCapabilities(languageId: string, lessonId?: string): Promise<Capabilities> {
-  const q = new URLSearchParams({ language_id: languageId, ...(lessonId ? { lesson_id: lessonId } : {}) });
-  const res = await fetch(`${BASE_URL}/api/ingestion/capabilities?${q}`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not check whether you can import");
-  return res.json();
-}
-
 /** Tells the navbar's Imports button to refresh right away (it otherwise polls slowly while nothing is running). */
 export const INGESTION_CHANGED = "ingestion:changed";
 const notifyChanged = () => { if (typeof window !== "undefined") window.dispatchEvent(new Event(INGESTION_CHANGED)); };
 
+export async function getCapabilities(languageId: string, lessonId?: string): Promise<Capabilities> {
+  const q = new URLSearchParams({ language_id: languageId, ...(lessonId ? { lesson_id: lessonId } : {}) });
+  return apiFetch(`/api/ingestion/capabilities?${q}`, { errorMessage: "Could not check whether you can import" });
+}
+
 export async function uploadDocument(form: FormData): Promise<{ job_id: string }> {
-  // no Content-Type header: the browser must set the multipart boundary itself
-  const res = await fetch(`${BASE_URL}/api/ingestion`, { method: "POST", body: form });
-  if (!res.ok) return fail(res, "Upload failed");
+  const result = await apiFetch(`/api/ingestion`, { method: "POST", body: form, errorMessage: "Upload failed" });
   notifyChanged();
-  return res.json();
+  return result;
 }
 
 export async function getJob(jobId: string): Promise<Job> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not load this import");
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}`, { errorMessage: "Could not load this import" });
 }
 
 export async function listJobs(): Promise<Job[]> {
-  const res = await fetch(`${BASE_URL}/api/ingestion`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not load your imports");
-  return res.json();
+  return apiFetch(`/api/ingestion`, { errorMessage: "Could not load your imports" });
 }
 
 type StoredElement = { kind: Candidate["kind"]; fields: Record<string, unknown> } & Omit<Candidate, "kind">;
@@ -91,9 +78,7 @@ export function flattenElements(elements: StoredElement[] = []): Candidate[] {
 }
 
 export async function getCandidates(jobId: string): Promise<{ candidates: Candidate[]; warnings: string[] }> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/candidates`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not load the results");
-  const body = await res.json();
+  const body = await apiFetch(`/api/ingestion/${jobId}/candidates`, { errorMessage: "Could not load the results" });
   return { ...body, candidates: [...body.candidates, ...flattenElements(body.elements)] };
 }
 
@@ -107,11 +92,7 @@ export type RebuiltExercise = {
 };
 
 async function postExercises(jobId: string, path: string, body: object, failure: string): Promise<RebuiltExercise> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/exercises/${path}`, {
-    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  if (!res.ok) return fail(res, failure);
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}/exercises/${path}`, { method: "POST", body, errorMessage: failure });
 }
 
 /** Join several exercise cards into one exercise (of `exercise_type`, else the model's pick). */
@@ -124,64 +105,46 @@ export const regenerateExercise = (jobId: string, item: ExerciseItem, opts: { ex
 
 /** The user's text-generation model joins grammar candidates the parser split (no summarising); throws with the server's reason. */
 export async function mergeGrammar(jobId: string, items: { title?: string; explanation?: string; original_text?: string }[]): Promise<MergedGrammar> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/merge`, {
-    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify({ items }),
-  });
-  if (!res.ok) return fail(res, "Could not merge the grammar points");
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}/merge`, { method: "POST", body: { items }, errorMessage: "Could not merge the grammar points" });
 }
 
 /** Redo one grammar candidate from its original page text (same model, same rules as the merge). */
 export async function regenerateGrammar(jobId: string, item: { title?: string; explanation?: string; original_text?: string }, request?: string): Promise<MergedGrammar> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/regenerate`, {
-    method: "POST", headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" }, body: JSON.stringify({ items: [item], request }),
-  });
-  if (!res.ok) return fail(res, "Could not redo the grammar point");
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}/regenerate`, { method: "POST", body: { items: [item], request }, errorMessage: "Could not redo the grammar point" });
 }
 
 export async function acceptCandidates(jobId: string, lessonId: string, items: AcceptItem[], elements?: AcceptElement[]): Promise<{ created: number; created_elements: number; notes?: string[] }> {
   const body: { lesson_id: string; items: AcceptItem[]; elements?: AcceptElement[] } = { lesson_id: lessonId, items };
   if (elements && elements.length > 0) body.elements = elements;
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/accept`, {
-    method: "POST",
-    headers: await getAuthHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) return fail(res, "Could not add the selected items");
+  const result = await apiFetch(`/api/ingestion/${jobId}/accept`, { method: "POST", body, errorMessage: "Could not add the selected items" });
   notifyChanged();
-  return res.json();
+  return result;
 }
 
 /** Stop a running import before the next page is read (no more model calls are paid for); it ends as "failed: Stopped by you." */
 export async function stopJob(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/stop`, { method: "POST", headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not stop this import");
+  await apiFetch(`/api/ingestion/${jobId}/stop`, { method: "POST", errorMessage: "Could not stop this import" });
   notifyChanged();
 }
 
 export async function pauseJob(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/pause`, { method: "POST", headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not pause this import");
+  await apiFetch(`/api/ingestion/${jobId}/pause`, { method: "POST", errorMessage: "Could not pause this import" });
   notifyChanged();
 }
 
 export async function resumeJob(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/resume`, { method: "POST", headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not resume this import");
+  await apiFetch(`/api/ingestion/${jobId}/resume`, { method: "POST", errorMessage: "Could not resume this import" });
   notifyChanged();
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}`, { method: "DELETE", headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not delete this import");
+  await apiFetch(`/api/ingestion/${jobId}`, { method: "DELETE", errorMessage: "Could not delete this import" });
   notifyChanged();
 }
 
 /** Back from the review to the pages / lessons step (the results are discarded). */
 export async function stepBack(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/back`, { method: "POST", headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not go back");
+  await apiFetch(`/api/ingestion/${jobId}/back`, { method: "POST", errorMessage: "Could not go back" });
   notifyChanged();
 }
 
@@ -189,41 +152,29 @@ export async function stepBack(jobId: string): Promise<void> {
 export const pageImageUrl = (jobId: string, page: number) => `${BASE_URL}/api/ingestion/${jobId}/pages/${page}.png`;
 
 export async function getStructure(jobId: string): Promise<Structure> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/structure`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not load the lessons");
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}/structure`, { errorMessage: "Could not load the lessons" });
 }
 
 export async function confirmStructure(jobId: string, lessons: { title: string; ranges: [number, number][] }[], pageKinds?: Record<string, string[]>) {
   const body: { lessons: { title: string; ranges: [number, number][] }[]; page_kinds?: Record<string, string[]> } = { lessons };
   if (pageKinds) body.page_kinds = pageKinds;
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/structure`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body),
-  });
-  if (!res.ok) return fail(res, "Could not start the extraction");
+  const result = await apiFetch(`/api/ingestion/${jobId}/structure`, { method: "POST", body, errorMessage: "Could not start the extraction" });
   notifyChanged();
-  return res.json();
+  return result;
 }
 
 export async function getPages(jobId: string): Promise<{ status: JobStatus; page_kinds: Record<string, string[]>; first_page: number; last_page: number; warnings: string[] }> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/pages`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not load the pages");
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}/pages`, { errorMessage: "Could not load the pages" });
 }
 
 export async function confirmPages(jobId: string, pageKinds: Record<string, string[]>): Promise<{ status: JobStatus }> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/pages`, {
-    method: "POST", headers: await getAuthHeaders(), body: JSON.stringify({ page_kinds: pageKinds }),
-  });
-  if (!res.ok) return fail(res, "Could not confirm the pages");
+  const result = await apiFetch(`/api/ingestion/${jobId}/pages`, { method: "POST", body: { page_kinds: pageKinds }, errorMessage: "Could not confirm the pages" });
   notifyChanged();
-  return res.json();
+  return result;
 }
 
 export async function getLanguageCandidates(jobId: string): Promise<{ status: JobStatus; lessons: LessonProgress[]; warnings: string[] }> {
-  const res = await fetch(`${BASE_URL}/api/ingestion/${jobId}/candidates`, { headers: await getAuthHeaders() });
-  if (!res.ok) return fail(res, "Could not load the results");
-  return res.json();
+  return apiFetch(`/api/ingestion/${jobId}/candidates`, { errorMessage: "Could not load the results" });
 }
 
 /** Adds one lesson in the background (a big one takes minutes): polls the server and reports n / total until it is done. */
@@ -232,18 +183,14 @@ export async function acceptLesson(jobId: string, index: number, items: AcceptIt
   const body: { items: AcceptItem[]; title?: string; elements?: AcceptElement[] } = { items };
   if (title) body.title = title;
   if (elements && elements.length > 0) body.elements = elements;
-  const url = `${BASE_URL}/api/ingestion/${jobId}/lessons/${index}/accept`;
-  const res = await fetch(`${url}?background=1`, { method: "POST", headers: await getAuthHeaders(), body: JSON.stringify(body) });
-  if (!res.ok) return fail(res, "Could not add this lesson");
-  const first = await res.json();
+  const url = `/api/ingestion/${jobId}/lessons/${index}/accept`;
+  const first = await apiFetch(`${url}?background=1`, { method: "POST", body, errorMessage: "Could not add this lesson" });
   onProgress?.(first.done, first.total);
   for (let misses = 0; ;) {
     await new Promise((r) => setTimeout(r, 700));
     let state;
     try {
-      const poll = await fetch(url, { headers: await getAuthHeaders() });
-      if (!poll.ok) throw new Error(String(poll.status));
-      state = await poll.json();
+      state = await apiFetch(url, { errorMessage: "Could not add this lesson" });
       misses = 0;
     } catch {
       if (++misses > 20) throw new Error("Lost contact with the server - check the lesson list before adding it again");

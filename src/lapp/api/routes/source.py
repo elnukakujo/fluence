@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, request, jsonify
 from lapp.schemas.system_data.source import SourceDict
 from pydantic import ValidationError
@@ -5,7 +7,9 @@ from pydantic import ValidationError
 from ...services import SourceService
 from ...schemas.system_data import SourceDict
 from ...core.auth import login_required, require_owns, current_user_id
+from ...utils.request import parse_json
 
+logger = logging.getLogger(__name__)
 bp = Blueprint('source', __name__, url_prefix='/api/sources')
 source_service = SourceService()
 
@@ -128,7 +132,7 @@ def create_source():
     """
     try:
         # Validate request data
-        data = SourceDict(**request.json)
+        data = parse_json(SourceDict)
         data.user_id = current_user_id()
 
         # Create source
@@ -218,7 +222,7 @@ def update_source(source_id: str):
     """
     try:
         require_owns(source_id)
-        data = SourceDict(**request.json)
+        data = parse_json(SourceDict)
 
         source = source_service.update(source_id, data, as_dict=True)
         
@@ -320,8 +324,9 @@ def add_source_to_element():
         else:
             return jsonify({'error': 'Failed to add source to element'}), 400
             
-    except Exception as e:
-        return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+    except Exception:
+        logger.exception("Unhandled error in a route")
+        return jsonify({'error': 'An error occurred', 'details': 'An unexpected error occurred'}), 500
     
 @bp.route('/remove_source', methods=['POST'])
 @login_required
@@ -382,8 +387,9 @@ def remove_source_from_element():
         else:
             return jsonify({'error': 'Failed to remove source from element'}), 400
             
-    except Exception as e:
-        return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+    except Exception:
+        logger.exception("Unhandled error in a route")
+        return jsonify({'error': 'An error occurred', 'details': 'An unexpected error occurred'}), 500
 
 @bp.route('/merge', methods=['POST'])
 @login_required

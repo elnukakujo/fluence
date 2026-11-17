@@ -17,7 +17,7 @@ function useHintLines(card: Vocabulary | Calligraphy, shown: Shown): string[] {
         const answerIs = card.side === "back" ? "word" : "translation";
         const answer = (answerIs === "word" ? card.word.word : card.word.translation) ?? "";
         const context = shown.example ? null : contextHint(card.example_sentences?.[0], card.word.word ?? "", answerIs);
-        return [answer ? t("hintShape", { shape: shapeHint(answer) }) : "", context ? t("hintContext", { sentence: context }) : ""].filter(Boolean);
+        return [shapeHint(answer) ? t("hintShape", { shape: shapeHint(answer) }) : "", context ? t("hintContext", { sentence: context }) : ""].filter(Boolean);
     }
     const c = card.character;
     const parts = shown.detail ? [] : [c.strokes ? t("strokeCount", { n: c.strokes }) : "", c.radical ? t("hintRadical", { radical: c.radical }) : ""].filter(Boolean);

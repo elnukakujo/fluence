@@ -1,0 +1,119 @@
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReviewCard } from "@/api/review";
+
+const api = vi.hoisted(() => ({ updateScoreById: vi.fn().mockResolvedValue({}), scoreTypedAnswer: vi.fn().mockRejectedValue(new Error("down")) }));
+vi.mock("@/api/process", () => api);
+vi.mock("@/api/calligraphy", () => ({ submitCalligraphyDrawing: vi.fn() }));
+vi.mock("@/components/exercises/exerciseRunner", () => ({ default: () => <div /> }));
+vi.mock("next/navigation", () => ({ useParams: () => ({ language_id: "lang1" }), useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }));
+vi.mock("@/components/elements/calligraphyPracticeCanvas", () => ({ default: () => <div data-testid="canvas" />, guidanceFor: () => "none" }));
+vi.mock("@/lib/calligraphy/strokeData", () => ({ loadStrokeData: vi.fn().mockResolvedValue([[]]) }));
+vi.mock("@/utils/drawFirst", () => ({ isDrawFirst: () => false }));
+
+import ReviewSession from "./ReviewSession";
+
+// the render calls below predate the shell's items/options props: this adapter keeps them (and every assertion) as they were
+const ReviewFlashCard = ({ cards, languageId }: { cards: Parameters<typeof ReviewSession>[0]["items"]; languageId?: string }) => <ReviewSession items={cards} options={{ languageId }} />;
+
+const voc = (side: "front" | "back", score = 90) => ({
+    id: "voc_1", card_id: `voc_1#${side}`, side, created_at: "2026-01-01T00:00:00",
+    word: { word: "猫", translation: "cat", phonetic: "māo" }, example_sentences: [{ text: "猫在睡觉", translation: "The cat sleeps." }],
+    front_score: score, front_difficulty: 0.3, back_score: score, back_difficulty: 0.3, score, difficulty: 0.3,
+}) as unknown as ReviewCard;
+const call = (score: number) => ({ id: "call_1", created_at: "2026-01-01T00:00:00", score, difficulty: 0.3, character: { character: "日", phonetic: "rì", strokes: 4 } }) as unknown as ReviewCard;
+
+beforeEach(() => vi.clearAllMocks());
+
+describe("review card: type the word", () => {
+    it("a maintaining back-side card asks you to type the word; right and fast is easy", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        expect(screen.queryByText("Click to reveal")).toBeNull();
+        await userEvent.type(screen.getByLabelText("Type the word"), "猫");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 1, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
+        expect(screen.getByText("Right!")).toBeInTheDocument();
+    });
+
+    it("how long the answer took never changes the score posted (speed is not scored)", async () => {
+        const posted: number[] = [];
+        for (const waitMs of [500, 20000]) {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+            const { unmount } = render(<ReviewFlashCard cards={[voc("back")]} />);
+            await user.type(screen.getByLabelText("Type the word"), "猫");
+            vi.advanceTimersByTime(waitMs);
+            await user.click(screen.getByRole("button", { name: "Check" }));
+            posted.push(api.updateScoreById.mock.calls.at(-1)![1].similarity);
+            unmount();
+            vi.useRealTimers();
+        }
+        expect(posted).toEqual([1, 1]);
+    });
+
+    it("a wrong answer is graded again and shows the word", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.type(screen.getByLabelText("Type the word"), "狗");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
+        expect(screen.getByText("Not quite. The word is 猫")).toBeInTheDocument();
+    });
+
+    it("a near miss earns partial credit and underlines the differing character", async () => {
+        api.scoreTypedAnswer.mockResolvedValueOnce({ closeness: 0.65, diff: [0] });
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.type(screen.getByLabelText("Type the word"), "狗");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        const grade = api.updateScoreById.mock.calls[0][1].similarity;
+        expect(grade).toBeGreaterThan(0);
+        expect(grade).toBeLessThan(0.75);
+        expect(await screen.findByLabelText("different: 猫")).toBeInTheDocument();
+    });
+
+    it("a failed request keeps the exact-match grade", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.type(screen.getByLabelText("Type the word"), "狗");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
+    });
+
+    it("I don't know is graded again", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0, hintUsed: false, side: "back", skill: "recall", evidence: "typed" }));
+    });
+
+    it("a hint caps what a right answer can earn", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        await userEvent.type(screen.getByLabelText("Type the word"), "猫");
+        await userEvent.click(screen.getByRole("button", { name: "Check" }));
+        expect(api.updateScoreById).toHaveBeenCalledWith("voc_1", expect.objectContaining({ similarity: 0.75, hintUsed: true, side: "back", skill: "recall", evidence: "typed" }));
+    });
+
+    it("flip instead falls back to the normal card", async () => {
+        render(<ReviewFlashCard cards={[voc("back")]} />);
+        await userEvent.click(screen.getByRole("button", { name: "Flip instead" }));
+        expect(screen.getByText("Click to reveal")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Type the word")).toBeNull();
+    });
+
+    it("only the back side of a maintaining card is typed", () => {
+        const a = render(<ReviewFlashCard cards={[voc("front")]} />);
+        expect(screen.queryByLabelText("Type the word")).toBeNull();
+        a.unmount();
+        render(<ReviewFlashCard cards={[voc("back", 70)]} />);
+        expect(screen.queryByLabelText("Type the word")).toBeNull();
+    });
+
+    it("a maintaining calligraphy card opens the drawing canvas by itself", () => {
+        const a = render(<ReviewFlashCard cards={[call(90)]} />);
+        expect(screen.getByTestId("canvas")).toBeInTheDocument();
+        a.unmount();
+        render(<ReviewFlashCard cards={[call(70)]} />);
+        expect(screen.queryByTestId("canvas")).toBeNull();
+    });
+});

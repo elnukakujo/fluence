@@ -3,12 +3,15 @@ import { useTranslations } from "next-intl";
 import type Word from "@/interface/components/Word";
 import type Character from "@/interface/components/Character";
 import type Passage from "@/interface/components/Passage";
+import EmptyState from "@/components/ui/emptyState";
 
 type RelatedCardProps = {
   languageId: string;
   words?: Partial<Word>[];
   characters?: Partial<Character>[];
   passages?: Partial<Passage>[];
+  /** the key radicals of the characters shown here: a character that other characters are built on (DM-48) */
+  radicals?: Partial<Character>[];
 };
 
 function getHref(languageId: string, item: Partial<Word> | Partial<Character> | Partial<Passage>, kind: "word" | "character" | "passage") {
@@ -16,7 +19,7 @@ function getHref(languageId: string, item: Partial<Word> | Partial<Character> | 
   return `/languages/${itemLanguageId}/${kind}/${item.id}`;
 }
 
-export default function RelatedCard({ languageId, words = [], characters = [], passages = [] }: RelatedCardProps) {
+export default function RelatedCard({ languageId, words = [], characters = [], passages = [], radicals = [] }: RelatedCardProps) {
   const t = useTranslations("elements");
   const groups = [
     {
@@ -29,6 +32,12 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
       title: t("relatedCharacters"),
       kind: "character" as const,
       items: characters,
+      label: (item: Partial<Character>) => item.character ?? "",
+    },
+    {
+      title: t("relatedRadicals"),
+      kind: "character" as const,       // a radical is a character: it opens its own sheet
+      items: radicals,
       label: (item: Partial<Character>) => item.character ?? "",
     },
     {
@@ -61,7 +70,7 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
                     <Link
                       key={`${group.kind}-${item.id}-${index}`}
                       href={href}
-                      className="chip"
+                      className={`chip ${group.kind === "character" ? "font-serif text-lg" : ""}`}
                     >
                       {label}
                     </Link>
@@ -72,7 +81,7 @@ export default function RelatedCard({ languageId, words = [], characters = [], p
           ))}
         </div>
       ) : (
-        <p className="index-divider pt-3 text-sm text-muted">{t("noRelatedComponents")}</p>
+        <EmptyState className="index-divider pt-3 text-sm">{t("noRelatedComponents")}</EmptyState>
       )}
     </section>
   );

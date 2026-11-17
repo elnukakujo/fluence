@@ -5,6 +5,7 @@ import LabelList from "@/components/labels/labelList";
 import NavButton from "@/components/layout/navButton";
 import { getCurrentUserId } from "@/utils/user_cookie";
 import { getTranslations } from "next-intl/server";
+import EmptyState from "@/components/ui/emptyState";
 
 export default async function TagsPage() {
     const userId: string | null = await getCurrentUserId();
@@ -19,7 +20,7 @@ export default async function TagsPage() {
                 <NavButton path="/tags/new">{t("newTag")}</NavButton>
             </div>
 
-            <LabelList kind="tag" empty={<p className="text-muted">{t("noTagsYet")}</p>}
+            <LabelList kind="tag" empty={<EmptyState>{t("noTagsYet")}</EmptyState>}
                 items={tags.map((x) => ({ id: x.id, label: x.name, color: x.color, description: x.description }))} />
         </div>
     );

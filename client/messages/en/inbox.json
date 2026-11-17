@@ -1,0 +1,12 @@
+{
+  "title": "Inbox",
+  "intro": "AI-made exercises wait here. They only enter your study once you accept them.",
+  "empty": "Nothing to review.",
+  "acceptAll": "Accept all",
+  "rejectAll": "Reject all",
+  "accept": "Accept",
+  "reject": "Reject",
+  "machineMade": "Machine-made",
+  "loadFailed": "Could not load the inbox",
+  "actionFailed": "That did not work, try again"
+}

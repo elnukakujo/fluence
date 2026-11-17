@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type Exercise from "@/interface/features/Exercise";
 import fixtures from "@/test/exerciseContent.json";
 
-vi.mock("@/api/process", () => ({ updateScoreById: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
+vi.mock("@/api/process", () => ({ scoreExercise: vi.fn().mockResolvedValue({}), evaluateText: vi.fn() }));
 vi.mock("@/api/exercise", () => ({ generateLineAudio: vi.fn() }));
 
 import ExerciseRunner from "./exerciseRunner";

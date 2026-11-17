@@ -9,8 +9,14 @@ from ...models.containers import Lesson
 from ...models.features import Vocabulary, Grammar, Calligraphy
 from ...models.system_data import StudyGoal, StudyGoalItem, Score
 from ...utils import review_priority
+from ...utils.learner_clock import learner_today
+from ..system_data.prefs_view import prefs_for
 from ...models.system_data import UserPreferences
-from .study_constants import GOAL_MASTERED_SCORE, DEFAULT_GOAL_PERIOD, default_goal_quantities
+from ...utils.scoring import KNOWN_FROM
+from ..system_data import ScoreService
+from .lesson_gate import GateService
+from ..system_data.settings import resolve
+from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
 # goal type -> (element model, "new" quantity column, "review" quantity column)
@@ -35,9 +41,16 @@ def _type_of(element_id: str) -> Optional[str]:
 
 
 class StudyGoalService:
+    @staticmethod
+    def _today(user_id: str, session) -> date:
+        """The learner's own calendar day (their stored time zone), never the server's."""
+        return learner_today(prefs_for(user_id, None, session).timezone)
+
     @transactional
     def get(self, user_id: str, language_id: str, session: Optional[Session] = None) -> Optional[dict]:
         goal = self._goal(user_id, language_id, session)
+        if goal is not None:
+            self._hide_unstudied(goal, user_id, session)
         return None if goal is None else self._dict(goal)
 
     @transactional
@@ -47,10 +60,10 @@ class StudyGoalService:
                session: Optional[Session] = None) -> dict:
         """Save the goal. The quantities and the period are what the NEXT period will use: the running
         period's menu stays locked (see `ensure_cycle`). `active` takes effect at once. With `auto` the
-        quantities are the suggested ones for the user's daily minutes (and keep following them); a save
+        quantities are the suggested ones for the user's new per week and reviews per day (and keep following them); a save
         with `auto` False makes the numbers the user's own."""
         if auto:
-            wanted = default_goal_quantities(self._daily_minutes(user_id, session))
+            wanted = self._suggested(user_id, period, session, language_id)
             n_vocabulary, n_grammar, n_calligraphy = (wanted["n"][k] for k in TYPES)
             r_vocabulary, r_grammar, r_calligraphy = (wanted["r"][k] for k in TYPES)
         if period not in PERIOD_DAYS:
@@ -61,14 +74,14 @@ class StudyGoalService:
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             goal = StudyGoal(id=db_manager.generate_new_id(StudyGoal, session=session), user_id=user_id,
-                             language_id=language_id, start_date=today or date.today(), period=period)
+                             language_id=language_id, start_date=today or self._today(user_id, session), period=period)
             session.add(goal)
         was_suggested = goal.auto and not auto and goal.locked is not None
         goal.period, goal.active, goal.auto = period, bool(active), bool(auto)
-        goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy = counts
+        (goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy) = counts
         if was_suggested:            # first time the user sets their own numbers: replace the suggested menu at once
-            self._reset(goal, today or date.today(), session)
-        session.flush()
+            self._reset(goal, today or self._today(user_id, session), session)
+        self._hide_unstudied(goal, user_id, session)
         return self._dict(goal)
 
     @transactional
@@ -80,7 +93,7 @@ class StudyGoalService:
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             return None
-        today = today or date.today()
+        today = today or self._today(user_id, session)
         if keep_mastered and goal.active and goal.locked:
             lock = self._lock(goal, today, session)
             items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
@@ -104,26 +117,46 @@ class StudyGoalService:
 
     @transactional
     def ensure_default(self, user_id: str, language_id: str, session: Optional[Session] = None) -> Optional[dict]:
-        """The goal of a language; a user who has none gets the suggested one for their daily minutes
-        (a weekly goal that follows those minutes), so the app works without opening Settings."""
+        """The goal of a language; a user who has none gets the suggested one for their new per week and
+        reviews per day (a weekly goal that follows them), so the app works without opening Settings."""
         if self._goal(user_id, language_id, session) is None and self._preferences(user_id, session) is not None:
             return self.upsert(user_id, language_id, DEFAULT_GOAL_PERIOD, 0, 0, 0, True, auto=True, session=session)
         return self.get(user_id, language_id, session=session)
 
     @transactional
-    def suggested(self, user_id: str, session: Optional[Session] = None) -> dict:
-        """The suggested quantities for the user's daily minutes: {"n": {type: n}, "r": {type: r}}."""
-        return default_goal_quantities(self._daily_minutes(user_id, session))
+    def kinds(self, user_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:
+        """The goal types the course studies (its Element types setting): the card and the menu show only these."""
+        wanted = resolve(user_id, language_id, "element_types", session=session)
+        return [k for k in TYPES if k in wanted]
+
+    def _hide_unstudied(self, goal: StudyGoal, user_id: str, session) -> None:
+        """A type the course does not study has no quantity and no menu: its slots and picks go (also from the running menu)."""
+        shown = self.kinds(user_id, goal.language_id, session=session)
+        for kind, (_m, n_col, r_col) in TYPES.items():
+            if kind in shown:
+                continue
+            setattr(goal, n_col, 0)
+            setattr(goal, r_col, 0)
+            if goal.locked:
+                goal.locked = {**goal.locked, "n": {**goal.locked["n"], kind: 0}, "r": {**goal.locked["r"], kind: 0}}
+            for item in session.query(StudyGoalItem).filter_by(goal_id=goal.id).all():
+                if _type_of(item.element_id) == kind:
+                    session.delete(item)
+        session.flush()
 
     @transactional
-    def refresh_auto_goals(self, user_id: str, session: Optional[Session] = None) -> None:
-        """The daily minutes changed: goals still on the suggested quantities follow them (from the next period)."""
-        wanted = default_goal_quantities(self._daily_minutes(user_id, session))
-        for goal in session.query(StudyGoal).filter_by(user_id=user_id, auto=True).all():
-            for kind, (_m, n_col, r_col) in TYPES.items():
-                setattr(goal, n_col, wanted["n"][kind])
-                setattr(goal, r_col, wanted["r"][kind])
-        session.flush()
+    def targets(self, user_id: str, session: Optional[Session] = None) -> dict:
+        """What a goal's quantities must add up to, per period: {period: {"n": total new, "r": total review}} from the pace numbers."""
+        prefs = self._preferences(user_id, session)
+        new, rev = (prefs.new_per_week, prefs.reviews_per_day) if prefs else (15, 40)
+        return {k: {"n": round(new * d / 7), "r": round(rev * d / 7)} for k, d in PERIOD_DAYS.items()}
+
+    @transactional
+    def suggested(self, user_id: str, period: str = DEFAULT_GOAL_PERIOD, language_id: Optional[str] = None,
+                  session: Optional[Session] = None) -> dict:
+        """The suggested quantities for the user's new per week and reviews per day, split over the types the course studies:
+        {"n": {type: n}, "r": {type: r}}."""
+        return self._suggested(user_id, period, session, language_id)
 
     @transactional
     def ensure_cycle(self, user_id: str, language_id: str, today: Optional[date] = None,
@@ -137,8 +170,10 @@ class StudyGoalService:
 
         Open = a new element not yet mastered or a review element not yet reviewed since its period began;
         unfinished ones of earlier periods carry over."""
-        today = today or date.today()
+        today = today or self._today(user_id, session)
         goal = self._goal(user_id, language_id, session)
+        if goal is not None:
+            self._hide_unstudied(goal, user_id, session)
         if goal is None or not goal.active:
             return []
         self._drop_gone(goal, language_id, session)
@@ -149,14 +184,18 @@ class StudyGoalService:
         this_period = {i.element_id for i in items if i.cycle_start == start}
         done = self._done(items, user_id, session)
         carried_open = {i.element_id for i in items if i.cycle_start != start and i.id not in done}   # still on the list
+        gated = GateService().gate_lesson(user_id, language_id, [m for m, _n, _r in TYPES.values()], session=session)   # soft gate (SG-6)
         for kind, (model, _n, _r) in TYPES.items():
+            n_quota, r_quota = lock["n"][kind], lock["r"][kind]
             mine = [i for i in items if i.cycle_start == start and _type_of(i.element_id) == kind]
-            for role, quota, pick in (("new", lock["n"][kind], self._new_elements), ("review", lock["r"][kind], self._review_elements)):
+            for role, quota, pick in (("new", n_quota, self._new_elements), ("review", r_quota, self._review_elements)):
                 missing = quota - sum(1 for i in mine if i.kind == role)
                 if missing <= 0:
                     continue
                 # new elements never repeat an earlier pick; a review element only has to be off this period's menu
-                for element_id in pick(model, language_id, user_id, everything if role == "new" else this_period | carried_open, missing, session):
+                found = pick(model, language_id, user_id, everything if role == "new" else this_period | carried_open, missing, session,
+                             only_lesson=gated if role == "new" else None)
+                for element_id in found:
                     session.add(StudyGoalItem(id=db_manager.generate_new_id(StudyGoalItem, session=session), goal_id=goal.id,
                                               element_id=element_id, cycle_start=start, kind=role))
                     everything.add(element_id)
@@ -173,13 +212,13 @@ class StudyGoalService:
         goal = self._goal(user_id, language_id, session)
         if goal is None or not goal.active:
             return set()
-        lock = self._lock(goal, today or date.today(), session)
+        lock = self._lock(goal, today or self._today(user_id, session), session)
         return {k for k in TYPES if lock["n"][k] + lock["r"][k] > 0}
 
     @transactional
     def progress(self, user_id: str, language_id: str, today: Optional[date] = None,
                  session: Optional[Session] = None) -> Optional[dict]:
-        today = today or date.today()
+        today = today or self._today(user_id, session)
         goal = self._goal(user_id, language_id, session)
         if goal is None:
             return None
@@ -217,6 +256,20 @@ class StudyGoalService:
                 "next": {"start": end.isoformat(), "period": goal.period, "pending": pending,
                          "n": {k: getattr(goal, TYPES[k][1]) for k in TYPES}, "r": {k: getattr(goal, TYPES[k][2]) for k in TYPES}}}
 
+    @transactional
+    def mark_succeeded(self, user_id: str, element_id: str, now: Optional[datetime] = None, session: Optional[Session] = None) -> bool:
+        """Called after an answer: if the element's effective score is now known, stamp its open goal items (once, never cleared)."""
+        base = element_id.split("#")[0]
+        open_items = (session.query(StudyGoalItem).join(StudyGoal, StudyGoal.id == StudyGoalItem.goal_id)
+                      .filter(StudyGoal.user_id == user_id, StudyGoalItem.element_id == base, StudyGoalItem.kind == "new",
+                              StudyGoalItem.succeeded_at.is_(None)).all())
+        if not open_items or self._scores(user_id, [base], session).get(base, 0.0) < KNOWN_FROM:
+            return False
+        for i in open_items:
+            i.succeeded_at = now or datetime.now()
+        session.flush()
+        return True
+
     # -- lock ----------------------------------------------------------------------------------
     @staticmethod
     def _parsed(locked: Optional[dict]) -> Optional[dict]:
@@ -244,9 +297,11 @@ class StudyGoalService:
     def _preferences(user_id, session) -> Optional[UserPreferences]:
         return session.query(UserPreferences).filter_by(user_id=user_id).first()
 
-    def _daily_minutes(self, user_id, session) -> int:
+    def _suggested(self, user_id, period, session, language_id: Optional[str] = None) -> dict:
         prefs = self._preferences(user_id, session)
-        return (prefs.daily_goal_minutes if prefs and prefs.daily_goal_minutes else 20)
+        shown = self.kinds(user_id, language_id, session=session) if language_id else list(TYPES)
+        return default_goal_quantities(prefs.new_per_week if prefs else 15, prefs.reviews_per_day if prefs else 40,
+                                       PERIOD_DAYS.get(period, 7), shown)
 
     @staticmethod
     def _goal(user_id, language_id, session) -> Optional[StudyGoal]:
@@ -279,20 +334,28 @@ class StudyGoalService:
     def _scores(user_id, element_ids, session) -> dict[str, float]:
         if not element_ids:
             return {}
-        rows = session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(element_ids)).all()
-        return {r.element_id: r.score for r in rows}
+        # effective scores; a vocabulary is computed from its sides (no stored parent row)
+        return {eid: r.score for eid, r in ScoreService().get_many(user_id, list(element_ids), session=session).items()}
 
     def _done(self, items, user_id, session) -> set[str]:
-        """Ids of the finished items: a new one once mastered, a review one once reviewed since its own period
-        began (both sides for vocabulary)."""
-        new_ids = [i.element_id for i in items if i.kind == "new"]
-        scores = self._scores(user_id, new_ids, session)
-        finished = {i.id for i in items if i.kind == "new" and scores.get(i.element_id, 0.0) >= GOAL_MASTERED_SCORE}
+        """Ids of the finished items: a new one once it reached known at any moment (`succeeded_at`, permanent: decay never
+        undoes it, DM-53), a review one once reviewed since its own period began (both sides for vocabulary)."""
+        news = [i for i in items if i.kind == "new" and i.succeeded_at is None]
+        if news:                                             # catch up scores that reached known outside `ScoreService.record`
+            scores = self._scores(user_id, [i.element_id for i in news], session)
+            for i in news:
+                if scores.get(i.element_id, 0.0) >= KNOWN_FROM:
+                    i.succeeded_at = datetime.now()
+            session.flush()
+        finished = {i.id for i in items if i.kind == "new" and i.succeeded_at is not None}
         reviews = [i for i in items if i.kind == "review"]
         sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
         rows = session.query(Score.element_id, Score.last_seen_at).filter(
             Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
-        seen = {element_id: last for element_id, last in rows}
+        seen: dict = {}
+        for element_id, last in rows:       # a side has one row per skill: its latest answer counts
+            if last and (seen.get(element_id) is None or last > seen[element_id]):
+                seen[element_id] = last
         for i in reviews:
             since = datetime.combine(i.cycle_start, time.min)
             if all((seen.get(x) or datetime.min) >= since for x in sides[i.id]):
@@ -311,25 +374,27 @@ class StudyGoalService:
         session.flush()
 
     @staticmethod
-    def _language_elements(model, language_id, session) -> list[str]:
-        rows = (session.query(model.id).join(Lesson, Lesson.id == model.lesson_id)
-                .filter(Lesson.language_id == language_id)
-                .order_by(Lesson.position, Lesson.created_at, model.created_at, model.id).all())
-        return [r[0] for r in rows]
+    def _language_elements(model, language_id, session, only_lesson: Optional[str] = None) -> list[str]:
+        q = session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)
+        if only_lesson:
+            q = q.filter(model.lesson_id == only_lesson)
+        return [r[0] for r in q.order_by(Lesson.position, Lesson.created_at, model.created_at, model.id).all()]
 
     @staticmethod
-    def _new_elements(model, language_id, user_id, taken, n, session) -> list[str]:
-        """Up to n unstarted element ids (no Score row, or score 0) in lesson order, then creation order."""
-        ids = [i for i in StudyGoalService._language_elements(model, language_id, session) if i not in taken]
+    def _new_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None) -> list[str]:
+        """Up to n unstarted element ids (no Score row, or score 0) in lesson order, then creation order.
+        `only_lesson`: the soft gate is closed, draw from that lesson only."""
+        ids = [i for i in StudyGoalService._language_elements(model, language_id, session, only_lesson) if i not in taken]
         scores = StudyGoalService._scores(user_id, ids, session)
         return [i for i in ids if scores.get(i, 0.0) == 0.0][:n]
 
     @staticmethod
-    def _review_elements(model, language_id, user_id, taken, n, session) -> list[str]:
+    def _review_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None) -> list[str]:
         """Up to n already-seen element ids (they have a Score row), the ones most due first (`review_priority`)."""
         ids = [i for i in StudyGoalService._language_elements(model, language_id, session) if i not in taken]
         if not ids:
             return []
-        rows = session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(ids)).all()
-        rows.sort(key=lambda r: review_priority(r.created_at, r.last_seen_at or r.created_at, r.difficulty or 0.0, r.score or 0), reverse=True)
-        return [r.element_id for r in rows][:n]
+        now = datetime.now()
+        seen = ScoreService().priority_inputs(user_id, ids, now, learner_today(None, now), session=session)   # ponytail: server zone until the learner's zone is passed in (Task 5)
+        ranked = sorted(seen, key=lambda i: review_priority(seen[i].score, seen[i].stability, seen[i].last_seen_at, seen[i].lapses, now), reverse=True)
+        return ranked[:n]

@@ -7,7 +7,7 @@ import { Languages } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Exercise from "@/interface/features/Exercise";
-import { updateScoreById } from "@/api/process";
+import { creditExercise } from "./creditExercise";
 import { useLineAudio } from "./lineAudio";
 import LineAudioButton, { ICON_BTN } from "./lineAudioButton";
 
@@ -31,7 +31,7 @@ export default function ReadingExercise({ exercise, onFinished }: Omit<ExerciseR
     // Reading has nothing to check: finishing it earns the point.
     const finish = () => {
         setDone(true);
-        updateScoreById(exercise.id!, 1, Math.round(performance.now() - startTimeRef.current), false, 1).catch(console.error);
+        creditExercise(exercise, 1, Math.round(performance.now() - startTimeRef.current), false, 1);
     };
 
     return (

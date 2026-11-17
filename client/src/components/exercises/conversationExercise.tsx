@@ -2,19 +2,18 @@
 
 import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
-import { Ring } from 'ldrs/react';
 import { useTranslations } from "next-intl";
-//@ts-ignore
-import 'ldrs/react/Ring.css';
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Image from 'next/image';
 import Exercise from "@/interface/features/Exercise";
-import { updateScoreById, evaluateSpeech } from "@/api/process";
+import { evaluateSpeech } from "@/api/process";
+import { creditExercise } from "./creditExercise";
 import { BASE_URL } from "@/api";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 
 import dynamic from 'next/dynamic';
+import Spinner from "@/components/ui/spinner";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -261,7 +260,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
  
         try {
             const result = await evaluateSpeech(String(exercise.id), state.audioUrl, conversation.lines[currentLineIndex].audioIndex!);
-            const level = getLevelForScore(result.score, "conversation");
+            const level = getExerciseLevel("conversation", result.score, t);
             const newAttempts = state.attempts + 1;
             const isLastUserLine = currentLineIndex === userLineIndices[userLineIndices.length - 1];
  
@@ -295,7 +294,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                     const averageScore = userLineIndices.reduce((acc, idx) => acc + (lineStates[idx]?.similarityScore ?? 0), 0) / userLineIndices.length;
                     const duration_ms = Math.round(performance.now() - startTimeRef.current);
                     const attemptNumber = userLineIndices.reduce((acc, idx) => acc + (lineStates[idx]?.attempts ?? 0), 0) + userLineIndices.length;
-                    updateScoreById(exercise.id!, averageScore, duration_ms, false, attemptNumber).catch(console.error);
+                    creditExercise(exercise, averageScore, duration_ms, false, attemptNumber);
                     setIsFinished(true);
                 } else {
                     const nextUserLine = userLineIndices.find((i) => i > currentLineIndex)!;
@@ -317,7 +316,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                     const previousAttempts = userLineIndices
                         .filter((idx) => idx < currentLineIndex)
                         .reduce((acc, idx) => acc + (lineStates[idx]?.attempts ?? 0) + 1, 0);
-                    updateScoreById(exercise.id!, 0, duration_ms, false, previousAttempts + newAttempts).catch(console.error);
+                    creditExercise(exercise, 0, duration_ms, false, previousAttempts + newAttempts);
                     setIsFinished(true);
                 }
             }
@@ -391,7 +390,7 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                                         onClick={() => handleEvaluation()}
                                         disabled={!lineStates[idx].audioUrl|| lineStates[idx].attempts >= 3}
                                     >
-                                        {isLoading ? <Ring size={20} color="#fff" /> : t("submit")}
+                                        {isLoading ? <Spinner size={20} /> : t("submit")}
                                     </button>
                                 </span>
                             )}

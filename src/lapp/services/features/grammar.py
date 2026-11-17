@@ -11,16 +11,16 @@ from ...models.features import Grammar
 from ...models.system_data import Tag, Source, Score
 from ..containers import LessonService, LanguageService
 from ..components import PassageService, WordService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from ...core.database import db_manager, transactional, resolve_related
-from ...utils import update_score, update_difficulty, status_for
+from ...utils.scoring import level_for
 
 lesson_service = LessonService()
 language_service = LanguageService()
 word_service = WordService()
 passage_service = PassageService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 class GrammarService:
@@ -230,6 +230,8 @@ class GrammarService:
         duration_ms: float,
         hint_used: bool = False,
         user_id: Optional[str] = None,
+        evidence_type: str = "self_grade",
+        skill: Optional[str] = None,       # None = the kind's default skill (internal cascades)
         session: Optional[Session] = None,
     ) -> Score | None:
         grammar = self.get_by_id(grammar_id, session=session)
@@ -238,17 +240,15 @@ class GrammarService:
             logger.warning(f"Grammar item not found: {grammar_id}")
             return None
 
-        previous = score_service.get(user_id, grammar_id, session=session)
+        previous = score_service.get(user_id, grammar_id, skill=skill or "recognition", session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, grammar_id, score, session=session)
+        updated = score_service.record(user_id, grammar_id, skill or "recognition", score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=grammar.lesson.language_id,
+        study_activity.record(
+            user_id, grammar.lesson.language_id, ProgressTrackingDict(
                 element_id=grammar_id,
                 element_type="grammar",
-                element_status=status_for(grammar_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,

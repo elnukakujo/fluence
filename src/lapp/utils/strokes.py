@@ -14,6 +14,16 @@ def _hanzi_decomposer():
     from hanzipy.decomposer import HanziDecomposer
     return HanziDecomposer()
 
+def list_radicals() -> list[dict]:
+    """The radicals a learner can pick from, in the dictionary's (Kangxi) order: [{"character", "meaning"}] (zh/ja only).
+    hanzipy ships 390 of them with an English meaning."""
+    try:
+        return [{"character": g, "meaning": m} for g, m in _hanzi_decomposer().radicals.items() if len(g) == 1 and "glyph" not in m.lower()]
+    except Exception as exc:
+        logger.error("list_radicals: %s", exc)
+        return []
+
+
 def get_cjk_character_info(character: str, iso1: str) -> dict:
     """
     Return radical and English meaning for a single CJK character.
@@ -26,6 +36,7 @@ def get_cjk_character_info(character: str, iso1: str) -> dict:
         {
           "radical": str, # e.g. "子" — Kangxi radical; "" if unknown
           "meaning": str, # English gloss (CEDICT first sense); "" if unknown
+          "components": list[str], # first-level parts (hanzipy decomposition, e.g. 河 -> ["氵", "可"]); [] if unknown
         }
     Examples:
         get_cjk_character_info("学", "zh")
@@ -35,13 +46,17 @@ def get_cjk_character_info(character: str, iso1: str) -> dict:
         get_cjk_character_info("A", "en")
         # → {"radical": "", "meaning": ""}
     """
-    empty: dict = {"radical": "", "meaning": ""}
+    empty: dict = {"radical": "", "meaning": "", "components": []}
     lang = iso1.split("-")[0].lower()
     if lang not in ("zh", "ja"):
         return empty
     try:
         # --- radical ---
-        radical = ""
+        radical, components = "", []
+        try:
+            components = [c for c in _hanzi_decomposer().decompose(character, 1).get("components", []) if "glyph" not in c.lower() and c != character]
+        except Exception:
+            pass
         try:
             decomposition = _hanzi_decomposer().decompose(character)
             radical_list = decomposition.get("radical", [])
@@ -61,7 +76,7 @@ def get_cjk_character_info(character: str, iso1: str) -> dict:
         except Exception:
             pass
 
-        return {"radical": radical, "meaning": meaning}
+        return {"radical": radical, "meaning": meaning, "components": components}
 
     except Exception as exc:
         logger.error("get_cjk_character_info(%r, %s): %s", character, iso1, exc)

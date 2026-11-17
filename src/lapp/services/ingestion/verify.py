@@ -102,6 +102,6 @@ def verify(item: RawItem, chunk: Chunk, iso1: str | None,
 
     return Candidate(
         id=uuid.uuid4().hex, word=item.word, translation=item.translation, phonetic=item.phonetic,
-        word_type=item.word_type, quote=item.quote, page=chunk.page, chunk_id=chunk.id,
+        word_type=item.word_type, word_gender=item.word_gender, quote=item.quote, page=chunk.page, chunk_id=chunk.id,
         status="flagged" if any(f.severity == "warning" for f in flags) else "verified", flags=flags, min_conf=min_conf,
     )

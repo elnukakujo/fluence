@@ -68,5 +68,16 @@
   "incomingSharedTitle": "{count} {count, plural, one {cours a} other {cours ont}} été partagés avec vous par d'autres",
   "sharedWithYou": "Partagé avec vous par son propriétaire",
   "noLessonsYet": "Cette langue n'a pas encore de leçons.",
-  "pickAtLeastOneEnable": "Choisissez au moins une leçon pour activer les invitations."
+  "pickAtLeastOneEnable": "Choisissez au moins une leçon pour activer les invitations.",
+  "conflictsTitle": "Éléments différents",
+  "conflictsIntro": "{count, plural, one {# élément existe des deux côtés avec un contenu différent.} other {# éléments existent des deux côtés avec un contenu différent.}} Choisissez quoi faire pour chacun.",
+  "conflictsConfirm": "Fusionner",
+  "conflictMine": "Le vôtre",
+  "conflictTheirs": "Le leur",
+  "conflictChoice": "Choisir",
+  "choice": {
+    "keep": "Garder le mien",
+    "overwrite": "Prendre le leur",
+    "merge": "Compléter les manques"
+  }
 }

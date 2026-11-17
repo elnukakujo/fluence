@@ -31,15 +31,15 @@ describe("study goals card", () => {
         expect(api.resetStudyGoal).not.toHaveBeenCalled();      // a first lock needs no rebuild: saving builds the menu
     });
 
-    it("shows a suggested goal as following the daily time; editing a number makes it the user's own, and 'use suggested' goes back", async () => {
+    it("shows a suggested goal as following the pace; editing a number makes it the user's own, and 'use suggested' goes back", async () => {
         const auto = { ...locked, goal: { ...locked.goal, auto: true }, suggested: { n: { vocabulary: 25, grammar: 6, calligraphy: 12 }, r: { vocabulary: 13, grammar: 3, calligraphy: 6 } } };
         api.getStudyGoal.mockResolvedValue(auto);
         render(<StudyGoalsCard userId="u" />);
-        expect(await screen.findByText("Suggested for your daily time")).toBeInTheDocument();
+        expect(await screen.findByText("Suggested for your pace")).toBeInTheDocument();
         await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[0]);
         expect(screen.getByText("Your own values")).toBeInTheDocument();
         await userEvent.click(screen.getByRole("button", { name: "Use suggested values" }));
-        expect(screen.getByText("Suggested for your daily time")).toBeInTheDocument();
+        expect(screen.getByText("Suggested for your pace")).toBeInTheDocument();
         fireEvent.submit(document.querySelector("form")!);
         await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ auto: false, n_vocabulary: 25, r_calligraphy: 6 })));   // locking makes the numbers the user's own
     });

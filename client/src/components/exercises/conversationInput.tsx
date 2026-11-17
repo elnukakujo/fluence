@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -178,33 +179,14 @@ export default function ConversationInput({
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-muted">#{idx + 1}</span>
 
-                            <select
-                                value={line.speakerId}
-                                onChange={(e) => updateLine(idx, { ...line, speakerId: e.target.value })}
-                                className="input w-fit text-sm"
-                            >
-                                {speakers.map((sp) => (
-                                    <option key={sp.id} value={sp.id}>
-                                        {sp.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <ClassicSelectMenu className="w-40" ariaLabel={t("speaker")} searchable={false} options={speakers.map((sp) => sp.id)}
+                                optionLabel={(id) => speakers.find((sp) => sp.id === id)?.name}
+                                selectedOption={line.speakerId} onChange={(v) => updateLine(idx, { ...line, speakerId: v as string })} />
 
-                            <select
-                                value={line.audioIndex ?? ""}
-                                onChange={(e) =>
-                                    updateLine(idx, {
-                                        ...line,
-                                        audioIndex: e.target.value === "" ? null : Number(e.target.value),
-                                    })
-                                }
-                                className="input w-fit text-sm"
-                            >
-                                <option value="">{t("noAudio")}</option>
-                                {Array.from({ length: totalAudioSlots }, (_, i) => (
-                                    <option key={i} value={i}>Audio #{i + 1}</option>
-                                ))}
-                            </select>
+                            <ClassicSelectMenu className="w-40" ariaLabel={t("audioSlot")} options={["", ...Array.from({ length: totalAudioSlots }, (_, i) => String(i))]}
+                                optionLabel={(v) => (v === "" ? t("noAudio") : `Audio #${Number(v) + 1}`)}
+                                selectedOption={line.audioIndex == null ? "" : String(line.audioIndex)}
+                                onChange={(v) => updateLine(idx, { ...line, audioIndex: v === "" ? null : Number(v) })} />
 
                             <button type="button" onClick={() => moveLine(idx, "up")} disabled={idx === 0} className="text-xs text-muted disabled:opacity-30">↑</button>
                             <button type="button" onClick={() => moveLine(idx, "down")} disabled={idx === lines.length - 1} className="text-xs text-muted disabled:opacity-30">↓</button>

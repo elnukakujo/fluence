@@ -50,5 +50,28 @@
   "updateCalligraphy": "Update Calligraphy",
   "calligraphyFlashcard": "Calligraphy Flashcard",
   "deleteCalligraphyButton": "Delete Calligraphy",
-  "updateInformations": "Update the informations"
+  "updateInformations": "Update the informations",
+  "reviewThis": "Review this",
+  "reviewIn": "Review in {name}",
+  "reviewByType": "Review by type",
+  "reviewByTypeHint": "Everything of one type, in natural order, no time limit.",
+  "queueTitle": {
+    "daily": "Daily Review",
+    "lesson": "Lesson review",
+    "tag": "Tag review",
+    "source": "Source review",
+    "type": "Review by type",
+    "free": "Free practice"
+  },
+  "typeLabel": {
+    "vocabulary": "Vocabulary",
+    "grammar": "Grammar",
+    "calligraphy": "Calligraphy",
+    "exercise": "Exercises"
+  },
+  "studyActions": "Study",
+  "lessonsTitle": "Lessons",
+  "manage": "Manage",
+  "reviewLesson": "Review this lesson",
+  "backToLanguage": "Back to Language"
 }

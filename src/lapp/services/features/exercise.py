@@ -8,14 +8,18 @@ from ...core.database import db_manager, transactional, resolve_related
 from ...models.features import Exercise
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
-from ...models.system_data import Tag, Source, Score
-from ...utils import update_score, update_difficulty, status_for
+from ...models.system_data import Tag, Source, Score, OverrideFlag
+from statistics import mean
+
+from ...utils.element_kinds import kind_of
+from ...utils.scoring import CORRECT_AT, level_for
 from ..containers import LessonService
-from ..data_collection import ProgressTrackingService
+from ..data_collection.study_activity import StudyActivity
 from ..system_data import ScoreService
 from .calligraphy import CalligraphyService
 from .grammar import GrammarService
 from .vocabulary import VocabularyService
+from ..exercises.credit import group_results
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,7 @@ lesson_service = LessonService()
 calligraphy_service = CalligraphyService()
 grammar_service = GrammarService()
 vocabulary_service = VocabularyService()
-progress_tracking_service = ProgressTrackingService()
+study_activity = StudyActivity()
 score_service = ScoreService()
 
 class ExerciseService:
@@ -168,10 +172,13 @@ class ExerciseService:
             question=exercise_data.get("question"),
             answer=exercise_data.get("answer") or "",
             text_support=exercise_data.get("text_support", ""),
+            accepted_answers=exercise_data.get("accepted_answers"),
             content=exercise_data.get("content"),
             category=exercise_data.get("category"),
             generation_batch_id=exercise_data.get("generation_batch_id"),
             review_reason=exercise_data.get("review_reason"),
+            machine_made=bool(exercise_data.get("machine_made")),
+            draft=bool(exercise_data.get("draft")),
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
             tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
@@ -279,23 +286,23 @@ class ExerciseService:
         hint_used: bool = False,
         attempt_number: Optional[int] = None,
         user_id: Optional[str] = None,
+        evidence_type: str = "typed",
+        skill: Optional[str] = None,
     ) -> Score | None:
         exercise = self.get_by_id(ex_id, session=session)
         if not exercise:
             logger.warning(f"Exercise not found: {ex_id}")
             return None
 
-        previous = score_service.get(user_id, ex_id, session=session)
+        previous = score_service.get(user_id, ex_id, skill=skill or "recall", session=session)
         previous_score = previous.score if previous else 0.0
-        updated = score_service.record(user_id, ex_id, score, session=session)
+        updated = score_service.record(user_id, ex_id, skill or "recall", score, evidence_type, session=session)
 
-        progress_tracking_service.create(
-            data=ProgressTrackingDict(
-                user_id=user_id,
-                language_id=exercise.lesson.language_id,
+        study_activity.record(
+            user_id, exercise.lesson.language_id, ProgressTrackingDict(
                 element_id=ex_id,
                 element_type="exercise",
-                element_status=status_for(ex_id, updated.score),
+                element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
                 result=updated.score >= previous_score,
@@ -306,25 +313,44 @@ class ExerciseService:
             session=session,
         )
 
-        for vocabulary in exercise.related_vocabulary:
-            vocabulary_service.update_score(
-                vocabulary.id, score=score, duration_ms=duration_ms,
-                hint_used=hint_used, user_id=user_id, session=session,
-            )
-            logger.info(f"Updated vocabulary {vocabulary.id} score due to exercise {ex_id}")
-
-        for grammar in exercise.related_grammar:
-            grammar_service.update_score(
-                grammar.id, score=score, duration_ms=duration_ms,
-                hint_used=hint_used, user_id=user_id, session=session,
-            )
-            logger.info(f"Updated grammar {grammar.id} score due to exercise {ex_id}")
-
-        for calligraphy in exercise.related_calligraphy:
-            calligraphy_service.update_score(
-                calligraphy.id, score=score, duration_ms=duration_ms,
-                hint_used=hint_used, user_id=user_id, session=session,
-            )
-            logger.info(f"Updated calligraphy {calligraphy.id} score due to exercise {ex_id}")
-
         return updated
+
+    @transactional
+    def credit(self, ex_id: str, results: list[dict], user_id: str, duration_ms: float, hint_used: bool = False,
+               attempt: int = 1, session: Optional[Session] = None) -> dict | None:
+        """Credit each linked element from its own blanks / pairs, once per (element, skill) at the average quality.
+        Only called for the final attempt. The exercise's own row gets the mean of every result.
+        Returns {correct, total} (one per result, never a score), None if the exercise is missing; ValueError for an element it is not linked to."""
+        exercise = self.get_by_id(ex_id, session=session)
+        if not exercise:
+            return None
+        linked = {e.id: svc for related, svc in ((exercise.related_vocabulary, vocabulary_service), (exercise.related_grammar, grammar_service),
+                                                 (exercise.related_calligraphy, calligraphy_service)) for e in related}
+        if not {r["element_id"] for r in results} <= {*linked, ex_id}:      # the exercise itself stands for "no linked element"
+            raise ValueError("a result names an element the exercise is not linked to")
+        for (element_id, skill), (quality, evidence) in group_results(results).items():
+            if element_id != ex_id:
+                # a vocabulary has no side here: each face trains its own skill (front recognition, back recall), as the cascade did
+                # TODO(owner): which skill does an exercise test on a vocabulary?
+                face_skill = None if kind_of(element_id).name == "vocabulary" else skill
+                linked[element_id].update_score(element_id, score=quality, duration_ms=duration_ms, hint_used=hint_used,
+                                                user_id=user_id, skill=face_skill, evidence_type=evidence, session=session)
+        self.update_score(ex_id, mean(r["quality"] for r in results), duration_ms, hint_used=hint_used, attempt_number=attempt,
+                          user_id=user_id, evidence_type=results[0]["evidence_type"], session=session)
+        return {"correct": sum(r["quality"] >= CORRECT_AT for r in results), "total": len(results)}
+
+    @transactional
+    def override(self, ex_id: str, user_id: str, attempt_id: str, results: list[dict], duration_ms: float,
+                 hint_used: bool = False, attempt: int = 1, session: Optional[Session] = None) -> dict | None:
+        """The learner says a wrong answer was right: credit the results that fell short at full quality, once per attempt.
+        Nothing is credited when every result was already right or the attempt was overridden before; a score never goes down."""
+        wrong = [{**r, "quality": 1.0} for r in results if r["quality"] < CORRECT_AT]
+        seen = session.query(OverrideFlag).filter_by(user_id=user_id, exercise_id=ex_id, attempt_id=attempt_id).first()
+        if not wrong or seen:
+            return {"credited": False}
+        counts = self.credit(ex_id, wrong, user_id, duration_ms, hint_used, attempt, session=session)
+        if counts is None:
+            return None
+        session.add(OverrideFlag(id=db_manager.generate_new_id(OverrideFlag, session=session),
+                                 user_id=user_id, exercise_id=ex_id, attempt_id=attempt_id))
+        return {"credited": True, **counts}

@@ -11,18 +11,12 @@ export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean
 
   const COMMON_SECTIONS = [
     { id: "profile", label: t("sidebar.profile") },
-    { id: "security", label: t("sidebar.security") },
-    { id: "preferences", label: t("sidebar.learning") },
-    { id: "goals", label: t("sidebar.goals") },
-    { id: "ai-features", label: t("sidebar.aiFeatures") },
-    { id: "api-endpoints", label: t("sidebar.endpoints") },
+    { id: "learning", label: t("sidebar.learning") },
+    { id: "ai", label: t("sidebar.ai") },
+    { id: "study", label: t("sidebar.study") },
   ];
 
-  const ADMIN_SECTIONS = [
-    { id: "users", label: tAdmin("sidebar.users") },
-    { id: "backups", label: tAdmin("sidebar.backups") },
-    { id: "logs", label: tAdmin("sidebar.logs") },
-  ];
+  const ADMIN_SECTIONS = [{ id: "admin", label: tAdmin("sidebar.admin") }];
 
   const sections = isAdmin ? [...COMMON_SECTIONS, ...ADMIN_SECTIONS] : COMMON_SECTIONS;
 

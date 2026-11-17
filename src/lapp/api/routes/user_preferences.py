@@ -5,8 +5,8 @@ logger = logging.getLogger(__name__)
 
 from ...schemas.system_data import UserPreferencesDict
 from ...services.system_data import UserPreferencesService
-from ...services.features import StudyGoalService
 from ...core.auth import login_required, require_owns, current_user_id
+from ...utils.request import parse_json
 user_preferences_service = UserPreferencesService()
 
 bp = Blueprint('user_preferences', __name__, url_prefix='/api/pref')
@@ -78,7 +78,7 @@ def create_user_preferences():
     """
     try:
         # Validate request data
-        data = UserPreferencesDict(**request.json)
+        data = parse_json(UserPreferencesDict)
         data.user_id = current_user_id()
 
         # Create user
@@ -148,12 +148,9 @@ def update_user_preferences(pref_id: str):
     """
     try:
         require_owns(pref_id)
-        data = UserPreferencesDict(**request.json)
+        data = parse_json(UserPreferencesDict)
 
         pref = user_preferences_service.update(pref_id, data, as_dict=True)
-
-        if pref and data.daily_goal_minutes is not None:
-            StudyGoalService().refresh_auto_goals(pref['user_id'])      # suggested goals follow the daily minutes
 
         if pref:
             return jsonify({
@@ -202,9 +199,93 @@ def list_providers():
     return jsonify(PROVIDER_LIST)
 
 
+@bp.route('/settings/<group>', methods=['GET'])
+@login_required
+def get_settings_group(group: str):
+    """One settings group (pace|review|answer|see|skills), resolved for `?language_id=` (course values override the account's).
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: "{values, scopes, overridden}"}
+      400: {description: Unknown group}
+    """
+    from ...services.system_data import settings as settings_service
+    if group not in settings_service.GROUPS:
+        return jsonify({'error': f'unknown group: {group}'}), 400
+    language_id = request.args.get('language_id')
+    if language_id:
+        require_owns(language_id)
+    return jsonify(settings_service.read_group(current_user_id(), group, language_id))
+
+
+@bp.route('/settings/<group>', methods=['PUT'])
+@login_required
+def put_settings_group(group: str):
+    """Update only the given keys of one group. Body: `{"values": {...}, "language_id": "..."}`; course keys need the
+    language, and `null` on a course key removes its override.
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: "The group after the update"}
+      400: {description: Unknown group, key or value}
+    """
+    from ...services.system_data import settings as settings_service
+    body = request.get_json(silent=True) or {}
+    values = body.get('values')
+    if not isinstance(values, dict):
+        return jsonify({'error': 'values must be an object'}), 400
+    language_id = body.get('language_id')
+    if language_id:
+        require_owns(language_id)
+    try:
+        result = settings_service.update_group(current_user_id(), group, values, language_id)
+    except settings_service.SettingsError as e:
+        return jsonify({'error': str(e)}), 400
+    return jsonify(result)
+
+
+@bp.route('/notice', methods=['POST'])
+@login_required
+def acknowledge_provider_notice():
+    """Record that the user has read the one-time disclosure for an endpoint (keyed by its base URL).
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: Acknowledged}
+      400: {description: base_url missing}
+    """
+    base_url = ((request.get_json(silent=True) or {}).get("base_url") or "").strip().rstrip("/")
+    if not base_url:
+        return jsonify({'error': 'base_url is required'}), 400
+    seen = user_preferences_service.acknowledge_notice(current_user_id(), base_url)
+    return jsonify({'provider_notices_seen': seen})
+
+
 @bp.route('/test-endpoint', methods=['POST'])
 @login_required
 def test_endpoint():
+    """Test an endpoint; for a saved one (`endpoint_index`) the outcome is stored with the config it was run against,
+    so capabilities are enabled only while the endpoint is unchanged since a passed test (DM-44).
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: "{ok, ms, error?, ...}"}
+    """
+    response = _run_endpoint_test()
+    index = (request.get_json(silent=True) or {}).get("endpoint_index")
+    if isinstance(index, int):
+        body, _status = (response if isinstance(response, tuple) else (response, 200))
+        data = body.get_json(silent=True) or {}
+        if "ok" in data:
+            user_preferences_service.record_test(current_user_id(), index, bool(data["ok"]))
+    return response
+
+
+def _run_endpoint_test():
     """Test connectivity to an API endpoint (server-side, no CORS).
 
     Branches on api_type:
@@ -231,7 +312,7 @@ def test_endpoint():
         """POST /audio/speech — any HTTP response means reachable."""
         try:
             with httpx.Client(trust_env=False, timeout=8) as client:
-                resp = client.post(url, json={"input": "test", "voice": "en_f"})
+                resp = client.post(url, json={"input": "test", "voice": body.get("voice") or "default"})
                 return True, None
         except httpx.HTTPStatusError:
             return True, None  # 4xx/5xx still means server is reachable
@@ -273,8 +354,21 @@ def test_endpoint():
     if not base_url:
         return jsonify({"ok": False, "error": "No base URL provided"}), 400
 
+    try:
+        from ...utils.url_guard import check_endpoint_url
+        check_endpoint_url(base_url)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
     model = (body.get("model") or "").strip()
     api_key = body.get("api_key") or ""
+    if not api_key and isinstance(body.get("endpoint_index"), int):
+        # Keys are write-only: a saved endpoint is tested with the key stored for it.
+        from ...services.system_data import UserPreferencesService
+        stored = (UserPreferencesService().get_by_user_id(current_user_id()) or None)
+        eps = (stored.ai_endpoints or []) if stored else []
+        if 0 <= body["endpoint_index"] < len(eps):
+            api_key = eps[body["endpoint_index"]].get("api_key") or ""
     api_format = body.get("api_format") or "openai"
     auth_type = body.get("auth_type") or "bearer"
     api_type = body.get("api_type") or "text_gen"

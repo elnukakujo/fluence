@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { pick, optionTexts } from "@/test/selectMenu";
 import { describe, expect, it, vi } from "vitest";
 import ReviewPanel from "./reviewPanel";
 import type { Candidate } from "@/lib/ingestion/review";
@@ -178,9 +179,10 @@ describe("ReviewPanel", () => {
     expect(screen.getByText("liquid")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     const type = screen.getByRole("combobox", { name: /type/i });
-    expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("classifier");
-    expect(Array.from((type as HTMLSelectElement).options).map((o) => o.value)).toContain("sentence");
-    await userEvent.selectOptions(type, "verb");
+    const offered = await optionTexts(type);
+    expect(offered).toContain("Classifier");
+    expect(offered).toContain("Sentence");
+    await pick(type, "Verb");
     await userEvent.click(screen.getByRole("button", { name: "Overwrite" }));
     await userEvent.click(screen.getByRole("button", { name: "Add 1" }));
     expect(onAdd).toHaveBeenCalledWith({ items: [{ word: "水", translation: "water", phonetic: "shuǐ", word_type: "verb", on_conflict: "overwrite" }] });
@@ -390,7 +392,7 @@ describe("exercise cards", () => {
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[{ ...blank, status: "verified" }]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Undo confirm" })).toBeInTheDocument();   // verified = confirmed to start with
     await userEvent.click(screen.getByRole("button", { name: "Redo" }));
-    await userEvent.selectOptions(screen.getByLabelText("Exercise type"), "type_in_the_blank");
+    await pick(screen.getByRole("combobox", { name: "Exercise type" }), /type in the blank/i);
     await userEvent.type(screen.getByLabelText("Request (optional)"), "no choices");
     await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
     expect(regenerateExercise).toHaveBeenCalledWith("j", expect.objectContaining({ question: blank.question, chunk_id: "c" }), { exercise_type: "type_in_the_blank", request: "no choices" });
@@ -462,18 +464,18 @@ describe("enhance and change type", () => {
   it("changing the type rebuilds the exercise as that type and puts the card back to pending", async () => {
     regenerateExercise.mockResolvedValue({ exercise_type: "type_in_the_blank", question: "Q", answer: "a", text_support: null, content: { segments: ["a", "b"], blanks: [{ answer: "x" }] }, status: "flagged", quote: "Q", min_conf: null, flags: [] });
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[free]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
-    await userEvent.selectOptions(screen.getByLabelText("Change type"), "type_in_the_blank");
+    await pick(screen.getByRole("combobox", { name: "Change type" }), /type in the blank/i);
     expect(regenerateExercise).toHaveBeenCalledWith("j", expect.objectContaining({ question: "Who sat?" }), { exercise_type: "type_in_the_blank" });
-    expect(await screen.findByDisplayValue("Type in the Blank")).toBeInTheDocument();
+    expect(await screen.findByRole("combobox", { name: "Change type" }).then((b) => b.parentElement)).toHaveTextContent(/type in the blank/i);
     expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
   });
 
   it("switching between free-text types needs no model call", async () => {
     regenerateExercise.mockClear();
     render(<ReviewPanel jobId="j" filename="b.pdf" candidates={[free]} addLabel={(n) => `Add ${n}`} onAdd={vi.fn()} />);
-    await userEvent.selectOptions(screen.getByLabelText("Change type"), "essay");
+    await pick(screen.getByRole("combobox", { name: "Change type" }), /essay/i);
     expect(regenerateExercise).not.toHaveBeenCalled();
-    expect(screen.getByDisplayValue("Essay")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Change type" }).parentElement).toHaveTextContent(/essay/i);
     expect(screen.getByText("the cat")).toBeInTheDocument();   // question and answer kept
   });
 });

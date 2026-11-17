@@ -2,17 +2,17 @@
 
 import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
-import { Ring } from "ldrs/react";
 import { useTranslations } from "next-intl";
-import "ldrs/react/Ring.css";
 import Exercise from "@/interface/features/Exercise";
-import { evaluateText, updateScoreById } from "@/api/process";
+import { evaluateText } from "@/api/process";
+import { creditExercise } from "./creditExercise";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import { getLevelForScore } from "@/utils/speech_levels";
+import { getExerciseLevel } from "@/utils/speech_levels";
 import { useLineAudio } from "./lineAudio";
 import LineAudioButton from "./lineAudioButton";
 import GenerateAudioButton from "./generateAudioButton";
+import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
 
 type DictationContent = { lines: { text: string; audioIndex: number | null }[] };
 
@@ -44,9 +44,9 @@ export default function DictationExercise({ exercise, onFinished }: Omit<Exercis
                 const result = await evaluateText(exercise.id!, text);
                 score = result.score; message = result.feedback; correct = result.correct === true;
             }
-            setFeedback({ message, correct, level: getLevelForScore(score, "translate").label });
+            setFeedback({ message, correct, level: getExerciseLevel("translate", score, t).label });
             setDone(true);
-            updateScoreById(exercise.id!, score, Math.round(performance.now() - startTimeRef.current), false, 1).catch(console.error);
+            creditExercise(exercise, score, Math.round(performance.now() - startTimeRef.current), false, 1);
         } catch (e) {
             console.error("Error evaluating dictation:", e);
         } finally {
@@ -64,19 +64,17 @@ export default function DictationExercise({ exercise, onFinished }: Omit<Exercis
                     <LineAudioButton audio={audio} line={lines[index]} label={t("readingLinePlay", { n: index + 1 })} />
                     <AutoSizeTextArea value={typed[index] ?? ""} onChange={(e) => set(e.target.value)} placeholder={t("dictationPlaceholder")} />
                     {last ? (
-                        <button type="button" className="btn btn-primary" disabled={loading} onClick={submit}>
-                            {loading ? <Ring size="24" stroke="2" bgOpacity="0" speed="3" color="white" /> : <p>{t("checkAnswer")}</p>}
-                        </button>
+                        <CheckButton label={t("checkAnswer")} loading={loading} type="button" onClick={submit} />
                     ) : (
                         <button type="button" className="btn btn-primary" onClick={() => setIndex(index + 1)}>{t("nextLine")}</button>
                     )}
                 </section>
             ) : feedback && (
-                <div className={`card ${feedback.correct ? "border-success/30 bg-success/10 text-success" : "border-danger/30 bg-danger/10 text-danger"}`}>
+                <FeedbackPanel correct={feedback.correct}>
                     <h3>{feedback.level}</h3>
                     {feedback.message && <p>{feedback.message}</p>}
                     <p>{t("correctAnswer")} {exercise.answer}</p>
-                </div>
+                </FeedbackPanel>
             )}
             {audio.toast}
         </div>

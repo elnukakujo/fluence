@@ -12,6 +12,7 @@ import { bulkDeleteElements, bulkEditSources, bulkEditTags, bulkMoveElements } f
 import Tick from "./tick";
 import { itemCount } from "@/lib/lessonOrder";
 import type Lesson from "@/interface/containers/Lesson";
+import InlineError from "@/components/ui/inlineError";
 
 type Common = { ids: string[]; labels: string[]; onClose: () => void; onDone: (message: string) => void };
 
@@ -53,7 +54,7 @@ function Footer({ busy, disabled, danger, label, onClose, onConfirm, cancelRef }
   );
 }
 
-const Error_ = ({ error }: { error: string | null }) => error ? <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }}>✗ {error}</p> : null;
+const Error_ = ({ error }: { error: string | null }) => error ? <InlineError>{error}</InlineError> : null;
 
 export type DeleteCopy = { title: string; body: string; confirm: string; done: string };
 
@@ -94,7 +95,7 @@ export function MoveDialog({ ids, labels, lessonId, languageId, onClose, onDone 
       footer={<Footer busy={busy} disabled={!target} label={name ? t("bulkConfirm_moveTo", { name }) : t("bulkConfirm_move")} onClose={onClose}
         onConfirm={() => run(async () => { await bulkMoveElements(ids, target); return t("bulkMoved", { count: ids.length, name }); })} />}>
       <Affected labels={labels} />
-      {loadError ? <p role="alert" className="text-sm">{t("bulkLoadFailed")}</p>
+      {loadError ? <InlineError>{t("bulkLoadFailed")}</InlineError>
         : lessons === null ? <p className="text-sm text-muted">{t("bulkWorking")}</p>
         : lessons.length === 0 ? <p className="text-sm text-muted">{t("bulkNoLessons")}</p> : (
           <>
@@ -147,7 +148,7 @@ export function LinksDialog({ kind, ids, labels, userId, onClose, onDone }: Comm
       footer={<Footer busy={busy} disabled={Object.keys(state).length === 0} label={t("bulkConfirm_apply")} onClose={onClose}
         onConfirm={() => run(async () => { await edit(ids, pick("add"), pick("remove")); return t("bulkUpdated", { count: ids.length }); })} />}>
       <Affected labels={labels} />
-      {loadError ? <p role="alert" className="text-sm">{t("bulkLoadFailed")}</p>
+      {loadError ? <InlineError>{t("bulkLoadFailed")}</InlineError>
         : options === null ? <p className="text-sm text-muted">{t("bulkWorking")}</p>
         : options.length === 0 ? <p className="text-sm text-muted">{t(kind === "tag" ? "bulkNoTags" : "bulkNoSources")}</p> : (
           <>

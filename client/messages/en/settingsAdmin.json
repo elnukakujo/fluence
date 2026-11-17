@@ -2,7 +2,8 @@
   "sidebar": {
     "users": "Users",
     "backups": "Backups",
-    "logs": "Logs"
+    "logs": "Logs",
+    "admin": "Admin"
   },
   "apiEndpoints": {
     "title": "API Endpoints",
@@ -78,7 +79,12 @@
     "deleteConfirm": "Delete \"{name}\"?",
     "deleteSuccess": "Endpoints saved",
     "modelWarning": "Enter a base URL first",
-    "unnamedEndpoint": "Unnamed endpoint"
+    "unnamedEndpoint": "Unnamed endpoint",
+    "providerNotice": {
+      "title": "Before you use this provider",
+      "message": "These endpoints will receive the text and images you send them for AI features (your words, sentences, uploaded documents): {urls}. They are not run by Fluence, so their own privacy terms apply.",
+      "confirm": "I understand, save"
+    }
   },
   "backups": {
     "title": "Backups",
@@ -94,7 +100,6 @@
     "restore": "Restore",
     "download": "Download",
     "delete": "Delete",
-    "notYetImplemented": "Not yet implemented",
     "restoreConfirm": "Restore database from \"{name}\"? This will overwrite current data.",
     "confirmRestore": "Confirm Restore",
     "deleteConfirm": "Delete backup \"{name}\"?",

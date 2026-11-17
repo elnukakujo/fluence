@@ -5,7 +5,7 @@ describe("shapeHint", () => {
     it("gives the first character and one blank per remaining character", () => {
         expect(shapeHint("cat")).toBe("c _ _");
         expect(shapeHint("你好")).toBe("你 _");
-        expect(shapeHint("a")).toBe("a");
+        expect(shapeHint("猫")).toBe("");      // one character: the hint would be the answer
         expect(shapeHint("  ")).toBe("");
     });
     it("ignores spaces inside the answer", () => expect(shapeHint("ice cream")).toBe("i _ _ _ _ _ _ _"));

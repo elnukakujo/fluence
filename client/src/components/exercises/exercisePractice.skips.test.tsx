@@ -8,9 +8,9 @@ import type Exercise from "@/interface/features/Exercise";
 vi.mock("./exerciseRunner", () => ({ default: ({ exercise, onFinished, gaveUp }: { exercise: Exercise; onFinished?: () => void; gaveUp?: boolean }) => <div><span data-testid="runner">{exercise.id}</span>{gaveUp && <span>answer shown</span>}<button onClick={onFinished}>solve</button></div> }));
 vi.mock("@/components/ui/buttons/backButton", () => ({ default: ({ children }: { children: React.ReactNode }) => <button>{children}</button> }));
 
-vi.mock("@/api/process", () => ({ updateScoreById: vi.fn(() => Promise.resolve()) }));
+vi.mock("@/api/process", () => ({ scoreExercise: vi.fn(() => Promise.resolve()) }));
 
-import { updateScoreById } from "@/api/process";
+import { scoreExercise } from "@/api/process";
 import ExercisePractice from "./exercisePractice";
 
 const ex = (id: string, exercise_type: Exercise["exercise_type"], audio_files: string[] = []) => ({ id, exercise_type, audio_files, question: "q", answer: "a" }) as Exercise;
@@ -43,7 +43,7 @@ describe("practice skips", () => {
     it("I don't know scores 0, reveals the answer and offers Next instead of advancing", async () => {
         render(<ExercisePractice exercise_lists={[ex("e1", "essay"), ex("e2", "quizz")]} />);
         await userEvent.click(screen.getByRole("button", { name: "I don't know" }));
-        expect(updateScoreById).toHaveBeenCalledWith("e1", 0, expect.any(Number), false, 1);
+        expect(scoreExercise).toHaveBeenCalledWith("e1", expect.objectContaining({ final: true, hintUsed: false, attempt: 1, results: [expect.objectContaining({ quality: 0, skill: "recall" })] }));
         expect(current()).toBe("e1");
         expect(screen.getByText("answer shown")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "I don't know" })).toBeNull();

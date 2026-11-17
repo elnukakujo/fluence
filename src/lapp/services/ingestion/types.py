@@ -42,6 +42,7 @@ class Candidate(BaseModel):
     translation: str | None = None
     phonetic: str | None = None
     word_type: str | None = None
+    word_gender: str | None = None
     quote: str
     page: int
     chunk_id: str

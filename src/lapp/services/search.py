@@ -2,18 +2,29 @@ import logging
 import re
 from typing import Any, Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..core.database import db_manager, transactional
 from ..models.components import Character, Passage, Word
 from ..models.containers import Language, Lesson
 from ..models.features import Calligraphy, Exercise, Grammar, Vocabulary
+from ..models.system_data import Collaboration, LessonShare, Source, Tag
 
 logger = logging.getLogger(__name__)
 
 # CJK Unified Ideographs, Hiragana, Katakana, Hangul syllables — a single
 # character in these scripts is a complete, searchable term on its own.
 _CJK_PATTERN = re.compile(r"[一-鿿぀-ヿ가-힣]")
+
+
+def lesson_scope(user_id: str, session: Session):
+    """Lessons the user may find: their own, lessons shared with them, and the lessons of a language they collaborate on in full (DM-33)."""
+    shared = session.query(LessonShare.lesson_id).filter(LessonShare.user_id == user_id)
+    full = (session.query(Lesson.id).join(Collaboration, Collaboration.target_id == Lesson.language_id)
+            .filter(Collaboration.target_type == "language", Collaboration.collaborator_id == user_id, Collaboration.status == "accepted",
+                    or_(Collaboration.mode.is_(None), Collaboration.mode == "full")))
+    return or_(Lesson.user_id == user_id, Lesson.id.in_(shared), Lesson.id.in_(full))
 
 
 class SearchService:
@@ -32,6 +43,8 @@ class SearchService:
             "character",
             "word",
             "passage",
+            "tag",
+            "source",
         ]
         merged: list[dict[str, Any]] = []
         while len(merged) < limit:
@@ -61,7 +74,7 @@ class SearchService:
     def _search_lessons(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
         rows = (
             session.query(Lesson.id.label("id"), Lesson.title.label("label"), Lesson.language_id.label("language_id"))
-            .filter(Lesson.user_id == user_id, Lesson.title.is_not(None), Lesson.title.ilike(query_pattern))
+            .filter(lesson_scope(user_id, session), Lesson.title.is_not(None), Lesson.title.ilike(query_pattern))
             .order_by(Lesson.title)
             .all()
         )
@@ -75,7 +88,7 @@ class SearchService:
             session.query(Vocabulary.id.label("id"), Word.word.label("label"), Vocabulary.lesson_id.label("lesson_id"))
             .join(Word, Word.id == Vocabulary.word_id)
             .join(Lesson, Lesson.id == Vocabulary.lesson_id)
-            .filter(Lesson.user_id == user_id, Word.word.is_not(None), Word.word.ilike(query_pattern))
+            .filter(lesson_scope(user_id, session), Word.word.is_not(None), Word.word.ilike(query_pattern))
             .order_by(Word.word)
             .all()
         )
@@ -88,7 +101,7 @@ class SearchService:
         rows = (
             session.query(Grammar.id.label("id"), Grammar.title.label("label"), Grammar.lesson_id.label("lesson_id"))
             .join(Lesson, Lesson.id == Grammar.lesson_id)
-            .filter(Lesson.user_id == user_id, Grammar.title.is_not(None), Grammar.title.ilike(query_pattern))
+            .filter(lesson_scope(user_id, session), Grammar.title.is_not(None), Grammar.title.ilike(query_pattern))
             .order_by(Grammar.title)
             .all()
         )
@@ -102,7 +115,7 @@ class SearchService:
             session.query(Calligraphy.id.label("id"), Character.character.label("label"), Calligraphy.lesson_id.label("lesson_id"))
             .join(Character, Character.id == Calligraphy.character_id)
             .join(Lesson, Lesson.id == Calligraphy.lesson_id)
-            .filter(Lesson.user_id == user_id, Character.character.is_not(None), Character.character.ilike(query_pattern))
+            .filter(lesson_scope(user_id, session), Character.character.is_not(None), Character.character.ilike(query_pattern))
             .order_by(Character.character)
             .all()
         )
@@ -115,7 +128,7 @@ class SearchService:
         rows = (
             session.query(Exercise.id.label("id"), Exercise.question.label("label"), Exercise.lesson_id.label("lesson_id"))
             .join(Lesson, Lesson.id == Exercise.lesson_id)
-            .filter(Lesson.user_id == user_id, Exercise.question.is_not(None), Exercise.question.ilike(query_pattern))
+            .filter(lesson_scope(user_id, session), Exercise.draft.is_(False), Exercise.question.is_not(None), Exercise.question.ilike(query_pattern))
             .order_by(Exercise.question)
             .all()
         )
@@ -132,10 +145,19 @@ class SearchService:
             .order_by(Character.character)
             .all()
         )
+        radicals = {r for (r,) in session.query(Character.key_radical_id).filter(Character.key_radical_id.is_not(None)).all()}
         return [
-            {"category": "component", "type": "character", "id": row.id, "label": row.label, "language_id": row.language_id}
+            {"category": "component", "type": "character", "id": row.id, "label": row.label, "language_id": row.language_id, "radical": row.id in radicals}
             for row in rows
         ]
+
+    def _search_tags(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
+        rows = session.query(Tag.id, Tag.name).filter(Tag.user_id == user_id, Tag.name.ilike(query_pattern)).order_by(Tag.name).all()
+        return [{"category": "label", "type": "tag", "id": r.id, "label": r.name} for r in rows]
+
+    def _search_sources(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
+        rows = session.query(Source.id, Source.title).filter(Source.user_id == user_id, Source.title.ilike(query_pattern)).order_by(Source.title).all()
+        return [{"category": "label", "type": "source", "id": r.id, "label": r.title} for r in rows]
 
     def _search_word(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
         rows = (
@@ -196,6 +218,8 @@ class SearchService:
             "character": self._search_character(user_id, query_pattern, session),
             "word": self._search_word(user_id, query_pattern, session),
             "passage": self._search_passage(user_id, query_pattern, session),
+            "tag": self._search_tags(user_id, query_pattern, session),
+            "source": self._search_sources(user_id, query_pattern, session),
         }
 
         return self._round_robin(buckets, limit=20)

@@ -1,8 +1,8 @@
 import { BaseFeature } from "../base";
 
 export type ExerciseContent =
-    | { segments: string[]; blanks: { options?: string[]; answer: string }[] } // type_in_the_blank / select_in_the_blank
-    | { pairs: [string, string][] } // matching
+    | { segments: string[]; blanks: { options?: string[]; answer: string; element_id?: string }[] } // type_in_the_blank / select_in_the_blank; element_id = the linked element the blank tests
+    | { pairs: [string, string][]; element_ids?: (string | null)[] } // matching; element_ids[i] = the linked element pair i tests
     | { items: string[]; answer_order: number[] } // organize
     | { statement: string; answer: boolean } // true_false
     | { options: string[]; correct: number[] } // quizz
@@ -14,9 +14,12 @@ export default interface Exercise extends BaseFeature {
                     'type_in_the_blank' | 'select_in_the_blank' | 'matching' | 'true_false' | 'speaking' | 'quizz' | 'reading' | 'dictation';
     question: string;
     answer: string;
+    accepted_answers?: string[];   // extra answers that count as right besides `answer` (translate / answering)
     text_support?: string;
     content?: ExerciseContent;
     generation_batch_id?: string | null;   // set on AI-generated exercises
+    machine_made?: boolean;                // made by AI (stays set after acceptance)
+    draft?: boolean;                       // AI-made and not accepted yet: not in study
     review_reason?: string | null;         // set = generated exercise waiting for review
     category?: string | null;   // exam-section slug (see getExamCategories); null = uncategorized
     user_mode?: "boost" | "ban" | null;   // this user's own mode on the exercise

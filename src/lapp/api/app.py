@@ -3,6 +3,7 @@ import time
 from collections import deque
 from logging import Formatter, StreamHandler
 
+from werkzeug.exceptions import HTTPException
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 from flasgger import Swagger
@@ -175,6 +176,7 @@ def register_blueprints(app: Flask) -> None:
         character_bp,
         passage_bp,
         daily_stats_bp,
+        stats_bp,
         commitment_log_bp,
         review_bp,
         study_goal_bp,
@@ -183,6 +185,8 @@ def register_blueprints(app: Flask) -> None:
         ingestion_bp,
         element_bp,
         exercise_generation_bp,
+        capabilities_bp,
+        inbox_bp,
     )
 
     # Register blueprints
@@ -205,6 +209,7 @@ def register_blueprints(app: Flask) -> None:
         character_bp,
         passage_bp,
         daily_stats_bp,
+        stats_bp,
         commitment_log_bp,
         review_bp,
         study_goal_bp,
@@ -213,6 +218,8 @@ def register_blueprints(app: Flask) -> None:
         ingestion_bp,
         element_bp,
         exercise_generation_bp,
+        capabilities_bp,
+        inbox_bp,
     ]
 
     for blueprint in blueprints:
@@ -261,6 +268,9 @@ def register_error_handlers(app: Flask) -> None:
     
     @app.errorhandler(Exception)
     def handle_exception(error):
+        if isinstance(error, HTTPException):
+            # 401/405/413/415… keep their own status
+            return jsonify({'error': error.name, 'message': error.description}), error.code
         logger.error(f"Unhandled exception: {error}", exc_info=True)
         return jsonify({
             'error': 'Internal Server Error',

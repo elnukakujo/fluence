@@ -3,7 +3,8 @@ import re
 from difflib import SequenceMatcher
 
 from ..features.study_constants import GEN_DUPLICATE_RATIO
-from ..ingestion.elements import EXERCISE_TYPES, exercise_content_error
+from ..exercises.registry import EXERCISE_TYPES
+from ..exercises.content import exercise_content_error
 from ..ingestion.verify import normalise
 
 ANSWER_REQUIRED = ("answering", "translate")   # the other types derive their answer from `content`; an essay may be open-ended (no answer)
@@ -29,10 +30,18 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
             # a word bank ("cat, dog") legitimately lists the answer; "answer (gloss)" or the bare answer is a copy
             if a and (a in question or support == a or re.match(rf"{re.escape(a)}\s*[(（:：=-]", support)):
                 return "the question or `text_support` gives the answer itself: give its translation or base form, never the answer word"
+    if etype == "organize":
+        items = [str(i) for i in item["content"]["items"]]
+        if len(items) < 3 or all(re.fullmatch(r"[A-Za-zÀ-ÿ]", i) for i in items):
+            return "organize must put at least 3 whole words of a sentence in order, never the letters of one word"
     if etype == "matching":
         pairs = [tuple(normalise(x) for x in p) for p in item["content"]["pairs"]]
         if len({p[0] for p in pairs}) != len(pairs) or len({p[1] for p in pairs}) != len(pairs):
             return "matching has a duplicate pair or a repeated side"
+    content = item.get("content") or {}
+    tested = [b.get("element_id") for b in content.get("blanks") or []] + list(content.get("element_ids") or [])
+    if any(e is not None and e not in allowed_ids for e in tested):
+        return "a blank or pair names an element that is not one of the slot's elements (use only the ids given)"
     links = item.get("links") or []
     if not links or not set(links) <= allowed_ids:
         return "link the exercise to at least one of the elements it is about (use only the ids given)"

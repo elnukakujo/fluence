@@ -200,6 +200,7 @@
   "field_phonetic": "拼音",
   "field_word_type": "词性",
   "field_type": "类型",
+  "field_word_gender": "性别",
   "field_meaning": "含义",
   "field_radical": "部首",
   "field_strokes": "笔画",

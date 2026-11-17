@@ -19,3 +19,11 @@ def link_all_exercises(db, user_id="user_U1"):
             if voc not in ex.related_vocabulary:
                 ex.related_vocabulary.append(voc)
     ScoreService().set(user_id, "voc_LINK", 50.0, 0.5)
+
+
+def ready_content(exercise_type):
+    """Content that makes an exercise of this type ready (the daily review only serves ready exercises)."""
+    import json
+    from pathlib import Path
+    good = json.loads((Path(__file__).parents[1] / "client/src/test/exerciseContent.json").read_text())["good"]
+    return next(c for t, c in good if t == exercise_type)

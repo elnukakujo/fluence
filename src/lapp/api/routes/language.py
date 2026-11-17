@@ -7,6 +7,7 @@ from ...services import LanguageService
 from ...services.system_data import CollaborationService, LessonShareService, ScoreService
 from ...schemas.containers import LanguageDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...utils.request import parse_json
 
 bp = Blueprint('language', __name__, url_prefix='/api/languages')
 language_service = LanguageService()
@@ -52,6 +53,21 @@ def get_all_user_languages(user_id: str):
     if len(languages) == 0:
         return jsonify([]), 200
     return jsonify(ScoreService().merge(current_user_id(), _with_shared_counts(languages)))
+
+
+@bp.route('/supported', methods=['GET'])
+@login_required
+def supported_languages():
+    """The languages a course can be created for (the registry in core/languages.py).
+    ---
+    tags:
+      - Languages
+    responses:
+      200:
+        description: The nine supported languages with their capabilities
+    """
+    from ...core.languages import SUPPORTED
+    return jsonify([l.to_dict() for l in SUPPORTED.values()])
 
 
 @bp.route('/<language_id>', methods=['GET'])
@@ -139,7 +155,7 @@ def create_language():
     """
     try:
         # Validate request data
-        data = LanguageDict(**request.json)
+        data = parse_json(LanguageDict)
         data.user_id = current_user_id()
 
         # Create language
@@ -155,6 +171,8 @@ def create_language():
             
     except ValidationError as e:
         return jsonify({'error': 'Validation failed', 'details': e.errors()}), 400
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/<language_id>', methods=['PUT', 'PATCH'])
@@ -220,7 +238,7 @@ def update_language(language_id: str):
     """
     try:
         require_write(language_id)
-        data = LanguageDict(**request.json)
+        data = parse_json(LanguageDict)
 
         language = language_service.update(language_id, data, as_dict=True)
         

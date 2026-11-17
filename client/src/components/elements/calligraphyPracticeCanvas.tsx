@@ -3,32 +3,35 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
+import type { ReactNode } from "react";
+import type { Tier } from "@/utils/cardTier";
 import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
+import EmptyState from "@/components/ui/emptyState";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
 const STROKE_MATCH_THRESHOLD = 150; // max centroid distance (1024-space) for a stroke to count as correct
 
 type Guidance = "none" | "guide" | "order";
 
-export function guidanceFor(difficulty: number): Guidance {
-  // Fade the scaffold as the element gets easier: numbered order → outline → nothing.
-  if (difficulty >= 0.6) return "order";
-  if (difficulty >= 0.3) return "guide";
-  return "none";
+export function guidanceFor(tier: Tier): Guidance {
+  // Fade the scaffold as the character gets known: numbered order → outline → nothing.
+  return tier === "learning" ? "order" : tier === "practising" ? "guide" : "none";
 }
 
 export default function CalligraphyPracticeCanvas({
   character,
-  difficulty,
+  tier,
+  info,
   onResult,
 }: {
   character: string;
-  difficulty: number;
+  tier: Tier;
+  info?: ReactNode; // the card's details, kept in view while drawing (learning tier)
   onResult: (r: { similarity: number; strokeOrderErrors: number }) => void;
 }) {
   const t = useTranslations("calligraphy");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [referenceStrokes, setReferenceStrokes] = useState<Stroke[] | null>(null);
+  const [referenceStrokes, setReferenceStrokes] = useState<Stroke[] | null | undefined>(undefined); // undefined = still loading, null = none exists
   const [userStrokes, setUserStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke>([]);
   const [lastStrokeWrong, setLastStrokeWrong] = useState(false);
@@ -37,13 +40,14 @@ export default function CalligraphyPracticeCanvas({
   const correctCountRef = useRef(0);
   const submittedRef = useRef(false);
 
-  const guidance = guidanceFor(difficulty);
+  const guidance = guidanceFor(tier);
 
   useEffect(() => {
     let cancelled = false;
     setUserStrokes([]);
     setCurrentStroke([]);
     setLastStrokeWrong(false);
+    setReferenceStrokes(undefined);
     currentStrokeRef.current = [];
     correctCountRef.current = 0;
     submittedRef.current = false;
@@ -74,6 +78,12 @@ export default function CalligraphyPracticeCanvas({
       ctx.lineCap = "round";
       for (const stroke of referenceStrokes) {
         drawPolyline(ctx, stroke, scale);
+      }
+      const next = referenceStrokes[userStrokes.length]; // the stroke to draw now stands out from the rest
+      if (next) {
+        ctx.strokeStyle = "rgba(37,99,235,0.6)";
+        ctx.lineWidth = 22;
+        drawPolyline(ctx, next, scale);
       }
       if (guidance === "order") {
         ctx.fillStyle = "rgba(0,0,0,0.55)";
@@ -162,12 +172,18 @@ export default function CalligraphyPracticeCanvas({
     setLastStrokeWrong(false);
   }
 
+  if (referenceStrokes === undefined) {
+    return <p className="text-sm text-muted" role="status">{t("loadingStrokeData")}</p>;
+  }
   if (referenceStrokes === null) {
-    return <p className="text-sm text-muted">{t("noStrokeData")}</p>;
+    return <EmptyState className="text-sm">{t("noStrokeData")}</EmptyState>;
   }
 
   return (
-    <div className="flex flex-col gap-3 items-center">
+    // wide: card and drawing side by side; narrow: the drawing first (on screen at once), the card under it
+    <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center">
+      {info && <div className="order-2 w-full md:order-1 md:w-80 md:shrink-0">{info}</div>}
+      <div className="order-1 flex flex-col items-center gap-3 md:order-2">
       <canvas
         ref={canvasRef}
         width={300}
@@ -186,6 +202,7 @@ export default function CalligraphyPracticeCanvas({
         <button type="button" className="btn" onClick={handleClear}>
           {t("clearButton")}
         </button>
+      </div>
       </div>
     </div>
   );

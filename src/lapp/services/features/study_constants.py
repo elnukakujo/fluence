@@ -1,32 +1,15 @@
 """Stand-in values for study preferences. Every one is a `TODO(user)`: ask before changing."""
 
 BOOST_FACTOR = 1.5          # TODO(user): review-priority multiplier for boosted exercises
-GOAL_MASTERED_SCORE = 60.0  # TODO(user): score at which a goal item counts as mastered
-STREAK_MIN_CARDS = 1        # TODO(user): cards answered for a finished review to validate the day
 
 # Without any study goal the daily review still works: new elements are drawn at random from the first N unstarted
 # ones of each type (lesson order); seen elements come back by review priority. TODO(user): stand-ins.
 NO_GOAL_NEW = {"vocabulary": 10, "grammar": 5, "calligraphy": 10}
 
-# Seconds one review card takes. TODO(user): stand-ins for every number below.
-# Exercises are estimated per type: base + reading (question, text support, content) + interaction + listening.
-# per_item: seconds per list entry of the content (options, blanks, pairs...); typed: the learner types the answer.
-EXERCISE_TIME = {
-    "true_false": {"base": 4.0, "per_item": 0.0, "typed": False},
-    "select_in_the_blank": {"base": 5.0, "per_item": 1.5, "typed": False},
-    "quizz": {"base": 5.0, "per_item": 1.5, "typed": False},
-    "matching": {"base": 6.0, "per_item": 2.0, "typed": False},
-    "organize": {"base": 6.0, "per_item": 1.5, "typed": False},
-    "type_in_the_blank": {"base": 6.0, "per_item": 2.0, "typed": True},
-    "translate": {"base": 5.0, "per_item": 0.0, "typed": True},
-    "answering": {"base": 6.0, "per_item": 0.0, "typed": True},
-    "essay": {"base": 45.0, "per_item": 0.0, "typed": True},
-    "speaking": {"base": 15.0, "per_item": 0.0, "typed": False},
-    "conversation": {"base": 15.0, "per_item": 5.0, "typed": False},
-    "reading": {"base": 15.0, "per_item": 0.0, "typed": False},
-    "dictation": {"base": 10.0, "per_item": 0.0, "typed": True},
-}
-EXERCISE_TIME_DEFAULT = {"base": 10.0, "per_item": 1.0, "typed": False}   # an unknown exercise type
+# Per-type exercise time moved to the exercise registry (services/exercises/registry.py).
+# Re-imported here for the time-estimate tests that still read study_constants.
+from ..exercises.registry import EXERCISE_TIME, EXERCISE_TIME_DEFAULT
+
 READ_CHARS_PER_S = 15.0     # reading speed for CJK text (characters)
 READ_WORDS_PER_S = 3.5      # reading speed for other scripts (words)
 TYPE_CHARS_PER_S = 4.0      # typing speed
@@ -41,19 +24,21 @@ PACE_MIN_MS = 2000          # a card is never counted faster than this ...
 PACE_MAX_FACTOR = 5         # ... or slower than this many times its estimate (an idle tab)
 SPARE_EXERCISES = 5         # ready exercises sent along as replacements for skipped or broken ones
 
-# Default study goal, scaled by the user's daily minutes. TODO(user): stand-ins anchored on the 20 min/day example
-# (20 new vocabulary, 5 grammar, 10 calligraphy a week); the review share is half of the new quantity.
+# Default study goal, from the learner's new per week and reviews per day (the presets set them, the learner can change them).
+# TODO(user): stand-ins: the split across the types (20 : 5 : 10, as before) and reading "reviews per day" as the review
+# elements of a 7-day period (a longer period scales it).
 DEFAULT_GOAL_PERIOD = "week"
-DEFAULT_GOAL_ANCHOR_MINUTES = 20
-DEFAULT_NEW_AT_ANCHOR = {"vocabulary": 20, "grammar": 5, "calligraphy": 10}
-DEFAULT_REVIEW_SHARE = 0.5
+DEFAULT_GOAL_SHARE = {"vocabulary": 4, "grammar": 1, "calligraphy": 2}
 
 
-def default_goal_quantities(daily_minutes: int) -> dict:
-    """{"n": {type: new}, "r": {type: review}} for a daily time: linear in the minutes, at least 1 of each."""
-    scale = max(daily_minutes, 1) / DEFAULT_GOAL_ANCHOR_MINUTES
-    new = {k: max(1, int(v * scale + 0.5)) for k, v in DEFAULT_NEW_AT_ANCHOR.items()}   # half up
-    return {"n": new, "r": {k: max(1, int(v * DEFAULT_REVIEW_SHARE + 0.5)) for k, v in new.items()}}
+def default_goal_quantities(new_per_week: int, reviews_per_day: int, period_days: int = 7, kinds=tuple(DEFAULT_GOAL_SHARE)) -> dict:
+    """{"n": {type: new}, "r": {type: review}} per period, split by DEFAULT_GOAL_SHARE over `kinds` (at least 1 of each unless the total is 0;
+    a type outside `kinds` gets 0)."""
+    def split(total: float) -> dict:
+        whole, parts = round(total), sum(v for k, v in DEFAULT_GOAL_SHARE.items() if k in kinds)
+        return {k: (max(1, int(whole * v / parts + 0.5)) if whole and k in kinds else 0) for k, v in DEFAULT_GOAL_SHARE.items()}   # half up
+    scale = period_days / 7
+    return {"n": split(new_per_week * scale), "r": split(reviews_per_day * scale)}
 
 
 # AI exercise generation for a lesson. TODO(user): stand-ins for every number below.
@@ -66,10 +51,11 @@ GEN_THIN_POOL = 6            # a lesson with fewer elements borrows same-level o
 GEN_DUPLICATE_RATIO = 0.9    # two generated questions at least this similar count as the same exercise
 GEN_READING_WEIGHT = 2.0     # TODO(user): reading is a core exercise, so it is drawn more often than a plain type
 GEN_MULTI_ITEM = {"matching": (2, 4), "reading": (3, 5), "conversation": (2, 4)}   # TODO(user): elements per slot (low, high)
+GEN_KNOWN_SCORE = 40.0          # TODO(user): score at which a word counts as known when writing exercises
+GEN_ADVANCED_FROM = 30          # TODO(user): known words a learner needs before free writing (essay, conversation) is generated
 GEN_GUARANTEE_READING_FROM = 4   # a batch of at least this many always has a reading (unless banned)
 
 # Leech cards (a card that keeps slipping). TODO(user): stand-ins.
-LEECH_LAPSES = 4             # score drops after which a card gets leech help
 LEECH_CONFUSABLE_RATIO = 0.6 # spelling similarity (difflib) for a confusable word
 LEECH_CANDIDATES = 2000      # words of the language compared at most
 

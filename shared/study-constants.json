@@ -1,0 +1,149 @@
+{
+  "score": {
+    "initialStabilityDays": 2,
+    "stabilityCapDays": 180,
+    "dayGainCap": 15,
+    "evidenceWeights": {
+      "typed": 1.0,
+      "spoken": 1.0,
+      "self_grade": 0.8,
+      "multiple_choice": 0.6,
+      "matching": 0.6
+    }
+  },
+  "levels": {
+    "weakBelow": 40,
+    "knownFrom": 60,
+    "masteredFrom": 85
+  },
+  "leech": {
+    "enter": {
+      "wrong": 4,
+      "window": 8
+    },
+    "leaveCorrectInRow": 3
+  },
+  "tier": {
+    "_todo": "TODO(user): difficulty above which a card is still 'learning'. Score cut-offs now come from `levels`; this goes when difficulty becomes lapse-driven (spec 2, Task 8)",
+    "learningDifficulty": 0.7
+  },
+  "hints": {
+    "_todo": "TODO(user): best grade allowed after 0/1/2 hints, and recall-time windows",
+    "caps": [
+      1,
+      0.75,
+      0.5
+    ],
+    "fastMs": 3000,
+    "slowMs": 10000
+  },
+  "typed": {
+    "_todo": "TODO(user): typed-answer closeness thresholds (full hit above, nothing below)",
+    "full": 0.9,
+    "floor": 0.4
+  },
+  "cadence": {
+    "_todo": "TODO(user): one eligible card in this many is drawn/listened before it is seen",
+    "drawEvery": 3,
+    "listenEvery": 3
+  },
+  "exerciseLevelThresholds": {
+    "speaking": [
+      0,
+      0.5,
+      0.7,
+      0.85,
+      0.95
+    ],
+    "type_in_the_blank": [
+      0,
+      0.5,
+      0.7,
+      0.85,
+      0.95
+    ],
+    "organize": [
+      0,
+      0.45,
+      0.65,
+      0.8,
+      0.92
+    ],
+    "translate": [
+      0,
+      0.4,
+      0.6,
+      0.78,
+      0.9
+    ],
+    "answering": [
+      0,
+      0.35,
+      0.55,
+      0.72,
+      0.88
+    ],
+    "conversation": [
+      0,
+      0.3,
+      0.5,
+      0.68,
+      0.85
+    ],
+    "essay": [
+      0,
+      0.25,
+      0.45,
+      0.65,
+      0.82
+    ]
+  },
+  "exerciseScales": {
+    "translate": [
+      0.6,
+      0.2,
+      0.2
+    ],
+    "organize": [
+      0.5,
+      0.1,
+      0.4
+    ],
+    "type_in_the_blank": [
+      0.5,
+      0.1,
+      0.4
+    ],
+    "essay": [
+      0.4,
+      0.4,
+      0.2
+    ],
+    "answering": [
+      0.6,
+      0.3,
+      0.1
+    ],
+    "speaking": [
+      0.3,
+      0.1,
+      0.6
+    ],
+    "conversation": [
+      0.3,
+      0.1,
+      0.6
+    ],
+    "dictation": [
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "speaking": {
+    "_todo": "TODO(owner): label cut-offs on the bar value (text similarity minus offset); the 0.15 offset is DM-63",
+    "offset": 0.15,
+    "excellentFrom": 0.85,
+    "goodFrom": 0.6
+  }
+}

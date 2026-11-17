@@ -9,7 +9,8 @@ export default interface UserPreferences {
     voc_side_pattern?: VocSidePattern | null;
     exercise_type_prefs?: Record<string, "boost" | "ban">;
     review_layout?: ReviewSection[] | null;
-    daily_goal_minutes?: number;
+    new_per_week?: number;
+    reviews_per_day?: number;
     last_updated: string; // ISO date string
     ai_feedback_enabled?: boolean;
     ai_learnable_sentence_enabled?: boolean;
@@ -17,12 +18,15 @@ export default interface UserPreferences {
     ai_example_word_enabled?: boolean;
     ai_tts_enabled?: boolean;
     ai_gen_api_base_url?: string;
-    ai_gen_api_key?: string;
+    ai_gen_api_key?: string;   // write-only
+    ai_gen_has_key?: boolean;
     ai_gen_model?: string;
     ai_tts_api_base_url?: string;
-    ai_tts_api_key?: string;
+    ai_tts_api_key?: string;   // write-only
+    ai_tts_has_key?: boolean;
     ai_tts_model?: string;
     ai_endpoints?: ApiEndpointConfig[];
+    provider_notices_seen?: string[];
 }
 
 export type VocSidePattern =
@@ -32,7 +36,7 @@ export type VocSidePattern =
 
 export interface ReviewSection {
     type: "voc" | "gram" | "ex" | "call";
-    minutes: number | null;
+    count: number | null;
 }
 
 export interface ApiEndpointConfig {
@@ -40,7 +44,8 @@ export interface ApiEndpointConfig {
     provider?: string;       // provider key: "openai", "ollama", "local_tts", etc.
     api_type?: "text_gen" | "tts" | "both" | "ocr";
     base_url?: string;
-    api_key?: string;
+    api_key?: string;        // write-only: sent when changed, never returned
+    has_key?: boolean;       // a key is stored on the server
     model?: string;
     is_active: boolean;
     voice?: string;          // explicit TTS voice override (e.g. "alloy", "en_f")

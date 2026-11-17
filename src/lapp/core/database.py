@@ -45,8 +45,15 @@ ID_PREFIXES = {
     "LessonShare": "ls_L",
     "IngestionJob": "ing_J",
     "ExerciseUserPref": "xup_X",
+    "OverrideFlag": "ovr_O",
     "StudyGoal": "goal_G",
     "StudyGoalItem": "goali_I",
+    "LessonGate": "gate_G",
+    "CourseSetting": "cset_C",
+    "FailureMemory": "fail_F",
+    "ChangeLog": "chg_C",
+    "LearnerDay": "lday_D",
+    "WeeklySnapshot": "wsnap_W",
 }
 
 # Backing store for generate_new_id()'s atomic counters. One row per entity

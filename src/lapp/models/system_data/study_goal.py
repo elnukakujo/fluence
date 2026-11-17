@@ -20,7 +20,7 @@ class StudyGoal(Base):
     r_grammar = Column(Integer, default=0, nullable=False)
     r_calligraphy = Column(Integer, default=0, nullable=False)
     active = Column(Boolean, default=True, nullable=False)
-    # True while the quantities are the suggested ones for the daily minutes (they follow it); any manual save clears it.
+    # True while the quantities are the suggested ones for the new per week and reviews per day (they follow them); any manual save clears it.
     auto = Column(Boolean, default=False, nullable=False)
     # The menu of the running period, frozen when the period starts: {"start", "period", "n": {...}, "r": {...}}.
     # n_* / r_* / period above are what the NEXT period will use.
@@ -37,3 +37,5 @@ class StudyGoalItem(Base):
     cycle_start = Column(Date, nullable=False)
     kind = Column(String, default="new", nullable=False)         # "new" | "review"
     picked_at = Column(DateTime, default=datetime.now, nullable=False)
+    # First moment the element's effective score reached known (DM-53). Permanent: decay, a new period or a rebuild never clear it.
+    succeeded_at = Column(DateTime, nullable=True)

@@ -1,0 +1,12 @@
+{
+  "title": "Boîte de réception",
+  "intro": "Les exercices créés par l'IA attendent ici. Ils n'entrent dans vos révisions qu'une fois acceptés.",
+  "empty": "Rien à examiner.",
+  "acceptAll": "Tout accepter",
+  "rejectAll": "Tout refuser",
+  "accept": "Accepter",
+  "reject": "Refuser",
+  "machineMade": "Créé par l'IA",
+  "loadFailed": "Impossible de charger la boîte de réception",
+  "actionFailed": "Échec, réessayez"
+}
