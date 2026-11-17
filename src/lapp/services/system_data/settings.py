@@ -200,13 +200,12 @@ def update_group(user_id: str, group: str, values: dict, language_id: Optional[s
 
 
 def _refit_open_goals(user_id: str, prefs, session) -> None:
-    """Saved pace numbers set the quantities of the goals the user has not locked; a locked goal (running period) is left as it is."""
+    """Saved pace numbers set the quantities every goal will use for its next period (the editable ones the goal card shows when unlocked).
+    The running period's locked menu (`goal.locked`) is never touched, so a locked goal stays locked and unchanged."""
     from ..features.study_constants import default_goal_quantities
     from ..features.study_goal import PERIOD_DAYS, TYPES
     from ...models.system_data import StudyGoal
     for goal in session.query(StudyGoal).filter_by(user_id=user_id):
-        if goal.locked:
-            continue
         want = default_goal_quantities(prefs.new_per_week, prefs.reviews_per_day, PERIOD_DAYS.get(goal.period, 7))
         for kind, (_, n_col, r_col) in TYPES.items():
             setattr(goal, n_col, want["n"][kind])

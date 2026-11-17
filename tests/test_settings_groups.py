@@ -89,7 +89,7 @@ def test_other_users_course_is_refused(app, db):
     assert _put(c, "see", {"show_phonetics": "never"}, language_id="lang_L2").status_code == 403
 
 
-def test_saving_pace_refits_unlocked_goals_only(app, db):
+def test_saving_pace_refits_goal_quantities_and_keeps_the_locked_menu(app, db):
     from lapp.models.system_data import StudyGoal
     c = _client(app, db)
     with db.session_scope() as s:
@@ -99,4 +99,4 @@ def test_saving_pace_refits_unlocked_goals_only(app, db):
     assert _put(c, "pace", {"new_per_week": 30, "reviews_per_day": 80}).status_code == 200
     with db.session_scope() as s:
         open_, locked = s.get(StudyGoal, "goal_OPEN"), s.get(StudyGoal, "goal_LOCK")
-        assert open_.n_vocabulary > 9 and locked.n_vocabulary == 7 and locked.locked
+        assert open_.n_vocabulary > 9 and locked.n_vocabulary > 9 and locked.locked == {"start": "2026-01-01", "period": "week"}
