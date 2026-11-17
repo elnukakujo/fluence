@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('backup', __name__, url_prefix='/api/backup')
 
 @bp.route('/create', methods=['POST'])
+@admin_required
 def create_backup():
     """
     Create a manual database backup.
@@ -75,6 +76,7 @@ def create_backup():
 
 
 @bp.route('/restore', methods=['POST'])
+@admin_required
 def restore_backup():
     """
     Restore database from a backup.
@@ -158,6 +160,7 @@ def restore_backup():
 
 
 @bp.route('/list', methods=['GET'])
+@admin_required
 def list_backups():
     """
     List all available backups with details.
@@ -231,6 +234,7 @@ def list_backups():
 
 
 @bp.route('/info', methods=['GET'])
+@admin_required
 def backup_info():
     """
     Get backup system information and statistics.
@@ -324,6 +328,7 @@ def download_backup(backup_file: str):
 
 
 @bp.route('/delete/<backup_file>', methods=['DELETE'])
+@admin_required
 def delete_backup(backup_file: str):
     """
     Delete a specific backup file.
@@ -421,6 +426,7 @@ def delete_backup(backup_file: str):
 
 
 @bp.route('/cleanup', methods=['POST'])
+@admin_required
 def cleanup_old_backups():
     """
     Manually trigger cleanup of old backups.

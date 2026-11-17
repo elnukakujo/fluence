@@ -118,6 +118,23 @@ class UserPreferencesService:
 
         return self._serialize(pref, as_dict, include_relations)
 
+    @staticmethod
+    def _keep_stored_keys(stored: list, incoming: list) -> list:
+        """Endpoints sent back without a key keep the one stored under the same name (else the same position)."""
+        by_name = {e.get("name"): e for e in stored if isinstance(e, dict) and e.get("name")}
+        out = []
+        for i, ep in enumerate(incoming):
+            ep = dict(ep)
+            ep.pop("has_key", None)
+            if not ep.get("api_key"):
+                old = by_name.get(ep.get("name")) or (stored[i] if i < len(stored) else {})
+                if old.get("api_key"):
+                    ep["api_key"] = old["api_key"]
+                else:
+                    ep.pop("api_key", None)
+            out.append(ep)
+        return out
+
     @transactional
     def update(
         self,
@@ -150,6 +167,10 @@ class UserPreferencesService:
 
         # Update fields
         for field, value in data.model_dump(exclude_unset=True).items():
+            if field in ("ai_gen_api_key", "ai_tts_api_key") and not value:
+                continue  # keys are write-only: omitted or empty keeps the stored one
+            if field == "ai_endpoints":
+                value = self._keep_stored_keys(user_pref.ai_endpoints or [], value or [])
             setattr(user_pref, field, value)
 
         result = db_manager.modify(obj=user_pref, session=session, commit=False)

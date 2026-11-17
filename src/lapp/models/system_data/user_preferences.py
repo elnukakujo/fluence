@@ -48,6 +48,13 @@ class UserPreferences(Base):
         foreign_keys="[UserPreferences.user_id]"
     )
     
+    @staticmethod
+    def _public_endpoint(ep: dict) -> dict:
+        """An endpoint without its key (keys are write-only): `has_key` tells the client one is stored."""
+        out = {k: v for k, v in ep.items() if k != "api_key"}
+        out["has_key"] = bool(ep.get("api_key"))
+        return out
+
     def to_dict(self, include_relations: bool = True) -> dict:
         base = {
             "id": self.id,
@@ -67,12 +74,12 @@ class UserPreferences(Base):
             "ai_example_word_enabled": self.ai_example_word_enabled,
             "ai_tts_enabled": self.ai_tts_enabled,
             "ai_gen_api_base_url": self.ai_gen_api_base_url,
-            "ai_gen_api_key": self.ai_gen_api_key,
+            "ai_gen_has_key": bool(self.ai_gen_api_key),
             "ai_gen_model": self.ai_gen_model,
             "ai_tts_api_base_url": self.ai_tts_api_base_url,
-            "ai_tts_api_key": self.ai_tts_api_key,
+            "ai_tts_has_key": bool(self.ai_tts_api_key),
             "ai_tts_model": self.ai_tts_model,
-            "ai_endpoints": self.ai_endpoints or [],
+            "ai_endpoints": [self._public_endpoint(e) for e in self.ai_endpoints or []],
         }
         if include_relations and self.user:
             base["user"] = self.user.to_dict(include_relations=False)

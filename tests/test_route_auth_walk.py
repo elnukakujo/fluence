@@ -11,7 +11,6 @@ def _fill(rule: str) -> str:
     return re.sub(r"<(?:[^:>]+:)?[^>]+>", "x", rule)
 
 
-@pytest.mark.xfail(strict=True, reason="open backup/media/ingestion routes until Task 1")
 def test_every_route_requires_a_session(app, db):
     client = app.test_client()
     open_routes = []

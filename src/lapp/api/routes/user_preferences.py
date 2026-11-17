@@ -275,6 +275,13 @@ def test_endpoint():
 
     model = (body.get("model") or "").strip()
     api_key = body.get("api_key") or ""
+    if not api_key and isinstance(body.get("endpoint_index"), int):
+        # Keys are write-only: a saved endpoint is tested with the key stored for it.
+        from ...services.system_data import UserPreferencesService
+        stored = (UserPreferencesService().get_by_user_id(current_user_id()) or None)
+        eps = (stored.ai_endpoints or []) if stored else []
+        if 0 <= body["endpoint_index"] < len(eps):
+            api_key = eps[body["endpoint_index"]].get("api_key") or ""
     api_format = body.get("api_format") or "openai"
     auth_type = body.get("auth_type") or "bearer"
     api_type = body.get("api_type") or "text_gen"

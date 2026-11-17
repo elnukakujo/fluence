@@ -110,6 +110,7 @@ export default function ApiEndpointsSection({
         body: {
           base_url: ep.base_url,
           api_key: ep.api_key,
+          endpoint_index: idx,
           model: ep.model ?? "",
           api_format: ep.api_format ?? "openai",
           auth_type: ep.auth_type ?? "bearer",
