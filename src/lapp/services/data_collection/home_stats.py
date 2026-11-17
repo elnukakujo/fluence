@@ -15,7 +15,7 @@ from .study_activity import status_for
 from .weekly_snapshot import level_counts
 
 HEATMAP_WEEKS = 12
-# TODO(owner): band edges are multiples of the learner's median busy day (DM-47 says "relative", not by how much); stand-ins.
+# Decided by the owner (2026-11-17, RD-87): band edges are multiples of the learner's own median busy day.
 BAND_FACTORS = (0.5, 1.0, 1.5)
 
 

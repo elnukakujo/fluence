@@ -8,7 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ...schemas.containers import LanguageDict
-from ...models.system_data import Source, Tag
+from ...models.system_data import LessonGate, Source, Tag
+from ...utils.scoring import KNOWN_FROM
 from ...models.containers import Language, Lesson
 from ...core.database import db_manager, transactional, resolve_related
 from ..system_data import ScoreService
@@ -27,37 +28,26 @@ class LanguageService:
             return languages
         return [language.to_dict(include_relations=include_relations) for language in languages]
 
-    def _find_current_lesson(self, language_id: str, score_threshold: float, user_id: Optional[str] = None, session: Optional[Session] = None) -> Optional[str]:
-        """
-        Find the first lesson ID for a given language with a score below a certain threshold.
+    def _find_current_lesson(self, language_id: str, user_id: Optional[str] = None, session: Optional[Session] = None) -> Optional[str]:
+        """The language's current lesson (DM-18, SC-13): the first lesson that is not known yet (score below `KNOWN_FROM`).
 
-        Args:
-            language_id: The ID of the language.
-            score_threshold: The score threshold to compare against.
-            user_id: The user whose score rows to read; defaults to the language owner.
-            session: Optional SQLAlchemy session.
-
-        Returns:
-            The ID of the first lesson below the threshold, or None if all lessons meet/exceed the threshold.
-        """
+        Once the soft gate opened, the lesson it opened on counts as known for good (DM-46: decay never undoes it).
+        When every lesson is known, the last one. None for a language without lessons."""
         from .lesson import LessonService
-        lesson_service = LessonService()
-
-        lessons = lesson_service.get_all(
-            language_id=language_id,
-            session=session
-        )
+        lessons = LessonService().get_all(language_id=language_id, session=session)
         if user_id is None:
             lang = db_manager.find_by_attr(Language, {'id': language_id}, session=session)
             user_id = lang.user_id if lang else None
-        lesson_ids = [lesson.id for lesson in lessons]
-        score_map = score_service.get_many(user_id, lesson_ids, session=session)
+        gate = db_manager.find_by_attr(LessonGate, {'user_id': user_id, 'language_id': language_id}, session=session)
+        score_map = score_service.get_many(user_id, [lesson.id for lesson in lessons], session=session)
         for lesson in lessons:
+            if gate is not None and lesson.id == gate.unlocked_lesson_id:
+                continue
             s = score_map.get(lesson.id)
-            if s is None or s.score < score_threshold*100:
+            if s is None or s.score < KNOWN_FROM:
                 return lesson.id
         return lessons[-1].id if lessons else None
-        
+
     @transactional
     def get_by_user_id(
         self,
@@ -319,12 +309,7 @@ class LanguageService:
 
         lesson_ids = [l.id for l in lessons]
 
-        current_lesson_id = self._find_current_lesson(
-            language_id=language.id,
-            score_threshold=0.75,
-            user_id=user_id,
-            session=session
-        )
+        current_lesson_id = self._find_current_lesson(language_id=language.id, user_id=user_id, session=session)
 
         result = refresh(user_id, language_id, lesson_ids, digits=1, touch=touch,
                          current_lesson_id=current_lesson_id, session=session)

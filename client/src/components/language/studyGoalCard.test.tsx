@@ -27,8 +27,24 @@ describe("study goals card", () => {
         await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[0]);   // vocabulary: new
         await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[1]);   // vocabulary: review
         fireEvent.submit(document.querySelector("form")!);
-        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", { period: "biweek", active: true, n_vocabulary: 1, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 1, r_grammar: 0, r_calligraphy: 0, auto: false }));
+        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", { period: "biweek", active: true, n_vocabulary: 1, n_grammar: 0, n_calligraphy: 0, r_vocabulary: 1, r_grammar: 0, r_calligraphy: 0, n_radicals: 0, r_radicals: 0, auto: false }));
         expect(api.resetStudyGoal).not.toHaveBeenCalled();      // a first lock needs no rebuild: saving builds the menu
+    });
+
+    it("has its own radicals row (new and review) that is saved with the goal and never filled by the suggestion", async () => {
+        render(<StudyGoalsCard userId="u" />);
+        expect(await screen.findByText("Radicals")).toBeInTheDocument();
+        await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[6]);   // radicals: new
+        await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[6]);
+        await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[7]);   // radicals: review
+        fireEvent.submit(document.querySelector("form")!);
+        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ n_radicals: 2, r_radicals: 1 })));
+    });
+
+    it("the locked summary lists the radicals quota when there is one", async () => {
+        api.getStudyGoal.mockResolvedValue({ ...locked, goal: { ...locked.goal, n_radicals: 3, r_radicals: 1 }, progress: { ...locked.progress, radicals: { n: 3, r: 1 } } });
+        render(<StudyGoalsCard userId="u" />);
+        expect(await screen.findByRole("note")).toHaveTextContent(/Radicals\s*3\s*new\s*1\s*review/);
     });
 
     it("shows a suggested goal as following the daily time; editing a number makes it the user's own, and 'use suggested' goes back", async () => {

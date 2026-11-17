@@ -91,5 +91,6 @@
   "goalEditingKeep": "Your current menu stays active until you lock again.",
   "goalLock": "Lock goals",
   "goalLocked": "Locked",
-  "lessonContents": "Contents of this lesson"
+  "lessonContents": "Contents of this lesson",
+  "goalRadicals": "Radicals"
 }
