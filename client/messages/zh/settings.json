@@ -5,7 +5,8 @@
     "learning": "学习",
     "aiFeatures": "AI 功能",
     "endpoints": "端点",
-    "goals": "学习目标"
+    "goals": "学习目标",
+    "uploads": "上传"
   },
   "profile": {
     "title": "个人资料",
@@ -84,5 +85,14 @@
   "sectionsAriaLabel": "设置分区",
   "createAccountTagline": "创建账号，开始学习。",
   "alreadyRegistered": "已有账号？",
-  "signInLink": "登录"
+  "signInLink": "登录",
+  "uploads": {
+    "title": "我的上传",
+    "description": "你导入的文档。删除会移除文件、其解析副本和导入记录；已加入课程的词语会保留。",
+    "empty": "没有上传。",
+    "delete": "删除",
+    "confirm": "删除“{name}”？此操作无法撤销。",
+    "failedLoad": "无法加载你的上传",
+    "failedDelete": "无法删除此上传"
+  }
 }

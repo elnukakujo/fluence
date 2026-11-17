@@ -16,6 +16,7 @@ export default function SettingsSidebar({ isAdmin = false }: { isAdmin?: boolean
     { id: "goals", label: t("sidebar.goals") },
     { id: "ai-features", label: t("sidebar.aiFeatures") },
     { id: "api-endpoints", label: t("sidebar.endpoints") },
+    { id: "uploads", label: t("sidebar.uploads") },
   ];
 
   const ADMIN_SECTIONS = [

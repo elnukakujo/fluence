@@ -6,6 +6,7 @@ import PreferencesSection from "@/components/user/preferencesSection";
 import StudyGoalsCard from "@/components/language/studyGoalCard";
 import AiFeaturesSection from "@/components/user/aiFeaturesSection";
 import ApiEndpointsSection from "@/components/user/apiEndpointsSection";
+import UploadsSection from "@/components/user/uploadsSection";
 import BackupSection from "@/components/user/backupSection";
 import LogsSection from "@/components/user/logsSection";
 import RoleBadge from "@/components/user/roleBadge";
@@ -52,7 +53,12 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
                 <ApiEndpointsSection
                     prefId={preferences.id}
                     endpoints={endpoints}
+                    noticesSeen={preferences.provider_notices_seen ?? []}
                 />
+            </section>
+
+            <section id="uploads">
+                <UploadsSection />
             </section>
 
             {user.is_admin && (

@@ -202,6 +202,24 @@ def list_providers():
     return jsonify(PROVIDER_LIST)
 
 
+@bp.route('/notice', methods=['POST'])
+@login_required
+def acknowledge_provider_notice():
+    """Record that the user has read the one-time disclosure for an endpoint (keyed by its base URL).
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: Acknowledged}
+      400: {description: base_url missing}
+    """
+    base_url = ((request.get_json(silent=True) or {}).get("base_url") or "").strip().rstrip("/")
+    if not base_url:
+        return jsonify({'error': 'base_url is required'}), 400
+    seen = user_preferences_service.acknowledge_notice(current_user_id(), base_url)
+    return jsonify({'provider_notices_seen': seen})
+
+
 @bp.route('/test-endpoint', methods=['POST'])
 @login_required
 def test_endpoint():

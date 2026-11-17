@@ -136,6 +136,19 @@ class UserPreferencesService:
         return out
 
     @transactional
+    def acknowledge_notice(self, user_id: str, base_url: str, session: Optional[Session] = None) -> list[str]:
+        """Remember that `base_url`'s provider disclosure was shown and accepted (idempotent)."""
+        pref = db_manager.find_by_attr(model_class=UserPreferences, attr_values={'user_id': user_id}, session=session)
+        if pref is None:
+            return []
+        seen = list(pref.provider_notices_seen or [])
+        if base_url not in seen:
+            seen.append(base_url)
+            pref.provider_notices_seen = seen
+            db_manager.modify(obj=pref, session=session, commit=False)
+        return seen
+
+    @transactional
     def update(
         self,
         id: str,

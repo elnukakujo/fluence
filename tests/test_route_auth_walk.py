@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from .auth_allowlist import AUTH_OPEN, SKIP_PREFIXES
+from auth_allowlist import AUTH_OPEN, SKIP_PREFIXES
 
 
 def _fill(rule: str) -> str:

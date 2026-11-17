@@ -1136,5 +1136,5 @@ def delete_job(job_id: str):
     if err:
         return err
     job_service.delete(job_id, current_user_id())
-    remove_job_files(current_app.config["MEDIA_ROOT"], job_id)
+    remove_job_files(current_app.config["MEDIA_ROOT"], job_id, job["file_path"])
     return "", 204

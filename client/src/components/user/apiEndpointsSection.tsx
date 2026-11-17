@@ -11,15 +11,18 @@ import { apiFetch } from "@/api/apiFetch";
 import { ApiEndpointConfig } from "@/interface/systemData/UserPreferences";
 import EmptyState from "@/components/ui/emptyState";
 import InlineError from "@/components/ui/inlineError";
+import { unseenProviders } from "./providerNotice";
 
 type EndpointTestResult = { ok: boolean; ms?: number; error?: string; available_models?: string[]; tts_ok?: boolean; text_gen_ok?: boolean; text_gen_error?: string; vision?: string };
 
 export default function ApiEndpointsSection({
   prefId,
   endpoints: initial,
+  noticesSeen = [],
 }: {
   prefId: string;
   endpoints: ApiEndpointConfig[];
+  noticesSeen?: string[];
 }) {
   const t = useTranslations("settingsAdmin.apiEndpoints");
   const [endpoints, setEndpoints] = useState<ApiEndpointConfig[]>(initial);
@@ -28,6 +31,8 @@ export default function ApiEndpointsSection({
   const [testResults, setTestResults] = useState<Record<number, EndpointTestResult | null>>({});
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
   const [providers, setProviders] = useState<ProviderOption[]>(FALLBACK_PROVIDERS);
+  const [seen, setSeen] = useState<string[]>(noticesSeen);
+  const [pendingNotice, setPendingNotice] = useState<{ urls: string[]; endpoints: ApiEndpointConfig[] } | null>(null);
   const [testingIdx, setTestingIdx] = useState<number | null>(null);
 
   useEffect(() => {
@@ -129,9 +134,27 @@ export default function ApiEndpointsSection({
     }
   };
 
+  // First use of a provider: say what it receives, and save only once the learner has read it.
+  const saveWithNotice = async (updated: ApiEndpointConfig[]) => {
+    const urls = unseenProviders(updated, seen);
+    if (urls.length) return setPendingNotice({ urls, endpoints: updated });
+    await persist(updated);
+  };
+
+  const acknowledgeNotice = async () => {
+    if (!pendingNotice) return;
+    const { urls, endpoints: updated } = pendingNotice;
+    setPendingNotice(null);
+    for (const base_url of urls) {
+      await apiFetch("/api/pref/notice", { method: "POST", body: { base_url }, errorMessage: t("errors.failedSave") });
+    }
+    setSeen([...seen, ...urls]);
+    await persist(updated);
+  };
+
   const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
-    await persist(endpoints);
+    await saveWithNotice(endpoints);
   };
 
   return (
@@ -190,6 +213,16 @@ export default function ApiEndpointsSection({
           </div>
         )}
       </form>
+
+      {pendingNotice && (
+        <ConfirmDialog
+          title={t("providerNotice.title")}
+          message={t("providerNotice.message", { urls: pendingNotice.urls.join(", ") })}
+          confirmLabel={t("providerNotice.confirm")}
+          onConfirm={acknowledgeNotice}
+          onCancel={() => setPendingNotice(null)}
+        />
+      )}
 
       {deleteIdx !== null && (
         <ConfirmDialog

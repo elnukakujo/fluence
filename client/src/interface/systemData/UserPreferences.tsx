@@ -25,6 +25,7 @@ export default interface UserPreferences {
     ai_tts_has_key?: boolean;
     ai_tts_model?: string;
     ai_endpoints?: ApiEndpointConfig[];
+    provider_notices_seen?: string[];
 }
 
 export type VocSidePattern =

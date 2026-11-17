@@ -5,7 +5,8 @@
     "learning": "Learning",
     "aiFeatures": "AI Features",
     "endpoints": "Endpoints",
-    "goals": "Study goals"
+    "goals": "Study goals",
+    "uploads": "Uploads"
   },
   "profile": {
     "title": "Profile",
@@ -84,5 +85,14 @@
   "sectionsAriaLabel": "Settings sections",
   "createAccountTagline": "Create your account to start learning.",
   "alreadyRegistered": "Already registered?",
-  "signInLink": "Sign in"
+  "signInLink": "Sign in",
+  "uploads": {
+    "title": "My uploads",
+    "description": "Documents you imported. Deleting one removes the file, its parsed copy and the import itself; words already added to your lessons stay.",
+    "empty": "No uploads.",
+    "delete": "Delete",
+    "confirm": "Delete “{name}”? This cannot be undone.",
+    "failedLoad": "Could not load your uploads",
+    "failedDelete": "Could not delete this upload"
+  }
 }

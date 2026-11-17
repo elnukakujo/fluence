@@ -5,7 +5,8 @@
     "learning": "Apprentissage",
     "aiFeatures": "IA",
     "endpoints": "Endpoints",
-    "goals": "Objectifs d'étude"
+    "goals": "Objectifs d'étude",
+    "uploads": "Imports"
   },
   "profile": {
     "title": "Profil",
@@ -84,5 +85,14 @@
   "sectionsAriaLabel": "Sections",
   "createAccountTagline": "Créez votre compte pour commencer à apprendre.",
   "alreadyRegistered": "Déjà inscrit ?",
-  "signInLink": "Se connecter"
+  "signInLink": "Se connecter",
+  "uploads": {
+    "title": "Mes imports",
+    "description": "Les documents que vous avez importés. Supprimer un import efface le fichier, sa copie analysée et l'import ; les mots déjà ajoutés à vos leçons restent.",
+    "empty": "Aucun import.",
+    "delete": "Supprimer",
+    "confirm": "Supprimer « {name} » ? Action irréversible.",
+    "failedLoad": "Impossible de charger vos imports",
+    "failedDelete": "Impossible de supprimer cet import"
+  }
 }

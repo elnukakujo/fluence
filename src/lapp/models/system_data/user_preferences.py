@@ -37,6 +37,8 @@ class UserPreferences(Base):
     # Multiple named API endpoints stored as JSON array of dicts:
     # [{"name": "Local Llama", "api_type": "text_gen", "base_url": "...", "api_key": "...", "model": "...", "is_active": true}, ...]
     ai_endpoints = Column(JSON, default=list)
+    # Base URLs whose one-time "this provider receives your text" notice the user has acknowledged.
+    provider_notices_seen = Column(JSON, default=list)
 
     # Foreign keys
     user_id = Column(String, ForeignKey('user.id'), nullable=False, unique=True)
@@ -79,6 +81,7 @@ class UserPreferences(Base):
             "ai_tts_api_base_url": self.ai_tts_api_base_url,
             "ai_tts_has_key": bool(self.ai_tts_api_key),
             "ai_tts_model": self.ai_tts_model,
+            "provider_notices_seen": self.provider_notices_seen or [],
             "ai_endpoints": [self._public_endpoint(e) for e in self.ai_endpoints or []],
         }
         if include_relations and self.user:

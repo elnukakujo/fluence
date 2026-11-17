@@ -78,7 +78,12 @@
     "deleteConfirm": "删除 \"{name}\" ？",
     "deleteSuccess": "端点已保存",
     "modelWarning": "请先输入基础 URL",
-    "unnamedEndpoint": "未命名端点"
+    "unnamedEndpoint": "未命名端点",
+    "providerNotice": {
+      "title": "使用此服务商之前",
+      "message": "这些端点会收到你为 AI 功能发送的文字和图片（你的词语、句子、上传的文档）：{urls}。它们不由 Fluence 运营，适用其自身的隐私条款。",
+      "confirm": "我已了解，保存"
+    }
   },
   "backups": {
     "title": "备份",

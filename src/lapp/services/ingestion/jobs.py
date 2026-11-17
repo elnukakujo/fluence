@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+import hashlib
 import shutil
 import time
 from pathlib import Path
@@ -128,7 +129,14 @@ class IngestionJobService:
         return [job_id for (job_id,) in rows]
 
 
-def remove_job_files(media_root: str | Path, job_id: str) -> None:
+def remove_job_files(media_root: str | Path, job_id: str, file_path: str | None = None) -> None:
+    """Delete the job folder and, when the uploaded file is given, its parse cache (keyed by the file's hash)."""
+    if file_path:
+        upload = Path(media_root) / file_path
+        if upload.is_file():
+            sha = hashlib.sha256(upload.read_bytes()).hexdigest()
+            for cached in (Path(media_root) / "parse_cache").glob(f"{sha}-*.json"):
+                cached.unlink(missing_ok=True)
     shutil.rmtree(job_dir(media_root, job_id), ignore_errors=True)
 
 
