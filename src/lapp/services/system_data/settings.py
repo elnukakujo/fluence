@@ -11,7 +11,7 @@ from ...models.system_data import CourseSetting, UserPreferences
 from ...utils.element_kinds import _KINDS
 from .presets import PRESETS
 
-ELEMENT_TYPES = ("vocabulary", "grammar", "characters", "calligraphy", "exercises", "passages")
+ELEMENT_TYPES = ("vocabulary", "grammar", "calligraphy", "exercises", "passages")      # characters and radicals are calligraphy cards
 LOCALES = ("en", "fr", "zh")
 
 

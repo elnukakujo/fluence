@@ -43,7 +43,6 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
             <SettingsSection id="learning" title={t("learning")} hint={t("learningHint")}>
                 <PaceBlock />
                 <StudyGoalsCard userId={user.id} />
-                <CourseSettings languages={languages} />
             </SettingsSection>
 
             <SettingsSection id="ai" title={t("ai")} hint={t("aiHint")}>
@@ -53,8 +52,9 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
             </SettingsSection>
 
             <SettingsSection id="study" title={t("study")} hint={t("studyHint")}>
-                <PreferencesSection preferences={preferences} />
+                <CourseSettings languages={languages} fold />
                 <AnswerBlock />
+                <PreferencesSection preferences={preferences} />
                 <SkillsSection />
             </SettingsSection>
 

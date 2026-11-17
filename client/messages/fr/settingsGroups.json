@@ -4,7 +4,7 @@
   "saveFailed": "Échec de l'enregistrement, réessayez",
   "saved": "Enregistré",
   "course": {
-    "title": "Par cours",
+    "title": "Ce cours",
     "description": "Ces réglages peuvent différer pour chaque langue étudiée.",
     "menu": "Cours",
     "none": "Ajoutez d'abord une langue."
@@ -13,7 +13,6 @@
   "options": {
     "vocabulary": "Vocabulaire",
     "grammar": "Grammaire",
-    "characters": "Caractères",
     "calligraphy": "Calligraphie",
     "exercises": "Exercices",
     "passages": "Textes",
@@ -38,8 +37,6 @@
     "new_per_weekDesc": "Combien de nouveaux mots, points de grammaire et caractères vous visez par semaine.",
     "reviews_per_day": "Révisions par jour",
     "reviews_per_dayDesc": "Combien d'éléments vous visez à réviser par jour.",
-    "weekly_goals_on": "Objectifs hebdomadaires",
-    "weekly_goals_onDesc": "Désactivé : votre révision se limite à la file du jour.",
     "soft_gate": "Suggérer d'abord les leçons précédentes",
     "soft_gateDesc": "Le nouveau contenu attend que la première leçon soit connue ; vous pouvez toujours passer outre.",
     "daily_goal_minutes": "Minutes d'étude par jour",
@@ -97,14 +94,14 @@
   },
   "presets": {
     "title": "Préréglages",
-    "description": "Un point de départ pour votre rythme. Les compétences ne changent pas.",
+    "description": "Un point de départ : touchez-en un pour régler votre rythme. Les compétences ne changent pas.",
     "casual": "Tranquille",
     "standard": "Standard",
     "intensive": "Intensif",
     "newPerWeek": "{n} nouveaux éléments par semaine",
     "reviewsPerDay": "{n} révisions par jour",
     "streakMin": "Jour de série : {n} réponses",
-    "apply": "Appliquer",
-    "failed": "Impossible d'appliquer ce préréglage"
+    "failed": "Impossible d'appliquer ce préréglage",
+    "applyNamed": "Appliquer le préréglage {name}"
   }
 }

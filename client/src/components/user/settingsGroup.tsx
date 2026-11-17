@@ -12,11 +12,14 @@ export type { Field } from "./fieldControl";
 
 /** The account-level fields of one settings group: loads them, edits them, and saves only what changed (saving one group never
  *  touches another). Labels come from `settingsGroups.<group>.<key>` / `<key>Desc`. Per-course settings live in `CourseSettings`. */
-export default function SettingsGroup({ group, fields, onSaved, extra, quiet = false, fold = false }: {
+export default function SettingsGroup({ group, fields, onSaved, extra, lead, quiet = false, fold = false, autosave = false, describe = true }: {
     group: GroupName;
     fields: Field[];
     onSaved?: (values: Record<string, SettingValue>) => void;
     extra?: React.ReactNode;
+    lead?: React.ReactNode;       // above the fields (e.g. the presets)
+    describe?: boolean;           // show the group's one-line description
+    autosave?: boolean;           // discrete controls only: each change is saved at once, no Save button
     quiet?: boolean;
     fold?: boolean;
 }) {
@@ -44,14 +47,16 @@ export default function SettingsGroup({ group, fields, onSaved, extra, quiet = f
 
     return (
         <SectionCard title={t("title")} quiet={quiet} fold={fold}>
-            <p className="text-sm text-muted">{t("description")}</p>
+            {describe && <p className="text-sm text-muted">{t("description")}</p>}
             {error && <InlineError>{error}</InlineError>}
             <form className="flex flex-col gap-1" onSubmit={(e) => { e.preventDefault(); save(Object.fromEntries(changed.map((k) => [k, draft[k]]))); }}>
+                {lead}
                 {fields.map((f) => (
-                    <FieldControl key={f.key} field={f} value={draft[f.key]} onChange={(v) => setDraft((d) => ({ ...d, [f.key]: v }))} disabled={saving} t={t} to={to} />
+                    <FieldControl key={f.key} field={f} value={draft[f.key]} disabled={saving} t={t} to={to}
+                        onChange={(v) => { setDraft((d) => ({ ...d, [f.key]: v })); if (autosave) save({ [f.key]: v }); }} />
                 ))}
                 {extra}
-                <div className="flex justify-end pt-3"><SaveButton isLoading={saving} onSuccessLabel={tc("saved")} /></div>
+                {autosave ? <p role="status" className="sr-only">{saving ? tc("loading") : ""}</p> : <div className="flex justify-end pt-3"><SaveButton isLoading={saving} onSuccessLabel={tc("saved")} /></div>}
             </form>
         </SectionCard>
     );

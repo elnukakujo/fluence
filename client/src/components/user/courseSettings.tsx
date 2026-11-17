@@ -13,16 +13,15 @@ export type CourseLanguage = { id: string; name: string };
 
 // The per-course settings of the four groups, in one place with one course menu and one Save.
 const COURSE_FIELDS: { group: GroupName; field: Field }[] = [
-    { group: "pace", field: { key: "weekly_goals_on", kind: "toggle" } },
     { group: "pace", field: { key: "soft_gate", kind: "toggle" } },
-    { group: "review", field: { key: "element_types", kind: "multi", options: ["vocabulary", "grammar", "characters", "calligraphy", "exercises", "passages"] } },
+    { group: "review", field: { key: "element_types", kind: "multi", options: ["vocabulary", "grammar", "calligraphy", "exercises", "passages"] } },
     { group: "review", field: { key: "include_shared", kind: "toggle" } },
     { group: "answer", field: { key: "typing_strictness", kind: "choice", options: ["forgiving", "exact"] } },
     { group: "see", field: { key: "show_phonetics", kind: "choice", options: ["always", "after_reveal", "never"] } },
 ];
 
-/** Settings that differ per course (weekly goals, lesson gate, shared lessons, element types, typing, phonetics). One course menu for all. */
-export default function CourseSettings({ languages, fold = true }: { languages: CourseLanguage[]; fold?: boolean }) {
+/** Settings that differ per course (lesson gate, element types, shared lessons, typing, phonetics). One course menu for all. */
+export default function CourseSettings({ languages, fold = false }: { languages: CourseLanguage[]; fold?: boolean }) {
     const tc = useTranslations("settingsGroups");
     const to = useTranslations("settingsGroups.options");
     const tp = useTranslations("settingsGroups.pace");

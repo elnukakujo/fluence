@@ -110,7 +110,7 @@
     "ai": "IA",
     "aiHint": "Connectez votre propre service d'IA ; rien n'est fourni.",
     "study": "Détails d'étude",
-    "studyHint": "Rarement modifiés : plan de révision, réponses, compétences.",
+    "studyHint": "Rarement modifiés : ce cours, réponses, plan de révision, compétences.",
     "admin": "Administration"
   }
 }

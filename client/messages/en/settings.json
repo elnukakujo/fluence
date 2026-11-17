@@ -110,7 +110,7 @@
     "ai": "AI",
     "aiHint": "Connect your own AI service; nothing is bundled.",
     "study": "Study details",
-    "studyHint": "Rarely changed: review plan, answering, skills.",
+    "studyHint": "Rarely changed: this course, answering, review plan, skills.",
     "admin": "Admin"
   }
 }

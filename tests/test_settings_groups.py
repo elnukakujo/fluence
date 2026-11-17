@@ -60,6 +60,12 @@ def test_invalid_values_change_nothing(app, db):
     assert _put(c, "see", {"interface_language": "fr"}).status_code == 200
 
 
+def test_characters_and_radicals_are_calligraphy_not_an_element_type(app, db):
+    c = _client(app, db)
+    assert _put(c, "review", {"element_types": ["vocabulary", "characters"]}, language_id="lang_L1").status_code == 400
+    assert _put(c, "review", {"element_types": ["vocabulary", "calligraphy"]}, language_id="lang_L1").status_code == 200
+
+
 def test_skills_are_validated_per_kind(app, db):
     c = _client(app, db)
     assert _put(c, "skills", {"enabled_skills": {"Vocabulary": ["recall"]}}).status_code == 200

@@ -4,7 +4,7 @@
   "saveFailed": "Could not save, try again",
   "saved": "Saved",
   "course": {
-    "title": "Per course",
+    "title": "This course",
     "description": "These settings can differ for each language you study.",
     "menu": "Course",
     "none": "Add a language first."
@@ -13,7 +13,6 @@
   "options": {
     "vocabulary": "Vocabulary",
     "grammar": "Grammar",
-    "characters": "Characters",
     "calligraphy": "Calligraphy",
     "exercises": "Exercises",
     "passages": "Passages",
@@ -38,8 +37,6 @@
     "new_per_weekDesc": "How many new words, grammar points and characters you aim to start each week.",
     "reviews_per_day": "Reviews per day",
     "reviews_per_dayDesc": "How many items you aim to review each day.",
-    "weekly_goals_on": "Weekly study goals",
-    "weekly_goals_onDesc": "Off: your review is only the daily queue.",
     "soft_gate": "Suggest earlier lessons first",
     "soft_gateDesc": "New material waits until the first lesson is known; you can always override.",
     "daily_goal_minutes": "Daily study minutes",
@@ -97,14 +94,14 @@
   },
   "presets": {
     "title": "Presets",
-    "description": "A starting point for your pace. Skills are not changed.",
+    "description": "A starting point: tap one to fill your pace. Skills are not changed.",
     "casual": "Casual",
     "standard": "Standard",
     "intensive": "Intensive",
     "newPerWeek": "{n} new items per week",
     "reviewsPerDay": "{n} reviews per day",
     "streakMin": "Streak day: {n} answers",
-    "apply": "Apply",
-    "failed": "Could not apply this preset"
+    "failed": "Could not apply this preset",
+    "applyNamed": "Apply the {name} preset"
   }
 }

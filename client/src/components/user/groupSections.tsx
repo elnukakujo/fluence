@@ -1,43 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import SettingsGroup from "./settingsGroup";
 import PresetPicker from "./presetPicker";
-import { LOCALE_COOKIE } from "@/i18n/locales";
+import { setThemeCookie } from "./theme";
 
-/** Learning pace: the presets set the streak minimum (and the new/reviews numbers they carry); the form re-reads after one is applied. */
+/** Learning pace: daily minutes and streak minimum, with the presets as the quick way to fill them (applied at once; the form re-reads). */
 export function PaceBlock() {
     const [version, setVersion] = useState(0);
     return (
-        <div className="flex flex-col gap-5">
-            <SettingsGroup key={version} group="pace" fields={[
+        <SettingsGroup key={version} group="pace" quiet describe={false}
+            lead={<PresetPicker onApplied={() => setVersion((v) => v + 1)} />}
+            fields={[
                 { key: "daily_goal_minutes", kind: "number", min: 5, max: 60, step: 5 },
                 { key: "streak_min_answers", kind: "number", min: 1, max: 1000 },
             ]} />
-            <PresetPicker onApplied={() => setVersion((v) => v + 1)} />
-        </div>
     );
 }
 
-/** Appearance: interface language and theme live on the account; the browser gets a cookie so the server renders them. */
+/** Appearance: theme (kept on the account, mirrored in a cookie so the server renders it) and the score after each answer. Saved as you
+ *  pick, no button. The interface language stays in the top bar. */
 export function AppearanceBlock() {
-    const router = useRouter();
     return (
-        <SettingsGroup group="see" fields={[
-            { key: "interface_language", kind: "choice", options: ["en", "fr", "zh"] },
-            { key: "theme", kind: "choice", options: ["system", "light", "dark"] },
-            { key: "show_scores", kind: "toggle" },
-        ]} onSaved={(values) => {
-            const secure = "path=/; max-age=31536000; samesite=lax";
-            if (typeof values.interface_language === "string") document.cookie = `${LOCALE_COOKIE}=${values.interface_language}; ${secure}`;
-            if (typeof values.theme === "string") document.cookie = values.theme === "system" ? "theme=; path=/; max-age=0" : `theme=${values.theme}; ${secure}`;
-            if ("interface_language" in values || "theme" in values) router.refresh();
-        }} />
+        <SettingsGroup group="see" autosave quiet describe={false} fields={[{ key: "theme", kind: "choice", options: ["system", "light", "dark"] }, { key: "show_scores", kind: "toggle" }]}
+            onSaved={(values) => { if (typeof values.theme === "string") setThemeCookie(values.theme); }} />
     );
 }
 
-/** How I answer (account-wide). */
+/** How I answer (account-wide): hints, retries, drawing and audio. */
 export const AnswerBlock = () => (
     <SettingsGroup group="answer" fold fields={[
         { key: "hints_enabled", kind: "toggle" },

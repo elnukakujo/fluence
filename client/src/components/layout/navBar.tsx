@@ -89,7 +89,7 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 
 					{currentUserId && <InboxBadge />}
 					{currentUserId && <ImportsIndicator />}
-					{!currentUserId && <LocaleSwitcher currentUserId={currentUserId} />}   {/* signed in: the interface language is a setting (Settings, What I see) */}
+					<LocaleSwitcher currentUserId={currentUserId} />
 					{currentUserId && <AccountMenu userId={currentUserId} />}
 				</div>
 

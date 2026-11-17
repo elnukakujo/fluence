@@ -4,7 +4,7 @@
   "saveFailed": "保存失败，请重试",
   "saved": "已保存",
   "course": {
-    "title": "按课程",
+    "title": "此课程",
     "description": "这些设置可以因所学语言而异。",
     "menu": "课程",
     "none": "请先添加一门语言。"
@@ -13,7 +13,6 @@
   "options": {
     "vocabulary": "词汇",
     "grammar": "语法",
-    "characters": "汉字",
     "calligraphy": "书法",
     "exercises": "练习",
     "passages": "文章",
@@ -38,8 +37,6 @@
     "new_per_weekDesc": "每周计划开始学习的新词、语法点和汉字数量。",
     "reviews_per_day": "每日复习数",
     "reviews_per_dayDesc": "每天计划复习的内容数量。",
-    "weekly_goals_on": "每周学习目标",
-    "weekly_goals_onDesc": "关闭后，复习只包含每日队列。",
     "soft_gate": "优先建议前面的课",
     "soft_gateDesc": "在第一课掌握之前，新内容会等待；你随时可以跳过。",
     "daily_goal_minutes": "每日学习分钟数",
@@ -97,14 +94,14 @@
   },
   "presets": {
     "title": "预设",
-    "description": "作为节奏的起点。技能不会改变。",
+    "description": "一个起点：点一下即可设置节奏。技能不会改变。",
     "casual": "轻松",
     "standard": "标准",
     "intensive": "强化",
     "newPerWeek": "每周 {n} 个新内容",
     "reviewsPerDay": "每天 {n} 次复习",
     "streakMin": "连续天数：{n} 次答题",
-    "apply": "应用",
-    "failed": "无法应用此预设"
+    "failed": "无法应用此预设",
+    "applyNamed": "应用“{name}”预设"
   }
 }
