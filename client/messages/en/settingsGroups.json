@@ -3,7 +3,12 @@
   "loadFailed": "Could not load these settings",
   "saveFailed": "Could not save, try again",
   "saved": "Saved",
-  "course": "Course",
+  "course": {
+    "title": "Per course",
+    "description": "These settings can differ for each language you study.",
+    "menu": "Course",
+    "none": "Add a language first."
+  },
   "resetToDefault": "Use the default",
   "options": {
     "vocabulary": "Vocabulary",
@@ -36,7 +41,9 @@
     "weekly_goals_on": "Weekly study goals",
     "weekly_goals_onDesc": "Off: your review is only the daily queue.",
     "soft_gate": "Suggest earlier lessons first",
-    "soft_gateDesc": "New material waits until the first lesson is known; you can always override."
+    "soft_gateDesc": "New material waits until the first lesson is known; you can always override.",
+    "daily_goal_minutes": "Daily study minutes",
+    "daily_goal_minutesDesc": "How long you want to study each day (5 to 60). Your daily review and study goals adapt to it."
   },
   "review": {
     "title": "What I review",
@@ -63,7 +70,7 @@
     "typing_strictnessDesc": "Whether accents and case must match exactly, for this course."
   },
   "see": {
-    "title": "What I see",
+    "title": "Appearance",
     "description": "Scores, phonetics, interface language and theme.",
     "show_scores": "Show the score after each answer",
     "show_scoresDesc": "Off by default: scores are hidden after exercises.",

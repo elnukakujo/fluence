@@ -3,7 +3,12 @@
   "loadFailed": "Impossible de charger ces réglages",
   "saveFailed": "Échec de l'enregistrement, réessayez",
   "saved": "Enregistré",
-  "course": "Cours",
+  "course": {
+    "title": "Par cours",
+    "description": "Ces réglages peuvent différer pour chaque langue étudiée.",
+    "menu": "Cours",
+    "none": "Ajoutez d'abord une langue."
+  },
   "resetToDefault": "Utiliser la valeur par défaut",
   "options": {
     "vocabulary": "Vocabulaire",
@@ -36,7 +41,9 @@
     "weekly_goals_on": "Objectifs hebdomadaires",
     "weekly_goals_onDesc": "Désactivé : votre révision se limite à la file du jour.",
     "soft_gate": "Suggérer d'abord les leçons précédentes",
-    "soft_gateDesc": "Le nouveau contenu attend que la première leçon soit connue ; vous pouvez toujours passer outre."
+    "soft_gateDesc": "Le nouveau contenu attend que la première leçon soit connue ; vous pouvez toujours passer outre.",
+    "daily_goal_minutes": "Minutes d'étude par jour",
+    "daily_goal_minutesDesc": "Combien de temps vous voulez étudier chaque jour (5 à 60). La révision du jour et les objectifs s'y adaptent."
   },
   "review": {
     "title": "Ce que je révise",
@@ -63,7 +70,7 @@
     "typing_strictnessDesc": "Si les accents et la casse doivent correspondre exactement, pour ce cours."
   },
   "see": {
-    "title": "Ce que je vois",
+    "title": "Apparence",
     "description": "Scores, phonétique, langue de l'interface et thème.",
     "show_scores": "Afficher le score après chaque réponse",
     "show_scoresDesc": "Désactivé par défaut : les scores sont masqués après les exercices.",

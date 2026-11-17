@@ -41,7 +41,7 @@ export default function SkillsSection() {
 
     if (!options) return <SectionCard title={t("title")}>{error ? <InlineError>{error}</InlineError> : <p role="status">{tc("loading")}</p>}</SectionCard>;
     return (
-        <SectionCard title={t("title")}>
+        <SectionCard title={t("title")} fold>
             <p className="text-sm text-muted">{t("description")}</p>
             {error && <InlineError>{error}</InlineError>}
             <form onSubmit={save} className="flex flex-col gap-3">

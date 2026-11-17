@@ -2,7 +2,8 @@
   "sidebar": {
     "users": "Users",
     "backups": "Backups",
-    "logs": "Logs"
+    "logs": "Logs",
+    "admin": "Admin"
   },
   "apiEndpoints": {
     "title": "API Endpoints",

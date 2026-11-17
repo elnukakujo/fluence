@@ -11,7 +11,9 @@
     "review": "复习内容",
     "answer": "答题方式",
     "see": "显示",
-    "skills": "技能"
+    "skills": "技能",
+    "ai": "AI",
+    "study": "学习细节"
   },
   "profile": {
     "title": "个人资料",
@@ -51,7 +53,7 @@
     }
   },
   "preferences": {
-    "title": "学习偏好",
+    "title": "复习计划与搭配",
     "nativeLanguages": "母语",
     "dailyGoal": "每日目标",
     "dailyGoalUnit": "分钟 / 天",
@@ -100,5 +102,15 @@
     "confirm": "删除“{name}”？此操作无法撤销。",
     "failedLoad": "无法加载你的上传",
     "failedDelete": "无法删除此上传"
+  },
+  "sections": {
+    "profile": "个人资料",
+    "learning": "学习",
+    "learningHint": "学习多少，以及怎么学。",
+    "ai": "AI",
+    "aiHint": "连接你自己的 AI 服务；应用不内置任何服务。",
+    "study": "学习细节",
+    "studyHint": "很少修改：复习计划、答题方式、技能。",
+    "admin": "管理"
   }
 }

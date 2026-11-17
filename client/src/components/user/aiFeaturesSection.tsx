@@ -6,23 +6,16 @@ import SectionCard from "@/components/ui/sectionCard";
 import ToggleRow from "./toggleRow";
 import SaveButton from "./saveButton";
 import { updateUserPreferences } from "@/api/userPreferences";
-import { AlertTriangle } from "lucide-react";
 import UserPreferences from "@/interface/systemData/UserPreferences";
 import DisabledReason from "@/components/ui/displays/disabledReason";
 import { useCapability } from "@/hooks/useCapability";
 
-const DEFAULTS: Record<string, boolean> = {
-  feedback: true, learnable: true, example: true, word: true, tts: true,
-};
-
 export default function AiFeaturesSection({
   prefId,
   preferences,
-  hasEndpoints,
 }: {
   prefId: string;
   preferences: Partial<UserPreferences>;
-  hasEndpoints: boolean;
 }) {
   const t = useTranslations("settings.aiFeatures");
   const [toggles, setToggles] = useState({
@@ -43,7 +36,9 @@ export default function AiFeaturesSection({
     { key: "tts", label: t("tts"), desc: t("ttsDesc") },
   ] as const;
 
-  const anyEnabled = Object.values(toggles).some(Boolean);
+  // each distinct reason once, above the switches
+  const reasons = Object.values(caps).filter((c) => !c.loading && !c.enabled && c.reason && c.needs !== "switch")
+    .filter((c, i, all) => all.findIndex((o) => o.reason === c.reason) === i);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,20 +68,7 @@ export default function AiFeaturesSection({
 
   return (
     <SectionCard title={t("title")}>
-      <p className="text-sm opacity-60">
-        {t("description")}
-      </p>
-
-      {anyEnabled && !hasEndpoints && (
-        <div
-          className="flex items-center gap-2 text-sm rounded-lg p-3"
-          style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
-          role="alert"
-        >
-          <AlertTriangle size={16} aria-hidden="true" />
-          <span>{t("enabledNoEndpoint")}</span>
-        </div>
-      )}
+      {reasons.map((r) => <DisabledReason key={r.reason} capability={r} linkLabel={t("openEndpoints")} settingsHref="#ai" />)}
 
       <form onSubmit={handleSave} className="flex flex-col gap-1">
         {FEATURES.map(({ key, label, desc }) => (
@@ -98,7 +80,6 @@ export default function AiFeaturesSection({
               onChange={(v) => setToggles((t) => ({ ...t, [key]: v }))}
               disabled={saving}
             />
-            {!caps[key].loading && <DisabledReason capability={caps[key]} linkLabel={t("openEndpoints")} settingsHref="#api-endpoints" />}
           </div>
         ))}
 

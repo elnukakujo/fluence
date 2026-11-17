@@ -31,7 +31,7 @@ export default function UploadsSection() {
   };
 
   return (
-    <SectionCard title={t("title")}>
+    <SectionCard title={t("title")} fold>
       <p className="text-sm opacity-70">{t("description")}</p>
       {error && <InlineError>{error}</InlineError>}
       {jobs.length === 0 ? (

@@ -3,7 +3,12 @@
   "loadFailed": "无法加载这些设置",
   "saveFailed": "保存失败，请重试",
   "saved": "已保存",
-  "course": "课程",
+  "course": {
+    "title": "按课程",
+    "description": "这些设置可以因所学语言而异。",
+    "menu": "课程",
+    "none": "请先添加一门语言。"
+  },
   "resetToDefault": "使用默认值",
   "options": {
     "vocabulary": "词汇",
@@ -36,7 +41,9 @@
     "weekly_goals_on": "每周学习目标",
     "weekly_goals_onDesc": "关闭后，复习只包含每日队列。",
     "soft_gate": "优先建议前面的课",
-    "soft_gateDesc": "在第一课掌握之前，新内容会等待；你随时可以跳过。"
+    "soft_gateDesc": "在第一课掌握之前，新内容会等待；你随时可以跳过。",
+    "daily_goal_minutes": "每日学习分钟数",
+    "daily_goal_minutesDesc": "你每天想学习多久（5 到 60）。每日复习和学习目标会据此调整。"
   },
   "review": {
     "title": "我要复习的内容",
@@ -63,7 +70,7 @@
     "typing_strictnessDesc": "此课程中重音和大小写是否必须完全一致。"
   },
   "see": {
-    "title": "显示",
+    "title": "外观",
     "description": "分数、注音、界面语言和主题。",
     "show_scores": "每次答题后显示分数",
     "show_scoresDesc": "默认关闭：练习后不显示分数。",

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import presets from "@/shared/presets.json";
 import { applyPreset } from "@/api/settings";
 import InlineError from "@/components/ui/inlineError";
+import SectionCard from "@/components/ui/sectionCard";
 
 /** Casual / Standard / Intensive: pace only (new per week, reviews per day, streak minimum). Each shows its three numbers. */
 export default function PresetPicker({ onApplied }: { onApplied?: () => void }) {
@@ -18,11 +19,10 @@ export default function PresetPicker({ onApplied }: { onApplied?: () => void }) 
     };
 
     return (
-        <div className="flex flex-col gap-2">
-            <h3>{t("title")}</h3>
+        <SectionCard title={t("title")} fold>
             <p className="text-sm text-muted">{t("description")}</p>
             {error && <InlineError>{error}</InlineError>}
-            <ul className="grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-3">
+            <ul className="grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-3 pl-0">
                 {Object.entries(presets).map(([name, p]) => (
                     <li key={name} className="card flex flex-col gap-1">
                         <strong>{t(name)}</strong>
@@ -33,6 +33,6 @@ export default function PresetPicker({ onApplied }: { onApplied?: () => void }) 
                     </li>
                 ))}
             </ul>
-        </div>
+        </SectionCard>
     );
 }

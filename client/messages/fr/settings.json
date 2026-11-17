@@ -11,7 +11,9 @@
     "review": "Ce que je révise",
     "answer": "Ma façon de répondre",
     "see": "Ce que je vois",
-    "skills": "Compétences"
+    "skills": "Compétences",
+    "ai": "IA",
+    "study": "Détails d'étude"
   },
   "profile": {
     "title": "Profil",
@@ -51,7 +53,7 @@
     }
   },
   "preferences": {
-    "title": "Apprentissage",
+    "title": "Plan et mélange de révision",
     "nativeLanguages": "Langues maternelles",
     "dailyGoal": "Objectif quotidien",
     "dailyGoalUnit": "min / jour",
@@ -100,5 +102,15 @@
     "confirm": "Supprimer « {name} » ? Action irréversible.",
     "failedLoad": "Impossible de charger vos imports",
     "failedDelete": "Impossible de supprimer cet import"
+  },
+  "sections": {
+    "profile": "Profil",
+    "learning": "Apprentissage",
+    "learningHint": "Combien vous étudiez, et comment.",
+    "ai": "IA",
+    "aiHint": "Connectez votre propre service d'IA ; rien n'est fourni.",
+    "study": "Détails d'étude",
+    "studyHint": "Rarement modifiés : plan de révision, réponses, compétences.",
+    "admin": "Administration"
   }
 }

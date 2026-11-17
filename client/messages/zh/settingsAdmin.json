@@ -2,7 +2,8 @@
   "sidebar": {
     "users": "用户",
     "backups": "备份",
-    "logs": "日志"
+    "logs": "日志",
+    "admin": "管理"
   },
   "apiEndpoints": {
     "title": "API 端点",

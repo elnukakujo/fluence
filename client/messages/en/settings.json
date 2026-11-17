@@ -11,7 +11,9 @@
     "review": "What I review",
     "answer": "How I answer",
     "see": "What I see",
-    "skills": "Skills"
+    "skills": "Skills",
+    "ai": "AI",
+    "study": "Study details"
   },
   "profile": {
     "title": "Profile",
@@ -51,7 +53,7 @@
     }
   },
   "preferences": {
-    "title": "Learning Preferences",
+    "title": "Review plan and mix",
     "nativeLanguages": "Native Languages",
     "dailyGoal": "Daily Goal",
     "dailyGoalUnit": "min / day",
@@ -100,5 +102,15 @@
     "confirm": "Delete “{name}”? This cannot be undone.",
     "failedLoad": "Could not load your uploads",
     "failedDelete": "Could not delete this upload"
+  },
+  "sections": {
+    "profile": "Profile",
+    "learning": "Learning",
+    "learningHint": "How much you study, and how.",
+    "ai": "AI",
+    "aiHint": "Connect your own AI service; nothing is bundled.",
+    "study": "Study details",
+    "studyHint": "Rarely changed: review plan, answering, skills.",
+    "admin": "Admin"
   }
 }
