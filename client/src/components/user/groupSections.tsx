@@ -22,7 +22,7 @@ export function PaceBlock() {
  *  pick, no button. The interface language stays in the top bar. */
 export function AppearanceBlock() {
     return (
-        <SettingsGroup group="see" autosave quiet describe={false} fields={[{ key: "theme", kind: "choice", options: ["system", "light", "dark"] }, { key: "show_scores", kind: "toggle" }]}
+        <SettingsGroup group="see" autosave quiet describe={false} fields={[{ key: "theme", kind: "theme" }, { key: "show_scores", kind: "toggle" }]}
             onSaved={(values) => { if (typeof values.theme === "string") setThemeCookie(values.theme); }} />
     );
 }

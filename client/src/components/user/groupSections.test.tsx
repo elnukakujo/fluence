@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnswerBlock, AppearanceBlock, PaceBlock } from "./groupSections";
@@ -83,7 +83,7 @@ describe("settings blocks", () => {
         api.getSettingsGroup.mockResolvedValue(group({ theme: "system", show_scores: false }));
         api.saveSettingsGroup.mockResolvedValue(group({ theme: "dark", show_scores: false }));
         render(<AppearanceBlock />);
-        await pick(await screen.findByRole("combobox", { name: "Theme" }), "Dark");
+        fireEvent.click(await screen.findByRole("button", { name: "Dark" }));
         await waitFor(() => expect(api.saveSettingsGroup).toHaveBeenCalledWith("see", { theme: "dark" }));
         expect(screen.queryByRole("button", { name: /save/i })).toBeNull();
     });
