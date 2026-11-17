@@ -6,6 +6,7 @@ from ...services.system_data import ScoreService
 from ...schemas import GrammarDict
 from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...utils.request import parse_json
 
 bp = Blueprint('grammar', __name__, url_prefix='/api/grammar')
 grammar_service = GrammarService()
@@ -180,7 +181,7 @@ def create_grammar():
     """
     try:
         # Validate request data
-        data = GrammarDict(**request.json)
+        data = parse_json(GrammarDict)
         require_write(data.lesson_id)
 
         # Create grammar
@@ -289,7 +290,7 @@ def update_grammar(grammar_id: str):
     """
     try:
         require_write(grammar_id)
-        data = GrammarDict(**request.json)
+        data = parse_json(GrammarDict)
 
         grammar = grammar_service.update(grammar_id, data, as_dict=True)
         

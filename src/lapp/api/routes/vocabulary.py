@@ -9,6 +9,7 @@ from ...schemas.features import VocabularyDict
 from ...core.exceptions import DuplicateEntityError
 from ..answer import answered
 from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...utils.request import parse_json
 
 bp = Blueprint('vocabulary', __name__, url_prefix='/api/vocabulary')
 vocabulary_service = VocabularyService()
@@ -212,7 +213,7 @@ def create_vocabulary():
         # Validate request data
         logger.debug(f"Received request data for creating vocabulary: {request.json}")
         on_conflict = request.json.pop('on_conflict', None) if request.json else None
-        data = VocabularyDict(**request.json)
+        data = parse_json(VocabularyDict)
         require_write(data.lesson_id)
         logger.debug(f"Validated data for creating vocabulary: {data}")
 
@@ -349,7 +350,7 @@ def update_vocabulary(vocabulary_id: str):
     """
     try:
         require_write(vocabulary_id)
-        data = VocabularyDict(**(request.get_json() or {}))
+        data = parse_json(VocabularyDict)
 
         vocabulary = vocabulary_service.update(
             vocabulary_id,

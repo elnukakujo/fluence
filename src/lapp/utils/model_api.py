@@ -9,6 +9,7 @@ A task is skipped when a user hasn't configured one.
 """
 import base64
 import logging
+import re
 import time
 import os
 import struct
@@ -16,6 +17,7 @@ import struct
 import httpx
 
 from .llm_providers import auth_headers
+from .url_guard import check_endpoint_url
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,16 @@ def _client(base_url: str, headers: dict) -> httpx.Client:
     Proxies can't route to LAN addresses like 192.168.x.x — this caused
     [Errno 65] No route to host for local LLM servers.
     """
+    check_endpoint_url(base_url)          # S8: never the metadata service or link-local addresses
     return httpx.Client(base_url=base_url, headers=headers, timeout=_TIMEOUT_SECONDS, trust_env=False)
+
+
+_SECRET_PARAM = re.compile(r"([?&](?:key|api_key|apikey|token|access_token)=)[^&\s'\"]+", re.IGNORECASE)
+
+
+def redact(text: str) -> str:
+    """Hide key-like query parameters (Google-style `?key=`) in a URL or in an error text that contains one."""
+    return _SECRET_PARAM.sub(r"\1***", text or "")
 
 
 class ModelAPIError(Exception):
@@ -56,9 +67,9 @@ class ModelAPIError(Exception):
     def __init__(self, kind: str, status: int | None, message: str, url: str = ""):
         self.kind = kind
         self.status = status
-        self.message = message
-        self.url = url
-        super().__init__(message)
+        self.message = redact(message)
+        self.url = redact(url)
+        super().__init__(self.message)
 
     @classmethod
     def from_httpx(cls, exc: httpx.HTTPStatusError) -> "ModelAPIError":

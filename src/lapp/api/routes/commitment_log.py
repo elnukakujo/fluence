@@ -32,7 +32,7 @@ def get_commitment_log_by_id(commitment_log_id: str):
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error fetching commitment log by id: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 
 @commitment_log_bp.route('/user/<user_id>/language/<language_id>', methods=['GET'])
@@ -51,7 +51,7 @@ def get_commitment_log_for_user_language(user_id: str, language_id: str):
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error fetching commitment log for user/language: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 
 @commitment_log_bp.route('/user/<user_id>', methods=['GET'])
@@ -66,4 +66,4 @@ def get_all_commitment_logs_for_user(user_id: str):
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error fetching commitment logs for user: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'An unexpected error occurred'}), 500

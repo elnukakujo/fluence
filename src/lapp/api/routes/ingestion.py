@@ -774,7 +774,7 @@ def accept_lesson(job_id: str, index: int):
                 state.update(result=_accept_work(job, index, lesson, title, items, elements, media_root, tick), state="done", done=state["total"])
             except Exception as e:   # reported to the poller; the transaction rolled back, so nothing half-added
                 logger.exception("Adding lesson %s of %s failed", index, job_id)
-                state.update(state="failed", error=getattr(e, "description", None) or str(e) or "Could not add this lesson")
+                state.update(state="failed", error=getattr(e, "description", None) or 'An unexpected error occurred' or "Could not add this lesson")
 
     threading.Thread(target=run, daemon=True).start()   # ponytail: in-process state, a multi-worker deployment needs a shared store
     return jsonify({k: state[k] for k in ("state", "done", "total")}), 202

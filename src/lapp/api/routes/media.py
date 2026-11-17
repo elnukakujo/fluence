@@ -134,7 +134,7 @@ def upload_image():
             
     except Exception as e:
         logger.error(f"Image upload error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/upload/audio', methods=['POST'])
@@ -203,7 +203,7 @@ def upload_audio():
             
     except Exception as e:
         logger.error(f"Audio upload error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/delete/', methods=['DELETE'])
@@ -265,7 +265,7 @@ def delete_media():
         
     except Exception as e:
         logger.error(f"Delete media error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/info/<path:filename>', methods=['GET'])
@@ -303,4 +303,4 @@ def media_info(filename: str):
         raise
     except Exception as e:
         logger.error(f"Media info error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500

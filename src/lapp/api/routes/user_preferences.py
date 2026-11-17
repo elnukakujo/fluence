@@ -7,6 +7,7 @@ from ...schemas.system_data import UserPreferencesDict
 from ...services.system_data import UserPreferencesService
 from ...services.features import StudyGoalService
 from ...core.auth import login_required, require_owns, current_user_id
+from ...utils.request import parse_json
 user_preferences_service = UserPreferencesService()
 
 bp = Blueprint('user_preferences', __name__, url_prefix='/api/pref')
@@ -78,7 +79,7 @@ def create_user_preferences():
     """
     try:
         # Validate request data
-        data = UserPreferencesDict(**request.json)
+        data = parse_json(UserPreferencesDict)
         data.user_id = current_user_id()
 
         # Create user
@@ -148,7 +149,7 @@ def update_user_preferences(pref_id: str):
     """
     try:
         require_owns(pref_id)
-        data = UserPreferencesDict(**request.json)
+        data = parse_json(UserPreferencesDict)
 
         pref = user_preferences_service.update(pref_id, data, as_dict=True)
 
@@ -377,6 +378,12 @@ def _run_endpoint_test():
     base_url = (body.get("base_url") or "").strip()
     if not base_url:
         return jsonify({"ok": False, "error": "No base URL provided"}), 400
+
+    try:
+        from ...utils.url_guard import check_endpoint_url
+        check_endpoint_url(base_url)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
 
     model = (body.get("model") or "").strip()
     api_key = body.get("api_key") or ""

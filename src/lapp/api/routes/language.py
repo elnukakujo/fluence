@@ -7,6 +7,7 @@ from ...services import LanguageService
 from ...services.system_data import CollaborationService, LessonShareService, ScoreService
 from ...schemas.containers import LanguageDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...utils.request import parse_json
 
 bp = Blueprint('language', __name__, url_prefix='/api/languages')
 language_service = LanguageService()
@@ -154,7 +155,7 @@ def create_language():
     """
     try:
         # Validate request data
-        data = LanguageDict(**request.json)
+        data = parse_json(LanguageDict)
         data.user_id = current_user_id()
 
         # Create language
@@ -237,7 +238,7 @@ def update_language(language_id: str):
     """
     try:
         require_write(language_id)
-        data = LanguageDict(**request.json)
+        data = parse_json(LanguageDict)
 
         language = language_service.update(language_id, data, as_dict=True)
         

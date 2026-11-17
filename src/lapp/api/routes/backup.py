@@ -71,7 +71,7 @@ def create_backup():
         logger.error(f"Backup creation error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
@@ -155,7 +155,7 @@ def restore_backup():
         logger.error(f"Restore error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
@@ -229,7 +229,7 @@ def list_backups():
         logger.error(f"List backups error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
@@ -291,7 +291,7 @@ def backup_info():
         logger.error(f"Backup info error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
@@ -421,7 +421,7 @@ def delete_backup(backup_file: str):
         logger.error(f"Delete backup error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500
 
 
@@ -477,5 +477,5 @@ def cleanup_old_backups():
         logger.error(f"Cleanup error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred'
         }), 500

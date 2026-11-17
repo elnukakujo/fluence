@@ -5,6 +5,7 @@ from ...services import LessonService
 from ...services.system_data import ScoreService, LessonShareService, CollaborationService
 from ...schemas.containers import LessonDict
 from ...core.auth import login_required, require_owns, require_write, current_user_id, owner_user_id
+from ...utils.request import parse_json
 
 bp = Blueprint('lesson', __name__, url_prefix='/api/lessons')
 lesson_service = LessonService()
@@ -123,7 +124,7 @@ def create_lesson():
     """
     try:
         # Validate request data
-        data = LessonDict(**request.json)
+        data = parse_json(LessonDict)
         require_write(data.language_id)
         # A lesson belongs to its language's owner (a collaborator adds to the master's course);
         # never the model default "user_U0".
@@ -186,7 +187,7 @@ def update_lesson(lesson_id: str):
     """
     try:
         require_write(lesson_id)
-        data = LessonDict(**request.json)
+        data = parse_json(LessonDict)
 
         lesson = lesson_service.update(lesson_id, data, as_dict=True)
         
