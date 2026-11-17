@@ -19,15 +19,16 @@ export default function LanguageOverviewCard({ language, summary }: { language: 
 
     return (
         <article className="card lang-card">
-            <header className="flex flex-col gap-1">
+            <header className="flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-serif text-lg text-ink line-clamp-2">
-                        <Link href={`/languages/${language.id}`} className="stretched-link focus-visible:outline-none">
-                            {language.flag} {language.name}{language.alias ? ` (${language.alias})` : ""}
-                        </Link>
-                    </h3>
+                    <span className="text-4xl leading-none" aria-hidden>{language.flag}</span>
                     <span className="badge shrink-0">{levelLabel}</span>
                 </div>
+                <h3 className="font-serif text-2xl leading-tight text-ink line-clamp-2">
+                    <Link href={`/languages/${language.id}`} className="stretched-link focus-visible:outline-none">
+                        {language.name}{language.alias ? ` (${language.alias})` : ""}
+                    </Link>
+                </h3>
                 <span className="flex flex-wrap items-center gap-1 text-xs text-muted">
                     {t("from")} <span className="badge">{sourceLanguage?.englishName ?? 'Unknown'}</span>
                     {language.collaborators && language.collaborators.length > 0 && <SharedBadge count={language.collaborators.length} />}

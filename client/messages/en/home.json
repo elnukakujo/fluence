@@ -22,5 +22,6 @@
   "minutesToday": "Minutes today",
   "nextUp": "Next up",
   "yourLanguages": "Your languages",
-  "reviewNow": "{count, plural, =0 {Nothing due} one {Review # due card} other {Review # due cards}}"
+  "reviewNow": "{count, plural, =0 {Nothing due} one {Review # due card} other {Review # due cards}}",
+  "todayHint": "{left, plural, =0 {You reached today's goal} one {# more answer to make today a streak day} other {# more answers to make today a streak day}}"
 }

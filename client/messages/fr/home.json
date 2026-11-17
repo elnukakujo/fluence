@@ -22,5 +22,6 @@
   "minutesToday": "Minutes aujourd'hui",
   "nextUp": "À suivre",
   "yourLanguages": "Vos langues",
-  "reviewNow": "{count, plural, =0 {Rien à réviser} one {Réviser # carte due} other {Réviser # cartes dues}}"
+  "reviewNow": "{count, plural, =0 {Rien à réviser} one {Réviser # carte due} other {Réviser # cartes dues}}",
+  "todayHint": "{left, plural, =0 {Objectif du jour atteint} one {Encore # réponse pour valider la journée} other {Encore # réponses pour valider la journée}}"
 }

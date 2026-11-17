@@ -7,7 +7,7 @@ import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import LanguageStatsPanel from "@/components/language/LanguageStatsPanel";
 import { getLanguageData } from "@/api/language";
 import { getSharedLessons } from "@/api/lesson";
-import { getTodayDailyStats } from "@/api/dailyStats";
+import { getTodayDailyStats, getHomeStats } from "@/api/dailyStats";
 import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
 import { getCurrentUserId } from "@/utils/user_cookie";
@@ -30,13 +30,15 @@ export default async function Language({ params }: { params: Promise<{ language_
     const studyGoal = isOwner ? await getStudyGoal(language_id).catch(() => null) : null;
     const hasLessons = allLessons.length > 0;
 
+    const summary = (await getHomeStats().catch(() => null))?.languages.find((l) => l.id === language_id);
+    const tHome = await getTranslations("home");
     const base = `/languages/${language_id}`;
     return (
         <main className="flex flex-col gap-6">
-            <LanguageHeaderCard language={language}>
+            <LanguageHeaderCard language={language} summary={summary}>
                 <nav aria-label={t("studyActions")} className="flex flex-wrap gap-2">
                     <NavButton path={`${base}/review`} className="btn btn-primary min-h-11">
-                        <p>{t("dailyReview")}</p>
+                        <p>{summary ? tHome("reviewNow", { count: summary.due }) : t("dailyReview")}</p>
                     </NavButton>
                     <NavButton path={`${base}/review/by-type`}>
                         <p>{t("reviewByType")}</p>

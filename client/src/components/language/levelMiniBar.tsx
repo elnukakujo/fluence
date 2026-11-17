@@ -3,7 +3,7 @@ import { useTranslations } from "next-intl";
 type Levels = { learning: number; known: number; mastered: number };
 
 /** Three segments (learning / known / mastered) sized by count. The numbers are always written out, so the colours are never the only signal. */
-export default function LevelMiniBar({ learning, known, mastered }: Levels) {
+export default function LevelMiniBar({ learning, known, mastered, large = false }: Levels & { large?: boolean }) {
     const t = useTranslations("home");
     const total = learning + known + mastered;
     const parts = [
@@ -14,12 +14,18 @@ export default function LevelMiniBar({ learning, known, mastered }: Levels) {
     const summary = parts.map((p) => `${t(`level.${p.key}`)} ${p.n}`).join(", ");
     return (
         <div className="flex flex-col gap-1">
-            <div role="img" aria-label={summary} className="flex h-2 w-full overflow-hidden rounded-full bg-border/40">
+            <div role="img" aria-label={summary} className={`flex w-full overflow-hidden rounded-full bg-border/40 ${large ? "h-3" : "h-2"}`}>
                 {total > 0 && parts.map((p) => p.n > 0 && <span key={p.key} className={p.cls} style={{ width: `${(p.n / total) * 100}%` }} />)}
             </div>
-            <ul className="flex list-none flex-wrap gap-x-3 pl-0 text-xs text-muted">
-                {parts.map((p) => <li key={p.key}>{t(`level.${p.key}`)} <strong className="text-ink">{p.n}</strong></li>)}
-            </ul>
+            {large ? (
+                <ul className="mt-1 grid list-none grid-cols-3 gap-2 pl-0">
+                    {parts.map((p) => <li key={p.key} className="figure"><b>{p.n}</b><span>{t(`level.${p.key}`)}</span></li>)}
+                </ul>
+            ) : (
+                <ul className="flex list-none flex-wrap gap-x-3 pl-0 text-xs text-muted">
+                    {parts.map((p) => <li key={p.key}>{t(`level.${p.key}`)} <strong className="text-ink">{p.n}</strong></li>)}
+                </ul>
+            )}
         </div>
     );
 }
