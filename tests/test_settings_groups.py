@@ -100,3 +100,9 @@ def test_saving_pace_refits_goal_quantities_and_keeps_the_locked_menu(app, db):
     with db.session_scope() as s:
         open_, locked = s.get(StudyGoal, "goal_OPEN"), s.get(StudyGoal, "goal_LOCK")
         assert open_.n_vocabulary > 9 and locked.n_vocabulary > 9 and locked.locked == {"start": "2026-01-01", "period": "week"}
+
+
+def test_element_types_never_offer_components():
+    from lapp.services.system_data.settings import _element_types, ELEMENT_TYPES
+    assert "passages" not in ELEMENT_TYPES
+    assert _element_types(["vocabulary", "passages"]) == ["vocabulary"]

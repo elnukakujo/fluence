@@ -10,7 +10,7 @@ from ...core.database import db_manager, transactional
 from ...models.system_data import CourseSetting, UserPreferences
 from ...utils.element_kinds import _KINDS
 
-ELEMENT_TYPES = ("vocabulary", "grammar", "calligraphy", "exercises", "passages")      # characters and radicals are calligraphy cards
+ELEMENT_TYPES = ("vocabulary", "grammar", "calligraphy", "exercises")      # DM-46/RE-5: words, characters, radicals and passages are components, never studied or chosen on their own
 LOCALES = ("en", "fr", "zh")
 
 
@@ -39,6 +39,8 @@ def _choice(*options, nullable=False):
 
 
 def _element_types(v):
+    if isinstance(v, list):
+        v = [x for x in v if x != "passages"]      # legacy stored value, passages were never reviewable
     if not isinstance(v, list) or not v or any(x not in ELEMENT_TYPES for x in v):
         raise ValueError(f"must be a non-empty list of {', '.join(ELEMENT_TYPES)}")
     return sorted(set(v), key=ELEMENT_TYPES.index)

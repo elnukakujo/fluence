@@ -14,7 +14,7 @@ export type CourseLanguage = { id: string; name: string };
 // The per-course settings of the four groups, in one place with one course menu and one Save.
 const COURSE_FIELDS: { group: GroupName; field: Field }[] = [
     { group: "pace", field: { key: "soft_gate", kind: "toggle" } },
-    { group: "review", field: { key: "element_types", kind: "multi", options: ["vocabulary", "grammar", "calligraphy", "exercises", "passages"] } },
+    { group: "review", field: { key: "element_types", kind: "multi", options: ["vocabulary", "grammar", "calligraphy", "exercises"] } },
     { group: "review", field: { key: "include_shared", kind: "toggle" } },
     { group: "answer", field: { key: "typing_strictness", kind: "choice", options: ["forgiving", "exact"] } },
     { group: "see", field: { key: "show_phonetics", kind: "choice", options: ["always", "after_reveal", "never"] } },
