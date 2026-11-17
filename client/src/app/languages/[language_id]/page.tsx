@@ -65,7 +65,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                     </NavButton>
                 </section>
                 <aside className="dash-aside">
-                    <section className="card"><LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} studyGoal={studyGoal} settingsHref={`/user/${userId}/update#goals`} /></section>
+                    <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} studyGoal={studyGoal} settingsHref={`/user/${userId}/update#goals`} />
                     <ElementPerformanceCard element={language} />
                     <ElementTagsCard element={language} />
                     <ElementSourcesCard element={language} />

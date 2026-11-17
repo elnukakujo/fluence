@@ -14,9 +14,6 @@
   "totalTimeStudied": "学习总时长",
   "longestStreak": "最长连续记录",
   "lastUpdated": "最后更新",
-  "daily": "每日",
-  "commitmentTab": "学习承诺",
-  "dailyStats": "每日统计",
   "streakDay": "连续记录天",
   "buildingStreak": "正在建立连续记录",
   "reviewed": "已复习",
@@ -77,7 +74,7 @@
   "deleteLanguagesBody": "下列语言及其所有课程和内容将被永久删除。",
   "deleteNLanguages": "删除 {count} 种语言",
   "deletedLanguages": "已删除 {count} 种语言",
-  "goalTab": "学习目标",
   "weekDelta": "较上周 {delta}",
-  "heatmapLegend": "每日回答数分档"
+  "heatmapLegend": "每日回答数分档",
+  "todayTitle": "今天"
 }

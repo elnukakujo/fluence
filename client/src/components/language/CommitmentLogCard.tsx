@@ -1,9 +1,9 @@
 "use client"
 import { useTranslations } from "next-intl"
 import type CommitmentLog from "@/interface/dataCollection/CommitmentLog"
-import StatTile from "@/components/ui/statTile"
 import DateDisplay from "@/components/ui/displays/dateDisplay"
 
+/** Everything since the learner started this language: four figures and when they were last updated. */
 export default function CommitmentLogCard({ commitmentLog }: { commitmentLog: CommitmentLog | null }) {
     const t = useTranslations("language")
     function formatMs(ms: number) {
@@ -13,30 +13,22 @@ export default function CommitmentLogCard({ commitmentLog }: { commitmentLog: Co
         return `${hours}h ${minutes}m`
     }
 
-    if (!commitmentLog) {
-        return (
-            <section className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                    <h4 className="font-serif text-base text-ink">{t("commitment")}</h4>
-                </div>
-                <div className="text-xs text-muted">{t("noCommitmentData")}</div>
-            </section>
-        )
-    }
-
     return (
-        <section className="flex flex-col gap-3 text-sm">
-            <div className="flex items-center justify-between gap-4">
-                <h4 className="font-serif text-base text-ink">{t("commitment")}</h4>
-                <DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} message={t("lastUpdatedMessage")} withTime />
-            </div>
-
-            <div className="stat-chips">
-                <StatTile label={t("daysActive")}>{commitmentLog.days_active}</StatTile>
-                <StatTile label={t("totalItemsReviewed")}>{commitmentLog.total_items_reviewed}</StatTile>
-                <StatTile label={t("totalTimeStudied")}>{formatMs(commitmentLog.total_time_ms)}</StatTile>
-                <StatTile label={t("longestStreak")}>{commitmentLog.longest_streak_ever}</StatTile>
-            </div>
+        <section className="card flex flex-col gap-4" aria-labelledby="commitment-title">
+            <header className="flex flex-col gap-0.5">
+                <h2 id="commitment-title" className="section-title">{t("commitment")}</h2>
+                {commitmentLog && <span className="text-xs text-muted"><DateDisplay date={commitmentLog.updated_at ?? commitmentLog.created_at} message={t("lastUpdatedMessage")} withTime /></span>}
+            </header>
+            {commitmentLog ? (
+                <ul className="grid list-none grid-cols-2 gap-x-3 gap-y-4 pl-0">
+                    <li className="figure"><b>{commitmentLog.days_active}</b><span>{t("daysActive")}</span></li>
+                    <li className="figure"><b>{commitmentLog.longest_streak_ever}</b><span>{t("longestStreak")}</span></li>
+                    <li className="figure"><b>{commitmentLog.total_items_reviewed}</b><span>{t("totalItemsReviewed")}</span></li>
+                    <li className="figure"><b>{formatMs(commitmentLog.total_time_ms)}</b><span>{t("totalTimeStudied")}</span></li>
+                </ul>
+            ) : (
+                <p className="text-sm text-muted">{t("noCommitmentData")}</p>
+            )}
         </section>
     )
 }

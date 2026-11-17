@@ -1086,7 +1086,7 @@
   .pref-chip[data-mode="ban"] { border-color: var(--color-danger); color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface)); }
   .pref-chip button { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--radius-full); touch-action: manipulation; }
   .pref-chip button:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
-  .goal-tile { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border); border-radius: 0.75rem; background: var(--color-surface); }
+  .goal-tile { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border); border-radius: 0.75rem; background: var(--color-surface); }
   .sort-row {
     display: flex;
     flex-wrap: wrap;
