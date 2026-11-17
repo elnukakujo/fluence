@@ -92,14 +92,15 @@ class UserService:
         if db_manager.find_by_attr(model_class=User, attr_values={"email": user_data.email}, session=session):
             raise ValueError(f"Email already in use: {user_data.email}")
 
+        is_first = session.query(User).count() == 0
         user_id = getattr(user_data, "id", None) or db_manager.generate_new_id(User, session=session)
         user_obj = User(
             id=user_id,
             username=user_data.username,
             display_name=user_data.display_name,
             email=user_data.email,
-            is_admin=session.query(User).count() == 0,
-            approved=approved,
+            is_admin=is_first,
+            approved=approved or is_first,       # the bootstrap admin cannot wait for an admin's approval
             password_hash=generate_password_hash(user_data.password) if user_data.password else None,
         )
 
