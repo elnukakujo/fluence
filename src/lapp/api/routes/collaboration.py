@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, abort
 
-from ...services.system_data import CollaborationService
+from ...services.system_data import ChangeLogService, CollaborationService
+from ...services.system_data.collaboration import MERGE_CHOICES, MergeConflicts
 from ...core.database import db_manager
 from ...core.auth import login_required, current_user_id, owner_user_id
 from ...models.system_data import User, Collaboration
@@ -92,7 +93,14 @@ def consent(collaboration_id):
         abort(404, description="Collaboration not found")
     if collab.master_id != current_user_id():
         abort(403, description="Not your collaboration")
-    updated = collaboration_service.consent(collaboration_id)
+    decisions = (request.get_json(silent=True) or {}).get('decisions') or {}
+    if not isinstance(decisions, dict) or any(v not in MERGE_CHOICES for v in decisions.values()):
+        abort(400, description="decisions must map element ids to keep, overwrite or merge")
+    try:
+        updated = collaboration_service.consent(collaboration_id, decisions=decisions)
+    except MergeConflicts as e:
+        # nothing was merged: the owner decides each of these (keep / overwrite / merge) and sends the decisions back
+        return jsonify({'error': 'conflicts', 'conflicts': e.conflicts}), 409
     return jsonify({'success': True, 'collaboration': _serialize(updated)})
 
 
@@ -162,3 +170,28 @@ def list_collaborators():
     if owner != current_user_id():
         abort(403, description="Not your resource")
     return jsonify(collaboration_service.list_collaborators(target_type, target_id))
+
+
+
+@bp.route('/lesson/<lesson_id>/changes', methods=['GET'])
+@login_required
+def lesson_changes(lesson_id):
+    """What editors changed in a lesson shared by the caller (newest first); the owner only."""
+    if owner_user_id(lesson_id) is None:
+        abort(404, description="Lesson not found")
+    if owner_user_id(lesson_id) != current_user_id():
+        abort(403, description="Not your resource")
+    return jsonify(ChangeLogService().list_for_lesson(lesson_id))
+
+
+@bp.route('/changes/<change_id>/revert', methods=['POST'])
+@login_required
+def revert_change(change_id):
+    """Undo one editor's change; the lesson's owner only."""
+    try:
+        done = ChangeLogService().revert(change_id, current_user_id())
+    except PermissionError as e:
+        abort(403, description=str(e))
+    if not done:
+        abort(404, description="Nothing to revert")
+    return jsonify({'success': True})

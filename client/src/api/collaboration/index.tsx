@@ -31,8 +31,13 @@ export async function accept(collaborationId: string, mode?: "full" | "partial",
   });
 }
 
-export async function consent(collaborationId: string) {
-  return apiFetch(`/api/collaboration/${collaborationId}/consent`, { method: "POST", errorMessage: "Failed to consent" });
+export type MergeChoice = "keep" | "overwrite" | "merge";
+export type MergeConflict = { id: string; kind: "word" | "character" | "passage"; key: string; diff: string[]; existing: Record<string, unknown>; incoming: Record<string, unknown> };
+
+/** Approve a full merge. Items that exist on both sides with different content come back as a 409 carrying `body.conflicts`;
+ *  the caller asks per item and calls again with `decisions` (incoming element id -> choice). */
+export async function consent(collaborationId: string, decisions?: Record<string, MergeChoice>) {
+  return apiFetch(`/api/collaboration/${collaborationId}/consent`, { method: "POST", body: decisions ? { decisions } : undefined, errorMessage: "Failed to consent" });
 }
 
 export async function reject(collaborationId: string) {

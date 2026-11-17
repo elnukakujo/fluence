@@ -51,6 +51,7 @@ ID_PREFIXES = {
     "LessonGate": "gate_G",
     "CourseSetting": "cset_C",
     "FailureMemory": "fail_F",
+    "ChangeLog": "chg_C",
     "LearnerDay": "lday_D",
     "WeeklySnapshot": "wsnap_W",
 }

@@ -68,5 +68,16 @@
   "incomingSharedTitle": "{count} 个课程由他人与您共享",
   "sharedWithYou": "由其所有者与您共享",
   "noLessonsYet": "该语言暂无课程。",
-  "pickAtLeastOneEnable": "请至少选择一节课程以启用邀请。"
+  "pickAtLeastOneEnable": "请至少选择一节课程以启用邀请。",
+  "conflictsTitle": "内容不同的项目",
+  "conflictsIntro": "{count, plural, other {有 # 个项目两边都有但内容不同。}} 请为每一项选择处理方式。",
+  "conflictsConfirm": "合并",
+  "conflictMine": "你的",
+  "conflictTheirs": "对方的",
+  "conflictChoice": "选择",
+  "choice": {
+    "keep": "保留我的",
+    "overwrite": "采用对方的",
+    "merge": "补全空缺"
+  }
 }

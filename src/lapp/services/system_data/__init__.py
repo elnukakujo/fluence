@@ -5,6 +5,7 @@ from .user_preferences import UserPreferencesService
 from .collaboration import CollaborationService
 from .score import ScoreService
 from .lesson_share import LessonShareService
+from .change_log import ChangeLogService
 from .exercise_user_pref import ExerciseUserPrefService
 
 __all__ = [

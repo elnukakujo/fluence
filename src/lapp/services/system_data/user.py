@@ -246,6 +246,9 @@ class UserService:
         from ...models.containers import Language
         from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking
 
+        from .collaboration import CollaborationService
+        CollaborationService().release_user(user_id, session=session)       # collaborators keep copies (DM-25)
+
         for row in db_manager.find_all(UserSession, filters={"user_id": user_id}, session=session):
             db_manager.delete(row, session=session, commit=False)
 

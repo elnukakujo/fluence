@@ -68,5 +68,16 @@
   "incomingSharedTitle": "{count} {count, plural, one {lesson was} other {lessons were}} shared with you by others",
   "sharedWithYou": "Shared with you by its owner",
   "noLessonsYet": "This language has no lessons yet.",
-  "pickAtLeastOneEnable": "Pick at least one lesson to enable invites."
+  "pickAtLeastOneEnable": "Pick at least one lesson to enable invites.",
+  "conflictsTitle": "Items that differ",
+  "conflictsIntro": "{count, plural, one {# item exists on both sides with different content.} other {# items exist on both sides with different content.}} Choose what to do with each.",
+  "conflictsConfirm": "Merge",
+  "conflictMine": "Yours",
+  "conflictTheirs": "Theirs",
+  "conflictChoice": "Choose",
+  "choice": {
+    "keep": "Keep mine",
+    "overwrite": "Take theirs",
+    "merge": "Fill my gaps"
+  }
 }

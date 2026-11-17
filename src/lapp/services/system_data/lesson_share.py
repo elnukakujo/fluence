@@ -18,10 +18,13 @@ class LessonShareService:
         ).first()
         if existing:
             return existing
+        from ...models.containers import Lesson
+        lesson = session.query(Lesson).filter(Lesson.id == lesson_id).first()
         ls = LessonShare(
             id=db_manager.generate_new_id(LessonShare, session=session),
             lesson_id=lesson_id,
             user_id=user_id,
+            owner_id=lesson.user_id if lesson else None,
         )
         session.add(ls)
         session.flush()
