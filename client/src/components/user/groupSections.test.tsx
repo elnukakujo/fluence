@@ -17,6 +17,19 @@ describe("settings blocks", () => {
     beforeEach(() => Object.values(api).forEach((m) => m.mockReset()));
     afterEach(cleanup);
 
+    it("marks a preset selected only while all three numbers match it", async () => {
+        api.getSettingsGroup.mockResolvedValue(group({ new_per_week: 15, reviews_per_day: 40, streak_min_answers: 20 }));
+        render(<PaceBlock />);
+        const standard = await screen.findByRole("button", { name: /Standard/ });
+        expect(standard).toHaveAttribute("aria-pressed", "true");
+        await userEvent.click(screen.getByRole("button", { name: /Casual/ }));
+        expect(screen.getByRole("button", { name: /Casual/ })).toHaveAttribute("aria-pressed", "true");
+        expect(screen.getByRole("button", { name: /Standard/ })).toHaveAttribute("aria-pressed", "false");
+        await userEvent.clear(screen.getAllByRole("spinbutton")[0]);
+        await userEvent.type(screen.getAllByRole("spinbutton")[0], "6");
+        expect(screen.getByRole("button", { name: /Casual/ })).toHaveAttribute("aria-pressed", "false");
+    });
+
     it("saves only the changed keys of its own group", async () => {
         api.getSettingsGroup.mockResolvedValue(group({ hints_enabled: true, retry_wrong: true, calligraphy_draw_first: true, calligraphy_stroke_guide: true, audio_autoplay: false }));
         api.saveSettingsGroup.mockResolvedValue(group({ hints_enabled: false }));
