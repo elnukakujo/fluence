@@ -46,6 +46,12 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
     }, [userId]);
 
+    useEffect(() => {      // the pace numbers were saved: unlocked goals changed on the server
+        const reread = () => { setStates({}); setDrafts({}); };
+        window.addEventListener("study-goals-changed", reread);
+        return () => window.removeEventListener("study-goals-changed", reread);
+    }, []);
+
     useEffect(() => {
         if (!languageId || states[languageId]) return;
         getStudyGoal(languageId)
