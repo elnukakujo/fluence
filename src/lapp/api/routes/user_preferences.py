@@ -291,6 +291,25 @@ def acknowledge_provider_notice():
 @bp.route('/test-endpoint', methods=['POST'])
 @login_required
 def test_endpoint():
+    """Test an endpoint; for a saved one (`endpoint_index`) the outcome is stored with the config it was run against,
+    so capabilities are enabled only while the endpoint is unchanged since a passed test (DM-44).
+    ---
+    tags:
+      - UserPreferences
+    responses:
+      200: {description: "{ok, ms, error?, ...}"}
+    """
+    response = _run_endpoint_test()
+    index = (request.get_json(silent=True) or {}).get("endpoint_index")
+    if isinstance(index, int):
+        body, _status = (response if isinstance(response, tuple) else (response, 200))
+        data = body.get_json(silent=True) or {}
+        if "ok" in data:
+            user_preferences_service.record_test(current_user_id(), index, bool(data["ok"]))
+    return response
+
+
+def _run_endpoint_test():
     """Test connectivity to an API endpoint (server-side, no CORS).
 
     Branches on api_type:
@@ -317,7 +336,7 @@ def test_endpoint():
         """POST /audio/speech — any HTTP response means reachable."""
         try:
             with httpx.Client(trust_env=False, timeout=8) as client:
-                resp = client.post(url, json={"input": "test", "voice": "en_f"})
+                resp = client.post(url, json={"input": "test", "voice": body.get("voice") or "default"})
                 return True, None
         except httpx.HTTPStatusError:
             return True, None  # 4xx/5xx still means server is reachable

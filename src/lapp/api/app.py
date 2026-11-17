@@ -185,6 +185,8 @@ def register_blueprints(app: Flask) -> None:
         ingestion_bp,
         element_bp,
         exercise_generation_bp,
+        capabilities_bp,
+        inbox_bp,
     )
 
     # Register blueprints
@@ -216,6 +218,8 @@ def register_blueprints(app: Flask) -> None:
         ingestion_bp,
         element_bp,
         exercise_generation_bp,
+        capabilities_bp,
+        inbox_bp,
     ]
 
     for blueprint in blueprints:

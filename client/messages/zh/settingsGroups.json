@@ -1,0 +1,103 @@
+{
+  "loading": "加载中…",
+  "loadFailed": "无法加载这些设置",
+  "saveFailed": "保存失败，请重试",
+  "saved": "已保存",
+  "course": "课程",
+  "resetToDefault": "使用默认值",
+  "options": {
+    "vocabulary": "词汇",
+    "grammar": "语法",
+    "characters": "汉字",
+    "calligraphy": "书法",
+    "exercises": "练习",
+    "passages": "文章",
+    "forgiving": "宽松（忽略重音和大小写）",
+    "exact": "严格",
+    "en": "English",
+    "fr": "Français",
+    "zh": "中文",
+    "system": "跟随系统",
+    "light": "浅色",
+    "dark": "深色",
+    "always": "始终",
+    "after_reveal": "揭示后",
+    "never": "从不"
+  },
+  "pace": {
+    "title": "学习节奏",
+    "description": "你想学习和复习多少。",
+    "streak_min_answers": "连续天数所需答题数",
+    "streak_min_answersDesc": "一天内答题达到此数才计入连续天数。",
+    "new_per_week": "每周新内容",
+    "new_per_weekDesc": "每周计划开始学习的新词、语法点和汉字数量。",
+    "reviews_per_day": "每日复习数",
+    "reviews_per_dayDesc": "每天计划复习的内容数量。",
+    "weekly_goals_on": "每周学习目标",
+    "weekly_goals_onDesc": "关闭后，复习只包含每日队列。",
+    "soft_gate": "优先建议前面的课",
+    "soft_gateDesc": "在第一课掌握之前，新内容会等待；你随时可以跳过。"
+  },
+  "review": {
+    "title": "我要复习的内容",
+    "description": "进入复习队列的内容。复习计划、正反面比例和练习偏好在“学习”中。",
+    "element_types": "内容类型",
+    "element_typesDesc": "此课程只复习这些类型。",
+    "include_shared": "包含共享课程",
+    "include_sharedDesc": "他人与你共享的课程会出现在复习中。"
+  },
+  "answer": {
+    "title": "答题方式",
+    "description": "提示、重试、书写和音频。",
+    "hints_enabled": "提示",
+    "hints_enabledDesc": "在卡片上显示提示按钮。",
+    "retry_wrong": "答错后重试",
+    "retry_wrongDesc": "每个练习最多尝试 3 次，只计最后一次。",
+    "calligraphy_draw_first": "先写后揭示",
+    "calligraphy_draw_firstDesc": "书法卡片先让你书写，再显示答案。",
+    "calligraphy_stroke_guide": "笔顺指引",
+    "calligraphy_stroke_guideDesc": "书写时显示笔顺。",
+    "audio_autoplay": "自动播放音频",
+    "audio_autoplayDesc": "卡片出现时自动播放，需要该内容有音频。",
+    "typing_strictness": "输入严格程度",
+    "typing_strictnessDesc": "此课程中重音和大小写是否必须完全一致。"
+  },
+  "see": {
+    "title": "显示",
+    "description": "分数、注音、界面语言和主题。",
+    "show_scores": "每次答题后显示分数",
+    "show_scoresDesc": "默认关闭：练习后不显示分数。",
+    "interface_language": "界面语言",
+    "interface_languageDesc": "保存到你的账户。",
+    "theme": "主题",
+    "themeDesc": "浅色、深色或跟随系统。",
+    "show_phonetics": "卡片上的注音",
+    "show_phoneticsDesc": "拼音或罗马音，针对此课程。"
+  },
+  "skills": {
+    "title": "技能",
+    "description": "选择要训练的技能。内容的分数是所用技能的平均值；关闭的技能会被忽略，而不是记为零。",
+    "kinds": {
+      "Vocabulary": "词汇",
+      "Grammar": "语法",
+      "Calligraphy": "书法",
+      "Character": "汉字"
+    },
+    "skill": {
+      "recognition": "认读",
+      "recall": "回忆"
+    }
+  },
+  "presets": {
+    "title": "预设",
+    "description": "作为节奏的起点。技能不会改变。",
+    "casual": "轻松",
+    "standard": "标准",
+    "intensive": "强化",
+    "newPerWeek": "每周 {n} 个新内容",
+    "reviewsPerDay": "每天 {n} 次复习",
+    "streakMin": "连续天数：{n} 次答题",
+    "apply": "应用",
+    "failed": "无法应用此预设"
+  }
+}

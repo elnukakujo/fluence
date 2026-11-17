@@ -18,6 +18,8 @@ class ExerciseDict(BaseFeatureDict):
     category: Optional[str] = None              # exam-section slug; free text on purpose (the client owns the table)
 
     generation_batch_id: Optional[str] = None   # AI generation run that made it
+    machine_made: Optional[bool] = None         # made by AI; stays set after acceptance
+    draft: Optional[bool] = None                # AI-made and not accepted yet: excluded from study and search
     review_reason: Optional[str] = None         # set = generated exercise awaiting review (explicit None on update clears it)
 
     related_vocabulary: Optional[list[str]] = None # e.g., ["voc_V1"]

@@ -177,6 +177,8 @@ class ExerciseService:
             category=exercise_data.get("category"),
             generation_batch_id=exercise_data.get("generation_batch_id"),
             review_reason=exercise_data.get("review_reason"),
+            machine_made=bool(exercise_data.get("machine_made")),
+            draft=bool(exercise_data.get("draft")),
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
             tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],

@@ -6,7 +6,12 @@
     "aiFeatures": "IA",
     "endpoints": "Endpoints",
     "goals": "Objectifs d'étude",
-    "uploads": "Imports"
+    "uploads": "Imports",
+    "pace": "Rythme",
+    "review": "Ce que je révise",
+    "answer": "Ma façon de répondre",
+    "see": "Ce que je vois",
+    "skills": "Compétences"
   },
   "profile": {
     "title": "Profil",
@@ -70,7 +75,8 @@
     "tts": "Synthèse vocale",
     "ttsDesc": "Audio pour les mots, les phrases et les caractères",
     "resetDefaults": "Par défaut",
-    "saveSuccessLabel": "Enregistré"
+    "saveSuccessLabel": "Enregistré",
+    "openEndpoints": "Configurer le point d'accès"
   },
   "buttons": {
     "save": "Enregistrer",

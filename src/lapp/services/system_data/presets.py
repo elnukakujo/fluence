@@ -1,7 +1,6 @@
-"""Learning-intensity presets (DM-66): pace only, skills are never part of a preset."""
+"""Learning-intensity presets (DM-66): pace only, skills are never part of a preset. The numbers live in shared/presets.json
+(the client reads the same file to show them)."""
+import json
+from pathlib import Path
 
-PRESETS: dict[str, dict[str, int]] = {
-    "casual": {"new_per_week": 5, "reviews_per_day": 20, "streak_min_answers": 10},
-    "standard": {"new_per_week": 15, "reviews_per_day": 40, "streak_min_answers": 20},
-    "intensive": {"new_per_week": 30, "reviews_per_day": 80, "streak_min_answers": 40},
-}
+PRESETS: dict[str, dict[str, int]] = json.loads((Path(__file__).resolve().parents[4] / "shared" / "presets.json").read_text(encoding="utf-8"))

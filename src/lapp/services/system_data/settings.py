@@ -152,7 +152,10 @@ def read_group(user_id: str, group: str, language_id: Optional[str] = None, sess
             continue
         scopes[key] = st.scope
         values[key] = overrides.get(key, st.default) if st.scope == "course" else _account_value(row, key)
-    return {"values": values, "scopes": scopes, "overridden": [k for k in overrides if k in values]}
+    out = {"values": values, "scopes": scopes, "overridden": [k for k in overrides if k in values]}
+    if group == "skills":
+        out["options"] = {k.name: list(k.skills) for k in _KINDS.values() if k.skills}      # what the matrix offers per kind
+    return out
 
 
 @transactional

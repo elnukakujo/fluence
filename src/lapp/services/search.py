@@ -115,7 +115,7 @@ class SearchService:
         rows = (
             session.query(Exercise.id.label("id"), Exercise.question.label("label"), Exercise.lesson_id.label("lesson_id"))
             .join(Lesson, Lesson.id == Exercise.lesson_id)
-            .filter(Lesson.user_id == user_id, Exercise.question.is_not(None), Exercise.question.ilike(query_pattern))
+            .filter(Lesson.user_id == user_id, Exercise.draft.is_(False), Exercise.question.is_not(None), Exercise.question.ilike(query_pattern))
             .order_by(Exercise.question)
             .all()
         )

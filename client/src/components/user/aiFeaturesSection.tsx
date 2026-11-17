@@ -8,6 +8,8 @@ import SaveButton from "./saveButton";
 import { updateUserPreferences } from "@/api/userPreferences";
 import { AlertTriangle } from "lucide-react";
 import UserPreferences from "@/interface/systemData/UserPreferences";
+import DisabledReason from "@/components/ui/displays/disabledReason";
+import { useCapability } from "@/hooks/useCapability";
 
 const DEFAULTS: Record<string, boolean> = {
   feedback: true, learnable: true, example: true, word: true, tts: true,
@@ -31,6 +33,7 @@ export default function AiFeaturesSection({
     tts: preferences.ai_tts_enabled ?? true,
   });
   const [saving, setSaving] = useState(false);
+  const caps = { feedback: useCapability("tutor_feedback"), learnable: useCapability("text_gen"), example: useCapability("text_gen"), word: useCapability("text_gen"), tts: useCapability("tts") };
 
   const FEATURES = [
     { key: "feedback", label: t("feedback"), desc: t("feedbackDesc") },
@@ -87,14 +90,16 @@ export default function AiFeaturesSection({
 
       <form onSubmit={handleSave} className="flex flex-col gap-1">
         {FEATURES.map(({ key, label, desc }) => (
-          <ToggleRow
-            key={key}
-            label={label}
-            description={desc}
-            checked={toggles[key]}
-            onChange={(v) => setToggles((t) => ({ ...t, [key]: v }))}
-            disabled={saving}
-          />
+          <div key={key}>
+            <ToggleRow
+              label={label}
+              description={desc}
+              checked={toggles[key]}
+              onChange={(v) => setToggles((t) => ({ ...t, [key]: v }))}
+              disabled={saving}
+            />
+            {!caps[key].loading && <DisabledReason capability={caps[key]} linkLabel={t("openEndpoints")} settingsHref="#api-endpoints" />}
+          </div>
         ))}
 
         <div className="flex items-center justify-between pt-3">

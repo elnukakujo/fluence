@@ -25,7 +25,7 @@ from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
 from ...services.parsing.pipeline import MAX_FILE_BYTES, _IMAGE_SUFFIXES
 from ...services.system_data import SourceService, UserPreferencesService
-from ...utils.llm_providers import resolve_api
+from ...services.capabilities import capability_for, gated_api
 from ...utils.model_api import ModelAPIError
 from ...services.ingestion.extract import ExtractionError
 from ...services.ingestion.grammar import merge_grammar
@@ -219,8 +219,9 @@ def upload():
             return jsonify({"error": "The lesson does not belong to that language"}), 400
 
     prefs = UserPreferencesService().get_by_user_id(current_user_id())
-    if not has_text_endpoint(prefs):
-        return jsonify({"error": "Add and activate a text-generation endpoint in Settings first - it is used to extract the vocabulary"}), 400
+    cap = capability_for(prefs, "import")
+    if not cap.enabled:
+        return jsonify({"error": cap.reason, "needs": cap.needs}), 409
 
     handwritten = (request.form.get("handwritten") or "").lower() in ("1", "true", "on", "yes")
     job = job_service.create(current_user_id(), language_id, lesson_id, file.filename, handwritten,
@@ -280,7 +281,7 @@ def merge_candidates(job_id: str):
     items = [i for i in (request.get_json(silent=True) or {}).get("items") or [] if isinstance(i, dict)]
     if len(items) < 2:
         return jsonify({"error": "Pick at least two grammar points to merge"}), 400
-    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
+    api = gated_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
     if not api:
         return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
     try:
@@ -312,7 +313,7 @@ def regenerate_candidate(job_id: str):
     items = [i for i in (request.get_json(silent=True) or {}).get("items") or [] if isinstance(i, dict)]
     if len(items) != 1:
         return jsonify({"error": "Send exactly one grammar point"}), 400
-    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
+    api = gated_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
     if not api:
         return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
     try:
@@ -331,7 +332,7 @@ def _rebuild_exercises(job_id: str, items_key: str, run):
         return err
     body = request.get_json(silent=True) or {}
     items = [i for i in (body.get(items_key) if isinstance(body.get(items_key), list) else [body.get(items_key)]) if isinstance(i, dict)]
-    api = resolve_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
+    api = gated_api(UserPreferencesService().get_by_user_id(current_user_id()), "text_gen")
     if not api:
         return jsonify({"error": "No text-generation endpoint is configured in your settings"}), 400
     path = document_path(current_app.config["MEDIA_ROOT"], job_id)

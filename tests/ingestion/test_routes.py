@@ -23,11 +23,11 @@ def _setup(app, db, media_root):
     return client_for(app, "user_U1")
 
 
-def test_upload_without_a_text_endpoint_is_a_clear_400(app, db, media_root, scheduled):
+def test_upload_without_a_text_endpoint_is_a_409_with_the_reason(app, db, media_root, scheduled):
     make_user(db, "user_U1", endpoints=())
     make_language(db, "user_U1")
     res = _upload(client_for(app, "user_U1"))
-    assert res.status_code == 400 and "text-generation endpoint" in res.get_json()["error"]
+    assert res.status_code == 409 and "endpoint" in res.get_json()["error"] and res.get_json()["needs"] == "endpoint"
     assert scheduled == []
 
 

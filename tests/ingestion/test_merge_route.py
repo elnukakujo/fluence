@@ -18,7 +18,7 @@ def _client(app, db):
 
 
 def _text_api(monkeypatch):
-    monkeypatch.setattr("lapp.api.routes.ingestion.resolve_api", lambda *a, **k: {"base_url": "x", "model": "m"})
+    monkeypatch.setattr("lapp.api.routes.ingestion.gated_api", lambda *a, **k: {"base_url": "x", "model": "m"})
 
 
 def test_merge_sends_originals_and_forbids_summaries(app, db, scheduled, monkeypatch):

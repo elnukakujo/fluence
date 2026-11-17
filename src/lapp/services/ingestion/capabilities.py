@@ -3,7 +3,7 @@ from typing import Optional
 
 from ...core.auth import can_write
 from ...utils.detect_language import get_language_by_iso2t
-from ...utils.llm_providers import resolve_api
+from ...services.capabilities import capability_for, gated_api
 from ..containers import LanguageService
 from ..system_data import UserPreferencesService
 
@@ -24,7 +24,7 @@ def _item(pair: tuple[str, str]) -> dict:
 
 
 def has_text_endpoint(prefs) -> bool:
-    return bool(prefs and resolve_api(prefs, "text_gen"))
+    return bool(prefs and gated_api(prefs, "text_gen"))
 
 
 def capabilities(user_id: str, language_id: str, lesson_id: Optional[str] = None) -> dict:
@@ -33,9 +33,10 @@ def capabilities(user_id: str, language_id: str, lesson_id: Optional[str] = None
     if not can_write(user_id, language_id) or (lesson_id and not can_write(user_id, lesson_id)):
         reasons.append(_item(NO_WRITE_ACCESS))
     prefs = UserPreferencesService().get_by_user_id(user_id)
-    if not has_text_endpoint(prefs):
-        reasons.append(_item(NO_TEXT_ENDPOINT))
-    if not (prefs and resolve_api(prefs, "ocr")):
+    cap = capability_for(prefs, "import")
+    if not cap.enabled:
+        reasons.append({"code": NO_TEXT_ENDPOINT[0], "message": cap.reason, "needs": cap.needs})
+    if not (prefs and gated_api(prefs, "ocr")):
         warnings.append(_item(NO_VISION_ENDPOINT))
     language = LanguageService().get_by_id(language_id, as_dict=True, include_relations=False)
     if language and get_language_by_iso2t(language.get("target_iso639_2t") or "").iso1 == "unknown":

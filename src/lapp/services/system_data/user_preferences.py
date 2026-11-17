@@ -126,12 +126,17 @@ class UserPreferencesService:
         for i, ep in enumerate(incoming):
             ep = dict(ep)
             ep.pop("has_key", None)
+            old = by_name.get(ep.get("name")) or (stored[i] if i < len(stored) and isinstance(stored[i], dict) else {})
             if not ep.get("api_key"):
-                old = by_name.get(ep.get("name")) or (stored[i] if i < len(stored) else {})
                 if old.get("api_key"):
                     ep["api_key"] = old["api_key"]
                 else:
                     ep.pop("api_key", None)
+            # the test result is the server's: keep the stored one (it stops counting once the config changes)
+            if old.get("test"):
+                ep["test"] = old["test"]
+            else:
+                ep.pop("test", None)
             out.append(ep)
         return out
 
@@ -147,6 +152,19 @@ class UserPreferencesService:
             pref.provider_notices_seen = seen
             db_manager.modify(obj=pref, session=session, commit=False)
         return seen
+
+    @transactional
+    def record_test(self, user_id: str, index: int, passed: bool, session: Optional[Session] = None) -> None:
+        """Store the outcome of testing the saved endpoint at `index`, tied to its current configuration."""
+        from datetime import datetime
+        from ..capabilities import config_hash
+        pref = db_manager.find_by_attr(model_class=UserPreferences, attr_values={'user_id': user_id}, session=session)
+        eps = [dict(e) for e in (pref.ai_endpoints or [])] if pref else []
+        if not 0 <= index < len(eps):
+            return
+        eps[index]["test"] = {"passed": passed, "at": datetime.now().isoformat(timespec="seconds"), "config_hash": config_hash(eps[index])}
+        pref.ai_endpoints = eps
+        db_manager.modify(obj=pref, session=session, commit=False)
 
     @transactional
     def update(

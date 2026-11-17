@@ -18,6 +18,8 @@ export default interface Exercise extends BaseFeature {
     text_support?: string;
     content?: ExerciseContent;
     generation_batch_id?: string | null;   // set on AI-generated exercises
+    machine_made?: boolean;                // made by AI (stays set after acceptance)
+    draft?: boolean;                       // AI-made and not accepted yet: not in study
     review_reason?: string | null;         // set = generated exercise waiting for review
     category?: string | null;   // exam-section slug (see getExamCategories); null = uncategorized
     user_mode?: "boost" | "ban" | null;   // this user's own mode on the exercise

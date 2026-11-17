@@ -1,0 +1,103 @@
+{
+  "loading": "Chargement…",
+  "loadFailed": "Impossible de charger ces réglages",
+  "saveFailed": "Échec de l'enregistrement, réessayez",
+  "saved": "Enregistré",
+  "course": "Cours",
+  "resetToDefault": "Utiliser la valeur par défaut",
+  "options": {
+    "vocabulary": "Vocabulaire",
+    "grammar": "Grammaire",
+    "characters": "Caractères",
+    "calligraphy": "Calligraphie",
+    "exercises": "Exercices",
+    "passages": "Textes",
+    "forgiving": "Tolérant (accents et casse ignorés)",
+    "exact": "Exact",
+    "en": "English",
+    "fr": "Français",
+    "zh": "中文",
+    "system": "Suivre le système",
+    "light": "Clair",
+    "dark": "Sombre",
+    "always": "Toujours",
+    "after_reveal": "Après la réponse",
+    "never": "Jamais"
+  },
+  "pace": {
+    "title": "Rythme d'apprentissage",
+    "description": "Combien vous voulez apprendre et réviser.",
+    "streak_min_answers": "Réponses pour valider un jour de série",
+    "streak_min_answersDesc": "Le nombre de réponses d'un jour pour qu'il compte dans votre série.",
+    "new_per_week": "Nouveaux éléments par semaine",
+    "new_per_weekDesc": "Combien de nouveaux mots, points de grammaire et caractères vous visez par semaine.",
+    "reviews_per_day": "Révisions par jour",
+    "reviews_per_dayDesc": "Combien d'éléments vous visez à réviser par jour.",
+    "weekly_goals_on": "Objectifs hebdomadaires",
+    "weekly_goals_onDesc": "Désactivé : votre révision se limite à la file du jour.",
+    "soft_gate": "Suggérer d'abord les leçons précédentes",
+    "soft_gateDesc": "Le nouveau contenu attend que la première leçon soit connue ; vous pouvez toujours passer outre."
+  },
+  "review": {
+    "title": "Ce que je révise",
+    "description": "Ce qui entre dans votre file de révision. Le plan, le mélange des faces et les préférences d'exercices sont dans Apprentissage.",
+    "element_types": "Types d'éléments",
+    "element_typesDesc": "Seuls ces types sont révisés dans ce cours.",
+    "include_shared": "Inclure les leçons partagées",
+    "include_sharedDesc": "Les leçons partagées avec vous apparaissent dans vos révisions."
+  },
+  "answer": {
+    "title": "Ma façon de répondre",
+    "description": "Indices, nouvelles tentatives, dessin et audio.",
+    "hints_enabled": "Indices",
+    "hints_enabledDesc": "Afficher les boutons d'indice sur les cartes.",
+    "retry_wrong": "Retenter après une erreur",
+    "retry_wrongDesc": "Jusqu'à 3 essais par exercice ; seul le dernier compte.",
+    "calligraphy_draw_first": "Dessiner d'abord, puis révéler",
+    "calligraphy_draw_firstDesc": "Les cartes de calligraphie demandent de dessiner avant d'afficher la réponse.",
+    "calligraphy_stroke_guide": "Guide de l'ordre des traits",
+    "calligraphy_stroke_guideDesc": "Afficher l'ordre des traits pendant le dessin.",
+    "audio_autoplay": "Lire l'audio automatiquement",
+    "audio_autoplayDesc": "Lire l'extrait à l'affichage d'une carte. Nécessite un audio sur l'élément.",
+    "typing_strictness": "Exigence de saisie",
+    "typing_strictnessDesc": "Si les accents et la casse doivent correspondre exactement, pour ce cours."
+  },
+  "see": {
+    "title": "Ce que je vois",
+    "description": "Scores, phonétique, langue de l'interface et thème.",
+    "show_scores": "Afficher le score après chaque réponse",
+    "show_scoresDesc": "Désactivé par défaut : les scores sont masqués après les exercices.",
+    "interface_language": "Langue de l'interface",
+    "interface_languageDesc": "Enregistrée dans votre compte.",
+    "theme": "Thème",
+    "themeDesc": "Clair, sombre ou selon le système.",
+    "show_phonetics": "Phonétique sur les cartes",
+    "show_phoneticsDesc": "Pinyin ou romaji, pour ce cours."
+  },
+  "skills": {
+    "title": "Compétences",
+    "description": "Choisissez les compétences à travailler. Le score d'un élément est la moyenne des compétences utilisées ; celles désactivées sont ignorées, pas comptées à zéro.",
+    "kinds": {
+      "Vocabulary": "Vocabulaire",
+      "Grammar": "Grammaire",
+      "Calligraphy": "Calligraphie",
+      "Character": "Caractères"
+    },
+    "skill": {
+      "recognition": "Reconnaissance",
+      "recall": "Rappel"
+    }
+  },
+  "presets": {
+    "title": "Préréglages",
+    "description": "Un point de départ pour votre rythme. Les compétences ne changent pas.",
+    "casual": "Tranquille",
+    "standard": "Standard",
+    "intensive": "Intensif",
+    "newPerWeek": "{n} nouveaux éléments par semaine",
+    "reviewsPerDay": "{n} révisions par jour",
+    "streakMin": "Jour de série : {n} réponses",
+    "apply": "Appliquer",
+    "failed": "Impossible d'appliquer ce préréglage"
+  }
+}

@@ -8,5 +8,6 @@
   "openSearch": "Search",
   "closeSearch": "Close search",
   "mainNav": "Main navigation",
-  "back": "Back"
+  "back": "Back",
+  "inboxCount": "Inbox: {count} waiting"
 }

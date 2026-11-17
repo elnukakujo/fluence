@@ -11,6 +11,7 @@ import AccountMenu from "@/components/layout/accountMenu";
 import LocaleSwitcher from "@/components/layout/localeSwitcher";
 import { recordVisit } from "@/lib/navHistory";
 import ImportsIndicator from "@/components/ingestion/importsIndicator";
+import InboxBadge from "@/components/layout/inboxBadge";
 
 const primaryLinks = [
 	{ href: "/", key: "home", Icon: Home },
@@ -86,8 +87,9 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 						</>
 					)}
 
+					{currentUserId && <InboxBadge />}
 					{currentUserId && <ImportsIndicator />}
-					<LocaleSwitcher currentUserId={currentUserId} />
+					{!currentUserId && <LocaleSwitcher currentUserId={currentUserId} />}   {/* signed in: the interface language is a setting (Settings, What I see) */}
 					{currentUserId && <AccountMenu userId={currentUserId} />}
 				</div>
 

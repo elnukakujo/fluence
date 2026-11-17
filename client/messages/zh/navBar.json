@@ -8,5 +8,6 @@
   "openSearch": "搜索",
   "closeSearch": "关闭搜索",
   "mainNav": "主导航",
-  "back": "返回"
+  "back": "返回",
+  "inboxCount": "收件箱：{count} 项待处理"
 }

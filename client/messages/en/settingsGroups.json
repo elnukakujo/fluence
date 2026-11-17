@@ -1,0 +1,103 @@
+{
+  "loading": "Loading…",
+  "loadFailed": "Could not load these settings",
+  "saveFailed": "Could not save, try again",
+  "saved": "Saved",
+  "course": "Course",
+  "resetToDefault": "Use the default",
+  "options": {
+    "vocabulary": "Vocabulary",
+    "grammar": "Grammar",
+    "characters": "Characters",
+    "calligraphy": "Calligraphy",
+    "exercises": "Exercises",
+    "passages": "Passages",
+    "forgiving": "Forgiving (accents and case ignored)",
+    "exact": "Exact",
+    "en": "English",
+    "fr": "Français",
+    "zh": "中文",
+    "system": "Follow the system",
+    "light": "Light",
+    "dark": "Dark",
+    "always": "Always",
+    "after_reveal": "After reveal",
+    "never": "Never"
+  },
+  "pace": {
+    "title": "Learning pace",
+    "description": "How much you want to learn and review.",
+    "streak_min_answers": "Answers for a streak day",
+    "streak_min_answersDesc": "The answers you give in a day for it to count in your streak.",
+    "new_per_week": "New items per week",
+    "new_per_weekDesc": "How many new words, grammar points and characters you aim to start each week.",
+    "reviews_per_day": "Reviews per day",
+    "reviews_per_dayDesc": "How many items you aim to review each day.",
+    "weekly_goals_on": "Weekly study goals",
+    "weekly_goals_onDesc": "Off: your review is only the daily queue.",
+    "soft_gate": "Suggest earlier lessons first",
+    "soft_gateDesc": "New material waits until the first lesson is known; you can always override."
+  },
+  "review": {
+    "title": "What I review",
+    "description": "What enters your review queue. The plan, side mix and exercise preferences are under Learning.",
+    "element_types": "Element types",
+    "element_typesDesc": "Only these types are reviewed in this course.",
+    "include_shared": "Include shared lessons",
+    "include_sharedDesc": "Lessons others shared with you appear in your review."
+  },
+  "answer": {
+    "title": "How I answer",
+    "description": "Hints, retries, drawing and audio.",
+    "hints_enabled": "Hints",
+    "hints_enabledDesc": "Show the hint buttons on cards.",
+    "retry_wrong": "Retry a wrong answer",
+    "retry_wrongDesc": "Up to 3 attempts on an exercise; only the last counts.",
+    "calligraphy_draw_first": "Draw first, then reveal",
+    "calligraphy_draw_firstDesc": "Calligraphy cards ask you to draw before showing the answer.",
+    "calligraphy_stroke_guide": "Stroke-order guide",
+    "calligraphy_stroke_guideDesc": "Show the stroke order while drawing.",
+    "audio_autoplay": "Play audio automatically",
+    "audio_autoplayDesc": "Play the clip when a card shows. Needs audio on the item.",
+    "typing_strictness": "Typing strictness",
+    "typing_strictnessDesc": "Whether accents and case must match exactly, for this course."
+  },
+  "see": {
+    "title": "What I see",
+    "description": "Scores, phonetics, interface language and theme.",
+    "show_scores": "Show the score after each answer",
+    "show_scoresDesc": "Off by default: scores are hidden after exercises.",
+    "interface_language": "Interface language",
+    "interface_languageDesc": "Saved to your account.",
+    "theme": "Theme",
+    "themeDesc": "Light, dark or follow the system.",
+    "show_phonetics": "Phonetics on cards",
+    "show_phoneticsDesc": "Pinyin or romaji, for this course."
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Choose which skills to train. An item's score is the average of the skills in use; skills left off are ignored, not counted as zero.",
+    "kinds": {
+      "Vocabulary": "Vocabulary",
+      "Grammar": "Grammar",
+      "Calligraphy": "Calligraphy",
+      "Character": "Characters"
+    },
+    "skill": {
+      "recognition": "Recognition",
+      "recall": "Recall"
+    }
+  },
+  "presets": {
+    "title": "Presets",
+    "description": "A starting point for your pace. Skills are not changed.",
+    "casual": "Casual",
+    "standard": "Standard",
+    "intensive": "Intensive",
+    "newPerWeek": "{n} new items per week",
+    "reviewsPerDay": "{n} reviews per day",
+    "streakMin": "Streak day: {n} answers",
+    "apply": "Apply",
+    "failed": "Could not apply this preset"
+  }
+}

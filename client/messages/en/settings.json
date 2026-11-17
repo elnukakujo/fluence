@@ -6,7 +6,12 @@
     "aiFeatures": "AI Features",
     "endpoints": "Endpoints",
     "goals": "Study goals",
-    "uploads": "Uploads"
+    "uploads": "Uploads",
+    "pace": "Pace",
+    "review": "What I review",
+    "answer": "How I answer",
+    "see": "What I see",
+    "skills": "Skills"
   },
   "profile": {
     "title": "Profile",
@@ -70,7 +75,8 @@
     "tts": "Text-to-Speech",
     "ttsDesc": "Audio for words, sentences, and characters",
     "resetDefaults": "Reset to defaults",
-    "saveSuccessLabel": "Features saved"
+    "saveSuccessLabel": "Features saved",
+    "openEndpoints": "Set up the endpoint"
   },
   "buttons": {
     "save": "Save changes",

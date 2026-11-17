@@ -7,6 +7,7 @@ from lapp.models.containers import Language, Lesson
 from lapp.models.features import Exercise, Vocabulary
 from lapp.models.system_data import User, UserPreferences
 from lapp.services.auth import AuthService
+from endpoint_helpers import tested
 from lapp.services.exercise_generation import jobs
 
 TEXT = {"name": "t", "api_type": "text_gen", "base_url": "https://x/v1", "api_key": "k", "model": "m", "is_active": True}
@@ -15,7 +16,7 @@ TEXT = {"name": "t", "api_type": "text_gen", "base_url": "https://x/v1", "api_ke
 def _user(db, uid, endpoints=(TEXT,), type_prefs=None):
     with db.session_scope() as s:
         db.insert(User(id=uid, username=uid, email=f"{uid}@x.com"), session=s, commit=False)
-        db.insert(UserPreferences(id=f"pref_{uid}", user_id=uid, ai_endpoints=list(endpoints), exercise_type_prefs=type_prefs or {}), session=s, commit=False)
+        db.insert(UserPreferences(id=f"pref_{uid}", user_id=uid, ai_endpoints=[tested(e) for e in endpoints], exercise_type_prefs=type_prefs or {}), session=s, commit=False)
 
 
 def _lesson(db, words=8):

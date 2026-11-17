@@ -12,6 +12,7 @@ from .override_flag import OverrideFlag
 from .study_goal import StudyGoal, StudyGoalItem
 from .lesson_gate import LessonGate
 from .course_setting import CourseSetting
+from .corpus import CorpusSentence, CorpusLink, FailureMemory
 
 __all__ = [
     "User",
@@ -29,4 +30,7 @@ __all__ = [
     "StudyGoalItem",
     "LessonGate",
     "CourseSetting",
+    "CorpusSentence",
+    "CorpusLink",
+    "FailureMemory",
 ]

@@ -18,10 +18,33 @@ from ..models.base import (
 from ..schemas import GrammarDict, CalligraphyDict, VocabularyDict
 from ..services import TextGeneratorService, GrammarService, VocabularyService, CalligraphyService
 from ..services.system_data import UserPreferencesService
-from ..utils.llm_providers import resolve_api
+from ..services.capabilities import gated_api
+from ..services.corpus import examples_for, recently_failed, remember_failure
+from ..utils.detect_language import get_language_by_iso2t
 from ..utils.passage import is_passage
 
 logger = logging.getLogger(__name__)
+
+def _try_corpus(feature: Vocabulary, language: Language, vocabulary_service, session) -> bool:
+    """Give the word a Tatoeba example (with its translation when the corpus has one). True when one was stored."""
+    try:
+        target = get_language_by_iso2t(language.target_iso639_2t).iso1
+        source = get_language_by_iso2t(language.source_iso639_2t).iso1
+        hits = examples_for(feature.word.word, target, limit=1, source_iso1=None if source == "unknown" else source, session=session)
+    except ValueError:        # a language outside the nine: no corpus for it
+        return False
+    if not hits:
+        return False
+    vocabulary_service.update(
+        voc_id=feature.id,
+        data=VocabularyDict(lesson_id=feature.lesson_id, word=feature.word.to_dict(include_relations=False),
+                            example_sentences=[{"text": hits[0]["text"], "translation": hits[0]["translation"]}]),
+        session=session,
+    )
+    session.commit()
+    logger.info(f"✅ Tatoeba example for Vocabulary {feature.id}: '{hits[0]['text']}' ({hits[0]['attribution']})")
+    return True
+
 
 def register_text_gen_tasks(scheduler: BackgroundScheduler, app: Flask):
     """
@@ -130,9 +153,17 @@ def generate_missing_texts(app: Flask):
                         "example_sentence": prefs is None or prefs.ai_example_sentence_enabled is not False,
                         "example_word": prefs is None or prefs.ai_example_word_enabled is not False,
                     }
-                    api = resolve_api(prefs, "text_gen") if prefs else None
+                    api = gated_api(prefs, "text_gen") if prefs else None
                     ai_gen_by_user[language.user_id] = (flags, api)
                 flags, api = ai_gen_by_user[language.user_id]
+                if isinstance(feature, Vocabulary) and flags["example_sentence"] and not is_passage(feature.word.word, feature.word.word_type):
+                    # Local Tatoeba corpus first: no endpoint needed, no model call. An empty answer from the endpoint is remembered.
+                    if _try_corpus(feature, language, vocabulary_service, session):
+                        success_count += 1
+                        continue
+                    if recently_failed("example", feature.id, session=session):
+                        progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [no example found recently, not retried yet]")
+                        continue
                 if not api or not api["base_url"]:
                     progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [no text-gen api configured for user]")
                     continue
@@ -186,6 +217,9 @@ def generate_missing_texts(app: Flask):
                     progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [{lang_codes}]: {text[:40]!r} -> {(generated_text or '')[:40]!r}")
 
                     if generated_text is None or not generated_text.strip():
+                        if isinstance(feature, Vocabulary):
+                            remember_failure("example", feature.id, session=session)
+                            session.commit()
                         logger.error(f"❌ Failed to generate text for Feature ID {feature.id}: empty or null result")
                         error_count += 1
                         continue

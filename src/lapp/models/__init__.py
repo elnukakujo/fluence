@@ -30,6 +30,9 @@ __all__ = [
     "StudyGoalItem",
     "LessonGate",
     "CourseSetting",
+    "CorpusSentence",
+    "CorpusLink",
+    "FailureMemory",
     "LearnerDay",
     "WeeklySnapshot",
 ]

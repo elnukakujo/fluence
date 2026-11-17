@@ -8,5 +8,6 @@
   "openSearch": "Rechercher",
   "closeSearch": "Fermer la recherche",
   "mainNav": "Navigation principale",
-  "back": "Retour"
+  "back": "Retour",
+  "inboxCount": "Boîte de réception : {count} en attente"
 }

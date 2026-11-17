@@ -8,8 +8,7 @@ from ...schemas import ExerciseDict
 from ...schemas.answer import parse_exercise_answer
 from ...core.auth import login_required, require_owns, require_write, current_user_id
 from ...services.system_data import UserPreferencesService
-from ...utils.llm_providers import resolve_api
-
+from ...services.capabilities import capability_for, gated_api
 logger = logging.getLogger(__name__)
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
@@ -456,9 +455,10 @@ def generate_line_audio(exercise_id: str):
     if not isinstance(line, int) or isinstance(line, bool):
         return jsonify({'error': 'line must be an integer'}), 400
     prefs = UserPreferencesService().get_by_user_id(current_user_id())
-    api = resolve_api(prefs, "tts") if prefs and prefs.ai_tts_enabled is not False else None
+    api = gated_api(prefs, "tts")
     if not api or not api.get("base_url"):
-        return jsonify({'error': 'tts_not_configured'}), 409
+        cap = capability_for(prefs, "tts")
+        return jsonify({'error': 'tts_not_configured', 'reason': cap.reason, 'needs': cap.needs}), 409
     try:
         return jsonify(exercise_service.add_line_audio(exercise_id, line, api))
     except FileNotFoundError:

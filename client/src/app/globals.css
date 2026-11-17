@@ -51,7 +51,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #211b14;
     --surface: #2b241b;
     --foreground: #e9e1d2;
@@ -60,15 +60,34 @@
     --accent-soft: #3a2c1e;
     --shadow-card: 0 2px 10px rgb(0 0 0 / 0.35);
   }
-  .grade-again { border-color: #5a2820; background: #3a1e1a; }
-  .grade-again:hover { background: #4a2420; }
-  .grade-hard  { border-color: #4a3a18; background: #332a10; }
-  .grade-hard:hover  { background: #3e3318; }
-  .grade-good  { border-color: #2e3e2a; background: #222e1e; }
-  .grade-good:hover  { background: #2a3824; }
-  .grade-easy  { border-color: #264a22; background: #1c3018; }
-  .grade-easy:hover  { background: #224028; }
+  :root:not([data-theme="light"]) .grade-again { border-color: #5a2820; background: #3a1e1a; }
+  :root:not([data-theme="light"]) .grade-again:hover { background: #4a2420; }
+  :root:not([data-theme="light"]) .grade-hard  { border-color: #4a3a18; background: #332a10; }
+  :root:not([data-theme="light"]) .grade-hard:hover  { background: #3e3318; }
+  :root:not([data-theme="light"]) .grade-good  { border-color: #2e3e2a; background: #222e1e; }
+  :root:not([data-theme="light"]) .grade-good:hover  { background: #2a3824; }
+  :root:not([data-theme="light"]) .grade-easy  { border-color: #264a22; background: #1c3018; }
+  :root:not([data-theme="light"]) .grade-easy:hover  { background: #224028; }
 }
+
+/* Theme chosen in Settings ("What I see"): the same palette, forced regardless of the system. */
+:root[data-theme="dark"] {
+  --background: #211b14;
+  --surface: #2b241b;
+  --foreground: #e9e1d2;
+  --muted: #a89877;
+  --border: #3c3324;
+  --accent-soft: #3a2c1e;
+  --shadow-card: 0 2px 10px rgb(0 0 0 / 0.35);
+}
+:root[data-theme="dark"] .grade-again { border-color: #5a2820; background: #3a1e1a; }
+:root[data-theme="dark"] .grade-again:hover { background: #4a2420; }
+:root[data-theme="dark"] .grade-hard  { border-color: #4a3a18; background: #332a10; }
+:root[data-theme="dark"] .grade-hard:hover  { background: #3e3318; }
+:root[data-theme="dark"] .grade-good  { border-color: #2e3e2a; background: #222e1e; }
+:root[data-theme="dark"] .grade-good:hover  { background: #2a3824; }
+:root[data-theme="dark"] .grade-easy  { border-color: #264a22; background: #1c3018; }
+:root[data-theme="dark"] .grade-easy:hover  { background: #224028; }
 
 @layer base {
   body {

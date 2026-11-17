@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from ...core.database import db_manager, transactional
 from ...models.features import Calligraphy, Vocabulary
 from ...models.system_data import IngestionJob
-from ...utils.llm_providers import resolve_api
+from ...services.capabilities import gated_api
 from ...utils.model_api import ModelAPIError
 from ...utils.detect_language import get_language_by_iso2t
 from ..parsing import ParseError, parse, remote_engine_for
@@ -211,13 +211,13 @@ def _prepare(app: Flask, svc: IngestionJobService, job_id: str) -> Optional[_Ctx
     if job is None:
         return None
     prefs = UserPreferencesService().get_by_user_id(job["user_id"])
-    text_api = resolve_api(prefs, "text_gen") if prefs else None
+    text_api = gated_api(prefs, "text_gen") if prefs else None
     if not text_api:
         svc.update(job_id, status="failed", error="No text-generation endpoint is configured in your settings")
         return None
     warnings: list[str] = []
     remote = None
-    if ocr_api := (resolve_api(prefs, "ocr") if prefs else None):
+    if ocr_api := (gated_api(prefs, "ocr") if prefs else None):
         try:
             remote = remote_engine_for(ocr_api)
         except ParseError as e:

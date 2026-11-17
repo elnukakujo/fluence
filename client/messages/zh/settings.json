@@ -6,7 +6,12 @@
     "aiFeatures": "AI 功能",
     "endpoints": "端点",
     "goals": "学习目标",
-    "uploads": "上传"
+    "uploads": "上传",
+    "pace": "节奏",
+    "review": "复习内容",
+    "answer": "答题方式",
+    "see": "显示",
+    "skills": "技能"
   },
   "profile": {
     "title": "个人资料",
@@ -70,7 +75,8 @@
     "tts": "文本转语音",
     "ttsDesc": "单词、句子和字符的音频",
     "resetDefaults": "重置为默认值",
-    "saveSuccessLabel": "功能已保存"
+    "saveSuccessLabel": "功能已保存",
+    "openEndpoints": "设置端点"
   },
   "buttons": {
     "save": "保存更改",

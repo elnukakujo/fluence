@@ -50,6 +50,7 @@ ID_PREFIXES = {
     "StudyGoalItem": "goali_I",
     "LessonGate": "gate_G",
     "CourseSetting": "cset_C",
+    "FailureMemory": "fail_F",
     "LearnerDay": "lday_D",
     "WeeklySnapshot": "wsnap_W",
 }

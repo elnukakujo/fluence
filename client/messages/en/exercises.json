@@ -359,5 +359,7 @@
     "excellent": "Excellent",
     "good": "Good",
     "keepGoing": "Keep going"
-  }
+  },
+  "generateInInbox": "They wait in your inbox until you accept them.",
+  "generateOpenInbox": "Open the inbox"
 }

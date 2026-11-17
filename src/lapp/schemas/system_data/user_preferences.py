@@ -43,6 +43,7 @@ class ApiEndpoint(BaseModel):
     voice_gender: Optional[str] = None  # "male" | "female" | None
     api_format: str = "openai"
     auth_type: str = "bearer"
+    test: Optional[dict] = None   # {passed, at, config_hash}: written by the server only (the client value is discarded)
 
     @field_validator("provider")
     @classmethod
