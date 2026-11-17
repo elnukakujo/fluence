@@ -78,7 +78,11 @@
     "ttsDesc": "单词、句子和字符的音频",
     "resetDefaults": "重置为默认值",
     "saveSuccessLabel": "功能已保存",
-    "openEndpoints": "设置端点"
+    "openEndpoints": "设置端点",
+    "needEndpoint_text": "导师反馈以及句子和词语建议需要一个已启用的文本端点。",
+    "needTest_text": "导师反馈以及句子和词语建议需要你的文本端点通过连接测试。",
+    "needEndpoint_tts": "语音合成需要一个已启用的音频端点。",
+    "needTest_tts": "语音合成需要你的音频端点通过连接测试。"
   },
   "buttons": {
     "save": "保存更改",

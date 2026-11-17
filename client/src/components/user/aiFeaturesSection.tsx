@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import SectionCard from "@/components/ui/sectionCard";
 import ToggleRow from "./toggleRow";
@@ -8,7 +8,7 @@ import SaveButton from "./saveButton";
 import { updateUserPreferences } from "@/api/userPreferences";
 import UserPreferences from "@/interface/systemData/UserPreferences";
 import DisabledReason from "@/components/ui/displays/disabledReason";
-import { useCapability } from "@/hooks/useCapability";
+import { type Capability, type Feature, getCapabilities } from "@/api/capabilities";
 
 export default function AiFeaturesSection({
   prefId,
@@ -26,7 +26,8 @@ export default function AiFeaturesSection({
     tts: preferences.ai_tts_enabled ?? true,
   });
   const [saving, setSaving] = useState(false);
-  const caps = { feedback: useCapability("tutor_feedback"), learnable: useCapability("text_gen"), example: useCapability("text_gen"), word: useCapability("text_gen"), tts: useCapability("tts") };
+  const [caps, setCaps] = useState<Record<Feature, Capability> | null>(null);
+  useEffect(() => { getCapabilities().then(setCaps, () => setCaps(null)); }, []);
 
   const FEATURES = [
     { key: "feedback", label: t("feedback"), desc: t("feedbackDesc") },
@@ -36,9 +37,12 @@ export default function AiFeaturesSection({
     { key: "tts", label: t("tts"), desc: t("ttsDesc") },
   ] as const;
 
-  // each distinct reason once, above the switches
-  const reasons = Object.values(caps).filter((c) => !c.loading && !c.enabled && c.reason && c.needs !== "switch")
-    .filter((c, i, all) => all.findIndex((o) => o.reason === c.reason) === i);
+  // One line per kind of endpoint, not per switch: the text features share one, text-to-speech has its own.
+  const need = (features: Feature[], kind: "text" | "tts") => {
+    const off = caps && features.map((f) => caps[f]).find((c) => !c.enabled && (c.needs === "endpoint" || c.needs === "test"));
+    return off ? { enabled: false, needs: off.needs, reason: t(`${off.needs === "test" ? "needTest" : "needEndpoint"}_${kind}`) } : null;
+  };
+  const reasons = [need(["text_gen", "tutor_feedback"], "text"), need(["tts"], "tts")].filter((r): r is NonNullable<typeof r> => r !== null);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

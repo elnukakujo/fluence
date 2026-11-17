@@ -78,7 +78,11 @@
     "ttsDesc": "Audio for words, sentences, and characters",
     "resetDefaults": "Reset to defaults",
     "saveSuccessLabel": "Features saved",
-    "openEndpoints": "Set up the endpoint"
+    "openEndpoints": "Set up the endpoint",
+    "needEndpoint_text": "Tutor feedback and the sentence and word suggestions need an active text endpoint.",
+    "needTest_text": "Tutor feedback and the sentence and word suggestions need your text endpoint to pass its connection test.",
+    "needEndpoint_tts": "Text-to-speech needs an active audio endpoint.",
+    "needTest_tts": "Text-to-speech needs your audio endpoint to pass its connection test."
   },
   "buttons": {
     "save": "Save changes",

@@ -78,7 +78,11 @@
     "ttsDesc": "Audio pour les mots, les phrases et les caractères",
     "resetDefaults": "Par défaut",
     "saveSuccessLabel": "Enregistré",
-    "openEndpoints": "Configurer le point d'accès"
+    "openEndpoints": "Configurer le point d'accès",
+    "needEndpoint_text": "Le retour du tuteur et les suggestions de phrases et de mots demandent un point d'accès texte actif.",
+    "needTest_text": "Le retour du tuteur et les suggestions de phrases et de mots demandent que votre point d'accès texte réussisse son test de connexion.",
+    "needEndpoint_tts": "La synthèse vocale demande un point d'accès audio actif.",
+    "needTest_tts": "La synthèse vocale demande que votre point d'accès audio réussisse son test de connexion."
   },
   "buttons": {
     "save": "Enregistrer",
