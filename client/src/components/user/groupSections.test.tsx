@@ -79,12 +79,13 @@ describe("settings blocks", () => {
         expect(options).not.toContain("Radicals");
     });
 
-    it("appearance saves as you pick, with no Save button", async () => {
-        api.getSettingsGroup.mockResolvedValue(group({ theme: "system", show_scores: false }));
-        api.saveSettingsGroup.mockResolvedValue(group({ theme: "dark", show_scores: false }));
+    it("appearance saves the score switch as you pick, with no Save button", async () => {
+        api.getSettingsGroup.mockResolvedValue(group({ show_scores: false }));
+        api.saveSettingsGroup.mockResolvedValue(group({ show_scores: true }));
         render(<AppearanceBlock />);
-        fireEvent.click(await screen.findByRole("button", { name: "Dark" }));
-        await waitFor(() => expect(api.saveSettingsGroup).toHaveBeenCalledWith("see", { theme: "dark" }));
+        fireEvent.click(await screen.findByRole("switch"));
+        await waitFor(() => expect(api.saveSettingsGroup).toHaveBeenCalledWith("see", { show_scores: true }));
         expect(screen.queryByRole("button", { name: /save/i })).toBeNull();
+        expect(screen.queryByText("Theme")).toBeNull();
     });
 });

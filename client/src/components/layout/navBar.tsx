@@ -8,6 +8,7 @@ import { BookOpen, Home, Library, Search, Tag, X } from "lucide-react";
 import BackButton from "@/components/ui/buttons/backButton";
 import SearchBar from "@/components/layout/searchBar";
 import AccountMenu from "@/components/layout/accountMenu";
+import ThemeToggle from "@/components/layout/themeToggle";
 import LocaleSwitcher from "@/components/layout/localeSwitcher";
 import { recordVisit } from "@/lib/navHistory";
 import ImportsIndicator from "@/components/ingestion/importsIndicator";
@@ -89,6 +90,7 @@ export default function NavBar({ currentUserId }: { currentUserId: string | null
 
 					{currentUserId && <InboxBadge />}
 					{currentUserId && <ImportsIndicator />}
+					<ThemeToggle />
 					<LocaleSwitcher currentUserId={currentUserId} />
 					{currentUserId && <AccountMenu userId={currentUserId} />}
 				</div>

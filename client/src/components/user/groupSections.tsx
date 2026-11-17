@@ -2,7 +2,6 @@
 
 import SettingsGroup from "./settingsGroup";
 import PresetPicker from "./presetPicker";
-import { setThemeCookie } from "./theme";
 
 /** Learning pace: the three numbers you choose (new per week, reviews per day, answers for a streak day). A preset only fills them in; nothing is saved (and no
  *  goal changes) until Save. */
@@ -18,12 +17,10 @@ export function PaceBlock() {
     );
 }
 
-/** Appearance: theme (kept on the account, mirrored in a cookie so the server renders it) and the score after each answer. Saved as you
- *  pick, no button. The interface language stays in the top bar. */
+/** Appearance: the score after each answer, saved as you pick. Interface language and theme live in the top bar. */
 export function AppearanceBlock() {
     return (
-        <SettingsGroup group="see" autosave quiet describe={false} fields={[{ key: "theme", kind: "theme" }, { key: "show_scores", kind: "toggle" }]}
-            onSaved={(values) => { if (typeof values.theme === "string") setThemeCookie(values.theme); }} />
+        <SettingsGroup group="see" autosave quiet describe={false} fields={[{ key: "show_scores", kind: "toggle" }]} />
     );
 }
 
