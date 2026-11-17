@@ -283,3 +283,19 @@ def test_rebuild_with_keep_false_drops_everything(db):
     svc.reset("user_U1", "lang_L1", today=D0, keep_mastered=False)
     ids = {i["id"] for i in svc.progress("user_U1", "lang_L1", today=D0)["items"]}
     assert "voc_V0" not in ids         # mastered now, so it is not redrawn as "new"
+
+
+def test_a_type_the_course_does_not_study_has_no_slots_picks_or_suggestion(db):
+    from lapp.models.system_data import CourseSetting
+    _seed(db)
+    UserPreferencesService().create(UserPreferencesDict(user_id="user_U1"))
+    svc = StudyGoalService()
+    _goal(svc)
+    assert any(i["kind"] == "calligraphy" for i in svc.progress("user_U1", "lang_L1", today=D0)["items"])
+    with db.session_scope() as s:
+        db.insert(CourseSetting(id="cs_x", user_id="user_U1", language_id="lang_L1", key="element_types", value=["vocabulary", "grammar", "exercises"]), session=s, commit=False)
+    p = svc.progress("user_U1", "lang_L1", today=D0)
+    assert not any(i["kind"] == "calligraphy" for i in p["items"]) and p["types"]["calligraphy"]["n"] + p["types"]["calligraphy"]["r"] == 0
+    assert svc.get("user_U1", "lang_L1")["n_calligraphy"] == 0 and svc.kinds("user_U1", "lang_L1") == ["vocabulary", "grammar"]
+    sug = svc.suggested("user_U1", "week", "lang_L1")
+    assert sug["n"]["calligraphy"] == 0 and sum(sug["n"].values()) == 15 and sum(sug["r"].values()) == 40

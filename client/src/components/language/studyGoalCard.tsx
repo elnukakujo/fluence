@@ -46,6 +46,13 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
     }, [userId]);
 
+    useEffect(() => {      // the pace numbers were saved: only what the suggestion and the totals rest on is re-read, never the numbers being edited
+        const reread = () => Object.keys(states).forEach((id) => getStudyGoal(id).then((fresh) =>
+            setStates((x) => ({ ...x, [id]: { ...x[id], suggested: fresh.suggested, targets: fresh.targets, kinds: fresh.kinds } }))).catch(() => {}));
+        window.addEventListener("study-goals-changed", reread);
+        return () => window.removeEventListener("study-goals-changed", reread);
+    }, [states]);
+
     useEffect(() => {
         if (!languageId || states[languageId]) return;
         getStudyGoal(languageId)
@@ -92,7 +99,8 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     const sumN = draft ? draft.n_vocabulary + draft.n_grammar + draft.n_calligraphy : 0;
     const sumR = draft ? draft.r_vocabulary + draft.r_grammar + draft.r_calligraphy : 0;
     const mismatch = !!target && !draft?.auto && (sumN !== target.n || sumR !== target.r);     // the suggested split may round off by one: it is always allowed
-    const sameAsSuggested = !!suggested && KINDS.every(({ kind, n, r }) => draft?.[n] === suggested.n[kind] && draft?.[r] === suggested.r[kind]);
+    const shown = KINDS.filter((k) => !states[languageId]?.kinds || states[languageId].kinds!.includes(k.kind));       // the types this course studies
+    const sameAsSuggested = !!suggested && shown.every(({ kind, n, r }) => draft?.[n] === suggested.n[kind] && draft?.[r] === suggested.r[kind]);
     const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
     return (
@@ -157,7 +165,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                             <span aria-hidden />
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColNew")}</span>
                             <span className="text-xs uppercase tracking-wide text-muted">{t("goalColReview")}</span>
-                            {KINDS.map(({ kind, label, n, r, Icon }) => (
+                            {shown.map(({ kind, label, n, r, Icon }) => (
                                 <div key={kind} className="contents">
                                     <span className="inline-flex items-center gap-2 text-sm"><Icon size={16} aria-hidden className="text-muted" />{t(label)}</span>
                                     <NumberField ariaLabel={`${t(label)}: ${t("goalColNew")}`} value={draft[n] as number} onChange={(v) => edit({ [n]: v === "" ? 0 : v }, true)} />

@@ -14,7 +14,7 @@ export interface StudyGoalProgress {
 export interface Suggested { n: Record<GoalKind, number>; r: Record<GoalKind, number> }
 /** `suggested`: the quantities that fit the user's new per week and reviews per day (what an `auto` goal follows). */
 /** `targets`: per period, what the new and the review quantities must add up to (the pace numbers scaled to the period). */
-export interface StudyGoalState { goal: StudyGoal | null; progress: StudyGoalProgress | null; suggested?: Suggested; targets?: Record<StudyGoal["period"], { n: number; r: number }> }
+export interface StudyGoalState { goal: StudyGoal | null; progress: StudyGoalProgress | null; suggested?: Suggested; targets?: Record<StudyGoal["period"], { n: number; r: number }>; kinds?: GoalKind[] }
 
 export async function getStudyGoal(languageId: string): Promise<StudyGoalState> {
     return apiFetch(`/api/study-goal/${languageId}`, { errorMessage: "Failed to fetch the study goal" });

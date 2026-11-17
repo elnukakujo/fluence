@@ -20,7 +20,7 @@ def get_study_goal(language_id: str):
     require_write(language_id)
     user_id = current_user_id()
     goal = service.ensure_default(user_id, language_id)       # no goal yet: the suggested one for the pace
-    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, goal["period"] if goal else "week"), "targets": service.targets(user_id)})
+    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, goal["period"] if goal else "week", language_id), "targets": service.targets(user_id), "kinds": service.kinds(user_id, language_id)})
 
 
 @bp.route('/<language_id>', methods=['PUT'])
@@ -45,7 +45,7 @@ def put_study_goal(language_id: str):
                               bool(data.get('auto', False)))
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, goal["period"]), "targets": service.targets(user_id)})
+    return jsonify({"goal": goal, "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, goal["period"], language_id), "targets": service.targets(user_id), "kinds": service.kinds(user_id, language_id)})
 
 
 @bp.route('/<language_id>/reset', methods=['POST'])
@@ -64,4 +64,4 @@ def reset_study_goal(language_id: str):
     keep = bool((request.get_json(silent=True) or {}).get("keep_mastered", True))
     if service.reset(user_id, language_id, keep_mastered=keep) is None:
         return jsonify({'error': 'No study goal'}), 404
-    return jsonify({"goal": service.get(user_id, language_id), "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id), "targets": service.targets(user_id)})
+    return jsonify({"goal": service.get(user_id, language_id), "progress": service.progress(user_id, language_id), "suggested": service.suggested(user_id, language_id=language_id), "targets": service.targets(user_id), "kinds": service.kinds(user_id, language_id)})

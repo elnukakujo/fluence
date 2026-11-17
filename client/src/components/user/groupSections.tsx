@@ -7,7 +7,7 @@ import PresetPicker from "./presetPicker";
  *  goal changes) until Save. */
 export function PaceBlock() {
     return (
-        <SettingsGroup group="pace" quiet describe={false}
+        <SettingsGroup group="pace" quiet describe={false} onSaved={() => window.dispatchEvent(new Event("study-goals-changed"))}   // the goal card re-reads its suggestion; no goal changes
             lead={(fill, draft) => <PresetPicker onPick={fill} current={draft} />}
             fields={[
                 { key: "new_per_week", kind: "number", min: 0, max: 1000 },

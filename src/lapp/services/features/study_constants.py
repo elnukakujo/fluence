@@ -31,11 +31,12 @@ DEFAULT_GOAL_PERIOD = "week"
 DEFAULT_GOAL_SHARE = {"vocabulary": 4, "grammar": 1, "calligraphy": 2}
 
 
-def default_goal_quantities(new_per_week: int, reviews_per_day: int, period_days: int = 7) -> dict:
-    """{"n": {type: new}, "r": {type: review}} per period, split by DEFAULT_GOAL_SHARE (at least 1 of each unless the total is 0)."""
+def default_goal_quantities(new_per_week: int, reviews_per_day: int, period_days: int = 7, kinds=tuple(DEFAULT_GOAL_SHARE)) -> dict:
+    """{"n": {type: new}, "r": {type: review}} per period, split by DEFAULT_GOAL_SHARE over `kinds` (at least 1 of each unless the total is 0;
+    a type outside `kinds` gets 0)."""
     def split(total: float) -> dict:
-        whole, parts = round(total), sum(DEFAULT_GOAL_SHARE.values())
-        return {k: (max(1, int(whole * v / parts + 0.5)) if whole else 0) for k, v in DEFAULT_GOAL_SHARE.items()}   # half up
+        whole, parts = round(total), sum(v for k, v in DEFAULT_GOAL_SHARE.items() if k in kinds)
+        return {k: (max(1, int(whole * v / parts + 0.5)) if whole and k in kinds else 0) for k, v in DEFAULT_GOAL_SHARE.items()}   # half up
     scale = period_days / 7
     return {"n": split(new_per_week * scale), "r": split(reviews_per_day * scale)}
 

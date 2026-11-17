@@ -15,6 +15,7 @@ from ...models.system_data import UserPreferences
 from ...utils.scoring import KNOWN_FROM
 from ..system_data import ScoreService
 from .lesson_gate import GateService
+from ..system_data.settings import resolve
 from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
@@ -48,6 +49,8 @@ class StudyGoalService:
     @transactional
     def get(self, user_id: str, language_id: str, session: Optional[Session] = None) -> Optional[dict]:
         goal = self._goal(user_id, language_id, session)
+        if goal is not None:
+            self._hide_unstudied(goal, user_id, session)
         return None if goal is None else self._dict(goal)
 
     @transactional
@@ -60,7 +63,7 @@ class StudyGoalService:
         quantities are the suggested ones for the user's new per week and reviews per day (and keep following them); a save
         with `auto` False makes the numbers the user's own."""
         if auto:
-            wanted = self._suggested(user_id, period, session)
+            wanted = self._suggested(user_id, period, session, language_id)
             n_vocabulary, n_grammar, n_calligraphy = (wanted["n"][k] for k in TYPES)
             r_vocabulary, r_grammar, r_calligraphy = (wanted["r"][k] for k in TYPES)
         if period not in PERIOD_DAYS:
@@ -78,7 +81,7 @@ class StudyGoalService:
         (goal.n_vocabulary, goal.n_grammar, goal.n_calligraphy, goal.r_vocabulary, goal.r_grammar, goal.r_calligraphy) = counts
         if was_suggested:            # first time the user sets their own numbers: replace the suggested menu at once
             self._reset(goal, today or self._today(user_id, session), session)
-        session.flush()
+        self._hide_unstudied(goal, user_id, session)
         return self._dict(goal)
 
     @transactional
@@ -121,6 +124,27 @@ class StudyGoalService:
         return self.get(user_id, language_id, session=session)
 
     @transactional
+    def kinds(self, user_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:
+        """The goal types the course studies (its Element types setting): the card and the menu show only these."""
+        wanted = resolve(user_id, language_id, "element_types", session=session)
+        return [k for k in TYPES if k in wanted]
+
+    def _hide_unstudied(self, goal: StudyGoal, user_id: str, session) -> None:
+        """A type the course does not study has no quantity and no menu: its slots and picks go (also from the running menu)."""
+        shown = self.kinds(user_id, goal.language_id, session=session)
+        for kind, (_m, n_col, r_col) in TYPES.items():
+            if kind in shown:
+                continue
+            setattr(goal, n_col, 0)
+            setattr(goal, r_col, 0)
+            if goal.locked:
+                goal.locked = {**goal.locked, "n": {**goal.locked["n"], kind: 0}, "r": {**goal.locked["r"], kind: 0}}
+            for item in session.query(StudyGoalItem).filter_by(goal_id=goal.id).all():
+                if _type_of(item.element_id) == kind:
+                    session.delete(item)
+        session.flush()
+
+    @transactional
     def targets(self, user_id: str, session: Optional[Session] = None) -> dict:
         """What a goal's quantities must add up to, per period: {period: {"n": total new, "r": total review}} from the pace numbers."""
         prefs = self._preferences(user_id, session)
@@ -128,9 +152,11 @@ class StudyGoalService:
         return {k: {"n": round(new * d / 7), "r": round(rev * d / 7)} for k, d in PERIOD_DAYS.items()}
 
     @transactional
-    def suggested(self, user_id: str, period: str = DEFAULT_GOAL_PERIOD, session: Optional[Session] = None) -> dict:
-        """The suggested quantities for the user's new per week and reviews per day: {"n": {type: n}, "r": {type: r}}."""
-        return self._suggested(user_id, period, session)
+    def suggested(self, user_id: str, period: str = DEFAULT_GOAL_PERIOD, language_id: Optional[str] = None,
+                  session: Optional[Session] = None) -> dict:
+        """The suggested quantities for the user's new per week and reviews per day, split over the types the course studies:
+        {"n": {type: n}, "r": {type: r}}."""
+        return self._suggested(user_id, period, session, language_id)
 
     @transactional
     def ensure_cycle(self, user_id: str, language_id: str, today: Optional[date] = None,
@@ -146,6 +172,8 @@ class StudyGoalService:
         unfinished ones of earlier periods carry over."""
         today = today or self._today(user_id, session)
         goal = self._goal(user_id, language_id, session)
+        if goal is not None:
+            self._hide_unstudied(goal, user_id, session)
         if goal is None or not goal.active:
             return []
         self._drop_gone(goal, language_id, session)
@@ -269,10 +297,11 @@ class StudyGoalService:
     def _preferences(user_id, session) -> Optional[UserPreferences]:
         return session.query(UserPreferences).filter_by(user_id=user_id).first()
 
-    def _suggested(self, user_id, period, session) -> dict:
+    def _suggested(self, user_id, period, session, language_id: Optional[str] = None) -> dict:
         prefs = self._preferences(user_id, session)
+        shown = self.kinds(user_id, language_id, session=session) if language_id else list(TYPES)
         return default_goal_quantities(prefs.new_per_week if prefs else 15, prefs.reviews_per_day if prefs else 40,
-                                       PERIOD_DAYS.get(period, 7))
+                                       PERIOD_DAYS.get(period, 7), shown)
 
     @staticmethod
     def _goal(user_id, language_id, session) -> Optional[StudyGoal]:
