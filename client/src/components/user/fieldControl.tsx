@@ -1,5 +1,6 @@
 "use client";
 
+import NumberField from "@/components/ui/input/numberField";
 import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import ToggleRow from "./toggleRow";
 import type { SettingValue } from "@/api/settings";
@@ -21,11 +22,10 @@ export default function FieldControl({ field: f, value, onChange, disabled, t, t
     }
     if (f.kind === "number") {
         return (
-            <label className="flex items-center justify-between gap-3 py-2.5">
+            <div className="flex items-center justify-between gap-3 py-2.5">
                 <span className="flex flex-col"><span className="text-sm font-medium">{t(f.key)}</span><span className="text-xs text-muted">{t(`${f.key}Desc`)}</span></span>
-                <input type="number" className="input w-24" min={f.min} max={f.max} step={f.step ?? 1} value={Number(value ?? 0)}
-                    onChange={(e) => onChange(Number(e.target.value))} disabled={disabled} />
-            </label>
+                <NumberField ariaLabel={t(f.key)} min={f.min} max={f.max} step={f.step} value={Number(value ?? 0)} onChange={(v) => onChange(v === "" ? 0 : v)} disabled={disabled} />
+            </div>
         );
     }
     return (
