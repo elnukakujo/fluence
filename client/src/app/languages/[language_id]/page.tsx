@@ -7,7 +7,7 @@ import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import LanguageStatsPanel from "@/components/language/LanguageStatsPanel";
 import { getLanguageData } from "@/api/language";
 import { getSharedLessons } from "@/api/lesson";
-import { getTodayDailyStats, getHomeStats } from "@/api/dailyStats";
+import { getTodayDailyStats, getLanguageSummary } from "@/api/dailyStats";
 import LanguageHeaderCard from "@/components/language/languageHeaderCard";
 import LessonsSection from "@/components/language/lessonsSection";
 import { getCurrentUserId } from "@/utils/user_cookie";
@@ -19,18 +19,22 @@ export default async function Language({ params }: { params: Promise<{ language_
     const t = await getTranslations("languages");
     const { language_id } = await params;
     const { language, lessons } = await getLanguageData(language_id);
-    const sharedLessons = (await getSharedLessons()).filter(
+    const userId = await getCurrentUserId();
+    const isOwner = userId === language.user_id;
+    const ownerId = language.user_id;
+    const [shared, dailyStats, commitmentLog, studyGoal, summary] = await Promise.all([
+        getSharedLessons(),
+        ownerId ? getTodayDailyStats(ownerId, language_id) : null,
+        ownerId ? import("@/api/commitmentLog").then((m) => m.getCommitmentLogForUserLanguage(ownerId, language_id)) : null,
+        isOwner ? getStudyGoal(language_id).catch(() => null) : null,
+        getLanguageSummary(language_id).catch(() => undefined),      // only this language's numbers, not every language's
+    ]);
+    const sharedLessons = shared.filter(
         (l) => l.target_iso639_2t === language.target_iso639_2t && l.source_iso639_2t === language.source_iso639_2t
     );
     const allLessons = [...lessons, ...sharedLessons.map((l) => ({ ...l, shared: true }))];
-    const userId = await getCurrentUserId();
-    const isOwner = userId === language.user_id;
-    const dailyStats = language.user_id ? await getTodayDailyStats(language.user_id, language_id) : null;
-    const commitmentLog = language.user_id ? await (await import("@/api/commitmentLog")).getCommitmentLogForUserLanguage(language.user_id, language_id) : null;
-    const studyGoal = isOwner ? await getStudyGoal(language_id).catch(() => null) : null;
     const hasLessons = allLessons.length > 0;
 
-    const summary = (await getHomeStats().catch(() => null))?.languages.find((l) => l.id === language_id);
     const tHome = await getTranslations("home");
     const base = `/languages/${language_id}`;
     return (
