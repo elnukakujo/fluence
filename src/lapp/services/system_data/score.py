@@ -3,6 +3,8 @@ from datetime import date, datetime, tzinfo
 from statistics import mean
 from typing import Optional
 
+from sqlalchemy import String, any_, literal, select
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
@@ -28,6 +30,19 @@ def _decays(element_id: str) -> bool:
     """Rows of kinds with skills decay on read; aggregates are derived values refreshed by their children."""
     kind = kind_of(element_id)
     return bool(kind and kind.skills)
+
+
+def _rows_by_element(session: Session, user_id: str, wanted: set) -> dict:
+    """The user's Score rows for these element ids, grouped by element. The ids travel as ONE array parameter
+    (`= ANY(...)`), not one bind parameter each, and come back as plain rows (no ORM entities): a language's worth of
+    ids per call made query parsing and hydration the cost of the review queue and the home stats."""
+    by_el: dict = {}
+    if not wanted:
+        return by_el
+    ids = literal(sorted(wanted), ARRAY(String))
+    for r in session.execute(select(Score.__table__).where(Score.user_id == user_id, Score.element_id == any_(ids))):
+        by_el.setdefault(r.element_id, []).append(r)
+    return by_el
 
 
 def _effective(row: Score, now: datetime) -> float:
@@ -153,9 +168,7 @@ class ScoreService:
     def _collect(self, session: Session, user_id: str, element_ids: list, now: datetime) -> dict:
         ids = set(element_ids)
         wanted = ids | {side_id(i, s) for i in ids if _is_voc_parent(i) for s in SIDES}
-        by_el: dict = {}
-        for r in session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(wanted)).all():
-            by_el.setdefault(r.element_id, []).append(r)
+        by_el = _rows_by_element(session, user_id, wanted)
         out = {}
         for eid in ids:
             if _is_voc_parent(eid):
@@ -213,9 +226,7 @@ class ScoreService:
         least stable, most recent, most lapses); `today` is the learner's day for the gain cap."""
         ids = set(element_ids)
         wanted = ids | {side_id(i, s) for i in ids if _is_voc_parent(i) for s in SIDES}
-        by_el: dict = {}
-        for r in session.query(Score).filter(Score.user_id == user_id, Score.element_id.in_(wanted)).all():
-            by_el.setdefault(r.element_id, []).append(r)
+        by_el = _rows_by_element(session, user_id, wanted)
         out = {}
         for eid in ids:
             rows = by_el.get(eid, [])

@@ -1,5 +1,5 @@
 """Headline numbers for the home page and per-language trends (LS-5, LS-19, LS-24, DM-7, DM-47)."""
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from statistics import median
 from typing import Optional
 
@@ -38,20 +38,28 @@ def home(user_id: str, tz: Optional[str] = None, session: Optional[Session] = No
     for i in range(HEATMAP_WEEKS):
         start = since + timedelta(weeks=i)
         weeks.append({"week_start": start.isoformat(), "answers": sum(per_day.get(start + timedelta(days=k), 0) for k in range(7))})
-    languages = []
-    for language in session.query(Language).filter(Language.user_id == user_id).order_by(Language.created_at).all():
-        c = level_counts(user_id, language.id, now, session=session)
-        stats = session.query(DailyStats).filter(DailyStats.user_id == user_id, DailyStats.language_id == language.id,
-                                                 DailyStats.created_at >= datetime.combine(today, datetime.min.time())).first()
-        due, seconds = _due(user_id, language.id, session)
-        languages.append({
-            "id": language.id, "name": language.name,
-            "levels": {"learning": c["learning"], "known": c["known"], "mastered": c["mastered"]},
-            "fading": c["fading"], "coverage": c["seen"] / c["total"] if c["total"] else 0.0, "mean_seen": c["mean_seen"],
-            "due": due, "due_minutes": round(seconds / 60), "minutes_today": round((stats.time_studied_ms if stats else 0) / 60000)})
+    languages = [language_summary(user_id, lang_id, today, session=session) for (lang_id,) in
+                 session.query(Language.id).filter(Language.user_id == user_id).order_by(Language.created_at)]
     return {"streak": status.streak, "today": {"answers": status.answers, "min": prefs.streak_min_answers, "validated": status.validated},
             "languages": languages, "weeks": weeks, "heatmap_bands": heatmap_bands(list(per_day.values())),
             "week_delta": weeks[-1]["answers"] - weeks[-2]["answers"] if len(weeks) > 1 else 0}
+
+
+@transactional
+def language_summary(user_id: str, language_id: str, today: date, session: Optional[Session] = None) -> Optional[dict]:
+    """One language's entry of `home()["languages"]`; None when it does not exist or is not `user_id`'s."""
+    language = session.query(Language).filter(Language.id == language_id, Language.user_id == user_id).first()
+    if language is None:
+        return None
+    c = level_counts(user_id, language.id, datetime.now(), session=session)
+    stats = session.query(DailyStats).filter(DailyStats.user_id == user_id, DailyStats.language_id == language.id,
+                                             DailyStats.created_at >= datetime.combine(today, datetime.min.time())).first()
+    due, seconds = _due(user_id, language.id, session)
+    return {
+        "id": language.id, "name": language.name,
+        "levels": {"learning": c["learning"], "known": c["known"], "mastered": c["mastered"]},
+        "fading": c["fading"], "coverage": c["seen"] / c["total"] if c["total"] else 0.0, "mean_seen": c["mean_seen"],
+        "due": due, "due_minutes": round(seconds / 60), "minutes_today": round((stats.time_studied_ms if stats else 0) / 60000)}
 
 
 def _due(user_id: str, language_id: str, session: Session) -> tuple[int, float]:
