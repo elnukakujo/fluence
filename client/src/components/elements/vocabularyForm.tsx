@@ -15,7 +15,7 @@ import ExampleSentencesEditor from "./exampleSentencesEditor";
 import { useElementForm } from "./useElementForm";
 import { FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
-export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vocabulary | Partial<Vocabulary>; lesson_id: string}) {
+export default function VocabularyForm({vocabulary, lesson_id, onDone}: {vocabulary?: Vocabulary | Partial<Vocabulary>; lesson_id: string; onDone?: () => void}) {
     const t = useTranslations("vocabulary");
     const tEl = useTranslations("elements");
 
@@ -51,7 +51,7 @@ export default function VocabularyForm({vocabulary, lesson_id}: {vocabulary?: Vo
     const [exampleSentences, setExampleSentences] = useState<Partial<Passage>[]>(vocabularyData.example_sentences!);
 
     const shell = useElementForm<Vocabulary>({
-        existing: vocabularyData, lessonId: lesson_id, noun: "vocabulary",
+        onDone, existing: vocabularyData, lessonId: lesson_id, noun: "vocabulary",
         messages: { createFailure: t("createFailure"), updateFailure: t("updateFailure"), resolveConflictError: t("resolveConflictError") },
         build: (shared) => ({
             word: {

@@ -1,6 +1,6 @@
 import { BaseComponent } from '../base';
 
-export type CharacterRef = { id: string; character: string };
+export type CharacterRef = { id: string; character: string; meaning?: string; phonetic?: string };
 
 export default interface Character extends BaseComponent {
     character: string;

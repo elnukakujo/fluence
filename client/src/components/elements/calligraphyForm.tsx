@@ -20,7 +20,7 @@ import { useElementForm } from "./useElementForm";
 import CharacterLinksField, { type RadicalOption } from "./characterLinksField";
 import { Disclosure, FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
-export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions = []}: {calligraphy?: Partial<Calligraphy>; lesson_id: string; radicalOptions?: RadicalOption[]}) {
+export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions = [], onDone}: {calligraphy?: Partial<Calligraphy>; lesson_id: string; onDone?: () => void; radicalOptions?: RadicalOption[]}) {
     const t = useTranslations("calligraphy");
     const tEl = useTranslations("elements");
     let calligraphyData: Partial<Calligraphy>;
@@ -56,7 +56,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions 
     const [exampleSentences, setExampleSentences] = useState<Partial<Passage>[]>(calligraphyData.example_sentences ? calligraphyData.example_sentences : []);
 
     const shell = useElementForm<Calligraphy>({
-        existing: calligraphyData, lessonId: lesson_id, noun: "calligraphy",
+        onDone, existing: calligraphyData, lessonId: lesson_id, noun: "calligraphy",
         messages: { createFailure: t("createFailure"), updateFailure: t("updateFailure"), resolveConflictError: t("resolveConflictError") },
         build: (shared) => ({
             character: {

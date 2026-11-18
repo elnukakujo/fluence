@@ -6,7 +6,8 @@ import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 // Shared accessible modal: portal, Escape / backdrop-click to close, focus moved in and restored.
-export default function Modal({ title, subtitle, onClose, children, footer }: {
+export default function Modal({ title, subtitle, onClose, children, footer, wide }: {
+  wide?: boolean;
   title: string;
   subtitle?: string;
   onClose: () => void;
@@ -24,7 +25,10 @@ export default function Modal({ title, subtitle, onClose, children, footer }: {
     panel.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     document.addEventListener("keydown", onKey);
+    const scroll = document.body.style.overflow;
+    document.body.style.overflow = "hidden";   // one scroll area only: the dialog's body, not the page behind it
     return () => {
+      document.body.style.overflow = scroll;
       document.removeEventListener("keydown", onKey);
       previous?.focus();
     };
@@ -41,7 +45,7 @@ export default function Modal({ title, subtitle, onClose, children, footer }: {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="card w-full max-w-lg max-h-[85vh] flex flex-col gap-4 outline-none"
+        className={`card w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-hidden flex flex-col gap-4 outline-none`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-0.5 min-w-0">
@@ -53,7 +57,7 @@ export default function Modal({ title, subtitle, onClose, children, footer }: {
             <X size={16} aria-hidden />
           </button>
         </div>
-        <div className="flex flex-col gap-3 overflow-y-auto min-h-0">{children}</div>
+        <div className="flex flex-col gap-3 overflow-y-auto overflow-x-hidden min-h-0 min-w-0 px-2 -mx-2">   {/* the px absorbs the forms' sticky save bar (-mx-2), the cause of a sideways scrollbar */}{children}</div>
         {footer && <div className="flex flex-row gap-2 justify-end">{footer}</div>}
       </div>
     </div>,

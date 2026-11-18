@@ -14,7 +14,7 @@ import ExampleSentencesEditor from "./exampleSentencesEditor";
 import { useElementForm } from "./useElementForm";
 import { FormActions, FormLayout, FormSection, FORM_LABEL } from "./formParts";
 
-export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Grammar>; lesson_id: string}) {
+export default function GrammarForm({grammar, lesson_id, onDone}: {grammar?: Partial<Grammar>; lesson_id: string; onDone?: () => void}) {
     const t = useTranslations("grammar");
     const tEl = useTranslations("elements");
 
@@ -36,7 +36,7 @@ export default function GrammarForm({grammar, lesson_id}: {grammar?: Partial<Gra
     const [learnableSentence, setLearnableSentence] = useState<Partial<Passage>[]>(grammarData.example_sentences!);
 
     const shell = useElementForm<Grammar>({
-        existing: grammarData, lessonId: lesson_id, noun: "grammar",
+        onDone, existing: grammarData, lessonId: lesson_id, noun: "grammar",
         messages: { createFailure: t("createFailure"), updateFailure: t("updateFailure") },
         build: (shared) => ({ title: title, explanation: explanation, example_sentences: learnableSentence, ...shared }),
         create: (element) => createGrammar(element), update: updateGrammar,   // a grammar point has no duplicate to resolve

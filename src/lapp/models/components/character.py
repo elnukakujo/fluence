@@ -50,7 +50,7 @@ class Character(BaseComponentModel):
         if session is not None:
             def ref(i):
                 c = session.get(Character, i)
-                return {"id": c.id, "character": c.character} if c else None
+                return {"id": c.id, "character": c.character, "meaning": c.meaning, "phonetic": c.phonetic} if c else None
             base_dict["key_radical"] = ref(self.key_radical_id) if self.key_radical_id else None
             base_dict["component_refs"] = [r for r in map(ref, self.components or []) if r]
         if include_relations:
