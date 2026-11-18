@@ -15,8 +15,9 @@ export type ConflictProps = {
 
 /** What the vocabulary, grammar and calligraphy forms share: tag and source selection, create-or-update, the return to the lesson,
  *  the failure alerts and the duplicate (409) resolution flow. A form keeps its own fields and says how to build its payload. */
-export function useElementForm<T extends Existing>({ existing, lessonId, noun, messages, build, create, update, mergeInto }: {
+export function useElementForm<T extends Existing>({ existing, lessonId, noun, messages, onDone, build, create, update, mergeInto }: {
     existing?: Partial<T>;
+    onDone?: () => void;                                             // given (a review's edit dialog): called instead of going back to the lesson
     lessonId: string;
     noun: string;                                                    // for the console message: "vocabulary"
     messages: { createFailure: string; updateFailure: string; resolveConflictError?: string };
@@ -41,6 +42,7 @@ export function useElementForm<T extends Existing>({ existing, lessonId, noun, m
     const submit = async (element: Partial<T>, onConflict?: OnConflict) => {
         if (isUpdate) await update(existing!.id!, element);
         else await create(element, onConflict);
+        if (onDone) return onDone();
         const languageId = window.location.pathname.split("/")[2];   // from /languages/LANG_ID/...
         router.push(`/languages/${languageId}/lesson/${lessonId}`);
         router.refresh();

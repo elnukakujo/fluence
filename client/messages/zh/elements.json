@@ -120,5 +120,8 @@
   "removeExampleWord": "移除例词",
   "leechLeaving": "即将移出难卡：已连续答对 {count}/{total} 次",
   "leechConfusable": "容易和 {word}（{translation}）混淆",
-  "bulkPractice": "练习"
+  "bulkPractice": "练习",
+  "editElement": "编辑此元素",
+  "editLoadFailed": "无法加载表单。",
+  "editButton": "编辑"
 }

@@ -23,7 +23,7 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
                 {showExtras && (character.readings?.length ?? 0) > 1 && (
                     <p className="font-mono text-sm text-muted">{character.readings!.map((r) => `${r.kind} ${r.value}`).join(" · ")}</p>
                 )}
-                <CharacterStructure tiles keyRadical={kr} components={components ?? character.component_refs} />
+                <CharacterStructure tiles details={!hiddenTranslation} keyRadical={kr} components={components ?? character.component_refs} />
                 {showExtras && !kr && character.radical && <span className="chip pointer-events-none">{character.radical}</span>}
                 {showExtras && character.strokes ? <span className="text-sm text-muted">{t("strokeCount", { n: character.strokes })}</span> : null}
                 {hasMedia && <ElementMediaCard element={character} />}
@@ -83,12 +83,14 @@ export default function CharacterCard({ character, hiddenTranslation, hiddenAddi
 
 /** What a character is built from and what is built on it: Key radical, Components, Radical of, Component of. Links to the sheets when
  *  a language id is known; plain characters otherwise (in a review the learner must not be sent away mid-session). */
-export function CharacterStructure({ languageId, keyRadical, components, radicalOf, componentOf, tiles }: {
-    tiles?: boolean; languageId?: string; keyRadical?: Ref | null; components?: Ref[]; radicalOf?: Ref[]; componentOf?: Ref[];
+export function CharacterStructure({ languageId, keyRadical, components, radicalOf, componentOf, tiles, details }: {
+    tiles?: boolean; details?: boolean;   // details: a review tile also shows the linked character's reading and meaning
+    languageId?: string; keyRadical?: Ref | null; components?: Ref[]; radicalOf?: Ref[]; componentOf?: Ref[];
 }) {
     const t = useTranslations("elements");
+    const keyLabel = t("characterKeyRadical");
     const rows: [string, Ref[] | undefined][] = [
-        [t("characterKeyRadical"), keyRadical ? [keyRadical] : undefined],
+        [keyLabel, keyRadical ? [keyRadical] : undefined],
         [t("characterComponents"), components],
         [t("characterRadicalOf"), radicalOf],
         [t("characterComponentOf"), componentOf],
@@ -102,7 +104,13 @@ export function CharacterStructure({ languageId, keyRadical, components, radical
                 <div key={label} className="flex min-w-32 flex-1 flex-col items-center gap-2 rounded-xl border border-border px-3 py-3">
                     <dt className="text-xs font-medium uppercase tracking-wider text-muted">{label}</dt>
                     <dd className="flex flex-wrap justify-center gap-2">
-                        {refs!.map((r) => <span key={r.id} className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-accent px-2 font-serif text-3xl text-foreground">{r.character}</span>)}
+                        {refs!.map((r) => (
+                            <span key={r.id} className={`flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 py-1 ${label === keyLabel ? "border-accent bg-accent/10" : "border-border"}`}>
+                                <span className="font-serif text-3xl text-foreground">{r.character}</span>
+                                {details && r.phonetic && <span className="font-mono text-xs text-muted">/{r.phonetic}/</span>}
+                                {details && r.meaning && <span className="text-sm font-medium text-foreground">{r.meaning}</span>}
+                            </span>
+                        ))}
                     </dd>
                 </div>
             ))}

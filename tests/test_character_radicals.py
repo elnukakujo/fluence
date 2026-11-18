@@ -358,7 +358,7 @@ def test_a_calligraphy_payload_carries_the_radical_and_components_with_their_gly
     _with_calligraphy(db)
     _set(db, "char_C1", key_radical_id="char_C2", components=["char_C2", "char_C3"])
     got = _client(app).get("/api/calligraphy/call_C1").get_json()["character"]
-    assert got["key_radical"] == {"id": "char_C2", "character": "氵"}
+    assert got["key_radical"]["id"] == "char_C2" and got["key_radical"]["character"] == "氵"   # plus its meaning and reading (review tiles)
     assert [c["character"] for c in got["component_refs"]] == ["氵", "河"]
 
 

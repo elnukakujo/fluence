@@ -21,6 +21,8 @@ import { pickReplacement } from "@/utils/replaceCard";
 import { suggestedGrade } from "@/utils/cardHints";
 import { isExercise, rendererFor } from "./renderers";
 import type { RendererCtx, SessionItem, SessionOptions, ShellState, TypedState } from "./types";
+import { Pencil } from "lucide-react";
+import EditElementDialog from "./EditElementDialog";
 import EmptyState from "@/components/ui/emptyState";
 
 export type { SessionItem, SessionOptions } from "./types";
@@ -65,7 +67,10 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     };
     const last = remaining.length === 1;
     useEffect(() => { if (last && graded) finish(); });
-    const card = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
+    const [edited, setEdited] = useState<Record<string, ReviewCard>>({});   // element id -> its fresh data after an edit made during this session
+    const [editing, setEditing] = useState(false);
+    const shown = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
+    const card = shown && edited[shown.id!] ? { ...shown, ...edited[shown.id!] } as ReviewCard : shown;
     const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
     const renderer = card ? rendererFor(card) : null;
@@ -158,6 +163,13 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         backLabel,
     };
 
+    const answered = renderer.whole ? ctx.finished || ctx.gaveUp : graded;   // an element is only edited once its card is done
+    const editButton = answered && (
+        <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center justify-center gap-2" onClick={() => setEditing(true)}>
+            <Pencil size={16} aria-hidden />{t("editButton")}
+        </button>
+    );
+
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
             <ReviewHeader
@@ -179,7 +191,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                 badges={view.tier ? <TierBadge tier={view.tier} /> : undefined}
             />
 
-            {renderer.whole ? renderer.whole(ctx) : (
+            {renderer.whole ? <>{renderer.whole(ctx)}{editButton}</> : (
                 <>
                     {renderer.pre?.(ctx)}
                     {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
@@ -209,6 +221,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                             ) : (
                                 <BackButton onBefore={finish} href={backHref}>{backLabel}</BackButton>
                             )}
+                            {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
                             <ElementSourcesCard element={card} />
@@ -217,6 +230,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                     )}
                 </>
             )}
+            {editing && <EditElementDialog card={card} languageId={languageId ?? window.location.pathname.split("/")[2]}
+                onSaved={(fresh) => setEdited((e) => ({ ...e, [fresh.id!]: fresh }))} onClose={() => setEditing(false)} />}
             {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
         </article>
     );

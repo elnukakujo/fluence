@@ -58,10 +58,12 @@ export default function ExerciseForm({
     lesson_id,
     lessonElements,
     languageIso,
+    onDone,
 }: {
     exercise?: Exercise | Partial<Exercise>;
     lesson_id: string;
     lessonElements: LessonElements;
+    onDone?: () => void;   // a review's edit dialog: called after a save instead of navigating
     languageIso?: string;   // target language (ISO 639-2T): picks the exam sections offered as categories
 }) {
     const t = useTranslations("exercises");
@@ -303,6 +305,7 @@ export default function ExerciseForm({
             if (isUpdate) {
                 await updateExercise(exerciseData.id!, element);
                 exerciseId = exerciseData.id!;
+                if (onDone) return onDone();
                 router.push(`/languages/${languageId}/lesson/${lesson_id}/ex/${exerciseData.id}/`);
             } else {
                 const response = await createExercise(element);

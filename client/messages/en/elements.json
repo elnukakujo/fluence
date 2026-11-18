@@ -120,5 +120,8 @@
   "removeExampleWord": "Remove example word",
   "leechLeaving": "Leaving the leech list: {count}/{total} correct in a row",
   "leechConfusable": "Easily mixed up with {word} ({translation})",
-  "bulkPractice": "Practise"
+  "bulkPractice": "Practise",
+  "editElement": "Edit this element",
+  "editLoadFailed": "Could not load the form.",
+  "editButton": "Edit"
 }
