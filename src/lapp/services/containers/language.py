@@ -100,7 +100,8 @@ class LanguageService:
         language = db_manager.find_by_attr(
             model_class=Language,
             attr_values={'id': language_id},
-            session=session
+            session=session,
+            load_relationships=include_relations or not as_dict      # a dict without relations needs the row's columns only
         )
         logger.debug(f"Retrieved language with ID {language_id}")
         return self._serialize(language, as_dict, include_relations)

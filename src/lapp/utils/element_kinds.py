@@ -75,7 +75,9 @@ def kind_of(element_id: str) -> Optional[ElementKind]:
 
 
 def _find(kind: ElementKind, element_id: str):
-    return db_manager.find_by_attr(kind.model(), {"id": element_id})
+    # Columns only: callers read user_id / language_id / the parent id. The default would eager-load every relationship
+    # (a language's lessons, words, passages, characters) on each ownership check, i.e. on every authenticated request.
+    return db_manager.find_by_attr(kind.model(), {"id": element_id}, load_relationships=False)
 
 
 def owner_of(element_id: str) -> Optional[str]:

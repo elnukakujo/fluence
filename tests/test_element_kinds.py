@@ -79,3 +79,35 @@ def test_containers_of(world):
         assert containers_of(eid) == ("lang_L1", None)
     for eid in ("tag_T1", "zzz_1", "", "voc_gone", "LANG_L1"):
         assert containers_of(eid) == (None, None)
+
+
+def _tables_read(db, fn):
+    """The table names that appear after FROM in every statement `fn` runs."""
+    import re
+    from sqlalchemy import event
+    seen = set()
+
+    def watch(conn, cursor, statement, parameters, context, executemany):
+        seen.update(re.findall(r'FROM\s+"?(?:\w+\"?\.)?"?(\w+)', statement))
+
+    event.listen(db.engine, "before_cursor_execute", watch)
+    try:
+        fn()
+    finally:
+        event.remove(db.engine, "before_cursor_execute", watch)
+    return seen
+
+
+@pytest.mark.parametrize("eid,only", [("lang_L1", {"language"}), ("lesson_L1", {"lesson", "language"}), ("voc_V1", {"vocabulary", "lesson", "language"})])
+def test_ownership_lookups_read_only_the_chain_not_the_children(world, db, eid, only):
+    """owner_of / containers_of need one column of each row up the chain. Eager-loading every relationship (a language's
+    words, passages, characters, lessons) on each authenticated request is what made lang_L1 routes cost 0.3-1 s on the VM."""
+    assert _tables_read(db, lambda: (owner_of(eid), containers_of(eid))) == only
+
+
+def test_get_by_id_without_relations_does_not_load_them(world, db):
+    """`include_relations=False` as a dict (the capabilities check, import jobs) reads the row's own columns only."""
+    from lapp.services import LanguageService, LessonService
+    assert _tables_read(db, lambda: LanguageService().get_by_id("lang_L1", as_dict=True, include_relations=False)) == {"language", "collaboration"}   # to_dict lists collaborators
+    assert _tables_read(db, lambda: LessonService().get_by_id("lesson_L1", as_dict=True, include_relations=False)) == {"lesson", "lesson_share"}   # to_dict lists shares
+    assert LanguageService().get_by_id("lang_L1", as_dict=True)["id"] == "lang_L1"      # the default still carries them
