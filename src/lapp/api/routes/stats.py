@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from ...utils.learner_clock import learner_today
 from ...core.auth import current_user_id, login_required, require_write
 from ...services.data_collection import home_stats
 from ...services.system_data.prefs_view import prefs_for, remember_timezone
@@ -21,6 +22,25 @@ def stats_home():
     user_id = current_user_id()
     remember_timezone(user_id, request.headers.get('X-Timezone'))
     return jsonify(home_stats.home(user_id, prefs_for(user_id).timezone))
+
+
+@bp.route('/<language_id>/summary', methods=['GET'])
+@login_required
+def stats_language_summary(language_id: str):
+    """One language's headline numbers (levels, fading, coverage, due), the entry `/home` lists for it.
+    ---
+    tags:
+      - stats
+    responses:
+      200:
+        description: "{id, name, levels, fading, coverage, mean_seen, due, due_minutes, minutes_today}"
+      404:
+        description: Not the caller's language, or it does not exist
+    """
+    user_id = current_user_id()
+    remember_timezone(user_id, request.headers.get('X-Timezone'))
+    out = home_stats.language_summary(user_id, language_id, learner_today(prefs_for(user_id).timezone))
+    return (jsonify(out), 200) if out is not None else (jsonify({'error': 'Not found'}), 404)
 
 
 @bp.route('/<language_id>/snapshots', methods=['GET'])
