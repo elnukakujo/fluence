@@ -1,6 +1,6 @@
 import { apiFetch } from "../apiFetch";
 import DailyStats from "@/interface/dataCollection/DailyStats";
-import HomeStats from "@/interface/dataCollection/HomeStats";
+import HomeStats, { LanguageSummary } from "@/interface/dataCollection/HomeStats";
 
 export async function getTodayDailyStats(userId: string, languageId: string): Promise<DailyStats | null> {
   const params = new URLSearchParams({
@@ -31,4 +31,9 @@ export async function getDailyStatsById(dailyStatsId: string, userId: string): P
 
 export async function getHomeStats(): Promise<HomeStats> {
   return apiFetch("/api/stats/home", { errorMessage: "Failed to fetch the home stats", cache: "no-store" });
+}
+
+/** One language's headline numbers (the entry `getHomeStats` lists for it); 404 when it is not the caller's. */
+export async function getLanguageSummary(languageId: string): Promise<LanguageSummary> {
+  return apiFetch(`/api/stats/${languageId}/summary`, { errorMessage: "Failed to fetch the language summary", cache: "no-store" });
 }
