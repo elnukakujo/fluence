@@ -76,7 +76,8 @@ class LessonService:
         lesson = db_manager.find_by_attr(
             model_class=Lesson,
             attr_values={'id': lesson_id},
-            session=session
+            session=session,
+            load_relationships=include_relations or not as_dict      # a dict without relations needs the row's columns only
         )
         return self._serialize(lesson, as_dict, include_relations)
 
