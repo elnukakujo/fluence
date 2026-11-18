@@ -2,6 +2,8 @@
 import math
 from datetime import datetime
 
+from sqlalchemy import event
+
 from test_study_goal import D0, _goal, _seed
 from lapp.services.features import StudyGoalService
 from lapp.services.data_collection import home_stats
@@ -88,3 +90,22 @@ def test_language_without_lessons_has_nothing_due(db):
         db.insert(Language(id="lang_L2", user_id=U, name="Empty", target_iso639_2t="spa"), session=s, commit=False)
     out = _summary(db, U, "lang_L2")
     assert out["due"] == 0 and out["due_minutes"] == 0 and out["coverage"] == 0.0
+
+
+def test_no_statement_ships_an_id_per_bind_parameter(db):
+    """Score reads send the id list as one array parameter: thousands of bind parameters per statement are what made
+    one home() call cost seconds on the 2-core VM (scripts/profile_home_stats.py)."""
+    _seed(db, n=40)
+    for i in range(0, 40, 2):
+        ScoreService().set(U, f"voc_V{i}", score=40.0, difficulty=0.5)
+    widest = [0]
+
+    def watch(conn, cursor, statement, parameters, context, executemany):
+        widest[0] = max(widest[0], len(parameters))
+
+    event.listen(db.engine, "before_cursor_execute", watch)
+    try:
+        _summary(db, U, "lang_L1")
+    finally:
+        event.remove(db.engine, "before_cursor_execute", watch)
+    assert widest[0] <= 50, f"a statement carried {widest[0]} bind parameters"
