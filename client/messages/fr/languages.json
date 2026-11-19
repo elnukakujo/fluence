@@ -53,8 +53,6 @@
   "updateInformations": "Modifier",
   "reviewThis": "Réviser ceci",
   "reviewIn": "Réviser en {name}",
-  "reviewByType": "Réviser par type",
-  "reviewByTypeHint": "Tout un type, dans l'ordre naturel, sans limite de temps.",
   "queueTitle": {
     "daily": "Révision du jour",
     "lesson": "Révision de la leçon",
@@ -63,6 +61,12 @@
     "type": "Révision par type",
     "free": "Pratique libre"
   },
+  "reviewCustom": "Révision personnalisée",
+  "reviewCustomHint": "Choisissez quoi réviser : un type, une source ou une étiquette. Tout son contenu, dans l'ordre naturel, sans limite de temps.",
+  "customTabsLabel": "Réviser par",
+  "customTab": {"type": "Type", "source": "Source", "tag": "Étiquette"},
+  "customHint": {"type": "Tout un type d'élément.", "source": "Tout ce qui vient d'une source.", "tag": "Tout ce qui porte une étiquette."},
+  "customEmpty": {"type": "Rien à choisir : ce cours n'étudie aucun type d'élément.", "source": "Vous n'avez pas encore de source. Ajoutez-en une dans la page Sources et liez-la à vos éléments.", "tag": "Vous n'avez pas encore d'étiquette. Ajoutez-en une dans la page Étiquettes et liez-la à vos éléments."},
   "typeLabel": {
     "vocabulary": "Vocabulaire",
     "grammar": "Grammaire",
