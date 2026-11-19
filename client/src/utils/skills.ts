@@ -14,6 +14,15 @@ export function skillFor(elementId: string, side?: "front" | "back", mode?: "lis
     return mode ? (mode === "speak" ? "recall" : "recognition") : side === "back" ? "recall" : "recognition";
 }
 
+/** The skill an exercise type trains on a vocabulary (not the element kind's default): choosing, matching or just reading recognises;
+ *  producing it (typing, ordering, writing, speaking, dictation) recalls. Listening and speaking have no score row of their own yet, so they count as recall. */
+export function exerciseSkill(type: Exercise["exercise_type"]): Skill {
+    switch (type) {
+        case "quizz": case "true_false": case "select_in_the_blank": case "matching": case "reading": return "recognition";
+        default: return "recall";
+    }
+}
+
 /** How an exercise answer was given (the server weights it: typed and spoken count most, picking from options least). */
 export function evidenceFor(type: Exercise["exercise_type"]): Evidence {
     switch (type) {
@@ -37,7 +46,7 @@ function partElements(ex: Exercise): (string | undefined)[] {
 export function exerciseResults(ex: Exercise, quality: number, parts?: number[]): ExerciseResult[] {
     const linked = [...(ex.related_vocabulary ?? []), ...(ex.related_grammar ?? []), ...(ex.related_calligraphy ?? [])];
     const evidence_type = evidenceFor(ex.exercise_type);
-    const make = (element_id: string, q: number): ExerciseResult => ({ element_id, quality: q, skill: skillFor(element_id), evidence_type });
+    const make = (element_id: string, q: number): ExerciseResult => ({ element_id, quality: q, skill: elementKindOf(element_id)?.kind === "vocabulary" ? exerciseSkill(ex.exercise_type) : skillFor(element_id), evidence_type });
     const ids = partElements(ex);
     const tested = (parts ?? []).flatMap((q, i) => (ids[i] && linked.includes(ids[i]!) ? [make(ids[i]!, q)] : []));
     const covered = new Set(tested.map((r) => r.element_id));

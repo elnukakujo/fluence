@@ -338,6 +338,7 @@ class CalligraphyService:
         success = db_manager.delete(existing, session=session, commit=False)
 
         if success:
+            score_service.delete_for([calligraphy_id], session=session)     # its scores go with it (SC-17, EM-2)
             logger.info(f"Deleted Calligraphy item: {calligraphy_id}")
         else:
             logger.error(f"Failed to delete Calligraphy item: {calligraphy_id}")

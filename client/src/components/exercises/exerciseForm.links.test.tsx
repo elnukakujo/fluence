@@ -36,3 +36,27 @@ describe("exercise form: mandatory links", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });
+
+describe("exercise form: a grammar of the lesson (EX-17)", () => {
+  const withGrammar = { vocabularies: [], grammars: [{ id: "gram_1", title: "G" }], calligraphies: [] } as never;
+  const formG = (exercise: Partial<Exercise>) => render(<ExerciseForm exercise={exercise} lesson_id="lesson_1" lessonElements={withGrammar} />);
+
+  it("asks for a grammar when the lesson has one and only a vocabulary is linked", async () => {
+    formG({ ...base, related_vocabulary: ["voc_1"] });
+    await userEvent.click(screen.getByRole("button", { name: "Update Exercise" }));
+    expect(api.updateExercise).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("link the exercise to at least one of its grammar points");
+  });
+
+  it("saves once a grammar is linked", async () => {
+    formG({ ...base, related_vocabulary: ["voc_1"], related_grammar: ["gram_1"] });
+    await userEvent.click(screen.getByRole("button", { name: "Update Exercise" }));
+    expect(api.updateExercise).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask for a grammar when the lesson has none", async () => {
+    form({ ...base, related_vocabulary: ["voc_1"] });
+    await userEvent.click(screen.getByRole("button", { name: "Update Exercise" }));
+    expect(api.updateExercise).toHaveBeenCalledTimes(1);
+  });
+});

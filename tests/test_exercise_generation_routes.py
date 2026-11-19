@@ -4,7 +4,7 @@ import pytest
 
 from lapp.models.components import Word
 from lapp.models.containers import Language, Lesson
-from lapp.models.features import Exercise, Vocabulary
+from lapp.models.features import Exercise, Grammar, Vocabulary
 from lapp.models.system_data import User, UserPreferences
 from lapp.services.auth import AuthService
 from endpoint_helpers import passed_endpoint
@@ -19,13 +19,15 @@ def _user(db, uid, endpoints=(TEXT,), type_prefs=None):
         db.insert(UserPreferences(id=f"pref_{uid}", user_id=uid, ai_endpoints=[passed_endpoint(e) for e in endpoints], exercise_type_prefs=type_prefs or {}), session=s, commit=False)
 
 
-def _lesson(db, words=8):
+def _lesson(db, words=8, grammar=True):
     with db.session_scope() as s:
         db.insert(Language(id="lang_L1", user_id="user_U1", name="French", target_iso639_2t="fra", source_iso639_2t="eng"), session=s, commit=False)
         db.insert(Lesson(id="lesson_L1", user_id="user_U1", language_id="lang_L1", title="L", position=0), session=s, commit=False)
         for i in range(words):
             db.insert(Word(id=f"word_W{i}", language_id="lang_L1", word=f"w{i}"), session=s, commit=False)
             db.insert(Vocabulary(id=f"voc_V{i}", lesson_id="lesson_L1", word_id=f"word_W{i}"), session=s, commit=False)
+        if grammar:      # every exercise is anchored on a grammar of the lesson (EG-15)
+            db.insert(Grammar(id="gram_G0", lesson_id="lesson_L1", title="g", explanation="e"), session=s, commit=False)
 
 
 def _client(app, uid):
@@ -62,12 +64,12 @@ def test_suggest_returns_a_count_and_a_mix_without_banned_types(app, db):
     _user(db, "user_U1", type_prefs={"quizz": "ban"})
     _lesson(db)
     body = _client(app, "user_U1").get("/api/lesson/lesson_L1/exercises/suggest").get_json()
-    assert body["count"] >= 6 and body["pool"] == 8 and sum(body["mix"].values()) == body["count"] and "quizz" not in body["mix"]
+    assert body["count"] >= 6 and body["pool"] == 9 and sum(body["mix"].values()) == body["count"] and "quizz" not in body["mix"]
 
 
 def test_suggest_on_an_empty_lesson_is_zero(app, db):
     _user(db, "user_U1")
-    _lesson(db, words=0)
+    _lesson(db, words=0, grammar=False)
     assert _client(app, "user_U1").get("/api/lesson/lesson_L1/exercises/suggest").get_json() | {"types": None} == {"count": 0, "mix": {}, "pool": 0, "types": None}
 
 
@@ -99,7 +101,7 @@ def test_generate_refuses_without_an_endpoint_an_empty_lesson_or_a_bad_count(app
 
 def test_generate_on_an_empty_lesson_is_a_409(app, db, stub):
     _user(db, "user_U1")
-    _lesson(db, words=0)
+    _lesson(db, words=0, grammar=False)
     r = _client(app, "user_U1").post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6})
     assert r.status_code == 409 and r.get_json()["error"] == "empty_lesson"
 
@@ -226,3 +228,10 @@ def test_generate_hands_the_mix_to_the_job(app, db, stub, monkeypatch):
     monkeypatch.setattr(jobs, "start_job", lambda *a, **kw: seen.update(args=a, kw=kw) or "gen_x")
     r = _client(app, "user_U1").post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6, "mix": {"translate": 4, "quizz": 2}})
     assert r.status_code == 202 and ({"translate": 4, "quizz": 2} in seen["args"] or seen["kw"].get("mix") == {"translate": 4, "quizz": 2})
+
+
+def test_generate_without_a_grammar_is_409_no_grammar(app, db, stub):
+    _user(db, "user_U1")
+    _lesson(db, grammar=False)
+    r = _client(app, "user_U1").post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6})
+    assert r.status_code == 409 and r.get_json()["error"] == "no_grammar"

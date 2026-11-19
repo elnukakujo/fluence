@@ -44,8 +44,8 @@ export default async function Language({ params }: { params: Promise<{ language_
                     <NavButton path={`${base}/review`} className="btn btn-primary min-h-11">
                         <p>{summary ? tHome("reviewNow", { count: summary.due }) : t("dailyReview")}</p>
                     </NavButton>
-                    <NavButton path={`${base}/review/by-type`}>
-                        <p>{t("reviewByType")}</p>
+                    <NavButton path={`${base}/review/custom`}>
+                        <p>{t("reviewCustom")}</p>
                     </NavButton>
                     {language.current_lesson_id && <NavButton path={`${base}/lesson/${language.current_lesson_id}`}>
                         <p>{t("goToCurrentLesson")}</p>

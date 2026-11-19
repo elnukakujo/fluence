@@ -123,5 +123,8 @@
   "bulkPractice": "S'exercer",
   "editElement": "Modifier cet élément",
   "editLoadFailed": "Impossible de charger le formulaire.",
-  "editButton": "Modifier"
+  "editButton": "Modifier",
+  "deleteButton": "Supprimer",
+  "deleteCardConfirm": "Supprimer cet élément définitivement ? Ses scores partent avec lui.",
+  "deleteFailed": "Suppression impossible. Vous n'avez peut-être pas le droit de modifier cet élément."
 }

@@ -11,7 +11,7 @@ from ...core.database import db_manager, transactional
 from ...models.system_data import Score
 from ...utils.element_kinds import kind_of
 from ...utils.scoring import (
-    DAY_GAIN_CAP, EVIDENCE_WEIGHTS, STABILITY_CAP_DAYS, ScoreState, apply_answer, effective_score, is_weak, level_for,
+    DAY_GAIN_CAP, EVIDENCE_WEIGHTS, STABILITY_CAP_DAYS, ScoreState, apply_answer, effective_score, grammar_blend, grammar_weight, is_weak, level_for,
 )
 
 SIDES = ("front", "back")
@@ -65,6 +65,8 @@ class _Summary:
     current_lesson_id: Optional[str]
     skills: dict = field(default_factory=dict)
     sides: dict = field(default_factory=dict)       # vocabulary only: {"front": {score, difficulty}, ...}
+    weight: float = 1.0                             # grammar only: weight of the reading card in `score` (SC-30)
+    flat: Optional[float] = None                    # grammar only: the blend, what an aggregate averages (one entry, not two rows)
 
     @property
     def is_leech(self) -> bool:
@@ -81,6 +83,28 @@ def _leaf(rows: list, now: datetime) -> _Summary:
         note=next((r.note for r in rows if r.note), None),
         current_lesson_id=next((r.current_lesson_id for r in rows if r.current_lesson_id), None),
         skills=skills)
+
+
+PRACTICE = "practice"      # a grammar's exercise-credit skill; the reading card keeps "recognition" (SC-30)
+
+
+def _grammar_parts(rows: list, now: datetime) -> tuple[float, float]:
+    """(blended score, reading weight) of a grammar from its reading and exercise rows. Only exercises answered: their score alone."""
+    reading = [_effective(r, now) for r in rows if r.skill != PRACTICE]
+    practice = next((r for r in rows if r.skill == PRACTICE), None)
+    if not reading:
+        return (_effective(practice, now) if practice else 0.0), 1.0
+    p_score = _effective(practice, now) if practice else None
+    n = len(practice.recent or "") if practice else 0
+    return grammar_blend(mean(reading), p_score, n), grammar_weight(p_score, n)
+
+
+def _grammar(rows: list, now: datetime) -> _Summary:
+    summary = _leaf(rows, now)
+    summary.score, summary.weight = _grammar_parts(rows, now)
+    summary.score = round(summary.score, 4)
+    summary.flat = summary.score
+    return summary
 
 
 def _vocabulary(parent_rows: list, side_rows: dict, now: datetime) -> Optional[_Summary]:
@@ -125,7 +149,8 @@ class PriorityInput:
     stability: float
     last_seen_at: Optional[datetime]
     lapses: int             # wrong answers among the last 8 (the engine's `recent`)
-    capped: bool            # every skill already gained DAY_GAIN_CAP today: more answers earn nothing (spec G3)
+    weight: float = 1.0     # grammar only: reading-card weight (SC-30); the queue scales the priority by it
+    capped: bool = False    # every skill already gained DAY_GAIN_CAP today: more answers earn nothing (spec G3)
 
 
 class ScoreService:
@@ -173,6 +198,8 @@ class ScoreService:
         for eid in ids:
             if _is_voc_parent(eid):
                 summary = _vocabulary(by_el.get(eid, []), {s: by_el.get(side_id(eid, s), []) for s in SIDES}, now)
+            elif eid.startswith("gram_") and by_el.get(eid):
+                summary = _grammar(by_el[eid], now)
             else:
                 summary = _leaf(by_el[eid], now) if by_el.get(eid) else None
             if summary is not None:
@@ -208,7 +235,8 @@ class ScoreService:
         if not element_ids:
             return {}
         found = self._collect(session, user_id, list(element_ids), now or datetime.now())
-        return {eid: {k: v["score"] for k, v in s.skills.items()} for eid, s in found.items()}
+        return {eid: ({"recognition": s.flat} if s.flat is not None else {k: v["score"] for k, v in s.skills.items()})
+                for eid, s in found.items()}
 
     @transactional
     def get_many(self, user_id: str, element_ids: list[str], now: Optional[datetime] = None,
@@ -235,8 +263,9 @@ class ScoreService:
             if not rows:
                 continue
             seen = [r.last_seen_at for r in rows if r.last_seen_at]
+            blended, weight = _grammar_parts(rows, now) if eid.startswith("gram_") else (None, 1.0)
             out[eid] = PriorityInput(
-                score=mean(_effective(r, now) for r in rows), stability=min(r.stability for r in rows),
+                score=mean(_effective(r, now) for r in rows) if blended is None else blended, weight=weight, stability=min(r.stability for r in rows),
                 last_seen_at=max(seen) if seen else None, lapses=max(r.recent.count("0") for r in rows),
                 capped=all(r.day_date == today and r.day_gain >= DAY_GAIN_CAP for r in rows))
         return out

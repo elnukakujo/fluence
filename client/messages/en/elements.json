@@ -123,5 +123,8 @@
   "bulkPractice": "Practise",
   "editElement": "Edit this element",
   "editLoadFailed": "Could not load the form.",
-  "editButton": "Edit"
+  "editButton": "Edit",
+  "deleteButton": "Delete",
+  "deleteCardConfirm": "Delete this element for good? Its scores go with it.",
+  "deleteFailed": "Could not delete it. You may not be allowed to change this element."
 }

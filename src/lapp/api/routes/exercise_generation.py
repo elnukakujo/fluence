@@ -68,7 +68,7 @@ def generate(lesson_id: str):
     responses:
         202: {description: "{job_id}"}
         400: {description: "count outside 1..60, or a mix that is not offerable types with positive whole numbers summing to count"}
-        409: {description: "text_gen_not_configured or empty_lesson"}
+        409: {description: "text_gen_not_configured, empty_lesson or no_grammar"}
     """
     require_write(lesson_id)
     count = (request.get_json(silent=True) or {}).get("count")
@@ -86,8 +86,10 @@ def generate(lesson_id: str):
     if not cap.enabled or not api:
         return jsonify({"error": "text_gen_not_configured", "reason": cap.reason, "needs": cap.needs}), 409
     pool, slots, _ = _plan(lesson_id, count)
-    if not pool or not slots:
+    if not pool:
         return jsonify({"error": "empty_lesson"}), 409
+    if not slots:
+        return jsonify({"error": "no_grammar"}), 409       # every exercise is built around one of the lesson's own grammars (EG-15/16)
     lesson = LessonService().get_by_id(lesson_id, as_dict=True)
     language = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
     prefs = UserPreferencesService().get_by_user_id(current_user_id())

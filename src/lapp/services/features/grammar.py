@@ -216,6 +216,7 @@ class GrammarService:
         success = db_manager.delete(existing, session=session, commit=False)
 
         if success:
+            score_service.delete_for([grammar_id], session=session)     # its scores go with it (SC-17, EM-2)
             logger.info(f"Deleted Grammar item: {grammar_id}")
         else:
             logger.error(f"Failed to delete Grammar item: {grammar_id}")

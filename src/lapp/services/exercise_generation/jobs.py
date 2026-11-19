@@ -47,6 +47,16 @@ def active_job(user_id: str, lesson_id: str) -> dict | None:
     return None
 
 
+def lesson_level(lesson_id: str, session) -> str | None:
+    """The lesson's level as its language's own label (\"B1\", \"N3\"), so the prompt can keep exercises at that level; None when unknown."""
+    from ...core.languages import language_for_iso2
+    from ...models.containers import Lesson
+    lesson = session.get(Lesson, lesson_id)
+    language = language_for_iso2(lesson.language.target_iso639_2t) if lesson and lesson.language else None
+    levels = language.levels if language else ()
+    return levels[lesson.level] if lesson and 0 <= (lesson.level or 0) < len(levels) else None
+
+
 def target_name(iso2t: str | None) -> str:
     language = get_language_by_iso2t(iso2t or "")
     return "the target language" if language.iso1 == "unknown" else language.name
@@ -62,12 +72,13 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
                 advanced = is_advanced(well_known)
                 prefs = UserPreferencesService().get_by_user_id(user_id, session=s)
                 tts = gated_api(prefs, "tts") is not None
+                level = lesson_level(lesson_id, s)
                 slots = plan_slots_from_mix(pool, mix) if mix else plan_slots(pool, count, prefs.exercise_type_prefs, tts, advanced=advanced)
             job["total"] = len(slots)
             known = list(dict.fromkeys(well_known + [p.label for p in pool]))[:KNOWN_MAX]       # what the learner knows, then this lesson's own elements
-            items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1), source=source, known=known, advanced=advanced)
+            items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1), source=source, known=known, advanced=advanced, level=level)
             add_mentioned_links(items, pool)
-            reasons = judge_batch(items, api, target, known=known, advanced=advanced)
+            reasons = judge_batch(items, api, target, known=known, advanced=advanced, level=level)
             batch_id = "batch_" + uuid.uuid4().hex[:12]
             created: list[tuple[str, str | None]] = []
             with db_manager.session_scope() as s:

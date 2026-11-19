@@ -10,8 +10,9 @@ from ..ingestion.verify import normalise
 ANSWER_REQUIRED = ("answering", "translate")   # the other types derive their answer from `content`; an essay may be open-ended (no answer)
 
 
-def code_error(item: dict, allowed_ids: set[str]) -> str | None:
-    """None if `item` ({exercise_type, question, answer, content, links}) passes, else the first problem."""
+def code_error(item: dict, allowed_ids: set[str], grammar_ids: set[str] | None = None) -> str | None:
+    """None if `item` ({exercise_type, question, answer, content, links}) passes, else the first problem.
+    `grammar_ids` = the slot's grammars: when given, `links` must name at least one (EG-17)."""
     etype = item.get("exercise_type")
     if etype not in EXERCISE_TYPES:
         return f"unknown exercise type {etype!r}"
@@ -45,6 +46,8 @@ def code_error(item: dict, allowed_ids: set[str]) -> str | None:
     links = item.get("links") or []
     if not links or not set(links) <= allowed_ids:
         return "link the exercise to at least one of the elements it is about (use only the ids given)"
+    if grammar_ids and not set(links) & grammar_ids:
+        return "`links` must include the slot's grammar (the element marked grammar): the exercise has to make the learner apply that grammar point"
     return None
 
 

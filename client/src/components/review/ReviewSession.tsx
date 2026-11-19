@@ -23,6 +23,7 @@ import { isExercise, rendererFor } from "./renderers";
 import type { RendererCtx, SessionItem, SessionOptions, ShellState, TypedState } from "./types";
 import { Pencil } from "lucide-react";
 import EditElementDialog from "./EditElementDialog";
+import ReviewDeleteButton from "./ReviewDeleteButton";
 import EmptyState from "@/components/ui/emptyState";
 
 export type { SessionItem, SessionOptions } from "./types";
@@ -55,7 +56,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const keyOf = (c: ReviewCard) => ("card_id" in c && c.card_id ? String(c.card_id) : c.id!);   // a vocabulary appears once per side
     const queue = cards.filter((c) => !c.spare);                    // spares ride along to replace an exercise the learner can't do
     const [replaced, setReplaced] = useState<Record<string, Exercise>>({});   // queue slot -> the spare exercise standing in
-    const remaining = queue.filter((c) => !done.includes(keyOf(c)));
+    const [removed, setRemoved] = useState<string[]>([]);           // elements deleted during this session: both sides of a vocabulary go together
+    const remaining = queue.filter((c) => !done.includes(keyOf(c)) && !removed.includes(c.id!));
     const slot = remaining[0];
     const currentIndex = done.length;
     const [streak, setStreak] = useState<number | null>(null);
@@ -67,6 +69,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     };
     const last = remaining.length === 1;
     useEffect(() => { if (last && graded) finish(); });
+    useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [edited, setEdited] = useState<Record<string, ReviewCard>>({});   // element id -> its fresh data after an edit made during this session
     const [editing, setEditing] = useState(false);
     const shown = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
@@ -120,6 +123,12 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
     const handleGoNext = () => {
         setDone([...done, keyOf(slot)]);
+    };
+
+    // RC-23: the card's element is gone (no score is written); a spare standing in for the slot ends the slot too.
+    const handleDeleted = () => {
+        setRemoved([...removed, card.id!]);
+        if (card.id !== slot.id) setDone([...done, keyOf(slot)]);
     };
 
     // Can't do this exercise right now (no audio / mic, or it is broken): another ready one takes its place, else it is skipped.
@@ -190,6 +199,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                 progressLabel={t("reviewProgress")}
                 badges={view.tier ? <TierBadge tier={view.tier} /> : undefined}
             />
+
+            <div className="flex justify-end"><ReviewDeleteButton key={card.id} elementId={card.id!} onDeleted={handleDeleted} /></div>
 
             {renderer.whole ? <>{renderer.whole(ctx)}{editButton}</> : (
                 <>

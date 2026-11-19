@@ -25,3 +25,6 @@ export function overrideAttempt(id: string) {
     last = null;
     return overrideExercise(id, a.body).catch(console.error);
 }
+
+/** How the last attempt of this exercise went (for the grammar sheet, RC-22); null when none was posted (given up or skipped). */
+export const lastAttempt = (id: string) => (last?.id === id ? { failed: last.body.results.some((r) => r.quality < 1), hintUsed: !!last.body.hintUsed } : null);

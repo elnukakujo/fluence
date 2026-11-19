@@ -16,7 +16,7 @@ from ...models.base import source_element_link, tag_element_link
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
 from ...utils.learner_clock import learner_today
-from ...utils.scoring import INITIAL_STABILITY_DAYS
+from ...utils.scoring import INITIAL_STABILITY_DAYS, is_replaced
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from ..system_data.prefs_view import PrefsView, prefs_for
@@ -90,7 +90,7 @@ def priority_for(inputs: dict, element_id: str, now: datetime) -> float:
     pi = inputs.get(element_id)
     if pi is None:
         return review_priority(0.0, INITIAL_STABILITY_DAYS, None, 0, now)
-    return review_priority(pi.score, pi.stability, pi.last_seen_at, pi.lapses, now)
+    return review_priority(pi.score, pi.stability, pi.last_seen_at, pi.lapses, now) * pi.weight     # a grammar the exercises are replacing fades (SC-30)
 
 
 def item_skill(card_id: str, side: Optional[str]) -> str:
@@ -233,6 +233,8 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
     side_ids = [side_id(i, sd) for i in all_ids if i.startswith("voc_") for sd in SIDES]
     inputs = ScoreService().priority_inputs(user_id, [*all_ids, *side_ids], now, today, session=session)
     capped = frozenset(i for i, pi in inputs.items() if pi.capped)
+    if daily:       # a grammar fully replaced by exercises is no longer read in the daily queue; explicit scopes still serve it (SC-30)
+        scoped_cards[Grammar] = [c for c in scoped_cards[Grammar] if not (c.id in inputs and is_replaced(inputs[c.id].weight))]
 
     bonus_ids: set = set()
     buckets = {}

@@ -111,3 +111,71 @@ def test_aggregate_rows_do_not_decay_on_their_own(db):
     ScoreService().set("user_U1", "lesson_L1", 50.0, 0.5)
     _age(db, "lesson_L1", 60)
     assert ScoreService().get("user_U1", "lesson_L1").score == 50.0     # derived value, refreshed by its children
+
+
+def _set(db, element_id, skill, score):
+    with db.session_scope() as s:
+        s.query(Score).filter(Score.element_id == element_id, Score.skill == skill).one().score = score
+
+
+def _practice(n, quality=1.0, eid="gram_G1"):
+    for _ in range(n):
+        ScoreService().record("user_U1", eid, "practice", quality, "typed")
+
+
+def test_grammar_without_practice_row_reads_as_before(db):
+    from datetime import date
+    _seed_users(db)
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "self_grade")
+    _set(db, "gram_G1", "recognition", 70)
+    now = datetime.now()
+    assert ScoreService().get_many("user_U1", ["gram_G1"])["gram_G1"].score == pytest.approx(70, abs=0.5)
+    pi = ScoreService().priority_inputs("user_U1", ["gram_G1"], now, date.today())["gram_G1"]
+    assert pi.weight == 1.0
+
+
+def test_grammar_blend_uses_the_practice_row_after_five_answers(db):
+    from datetime import date
+    from lapp.utils.scoring import grammar_blend, GRAMMAR_FLOOR
+    _seed_users(db)
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "self_grade")
+    _set(db, "gram_G1", "recognition", 80)
+    _practice(5)
+    _set(db, "gram_G1", "practice", 70)
+    got = ScoreService().get_many("user_U1", ["gram_G1"])["gram_G1"].score
+    assert got == pytest.approx(GRAMMAR_FLOOR * 80 + (1 - GRAMMAR_FLOOR) * 70, abs=0.5)
+    assert ScoreService().priority_inputs("user_U1", ["gram_G1"], datetime.now(), date.today())["gram_G1"].weight == pytest.approx(GRAMMAR_FLOOR)
+
+
+def test_failed_exercises_keep_the_weight_at_one(db):
+    from datetime import date
+    _seed_users(db)
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "self_grade")
+    _practice(6, quality=0.0)
+    assert ScoreService().priority_inputs("user_U1", ["gram_G1"], datetime.now(), date.today())["gram_G1"].weight == 1.0
+
+
+def test_four_exercise_answers_do_not_replace_anything(db):
+    from datetime import date
+    _seed_users(db)
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "self_grade")
+    _practice(4)
+    _set(db, "gram_G1", "practice", 90)
+    assert ScoreService().priority_inputs("user_U1", ["gram_G1"], datetime.now(), date.today())["gram_G1"].weight == 1.0
+
+
+def test_skill_scores_of_a_grammar_is_one_entry_holding_the_blend(db):
+    _seed_users(db)
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "self_grade")
+    _practice(5)
+    _set(db, "gram_G1", "practice", 60)
+    sk = ScoreService().skill_scores("user_U1", ["gram_G1"])["gram_G1"]
+    assert list(sk) == ["recognition"]
+    assert sk["recognition"] == pytest.approx(ScoreService().get_many("user_U1", ["gram_G1"])["gram_G1"].score)
+
+
+def test_exercise_only_grammar_reads_as_its_practice_score(db):
+    _seed_users(db)
+    _practice(2)
+    got = ScoreService().get_many("user_U1", ["gram_G1"])["gram_G1"].score
+    assert got == pytest.approx(ScoreService().get("user_U1", "gram_G1", skill="practice").score, abs=0.5)
