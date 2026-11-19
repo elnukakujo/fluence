@@ -72,3 +72,16 @@ def test_a_type_in_gap_without_a_clue_is_rejected():
 def test_an_open_ended_essay_needs_no_answer_but_a_translation_does():
     assert code_error(item("essay", answer=""), IDS) is None
     assert code_error(item("translate", answer=""), IDS) == "the answer is empty"
+
+
+def test_links_without_a_grammar_of_the_slot_are_rejected():
+    why = code_error(item("essay", links=("voc_V1",)), IDS, {"gram_G1"})
+    assert why and "grammar" in why
+
+
+def test_links_with_the_grammar_pass():
+    assert code_error(item("essay", links=("gram_G1", "voc_V1")), IDS, {"gram_G1"}) is None
+
+
+def test_a_slot_without_grammar_has_nothing_to_require():
+    assert code_error(item("essay", links=("voc_V1",)), IDS, set()) is None

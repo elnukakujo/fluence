@@ -155,3 +155,12 @@ def test_mix_plan_empty_pool_or_mix():
 def test_offerable_types():
     types = offerable_types({"quizz": "ban"}, False)
     assert "quizz" not in types and "dictation" not in types and "translate" in types
+
+
+def test_lesson_level_is_the_languages_own_label(db):
+    from lapp.core.languages import language_for_iso2
+    from lapp.services.exercise_generation.jobs import lesson_level
+    _seed(db)
+    with db.session_scope() as s:
+        assert lesson_level("lesson_A", s) == language_for_iso2("jpn").levels[1]
+        assert lesson_level("lesson_missing", s) is None
