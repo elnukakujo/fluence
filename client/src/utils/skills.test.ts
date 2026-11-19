@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evidenceFor, exerciseResults, skillFor } from "./skills";
+import { evidenceFor, exerciseResults, exerciseSkill, skillFor } from "./skills";
 import type Exercise from "@/interface/features/Exercise";
 
 describe("skillFor", () => {
@@ -40,5 +40,20 @@ describe("exerciseResults", () => {
         const stray = { ...matching, related_vocabulary: ["voc_2"] } as Exercise;
         expect(exerciseResults(stray, 0.4, [1, 1, 1]).map((r) => r.element_id)).toEqual(["voc_2"]);
         expect(exerciseResults({ id: "ex_9", exercise_type: "essay" } as Exercise, 0.8).map((r) => [r.element_id, r.skill])).toEqual([["ex_9", "recall"]]);
+    });
+});
+
+
+describe("exerciseSkill: a vocabulary is credited with the skill of the exercise type", () => {
+    it("choosing, matching and reading recognise; typing, ordering, writing and speaking recall", () => {
+        for (const t of ["quizz", "true_false", "select_in_the_blank", "matching", "reading"] as const) expect(exerciseSkill(t)).toBe("recognition");
+        for (const t of ["answering", "essay", "translate", "organize", "type_in_the_blank", "speaking", "conversation", "dictation"] as const) expect(exerciseSkill(t)).toBe("recall");
+    });
+
+    it("exerciseResults uses it for a vocabulary only; grammar and calligraphy keep their own skill", () => {
+        const ex = { id: "ex_1", exercise_type: "answering", related_vocabulary: ["voc_1"], related_grammar: ["gram_1"], related_calligraphy: ["call_1"] } as Exercise;
+        expect(exerciseResults(ex, 1).map((r) => [r.element_id, r.skill])).toEqual([["voc_1", "recall"], ["gram_1", "recognition"], ["call_1", "recall"]]);
+        const quizz = { ...ex, exercise_type: "quizz" } as Exercise;
+        expect(exerciseResults(quizz, 1).map((r) => [r.element_id, r.skill])).toEqual([["voc_1", "recognition"], ["gram_1", "recognition"], ["call_1", "recall"]]);
     });
 });

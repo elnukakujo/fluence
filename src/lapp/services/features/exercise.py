@@ -338,11 +338,8 @@ class ExerciseService:
             raise ValueError("a result names an element the exercise is not linked to")
         for (element_id, skill), (quality, evidence) in group_results(results).items():
             if element_id != ex_id:
-                # a vocabulary has no side here: each face trains its own skill (front recognition, back recall), as the cascade did
-                # TODO(owner): which skill does an exercise test on a vocabulary?
-                # a grammar takes exercise credit on its own "practice" row, so the reading card's row stays separate (SC-30)
-                # (`kind.name` is capitalised, so the lowercase vocabulary test above never matches: behaviour kept, noted in the ledger)
-                face_skill = "practice" if kind_of(element_id).name == "Grammar" else None if kind_of(element_id).name == "vocabulary" else skill
+                # a vocabulary takes the skill of the exercise type (the client sends it, RD-126); a grammar takes exercise credit on its own "practice" row (SC-30)
+                face_skill = "practice" if kind_of(element_id).name == "Grammar" else skill
                 linked[element_id].update_score(element_id, score=quality, duration_ms=duration_ms, hint_used=hint_used,
                                                 user_id=user_id, skill=face_skill, evidence_type=evidence, session=session)
         self.update_score(ex_id, mean(r["quality"] for r in results), duration_ms, hint_used=hint_used, attempt_number=attempt,
