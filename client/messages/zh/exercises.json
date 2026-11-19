@@ -87,6 +87,7 @@
   "exerciseType": "练习类型",
   "questionLabel": "问题",
   "linkRequired": "请将练习关联到本课至少一个词汇、语法或书法条目。",
+  "grammarRequired": "本课有语法条目：请至少把这道练习关联到其中一个语法点。",
   "associatedVocabulary": "相关词汇",
   "associatedGrammar": "相关语法",
   "associatedCalligraphies": "相关书法",

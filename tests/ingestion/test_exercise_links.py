@@ -51,3 +51,19 @@ def test_accept_does_not_store_an_exercise_that_matches_no_element(app, db, medi
     assert any("matches no element" in n for n in body["notes"])
     with db.session_scope() as s:
         assert s.query(Exercise).count() == 0
+
+
+def test_an_imported_exercise_without_a_grammar_is_held_for_review_when_the_lesson_has_one(app, db, media_root, scheduled):
+    grammar = {"kind": "grammar", "fields": {"title": "Greeting", "explanation": "Used to greet", "example_sentences": []}}
+    res = _accept(app, db, media_root, [_ex("Say hello"), grammar])
+    assert res.status_code == 200
+    with db.session_scope() as s:
+        ex = s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").one()
+        assert not ex.related_grammar and ex.review_reason == "no grammar linked"
+
+
+def test_an_imported_exercise_with_its_grammar_is_ready(app, db, media_root, scheduled):
+    grammar = {"kind": "grammar", "fields": {"title": "Greeting", "explanation": "Used to greet", "example_sentences": []}}
+    _accept(app, db, media_root, [_ex("Use Greeting with hello"), grammar])
+    with db.session_scope() as s:
+        assert s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").one().review_reason is None

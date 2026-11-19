@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from ...core.database import db_manager, transactional, resolve_related
-from ...models.features import Exercise
+from ...models.features import Exercise, Grammar
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
 from ...models.system_data import Tag, Source, Score, OverrideFlag
@@ -29,6 +29,11 @@ grammar_service = GrammarService()
 vocabulary_service = VocabularyService()
 study_activity = StudyActivity()
 score_service = ScoreService()
+
+def lesson_has_grammar(lesson_id: str, session: Session) -> bool:
+    """A lesson with a grammar: every exercise written for it must link one (EX-17)."""
+    return session.query(Grammar.id).filter(Grammar.lesson_id == lesson_id).first() is not None
+
 
 class ExerciseService:
     def _serialize(self, exercise: Exercise | None, as_dict: bool, include_relations: bool) -> Exercise | dict | None:
