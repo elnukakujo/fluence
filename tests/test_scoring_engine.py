@@ -6,6 +6,7 @@ import pytest
 
 from lapp.utils.scoring import (
     EVIDENCE_WEIGHTS, ScoreState, apply_answer, effective_score, is_weak, level_for,
+    grammar_blend, grammar_weight, is_replaced,
 )
 
 T0 = datetime(2026, 1, 1, 12, 0)
@@ -124,3 +125,29 @@ def test_old_wrongs_outside_window_do_not_count():
         s = apply_answer(s, 1.0, 1.0, T0)
     s = apply_answer(s, 0.0, 1.0, T0)
     assert not s.is_leech
+
+
+def test_weight_is_one_without_enough_answers():
+    assert grammar_weight(90, 4) == 1.0
+
+
+def test_weight_is_one_when_practice_is_zero():
+    assert grammar_weight(0, 8) == 1.0
+
+
+def test_weight_slides_linearly_to_the_floor():
+    assert grammar_weight(30, 5) == pytest.approx(0.55)
+    assert grammar_weight(60, 5) == pytest.approx(0.10)
+    assert grammar_weight(100, 8) == pytest.approx(0.10)
+
+
+def test_blend_is_the_reading_alone_without_practice():
+    assert grammar_blend(70, None, 0) == 70
+
+
+def test_blend_mixes_by_weight():
+    assert grammar_blend(80, 60, 5) == pytest.approx(0.1 * 80 + 0.9 * 60)
+
+
+def test_is_replaced_only_at_the_floor():
+    assert is_replaced(0.1) and not is_replaced(0.55) and not is_replaced(1.0)

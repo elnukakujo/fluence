@@ -20,6 +20,7 @@ from ...services.ingestion.jobs import (IngestionJobService, candidates_path, cr
                                         remove_job_files)
 from ...services.ingestion.classify import validate_page_kinds
 from ...services.ingestion.exercises import link_to_elements
+from ...services.features.exercise import lesson_has_grammar
 from ...services.ingestion.structure import lesson_ranges, normalize_ranges, validate_structure
 from ...services.ingestion.capabilities import capabilities, has_text_endpoint
 from ...services.ingestion.preview import render_page_png
@@ -1105,6 +1106,7 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     answer=answer,
                     text_support=fields.get("text_support") or None,
                     content=fields.get("content") or None,
+                    review_reason=None if links["related_grammar"] or not lesson_has_grammar(lesson_id, session) else "no grammar linked",   # EX-17: held for review
                     **links,
                 )
                 created_exercise = exercise_service.create(exercise_dict, session=session)

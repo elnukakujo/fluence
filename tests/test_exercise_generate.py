@@ -188,3 +188,31 @@ def test_beginner_prompt_and_gated_types():
     assert "BEGINNER" in gen._generation_system("essay", "German", None, advanced=False)
     assert "BEGINNER" not in gen._generation_system("essay", "German", None)
     assert not {"essay", "conversation"} & set(offerable_types(None, True, advanced=False))
+
+
+G1 = PoolItem("grammar", "gram_G1", "ne...pas", 0)
+
+
+def test_a_slot_whose_exercise_ignores_its_grammar_is_retried_then_dropped(model):
+    model.replies = [[essay("Q?", ["voc_V1"])], [essay("Q?", ["voc_V1"])]]
+    assert gen.generate_batch([Slot("essay", [G1, V1])], API, "French") == []
+    assert len(model.calls) == 2 and "grammar" in model.calls[1][1]["content"]
+    model.replies, model.calls[:] = [[essay("Q?", ["voc_V1"])], [essay("Q?", ["gram_G1", "voc_V1"])]], []
+    out = gen.generate_batch([Slot("essay", [G1, V1])], API, "French")
+    assert len(out) == 1 and out[0]["related_grammar"] == ["gram_G1"] and out[0]["related_vocabulary"] == ["voc_V1"]
+
+
+def test_the_prompt_carries_the_level_the_grammar_marker_and_the_meta_ban(model):
+    model.replies = [[essay("Q?", ["gram_G1"])]]
+    gen.generate_batch([Slot("essay", [G1, V1])], API, "French", level="B1")
+    system, user = model.calls[0][0]["content"], model.calls[0][1]["content"]
+    assert "Lesson level: B1" in user and "the grammar point" in user and "ne...pas" in user
+    assert "never ask about the language itself" in system.lower() and "how do you write" in system.lower()
+    assert "grammar point" in system and "`links` must include it" in system
+
+
+def test_the_judge_prompt_asks_for_the_two_grammar_flags(model):
+    model.replies = [{"verdicts": [{"ok": True, "reason": ""}]}]
+    gen.judge_batch([{"exercise_type": "essay", "question": "Q", "answer": "A", "text_support": None, "content": None, "linked": ["ne...pas"]}], API, "French", level="B1")
+    system = model.calls[0][0]["content"]
+    assert "does not exercise the linked grammar" in system and "below the lesson level" in system and "B1" in system

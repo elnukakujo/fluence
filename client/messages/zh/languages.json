@@ -53,8 +53,6 @@
   "updateInformations": "更新信息",
   "reviewThis": "复习这个",
   "reviewIn": "在{name}中复习",
-  "reviewByType": "按类型复习",
-  "reviewByTypeHint": "某一类型的全部内容，按自然顺序，没有时间限制。",
   "queueTitle": {
     "daily": "每日复习",
     "lesson": "课程复习",
@@ -63,6 +61,12 @@
     "type": "按类型复习",
     "free": "自由练习"
   },
+  "reviewCustom": "自定义复习",
+  "reviewCustomHint": "选择要复习的内容：类型、来源或标签。其中的全部内容，按自然顺序，没有时间限制。",
+  "customTabsLabel": "按以下方式复习",
+  "customTab": {"type": "类型", "source": "来源", "tag": "标签"},
+  "customHint": {"type": "某一类型的全部内容。", "source": "来自某个来源的全部内容。", "tag": "带有某个标签的全部内容。"},
+  "customEmpty": {"type": "没有可选项：本课程没有学习任何元素类型。", "source": "你还没有来源。请在“来源”页面添加，并关联到你的内容。", "tag": "你还没有标签。请在“标签”页面添加，并关联到你的内容。"},
   "typeLabel": {
     "vocabulary": "词汇",
     "grammar": "语法",

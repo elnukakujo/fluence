@@ -221,13 +221,14 @@ export default function ExerciseForm({
 
     const isLines = exerciseType === "reading" || exerciseType === "dictation";   // the lines are the content; the question is an optional instruction
 
-    const [linkError, setLinkError] = useState(false);
+    const [linkError, setLinkError] = useState<"link" | "grammar" | null>(null);   // which rule the last save broke
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const linked = relatedVocabularies.length + relatedGrammars.length + relatedCalligraphies.length > 0;
-        setLinkError(!linked);
-        if (!linked) return;       // every exercise belongs to at least one element of its lesson
+        const needsGrammar = lessonElements.grammars.length > 0 && relatedGrammars.length === 0;     // EX-17: a grammar of the lesson, when it has one
+        setLinkError(!linked ? "link" : needsGrammar ? "grammar" : null);
+        if (!linked || needsGrammar) return;       // every exercise belongs to at least one element of its lesson
 
         const currentPath = window.location.pathname;
         const pathParts = currentPath.split("/");
@@ -446,7 +447,7 @@ export default function ExerciseForm({
                             setSelectedElements={setRelatedCalligraphies}
                             label={t("associatedCalligraphies")}
                         />
-                        {linkError && <InlineError>{t("linkRequired")}</InlineError>}
+                        {linkError && <InlineError>{t(linkError === "grammar" ? "grammarRequired" : "linkRequired")}</InlineError>}
                     </section>
 
                     <TagSelector

@@ -8,6 +8,8 @@ import ExerciseRunner from "./exerciseRunner";
 import BackButton from "@/components/ui/buttons/backButton";
 import ProgressBar from "../ui/progressBar";
 import ExerciseFooter from "./exerciseFooter";
+import LinkedGrammarSheet from "./linkedGrammarSheet";
+import { lastAttempt } from "./creditExercise";
 
 const EXERCISE_TYPE_LABELS: Record<string, string> = {
     essay: "essay",
@@ -51,6 +53,8 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
                 <ExerciseRunner exercise={currentExercise} gaveUp={gaveUp} onFinished={() => setFinishedId(currentExercise.id)} />
             </div>
             </>) : null}
+            {currentExercise && (() => { const attempt = finished ? lastAttempt(currentExercise.id!) : null;
+                return <LinkedGrammarSheet grammarIds={currentExercise.related_grammar ?? []} failed={gaveUp || !!attempt?.failed} hintUsed={!!attempt?.hintUsed} />; })()}
             {currentExercise && (
                 <ExerciseFooter exercise={currentExercise} finished={finished} isLast={false} onGiveUp={() => setGaveUpId(currentExercise.id)} onSkip={() => finish(true)} onNext={() => finish(false)} />
             )}

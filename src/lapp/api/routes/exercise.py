@@ -10,6 +10,8 @@ from ...core.auth import login_required, require_owns, require_write, current_us
 from ...services.system_data import UserPreferencesService
 from ...services.capabilities import capability_for, gated_api
 from ...utils.request import parse_json
+from ...core.database import db_manager
+from ...services.features.exercise import lesson_has_grammar
 logger = logging.getLogger(__name__)
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
@@ -191,6 +193,10 @@ def create_exercise():
         # Validate request data
         data = parse_json(ExerciseDict)
         require_write(data.lesson_id)
+        if not data.machine_made and not data.related_grammar:      # a hand-made exercise names a grammar of its lesson (EX-17)
+            with db_manager.session_scope() as s:
+                if lesson_has_grammar(data.lesson_id, s):
+                    return jsonify({'error': 'grammar_required'}), 400
 
         # Create exercise
         exercise = exercise_service.create(data, as_dict=True)

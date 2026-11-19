@@ -28,6 +28,9 @@ MASTERED_FROM = _SHARED["levels"]["masteredFrom"]
 LEECH_WRONG = _SHARED["leech"]["enter"]["wrong"]
 LEECH_WINDOW = _SHARED["leech"]["enter"]["window"]
 LEECH_LEAVE_IN_ROW = _SHARED["leech"]["leaveCorrectInRow"]
+GRAMMAR_MIN_ANSWERS = _SHARED["grammarBlend"]["minAnswers"]
+GRAMMAR_ANCHOR = _SHARED["grammarBlend"]["anchorScore"]
+GRAMMAR_FLOOR = _SHARED["grammarBlend"]["floorWeight"]
 STEP = 7.5   # audit S1 day-one number (not a shared number: the client never computes deltas)
 # TODO(owner): quality at/above which an answer counts as correct (stability x2, leech streak). 0.5 = "hard" is a pass that earns nothing.
 CORRECT_AT = 0.5
@@ -95,3 +98,22 @@ def apply_answer(state: ScoreState, quality: float, evidence_weight: float, now:
 
     return replace(state, score=score, stability=stability, last_seen_at=now, recent=recent,
                    is_leech=is_leech, day_date=today, day_gain=day_gain)
+
+
+def grammar_weight(practice_score: float | None, practice_answers: int) -> float:
+    """Weight `w` of the reading card in a grammar's score (SC-30): 1 until enough exercise answers exist, then it slides
+    to GRAMMAR_FLOOR as the exercise score reaches GRAMMAR_ANCHOR. Failed exercises keep it at 1."""
+    if practice_score is None or practice_answers < GRAMMAR_MIN_ANSWERS:
+        return 1.0
+    progress = min(1.0, max(0.0, practice_score) / GRAMMAR_ANCHOR)
+    return 1.0 - (1.0 - GRAMMAR_FLOOR) * progress
+
+
+def grammar_blend(reading: float, practice: float | None, practice_answers: int) -> float:
+    w = grammar_weight(practice, practice_answers)
+    return reading if practice is None else w * reading + (1.0 - w) * practice
+
+
+def is_replaced(weight: float) -> bool:
+    """The reading card is fully replaced by exercises."""
+    return weight <= GRAMMAR_FLOOR

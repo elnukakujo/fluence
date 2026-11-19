@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from ...core.database import db_manager, transactional, resolve_related
-from ...models.features import Exercise
+from ...models.features import Exercise, Grammar
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
 from ...models.system_data import Tag, Source, Score, OverrideFlag
@@ -29,6 +29,11 @@ grammar_service = GrammarService()
 vocabulary_service = VocabularyService()
 study_activity = StudyActivity()
 score_service = ScoreService()
+
+def lesson_has_grammar(lesson_id: str, session: Session) -> bool:
+    """A lesson with a grammar: every exercise written for it must link one (EX-17)."""
+    return session.query(Grammar.id).filter(Grammar.lesson_id == lesson_id).first() is not None
+
 
 class ExerciseService:
     def _serialize(self, exercise: Exercise | None, as_dict: bool, include_relations: bool) -> Exercise | dict | None:
@@ -244,7 +249,10 @@ class ExerciseService:
         existing = self.get_by_id(ex_id, session=session)
         if not existing:
             return False
-        return db_manager.delete(existing, session=session, commit=False)
+        success = db_manager.delete(existing, session=session, commit=False)
+        if success:
+            score_service.delete_for([ex_id], session=session)     # its scores go with it (SC-17, EM-2)
+        return success
 
     def add_line_audio(self, ex_id: str, line_index: int, api: dict, tts=None) -> dict:
         """Generate, with the user's TTS endpoint, the clip of one line of a reading / dictation and store it
@@ -330,9 +338,8 @@ class ExerciseService:
             raise ValueError("a result names an element the exercise is not linked to")
         for (element_id, skill), (quality, evidence) in group_results(results).items():
             if element_id != ex_id:
-                # a vocabulary has no side here: each face trains its own skill (front recognition, back recall), as the cascade did
-                # TODO(owner): which skill does an exercise test on a vocabulary?
-                face_skill = None if kind_of(element_id).name == "vocabulary" else skill
+                # a vocabulary takes the skill of the exercise type (the client sends it, RD-126); a grammar takes exercise credit on its own "practice" row (SC-30)
+                face_skill = "practice" if kind_of(element_id).name == "Grammar" else skill
                 linked[element_id].update_score(element_id, score=quality, duration_ms=duration_ms, hint_used=hint_used,
                                                 user_id=user_id, skill=face_skill, evidence_type=evidence, session=session)
         self.update_score(ex_id, mean(r["quality"] for r in results), duration_ms, hint_used=hint_used, attempt_number=attempt,
