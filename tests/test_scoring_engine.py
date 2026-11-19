@@ -7,7 +7,6 @@ import pytest
 from lapp.utils.scoring import (
     EVIDENCE_WEIGHTS, ScoreState, apply_answer, effective_score, is_weak, level_for,
     grammar_blend, grammar_weight, is_replaced,
-    grammar_blend, grammar_weight, is_replaced,
 )
 
 T0 = datetime(2026, 1, 1, 12, 0)

@@ -4,9 +4,6 @@ No I/O, no database: every formula of the score model lives here so it can be un
 Numbers come from the owner's decisions (docs/superpowers/specs/2026-11-14-scoring-and-data-model-design.md)
 and are read from shared/study-constants.json; only the TODO(owner) ones below live here.
 
-GRAMMAR_MIN_ANSWERS = _SHARED["grammarBlend"]["minAnswers"]
-GRAMMAR_ANCHOR = _SHARED["grammarBlend"]["anchorScore"]
-GRAMMAR_FLOOR = _SHARED["grammarBlend"]["floorWeight"]
 STEP = 7.5 is the audit's day-one number (simulation S1: one perfect answer on a fresh item = +7.5 today),
 so a perfect typed answer moves a new item by the same order as before.
 """
@@ -31,6 +28,9 @@ MASTERED_FROM = _SHARED["levels"]["masteredFrom"]
 LEECH_WRONG = _SHARED["leech"]["enter"]["wrong"]
 LEECH_WINDOW = _SHARED["leech"]["enter"]["window"]
 LEECH_LEAVE_IN_ROW = _SHARED["leech"]["leaveCorrectInRow"]
+GRAMMAR_MIN_ANSWERS = _SHARED["grammarBlend"]["minAnswers"]
+GRAMMAR_ANCHOR = _SHARED["grammarBlend"]["anchorScore"]
+GRAMMAR_FLOOR = _SHARED["grammarBlend"]["floorWeight"]
 STEP = 7.5   # audit S1 day-one number (not a shared number: the client never computes deltas)
 # TODO(owner): quality at/above which an answer counts as correct (stability x2, leech streak). 0.5 = "hard" is a pass that earns nothing.
 CORRECT_AT = 0.5
