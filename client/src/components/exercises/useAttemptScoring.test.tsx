@@ -67,8 +67,8 @@ describe("useAttemptScoring", () => {
         act(() => result.current.submit(0.5, { final: true, parts: [1, 0] }));
         expect(calls()).toHaveLength(1);
         expect(calls()[0][1].results).toEqual([
-            { element_id: "voc_1", quality: 1, skill: "recognition", evidence_type: "typed" },   // the server lets each vocabulary face use its own skill
-            { element_id: "voc_2", quality: 0, skill: "recognition", evidence_type: "typed" },
+            { element_id: "voc_1", quality: 1, skill: "recall", evidence_type: "typed" },   // a typed blank recalls: a vocabulary takes the skill of the exercise type (RD-126)
+            { element_id: "voc_2", quality: 0, skill: "recall", evidence_type: "typed" },
             { element_id: "gram_1", quality: 0.5, skill: "recognition", evidence_type: "typed" },
         ]);
     });
