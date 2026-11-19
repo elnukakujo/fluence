@@ -23,6 +23,12 @@
     },
     "leaveCorrectInRow": 3
   },
+  "grammarBlend": {
+    "_todo": "TODO(owner): minimum exercise answers before a grammar starts to be replaced, the exercise score that replaces it fully, and the floor weight of the reading card (10%, or 8%)",
+    "minAnswers": 5,
+    "anchorScore": 60,
+    "floorWeight": 0.1
+  },
   "tier": {
     "_todo": "TODO(user): difficulty above which a card is still 'learning'. Score cut-offs now come from `levels`; this goes when difficulty becomes lapse-driven (spec 2, Task 8)",
     "learningDifficulty": 0.7
