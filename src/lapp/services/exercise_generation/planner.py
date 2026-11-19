@@ -19,6 +19,7 @@ class PoolItem:
     id: str
     label: str
     score: float = 0.0
+    own: bool = True        # the lesson's own element; False = borrowed from a same-level lesson (a thin pool, EG-3)
 
 
 @dataclass
@@ -50,22 +51,30 @@ def offerable_types(type_prefs: Optional[dict], tts_enabled: bool, advanced: boo
     return list(_type_weights(type_prefs, tts_enabled, advanced))
 
 
+def anchors(pool: list[PoolItem]) -> list[PoolItem]:
+    """The lesson's own grammars: every exercise is built around one (EG-15). Borrowed grammars never anchor."""
+    return [p for p in pool if p.kind == "grammar" and p.own]
+
+
+def _primaries(pool: list[PoolItem], count: int, rng: random.Random) -> list[PoolItem]:
+    """`count` anchors: every grammar first (weakest first), then weakest-weighted repeats."""
+    grammars = anchors(pool)
+    primaries = sorted(grammars, key=lambda p: p.score)[:count]
+    return primaries + rng.choices(grammars, weights=[2 - p.score / 100 for p in grammars], k=count - len(primaries))
+
+
 def plan_slots_from_mix(pool: list[PoolItem], mix: dict[str, int], rng: Optional[random.Random] = None) -> list[Slot]:
-    """Exactly `mix` ({type: n}) as slots: the same primaries as `plan_slots` (weakest first, then weighted picks);
-    calligraphy items take the single-character types first, the rest take whatever type has the most left."""
+    """Exactly `mix` ({type: n}) as slots, each anchored on a grammar: the same primaries as `plan_slots`; a slot takes
+    the type that has the most left."""
     rng = rng or random.Random()
     left = {t: n for t, n in mix.items() if n > 0}
     count = sum(left.values())
-    if not pool or not count:
+    if not anchors(pool) or not count:
         return []
-    primaries = sorted(pool, key=lambda p: p.score)[:count]
-    primaries += rng.choices(pool, weights=[2 - p.score / 100 for p in pool], k=count - len(primaries))
-    primaries.sort(key=lambda p: p.kind != "calligraphy")        # calligraphy items choose first
     slots = []
-    for primary in primaries:
-        fitting = {t: n for t, n in left.items() if n > 0 and (primary.kind != "calligraphy" or t in CALLIGRAPHY_TYPES)} or {t: n for t, n in left.items() if n > 0}
-        best = max(fitting.values())
-        etype = rng.choice([t for t, n in fitting.items() if n == best])
+    for primary in _primaries(pool, count, rng):
+        best = max(n for n in left.values() if n > 0)
+        etype = rng.choice([t for t, n in left.items() if n == best])
         left[etype] -= 1
         slots.append(_slot(primary, etype, pool, rng))
     return slots
@@ -73,28 +82,24 @@ def plan_slots_from_mix(pool: list[PoolItem], mix: dict[str, int], rng: Optional
 
 def plan_slots(pool: list[PoolItem], count: int, type_prefs: Optional[dict], tts_enabled: bool,
                rng: Optional[random.Random] = None, advanced: bool = True) -> list[Slot]:
-    """`count` slots: every pool item first (weakest first), then weakest-weighted picks; types weighted by the user's boost/ban."""
+    """`count` slots, each anchored on one of the lesson's grammars (weakest first, then weakest-weighted repeats); types weighted by the user's boost/ban.
+    No grammar in the lesson, no slot."""
     rng = rng or random.Random()
     weights = _type_weights(type_prefs, tts_enabled, advanced)
-    if not pool or not weights or count <= 0:
+    if not anchors(pool) or not weights or count <= 0:
         return []
-    primaries = sorted(pool, key=lambda p: p.score)[:count]
-    primaries += rng.choices(pool, weights=[2 - p.score / 100 for p in pool], k=count - len(primaries))
-    slots = []
-    for primary in primaries:
-        allowed = {t: w for t, w in weights.items() if primary.kind != "calligraphy" or t in CALLIGRAPHY_TYPES} or weights
-        slots.append(_slot(primary, rng.choices(list(allowed), weights=list(allowed.values()))[0], pool, rng))
+    slots = [_slot(primary, rng.choices(list(weights), weights=list(weights.values()))[0], pool, rng) for primary in _primaries(pool, count, rng)]
     if "reading" in weights and count >= GEN_GUARANTEE_READING_FROM and not any(s.exercise_type == "reading" for s in slots):
-        i = rng.choice([i for i, s in enumerate(slots) if s.items[0].kind != "calligraphy"] or [0])
+        i = rng.randrange(len(slots))
         slots[i] = _slot(slots[i].items[0], "reading", pool, rng)       # a reading is too important to leave to chance
     return slots
 
 
 def _slot(primary: PoolItem, etype: str, pool: list[PoolItem], rng: random.Random) -> Slot:
-    """A slot for `primary`; matching adds same-kind elements, reading and conversation add elements of any kind."""
-    items = [primary]
-    if etype in GEN_MULTI_ITEM:
-        others = [p for p in pool if p.id != primary.id and (etype != "matching" or p.kind == primary.kind)]
-        low, high = GEN_MULTI_ITEM[etype]
-        items += rng.sample(others, min(len(others), rng.randint(low, high) - 1))
-    return Slot(etype, items)
+    """A slot: the anchor grammar first, then companions (vocabulary, and calligraphy for the single-character types) so the exercise also trains them.
+    Matching, reading and conversation take a few; the other types one when there is one."""
+    others = [p for p in pool if p.id != primary.id and p.kind != "grammar" and (p.kind != "calligraphy" or etype in CALLIGRAPHY_TYPES or etype in GEN_MULTI_ITEM)]
+    low, high = GEN_MULTI_ITEM.get(etype, (1, 2))
+    others.sort(key=lambda p: p.score)
+    companions = rng.sample(others[:max(3, high)], min(len(others), rng.randint(low, high) - 1))
+    return Slot(etype, [primary, *companions])

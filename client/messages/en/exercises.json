@@ -149,6 +149,7 @@
   "generateMix": "Planned mix",
   "generateStart": "Generate",
   "generateNone": "Nothing to generate: the lesson has no vocabulary, grammar or calligraphy yet, or every exercise type is banned.",
+  "generateNoGrammar": "Every exercise is built around a grammar of the lesson, and this lesson has none yet. Add a grammar first.",
   "generateRunning": "Writing exercises… {done} / {total}",
   "generateNotConfigured": "Add and activate a text-generation endpoint in Settings first.",
   "generateLost": "The generation was lost (the server restarted). Check the lesson: finished exercises are saved.",

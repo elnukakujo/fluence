@@ -149,6 +149,7 @@
   "generateMix": "Répartition prévue",
   "generateStart": "Générer",
   "generateNone": "Rien à générer : la leçon n'a pas encore de vocabulaire, de grammaire ou de calligraphie, ou tous les types d'exercice sont bannis.",
+  "generateNoGrammar": "Chaque exercice repose sur une grammaire de la leçon, et celle-ci n'en a pas encore. Ajoutez d'abord une grammaire.",
   "generateRunning": "Écriture des exercices… {done} / {total}",
   "generateNotConfigured": "Ajoutez et activez d'abord un point d'accès de génération de texte dans les paramètres.",
   "generateLost": "La génération a été perdue (le serveur a redémarré). Vérifiez la leçon : les exercices terminés sont enregistrés.",

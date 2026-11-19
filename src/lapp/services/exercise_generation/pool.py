@@ -14,6 +14,7 @@ def lesson_pool(lesson_id: str, user_id: str, session: Session) -> list[PoolItem
     from ...models.containers import Lesson
     lesson = session.get(Lesson, lesson_id)
     own = [(m, k, label(e), e) for m, k, label in _KINDS for e in session.query(m).filter(m.lesson_id == lesson_id).all()]
+    lesson_ids = {e.id for *_, e in own}      # what the lesson itself holds; borrowed elements never anchor an exercise (EG-15)
     if own and len(own) < GEN_THIN_POOL:
         taken = {e.id for *_, e in own}
         for m, k, label in _KINDS:
@@ -21,7 +22,7 @@ def lesson_pool(lesson_id: str, user_id: str, session: Session) -> list[PoolItem
                     .filter(Lesson.language_id == lesson.language_id, m.lesson_id != lesson_id, Lesson.level == lesson.level).all())
             own += [(m, k, label(e), e) for e in rows if e.id not in taken]
     scores = ScoreService().get_many(user_id, [e.id for *_, e in own], session=session)
-    return [PoolItem(k, e.id, text, scores[e.id].score if e.id in scores else 0.0) for _, k, text, e in own]
+    return [PoolItem(k, e.id, text, scores[e.id].score if e.id in scores else 0.0, e.id in lesson_ids) for _, k, text, e in own]
 
 
 def known_words(lesson_id: str, user_id: str, session: Session) -> list[str]:

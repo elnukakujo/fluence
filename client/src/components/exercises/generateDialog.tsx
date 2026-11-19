@@ -104,7 +104,8 @@ export default function GenerateDialog({ lessonId }: { lessonId: string }) {
             setPhase("running");
         } catch (e) {
             setError(e instanceof Error && e.message === "text_gen_not_configured" ? t("generateNotConfigured")
-                : e instanceof Error && e.message === "empty_lesson" ? t("generateNone") : t("generateFailed", { error: String(e) }));
+                : e instanceof Error && e.message === "empty_lesson" ? t("generateNone")
+                : e instanceof Error && e.message === "no_grammar" ? t("generateNoGrammar") : t("generateFailed", { error: String(e) }));
             setPhase("error");
         }
     };

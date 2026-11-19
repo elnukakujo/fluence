@@ -12,7 +12,8 @@ from lapp.services.system_data import ScoreService
 
 
 def _pool(n=5, score=50.0):
-    return [PoolItem("vocabulary", f"voc_V{i}", f"w{i}", score) for i in range(n)]
+    """n vocabulary and two grammars: every slot is anchored on a grammar (EG-15)."""
+    return [PoolItem("vocabulary", f"voc_V{i}", f"w{i}", score) for i in range(n)] + [PoolItem("grammar", f"gram_G{i}", f"g{i}", score) for i in range(2)]
 
 
 def test_suggest_count_ratios_floor_and_cap():
@@ -39,28 +40,19 @@ def test_boost_raises_a_types_share():
     assert boosted["essay"] > base["essay"]
 
 
-def test_every_item_is_covered_and_weak_ones_get_more():
-    pool = [PoolItem("vocabulary", "voc_weak", "a", 0.0), PoolItem("vocabulary", "voc_strong", "b", 100.0), PoolItem("grammar", "gram_G", "g", 50.0)]
-    slots = plan_slots(pool, 150, None, True, random.Random(3))
-    first = Counter(s.items[0].id for s in slots)
-    assert set(first) == {"voc_weak", "voc_strong", "gram_G"}
-    assert first["voc_weak"] > first["voc_strong"]
-    assert {i.id for s in plan_slots(pool, 3, None, True, random.Random(3)) for i in s.items} >= {"voc_weak", "voc_strong", "gram_G"}
-
-
-SIZES = {"matching": (2, 4), "reading": (3, 5), "conversation": (2, 4)}
+SIZES = {"matching": (2, 4), "reading": (3, 5), "conversation": (2, 4)}      # the other types: the anchor and at most one companion
 
 
 def test_multi_item_slots_hold_a_few_elements_and_the_others_one():
     for s in plan_slots(_pool(10), 300, None, True, random.Random(4)):
-        low, high = SIZES.get(s.exercise_type, (1, 1))
+        low, high = SIZES.get(s.exercise_type, (1, 2))
         assert low <= len(s.items) <= high, (s.exercise_type, len(s.items))
         assert len({i.id for i in s.items}) == len(s.items)
 
 
 def test_a_small_pool_caps_the_slot_size():
     for s in plan_slots(_pool(2), 50, None, True, random.Random(4)):
-        assert len(s.items) <= 2
+        assert len(s.items) <= 3         # the anchor grammar and the two vocabularies
 
 
 def test_every_batch_of_four_or_more_has_a_reading_unless_it_is_banned():
@@ -117,11 +109,43 @@ def test_mix_plan_has_exactly_the_mix_counts():
     assert Counter(s.exercise_type for s in slots) == mix
 
 
-def test_mix_plan_calligraphy_gets_compatible_types():
-    pool = [PoolItem("calligraphy", f"call_C{i}", f"c{i}", 50.0) for i in range(4)]
+def test_mix_plan_anchors_every_slot_on_a_grammar():
+    pool = [PoolItem("calligraphy", f"call_C{i}", f"c{i}", 50.0) for i in range(4)] + [PoolItem("grammar", "gram_G0", "g", 50.0)]
     slots = plan_slots_from_mix(pool, {"quizz": 2, "answering": 1, "essay": 1}, random.Random(1))
-    assert len(slots) == 4
     assert Counter(s.exercise_type for s in slots) == {"quizz": 2, "answering": 1, "essay": 1}
+    assert all(s.items[0].id == "gram_G0" for s in slots)
+    assert all(i.kind != "calligraphy" for s in slots if s.exercise_type == "essay" for i in s.items)     # a single character fits only some types
+
+
+def test_every_slot_starts_with_an_own_grammar():
+    for s in plan_slots(_pool(8), 40, None, True, random.Random(7)):
+        assert s.items[0].kind == "grammar" and s.items[0].own
+        assert all(i.kind != "grammar" for i in s.items[1:])
+
+
+def test_every_grammar_is_covered_weakest_first():
+    pool = [PoolItem("grammar", "gram_weak", "a", 0.0), PoolItem("grammar", "gram_strong", "b", 90.0), PoolItem("vocabulary", "voc_V", "v", 10.0)]
+    assert {s.items[0].id for s in plan_slots(pool, 2, None, True, random.Random(1))} == {"gram_weak", "gram_strong"}
+    assert [s.items[0].id for s in plan_slots(pool, 1, None, True, random.Random(1))] == ["gram_weak"]
+
+
+def test_a_borrowed_grammar_never_anchors_and_no_grammar_means_no_slot():
+    borrowed = [PoolItem("grammar", "gram_other", "g", 0.0, own=False), PoolItem("vocabulary", "voc_V", "v", 0.0)]
+    assert plan_slots(borrowed, 5, None, True, random.Random(1)) == []
+    assert plan_slots_from_mix(borrowed, {"quizz": 2}, random.Random(1)) == []
+    assert plan_slots([p for p in _pool() if p.kind != "grammar"], 5, None, True) == []
+
+
+def test_a_matching_slot_keeps_its_grammar_first():
+    slots = plan_slots_from_mix(_pool(6), {"matching": 5}, random.Random(2))
+    assert all(s.items[0].kind == "grammar" and len(s.items) >= 2 for s in slots)
+
+
+def test_pool_marks_borrowed_elements(db):
+    _seed(db, own=2, other=3)
+    with db.session_scope() as s:
+        pool = {p.id: p for p in lesson_pool("lesson_A", "user_U1", s)}
+    assert pool["gram_G0"].own and pool["voc_V0"].own and not pool["voc_V2"].own
 
 
 def test_mix_plan_empty_pool_or_mix():
