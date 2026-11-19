@@ -122,3 +122,19 @@ def test_an_exercise_with_no_linked_element_credits_only_itself(app, db):
     r = c.post("/api/exercise/score", json=_body([_result("ex_E1", 1.0)]))
     assert (r.status_code, r.json["total"]) == (200, 1)
     assert _score("ex_E1") > 0 and _score("voc_V1") == 0.0
+
+
+def test_exercise_credit_writes_the_practice_skill_on_a_grammar(app, db):
+    from lapp.models.features import Grammar
+    c = _client(app, db)
+    with db.session_scope() as s:
+        db.insert(Grammar(id="gram_G1", lesson_id="lesson_L1", title="g", explanation="e"), session=s, commit=False)
+        s.flush()
+        ex, g = s.get(Exercise, "ex_E1"), s.get(Grammar, "gram_G1")
+        ex.related_grammar.append(g)
+    r = c.post("/api/exercise/score", json=_body([_result("gram_G1", 1.0, "recognition"), _result("voc_V1", 1.0)]))
+    assert r.status_code == 200
+    with db.session_scope() as s:
+        skills = {x.skill for x in s.query(Score).filter(Score.user_id == U, Score.element_id == "gram_G1")}
+    assert skills == {"practice"}
+    assert _score("voc_V1") > 0
