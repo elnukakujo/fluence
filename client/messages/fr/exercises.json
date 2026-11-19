@@ -88,6 +88,7 @@
   "questionLabel": "Question",
   "linkRequired": "Associez l'exercice à au moins un élément de vocabulaire, de grammaire ou de calligraphie de cette leçon.",
   "grammarRequired": "Cette leçon a de la grammaire : liez l'exercice à au moins un de ses points de grammaire.",
+  "grammarSheet": "Fiche de grammaire : {title}",
   "associatedVocabulary": "Vocabulaire associé",
   "associatedGrammar": "Grammaire associée",
   "associatedCalligraphies": "Calligraphies associées",

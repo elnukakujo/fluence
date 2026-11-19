@@ -88,6 +88,7 @@
   "questionLabel": "Question",
   "linkRequired": "Link the exercise to at least one vocabulary, grammar or calligraphy element of this lesson.",
   "grammarRequired": "This lesson has grammar: link the exercise to at least one of its grammar points.",
+  "grammarSheet": "Grammar sheet: {title}",
   "associatedVocabulary": "Associated Vocabulary",
   "associatedGrammar": "Associated Grammar",
   "associatedCalligraphies": "Associated Calligraphies",
