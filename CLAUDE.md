@@ -13,7 +13,7 @@ folder-README rule from `docs/rules/docs-hygiene.md` when editing it. Entry poin
 - Domain knowledge (data model, exercises, review/scoring, AI, auth, i18n, collaboration, document
   parsing/ingestion, study tracking): `docs/domain/`
 - Operational rules (docs hygiene, git workflow, UI acceptance tests): `docs/rules/`; owner's hand tests: `docs/tests/` (skill `ui-acceptance-test`)
-- Specs and plans (spec first, then plan, then code): `docs/superpowers/specs/`, `docs/superpowers/plans/`
+- Specs and plans (spec first, then plan, then code): `docs/specs/`, `docs/plans/`
 - Skills (graphify, ponytail, superpowers, ui-ux-pro-max): `docs/skills/`
 - Session history: `docs/logs/CHANGELOG.md`, then `docs/logs/sessions/`
 
