@@ -123,5 +123,8 @@
   "bulkPractice": "练习",
   "editElement": "编辑此元素",
   "editLoadFailed": "无法加载表单。",
-  "editButton": "编辑"
+  "editButton": "编辑",
+  "deleteButton": "删除",
+  "deleteCardConfirm": "确定永久删除这个内容吗？它的分数也会一并删除。",
+  "deleteFailed": "无法删除。你可能没有修改此内容的权限。"
 }

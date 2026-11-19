@@ -249,7 +249,10 @@ class ExerciseService:
         existing = self.get_by_id(ex_id, session=session)
         if not existing:
             return False
-        return db_manager.delete(existing, session=session, commit=False)
+        success = db_manager.delete(existing, session=session, commit=False)
+        if success:
+            score_service.delete_for([ex_id], session=session)     # its scores go with it (SC-17, EM-2)
+        return success
 
     def add_line_audio(self, ex_id: str, line_index: int, api: dict, tts=None) -> dict:
         """Generate, with the user's TTS endpoint, the clip of one line of a reading / dictation and store it
