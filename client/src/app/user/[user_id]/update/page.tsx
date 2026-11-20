@@ -6,7 +6,7 @@ import PasswordSection from "@/components/user/passwordSection";
 import PreferencesSection from "@/components/user/preferencesSection";
 import SettingsSection from "@/components/user/settingsSection";
 import CourseSettings from "@/components/user/courseSettings";
-import { PaceBlock, AppearanceBlock, AnswerBlock } from "@/components/user/groupSections";
+import { AppearanceBlock, AnswerBlock } from "@/components/user/groupSections";
 import StudyGoalsCard from "@/components/language/studyGoalCard";
 import AiFeaturesSection from "@/components/user/aiFeaturesSection";
 import ApiEndpointsSection from "@/components/user/apiEndpointsSection";
@@ -41,7 +41,6 @@ export default async function UpdateUserPage({ params }: { params: Promise<{ use
             </SettingsSection>
 
             <SettingsSection id="learning" title={t("learning")} hint={t("learningHint")}>
-                <PaceBlock />
                 <StudyGoalsCard userId={user.id} />
             </SettingsSection>
 

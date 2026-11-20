@@ -20,7 +20,7 @@
   "neutral": "Normal",
   "goalTitle": "Study goal",
   "goalHint": "Set how many new and review elements each period's menu holds, then lock the goals: the menu is built right away and stays fixed until the period ends. Unlock any time to change it. Progress and the full menu show on the language page.",
-  "period": "Period",
+  "period": "Period (all numbers below are for it)",
   "period_week": "Weekly",
   "period_biweek": "Every 2 weeks",
   "period_month": "Monthly",
@@ -82,7 +82,7 @@
   "goalRebuildConfirm": "Lock and rebuild",
   "goalCancel": "Cancel",
   "goalHowTitle": "How are the week's objectives split into days?",
-  "goalHowBody": "The week's menu is one pool, not a fixed split per day. Each daily review takes from it in priority order (new elements first) and stops at your reviews-per-day number. Anything you haven't finished carries over to the next days, then to the next period. An element counts as mastered at a score of 60 or more.",
+  "goalHowBody": "The period's menu is one pool, not a fixed split per day. Each daily review takes from it in priority order (new elements first) and stops at the size of your daily review (set by the preset you chose). Anything you haven't finished carries over to the next days, then to the next period. An element counts as mastered at a score of 60 or more.",
   "reviewStreakValidated": "Day validated — streak: {count}",
   "goalUnlockLabel": "Unlock to edit your goals",
   "goalLockedTitle": "Locked until {end}",
@@ -92,5 +92,7 @@
   "goalEditingKeep": "Your current menu stays active until you lock again.",
   "goalLock": "Lock goals",
   "goalLocked": "Locked",
-  "lessonContents": "Contents of this lesson"
+  "lessonContents": "Contents of this lesson",
+  "streakMinLabel": "Answers for a streak day",
+  "streakMinHint": "Every account's streak: answers needed in a day (all courses)."
 }

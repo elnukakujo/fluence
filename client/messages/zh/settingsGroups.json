@@ -95,10 +95,10 @@
     "casual": "轻松",
     "standard": "标准",
     "intensive": "强化",
-    "newPerWeek": "每周 {n} 个新内容",
-    "reviewsPerDay": "每天 {n} 次复习",
     "streakMin": "连续天数：{n} 次答题",
     "failed": "无法应用此预设",
-    "applyNamed": "应用“{name}”预设"
+    "applyNamed": "应用“{name}”预设",
+    "newPerPeriod": "{n} 个新内容",
+    "reviewsPerPeriod": "{n} 次复习"
   }
 }
