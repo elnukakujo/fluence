@@ -1,4 +1,4 @@
-"""The exercise share of the daily review rises with knowledge; exercises on barely-seen elements are held back."""
+"""The exercise share of the daily review rises with knowledge; an exercise waits until its elements were seen once (RD-129)."""
 from lapp.models.system_data import User
 from lapp.models.containers import Language, Lesson
 from lapp.models.components import Word
@@ -55,6 +55,15 @@ def test_menu_exercise_counts_still_win(db):
 
 
 def test_no_eligible_exercise_leaves_flashcards_only(db):
-    _seed(db, 5)
-    ids = _queue()
-    assert ids and not _exercises(ids)
+    _seed(db, 0, n=0, unseen=4)          # nothing seen yet: no exercise
+    assert not _exercises(_queue())
+
+
+def test_a_barely_known_but_seen_element_gets_its_exercise(db):
+    _seed(db, 5)                         # score 5, well under the old threshold of 20
+    assert _exercises(_queue())
+
+
+def test_a_plan_without_exercises_still_gets_some(db):
+    _seed(db, 50, layout=[{"type": "voc", "count": None}])
+    assert _exercises(_queue())

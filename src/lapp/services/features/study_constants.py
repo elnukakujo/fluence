@@ -1,4 +1,8 @@
 """Stand-in values for study preferences. Every one is a `TODO(user)`: ask before changing."""
+import json
+from pathlib import Path
+
+_SHARED = json.loads((Path(__file__).resolve().parents[4] / "shared" / "study-constants.json").read_text(encoding="utf-8"))
 
 BOOST_FACTOR = 1.5          # TODO(user): review-priority multiplier for boosted exercises
 
@@ -28,7 +32,7 @@ SPARE_EXERCISES = 5         # ready exercises sent along as replacements for ski
 # TODO(user): stand-ins: the split across the types (20 : 5 : 10, as before) and reading "reviews per day" as the review
 # elements of a 7-day period (a longer period scales it).
 DEFAULT_GOAL_PERIOD = "week"
-DEFAULT_GOAL_SHARE = {"vocabulary": 4, "grammar": 1, "calligraphy": 2}
+DEFAULT_GOAL_SHARE = {k: v for k, v in _SHARED["goalShare"].items() if not k.startswith("_")}   # shared/study-constants.json: the client splits presets the same way
 
 
 def default_goal_quantities(new_per_week: int, reviews_per_day: int, period_days: int = 7, kinds=tuple(DEFAULT_GOAL_SHARE)) -> dict:
@@ -63,7 +67,6 @@ LEECH_CANDIDATES = 2000      # words of the language compared at most
 EXERCISE_MIN_SHARE = 0.1             # share of the review time at knowledge 0
 EXERCISE_MAX_SHARE = 0.5             # share at EXERCISE_FULL_KNOWLEDGE_SCORE and above
 EXERCISE_FULL_KNOWLEDGE_SCORE = 80.0 # mean element score at which the share is maximal
-EXERCISE_MIN_LINKED_AVG = 20.0       # an exercise appears once its linked elements average at least this
 
 # Typed target-language answers are graded by character closeness. TODO(user): stand-ins.
 PHONETIC_SUB_COST = 0.3     # edit cost of replacing a character by one that sounds the same (a full wrong character costs 1)

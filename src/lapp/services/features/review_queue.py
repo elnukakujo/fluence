@@ -16,7 +16,7 @@ from ...models.base import source_element_link, tag_element_link
 from ...models.system_data import UserPreferences
 from ...utils import review_priority
 from ...utils.learner_clock import learner_today
-from ...utils.scoring import INITIAL_STABILITY_DAYS, is_replaced
+from ...utils.scoring import INITIAL_STABILITY_DAYS
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from ..system_data.prefs_view import PrefsView, prefs_for
@@ -233,8 +233,6 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
     side_ids = [side_id(i, sd) for i in all_ids if i.startswith("voc_") for sd in SIDES]
     inputs = ScoreService().priority_inputs(user_id, [*all_ids, *side_ids], now, today, session=session)
     capped = frozenset(i for i, pi in inputs.items() if pi.capped)
-    if daily:       # a grammar fully replaced by exercises is no longer read in the daily queue; explicit scopes still serve it (SC-30)
-        scoped_cards[Grammar] = [c for c in scoped_cards[Grammar] if not (c.id in inputs and is_replaced(inputs[c.id].weight))]
 
     bonus_ids: set = set()
     buckets = {}
@@ -261,6 +259,10 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
     exercises, modes = _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type_prefs, models, session)
     if wanted is not None and "exercises" not in wanted:
         exercises, modes = [], {}
+    if daily:       # DR-13: a grammar card is for the unseen; once seen, its exercises replace it (a seen grammar without any keeps its card)
+        anchored = {g.id for e in exercises for g in e.related_grammar}
+        seen = {c.id for c in scoped_cards[Grammar] if (pi := inputs.get(c.id)) is not None and pi.last_seen_at is not None}
+        buckets[Grammar] = [c for c in buckets[Grammar] if not (c.id in seen and c.id in anchored)]
     return Candidates(user_id, language_id, session, scope, preferences, lesson_title_by_id, buckets, exercises, modes, now, today, bonus_ids)
 
 
@@ -286,10 +288,10 @@ def _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type
     modes = {c.id: effective_mode(type_prefs, c.exercise_type, own.get(c.id)) for c in exercises}
     exercises = [c for c in exercises if modes[c.id] != "ban"]
     if scope.kind != "free":
-        # An exercise appears once the elements it trains are known a little (their scores, never the exercise's own).
+        # An exercise appears once every element it trains was seen once (RD-129; never the exercise's own score).
         linked = {c.id: [e.id for e in (*c.related_vocabulary, *c.related_grammar, *c.related_calligraphy)] for c in exercises}
         element_scores = ScoreService().get_many(user_id, sorted({i for ids_ in linked.values() for i in ids_}), session=session)
-        exercises = [c for c in exercises if is_eligible([element_scores[i].score or 0.0 if i in element_scores else 0.0 for i in linked[c.id]])]
+        exercises = [c for c in exercises if is_eligible([i in element_scores and element_scores[i].last_seen_at is not None for i in linked[c.id]])]
     return exercises, modes
 
 
@@ -308,6 +310,8 @@ def plan_budgets(cands: Candidates, prefs: PrefsView, goal: Optional[dict], now:
         pattern = preferences.voc_side_pattern if preferences else None
         return Budgets(float("inf"), {}, quota, None, None, pattern, pace_ratios(user_id, session))
     layout = preferences.review_layout if preferences else None
+    if layout and not any(sec["type"] == "ex" for sec in layout):
+        layout = [*layout, {"type": "ex", "count": None}]       # a plan never removes exercises (DR-12); ponytail: equal share, not the knowledge-based one
     pattern = preferences.voc_side_pattern if preferences else None
 
     paces = pace_ratios(user_id, session)
