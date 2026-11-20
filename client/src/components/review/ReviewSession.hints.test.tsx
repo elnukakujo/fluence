@@ -30,7 +30,7 @@ beforeEach(() => vi.clearAllMocks());
 describe("review card: hint ladder", () => {
     it("hint 1 shows the answer's shape and suggests good, every grade stays available", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
         expect(screen.getByText("Starts with: c _ _")).toBeInTheDocument();
         await flip();
         expect(screen.getByRole("button", { name: /Easy/ })).toBeEnabled();
@@ -39,10 +39,9 @@ describe("review card: hint ladder", () => {
 
     it("hint 2 shows an example and suggests hard; the user can still pick another grade", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
         expect(screen.getByText("Example: 猫在睡觉")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Hint" })).toBeDisabled();
         await flip();
         expect(screen.getByRole("button", { name: /Hard/ })).toHaveTextContent("Suggested");
         await userEvent.click(screen.getByRole("button", { name: /Good/ }));
@@ -58,27 +57,42 @@ describe("review card: hint ladder", () => {
 
     it("the hint button sits above the card, not under it", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
-        const hint = screen.getByRole("button", { name: "Hint" });
+        const hint = screen.getByRole("button", { name: /^Hint/ });
         expect(hint.compareDocumentPosition(screen.getByText("Click to reveal")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
-    it("without an example the ladder stops after the first hint", async () => {
+    it("a card with little to say still has hints: there is always a second step (RC-25)", async () => {
         render(<ReviewFlashCard cards={[voc({ example_sentences: [] })]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
-        expect(screen.getByRole("button", { name: "Hint" })).toBeDisabled();
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        expect(screen.getByRole("button", { name: /^Hint/ })).toBeEnabled();
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        expect(screen.getByText("Take your time: picture where you met it")).toBeInTheDocument();
+    });
+
+    it("the button shows how many hints are taken and the best grade that is left", async () => {
+        render(<ReviewFlashCard cards={[voc()]} />);
+        const hint = screen.getByRole("button", { name: /^Hint/ });
+        expect(hint).not.toHaveTextContent("Best grade");
+        await userEvent.click(hint);
+        expect(screen.getByRole("button", { name: /^Hint/ })).toHaveTextContent("Best grade now: Good");
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        expect(screen.getByRole("button", { name: /^Hint/ })).toHaveTextContent("Best grade now: Hard");
     });
 
     it("on the back side the hints are about the word and the example is blanked", async () => {
         render(<ReviewFlashCard cards={[voc({ side: "back", card_id: "voc_1#back" })]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
-        // a one-character word has no shape hint (it would be the answer): the example is the only hint
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        // a one-character word has no shape hint (it would be the answer): its length, then the sound, then the example
         expect(screen.queryByText(/Starts with/)).toBeNull();
+        expect(screen.getByText("The answer is 1 character long")).toBeInTheDocument();
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
         expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
     });
 
     it("the hints appear above the card, in the flow, where the user is looking", async () => {
         render(<ReviewFlashCard cards={[voc()]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
         const hint = screen.getByText("Starts with: c _ _");
         expect(hint.compareDocumentPosition(screen.getByText("Click to reveal")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(hint.closest(".absolute")).toBeNull();
@@ -87,8 +101,9 @@ describe("review card: hint ladder", () => {
     it("a learning card already shows its example, so the ladder does not repeat it", async () => {
         render(<ReviewFlashCard cards={[voc({ score: 10, front_score: 10 })]} />);
         expect(screen.getByText("猫在睡觉")).toBeInTheDocument();
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
-        expect(screen.getByRole("button", { name: "Hint" })).toBeDisabled();
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        expect(screen.getByRole("button", { name: /^Hint/ })).toBeDisabled();
         expect(screen.queryByText(/^Example:/)).toBeNull();
     });
 
@@ -99,8 +114,8 @@ describe("review card: hint ladder", () => {
 
     it("a learning back card still offers the blanked example as a hint", async () => {
         render(<ReviewFlashCard cards={[voc({ side: "back", card_id: "voc_1#back", score: 10, back_score: 10 })]} />);
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
-        await userEvent.click(screen.getByRole("button", { name: "Hint" }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
+        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
         expect(screen.getByText("Example: ___在睡觉 — The cat sleeps.")).toBeInTheDocument();
     });
 });

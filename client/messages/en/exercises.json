@@ -364,5 +364,15 @@
     "keepGoing": "Keep going"
   },
   "generateInInbox": "They wait in your inbox until you accept them.",
-  "generateOpenInbox": "Open the inbox"
+  "generateOpenInbox": "Open the inbox",
+  "tipButton": "Tip",
+  "tipTitle": "Tip",
+  "tipSubtitle": "What this exercise rests on",
+  "tipLoading": "Loading…",
+  "tipEmpty": "Nothing is linked to this exercise.",
+  "tipVocabulary": "Vocabulary",
+  "tipCalligraphy": "Characters",
+  "hintTitle": "Hint",
+  "hintSubtitle": "What this exercise rests on. Each step lowers the best grade you can earn.",
+  "hintMoreAvailable": "Press Hint again for the words and characters."
 }

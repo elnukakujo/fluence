@@ -139,6 +139,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         setReplaced({ ...replaced, [keyOf(slot)]: spare });
     };
 
+    const deleteButton = <ReviewDeleteButton key={card.id} elementId={card.id!} onDeleted={handleDeleted} />;
     const state: ShellState = { hiddenTranslation, graded, hintLevel, showPractice, practiceResult, typed, typedPending, flipInstead, choiceDone, cantHear };
     const view = renderer.view(card, state);
     const effectiveLevel = Math.min(2, hintLevel);
@@ -150,7 +151,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     };
 
     const ctx: RendererCtx = {
-        ...state, ...view, hintShown, item: card, languageId,
+        ...state, ...view, hintShown, item: card, languageId, deleteButton,
         reveal, pickChoice, effectiveLevel, hintUsed,
         openPractice: () => setShowPractice(true),
         closePractice: () => setShowPractice(false),
@@ -200,7 +201,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                 badges={view.tier ? <TierBadge tier={view.tier} /> : undefined}
             />
 
-            <div className="flex justify-end"><ReviewDeleteButton key={card.id} elementId={card.id!} onDeleted={handleDeleted} /></div>
+            {!hintShown && !renderer.whole && <div className="flex justify-end">{deleteButton}</div>}
 
             {renderer.whole ? <>{renderer.whole(ctx)}{editButton}</> : (
                 <>
@@ -209,7 +210,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                     <div className="flex flex-col gap-2">
                         {hintShown && (
                             <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} shown={{ detail: view.showDetail, example: !!view.example }}
-                                onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }}>{renderer.hintExtra?.(ctx)}</HintLadder>
+                                onHint={() => { setHintLevel((l) => l + 1); setHintUsed(true); }} trailing={deleteButton}>{renderer.hintExtra?.(ctx)}</HintLadder>
                         )}
                         {renderer.body?.(ctx)}
                     </div>

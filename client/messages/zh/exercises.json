@@ -364,5 +364,15 @@
     "keepGoing": "继续加油"
   },
   "generateInInbox": "它们会留在收件箱，直到你接受。",
-  "generateOpenInbox": "打开收件箱"
+  "generateOpenInbox": "打开收件箱",
+  "tipButton": "提示",
+  "tipTitle": "提示",
+  "tipSubtitle": "这道练习所依据的内容",
+  "tipLoading": "加载中…",
+  "tipEmpty": "这道练习没有关联内容。",
+  "tipVocabulary": "词汇",
+  "tipCalligraphy": "汉字",
+  "hintTitle": "提示",
+  "hintSubtitle": "这道练习所依据的内容。每多看一步，最高评分就会降低。",
+  "hintMoreAvailable": "再按一次提示可查看词汇和汉字。"
 }

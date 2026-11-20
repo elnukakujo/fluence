@@ -126,5 +126,13 @@
   "editButton": "编辑",
   "deleteButton": "删除",
   "deleteCardConfirm": "确定永久删除这个内容吗？它的分数也会一并删除。",
-  "deleteFailed": "无法删除。你可能没有修改此内容的权限。"
+  "deleteFailed": "无法删除。你可能没有修改此内容的权限。",
+  "hintLength": "答案只有 {n} 个字",
+  "hintLesson": "来自课程：{lesson}",
+  "hintWordType": "词性：{type}",
+  "hintThink": "别着急：想想在哪里见过它",
+  "hintStepOf": "第 {n} 个提示（共 {total} 个）",
+  "hintNoMore": "没有更多提示",
+  "hintBest": "现在最高评分：{grade}",
+  "hintAgain": "再次查看提示"
 }
