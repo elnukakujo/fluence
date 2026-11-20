@@ -10,6 +10,31 @@ from ..ingestion.verify import normalise
 ANSWER_REQUIRED = ("answering", "translate")   # the other types derive their answer from `content`; an essay may be open-ended (no answer)
 
 
+GAP = re.compile(r"_{2,}|\[\s*\]|\(\s*\)")                      # a blank to fill
+FILL_CUE = re.compile(r"\b(fill|complete|blank|gap|missing|remplis\w*|compl[eè]te\w*|trou|rellena|completa|ergänze|lücke)\b|填空|补全|補全", re.I)
+CJK = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]")
+SPEAKING_NOISE = re.compile(r"[:：\"“”«»「」『』]|\n")                     # an instruction, a quotation or a second line
+
+
+def type_error(item: dict) -> str | None:
+    """EG-19..EG-21: each type keeps to its own job. None when it does."""
+    etype, q = item.get("exercise_type"), (item.get("question") or "").strip()
+    content = item.get("content") if isinstance(item.get("content"), dict) else {}
+    if etype == "translate":
+        a = (item.get("answer") or "").strip()
+        if GAP.search(q) or FILL_CUE.search(q):
+            return "a translate question is one plain sentence to translate: no gap, no \"fill in / complete\" (a gap is a type_in_the_blank)"
+        if " " not in a and not (CJK.search(a) and len(a) >= 2):
+            return "a translate answer is the whole translated sentence, not one word (a one-word answer to a gap is a type_in_the_blank)"
+    if etype in ("essay", "answering") and (GAP.search(q) or FILL_CUE.search(q)):
+        return f"a {etype} is never a gap: write a question or a topic (a gap is a type_in_the_blank)"
+    if etype == "speaking" and (SPEAKING_NOISE.search(q) or GAP.search(q)):
+        return "a speaking `question` must be ONLY the sentence to say (no instruction, quote, colon, gap or second line): put its meaning in `text_support`"
+    if etype in ("conversation", "reading", "dictation") and any(GAP.search(str(l.get("text", ""))) for l in content.get("lines") or [] if isinstance(l, dict)):
+        return "no line may hold a gap or blank: every line is a complete sentence that is read aloud"
+    return None
+
+
 def code_error(item: dict, allowed_ids: set[str], grammar_ids: set[str] | None = None) -> str | None:
     """None if `item` ({exercise_type, question, answer, content, links}) passes, else the first problem.
     `grammar_ids` = the slot's grammars: when given, `links` must name at least one (EG-17)."""
@@ -22,6 +47,8 @@ def code_error(item: dict, allowed_ids: set[str], grammar_ids: set[str] | None =
         return error
     if etype in ANSWER_REQUIRED and not (item.get("answer") or "").strip():
         return "the answer is empty"
+    if (error := type_error(item)):
+        return error
     if etype == "type_in_the_blank" and not (item.get("text_support") or "").strip():
         return "a type-in gap needs a clue in `text_support` (a word bank, the base form or the translation of each missing word), otherwise the answer is a guess"
     if etype == "type_in_the_blank":

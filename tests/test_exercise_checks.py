@@ -11,7 +11,9 @@ def item(t, content=None, question="Q?", answer="A", links=("voc_V1",)):
 
 
 GOOD = [
-    item("essay"), item("answering"), item("translate"), item("speaking", answer=""),
+    item("essay"), item("answering"), item("translate", question="I am a student.", answer="我是学生。"), item("translate", question="Je suis étudiant.", answer="I am a student."), item("translate", question="我每天坐火车去工作。", answer="Je vais au travail en train."),
+    item("answering", question="这个家有几口人？", answer="这个家有三口人。"),
+    item("speaking", question="他会游泳。", answer=""),
     {**item("type_in_the_blank", {"segments": ["He ", " tall."], "blanks": [{"answer": "is"}]}), "text_support": "be"},
     item("select_in_the_blank", {"segments": ["He ", " tall."], "blanks": [{"answer": "is", "options": ["is", "are"]}]}),
     item("quizz", {"options": ["a", "b"], "correct": [1]}),
@@ -36,6 +38,17 @@ def test_a_good_item_passes(good):
     (item("essay", links=("voc_other",)), "link"),
     (item("poem"), "type"),
     (item("essay", question=" "), "question"),
+    (item("translate", question="Complete: 我___学生。 (I am a student)", answer="是"), "translate"),   # a gap dressed as a translate
+    (item("translate", question="I am a student.", answer="是"), "translate answer"),                 # one word to a whole sentence
+    (item("translate", question="Fill in the missing word: I am a student.", answer="我是学生"), "translate"),
+    (item("speaking", question="Imagine your brother. Say: 'He can swim.' Use 会 to express ability.", answer=""), "speaking"),
+    (item("essay", question="Fill the gap: I get up at seven. 我七点___起床。"), "essay"),     # the model's essay that was a gap
+    (item("answering", question="Complete: 他___学生。", answer="他是学生。"), "answering"),
+    (item("speaking", question="Say: 他会游泳。", answer=""), "speaking"),
+    (item("speaking", question="他___游泳。", answer=""), "speaking"),
+    (item("conversation", {"speakers": [{"name": "A", "is_learner": False}, {"name": "B", "is_learner": True}],
+                           "lines": [{"speaker": "A", "text": "你好吗？"}, {"speaker": "B", "text": "我看___了，很好。"}]}), "gap"),
+    (item("reading", {"speakers": [{"name": "A"}], "lines": [{"speaker": "A", "text": "我是__"}]}), "gap"),
 ])
 def test_each_rule_rejects_a_broken_item(bad, why):
     assert why in (code_error(bad, IDS) or "").lower()
