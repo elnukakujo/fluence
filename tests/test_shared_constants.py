@@ -38,11 +38,12 @@ def test_goal_item_is_finished_at_the_known_level():
 
 def test_shared_json_matches_the_literal_table():
     assert _strip_todo(_load()) == {
-        "score": {"initialStabilityDays": 2, "stabilityCapDays": 180, "dayGainCap": 15,
+        "score": {"initialStabilityDays": 5, "stabilityCapDays": 180, "dayGainCap": 15,
                   "evidenceWeights": {"typed": 1.0, "spoken": 1.0, "self_grade": 0.8, "multiple_choice": 0.6, "matching": 0.6}},
         "levels": {"weakBelow": 40, "knownFrom": 60, "masteredFrom": 85},
         "leech": {"enter": {"wrong": 4, "window": 8}, "leaveCorrectInRow": 3},
         "grammarBlend": {"minAnswers": 5, "anchorScore": 60, "floorWeight": 0.1},
+        "goalShare": {"vocabulary": 4, "grammar": 1, "calligraphy": 2},
         "tier": {"learningDifficulty": 0.7},
         "hints": {"caps": [1, 0.75, 0.5], "fastMs": 3000, "slowMs": 10000},
         "typed": {"full": 0.9, "floor": 0.4},

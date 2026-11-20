@@ -1,6 +1,6 @@
 {
   "score": {
-    "initialStabilityDays": 2,
+    "initialStabilityDays": 5,
     "stabilityCapDays": 180,
     "dayGainCap": 15,
     "evidenceWeights": {
@@ -28,6 +28,12 @@
     "minAnswers": 5,
     "anchorScore": 60,
     "floorWeight": 0.1
+  },
+  "goalShare": {
+    "_todo": "TODO(user): stand-in split of a goal's new / review totals across the types (20 : 5 : 10, as before)",
+    "vocabulary": 4,
+    "grammar": 1,
+    "calligraphy": 2
   },
   "tier": {
     "_todo": "TODO(user): difficulty above which a card is still 'learning'. Score cut-offs now come from `levels`; this goes when difficulty becomes lapse-driven (spec 2, Task 8)",
