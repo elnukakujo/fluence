@@ -364,5 +364,15 @@
     "keepGoing": "Continuez"
   },
   "generateInInbox": "Ils attendent dans votre boîte de réception jusqu'à ce que vous les acceptiez.",
-  "generateOpenInbox": "Ouvrir la boîte de réception"
+  "generateOpenInbox": "Ouvrir la boîte de réception",
+  "tipButton": "Astuce",
+  "tipTitle": "Astuce",
+  "tipSubtitle": "Ce sur quoi repose cet exercice",
+  "tipLoading": "Chargement…",
+  "tipEmpty": "Rien n'est lié à cet exercice.",
+  "tipVocabulary": "Vocabulaire",
+  "tipCalligraphy": "Caractères",
+  "hintTitle": "Indice",
+  "hintSubtitle": "Ce sur quoi repose cet exercice. Chaque étape abaisse la meilleure note possible.",
+  "hintMoreAvailable": "Appuyez encore sur Indice pour les mots et les caractères."
 }

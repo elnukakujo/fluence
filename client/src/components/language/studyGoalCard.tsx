@@ -8,6 +8,10 @@ import SaveButton from "@/components/user/saveButton";
 import ToggleRow from "@/components/user/toggleRow";
 import NumberField from "@/components/ui/input/numberField";
 import RebuildMenuDialog from "./rebuildMenuDialog";
+import PresetPicker, { type Pace } from "@/components/user/presetPicker";
+import presets from "@/shared/presets.json";
+import { presetQuantities, type Period } from "@/utils/goalSplit";
+import { getSettingsGroup, saveSettingsGroup } from "@/api/settings";
 import { getAvailableLanguages } from "@/api/language";
 import { getStudyGoal, resetStudyGoal, saveStudyGoal, type GoalKind, type StudyGoal, type StudyGoalState } from "@/api/studyGoal";
 import type Language from "@/interface/containers/Language";
@@ -46,12 +50,11 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         getAvailableLanguages(userId).then((l: Language[]) => { setLanguages(l); setLanguageId((cur) => cur || l[0]?.id || ""); }).catch(() => {});
     }, [userId]);
 
-    useEffect(() => {      // the pace numbers were saved: only what the suggestion and the totals rest on is re-read, never the numbers being edited
-        const reread = () => Object.keys(states).forEach((id) => getStudyGoal(id).then((fresh) =>
-            setStates((x) => ({ ...x, [id]: { ...x[id], suggested: fresh.suggested, targets: fresh.targets, kinds: fresh.kinds } }))).catch(() => {}));
-        window.addEventListener("study-goals-changed", reread);
-        return () => window.removeEventListener("study-goals-changed", reread);
-    }, [states]);
+    const [pace, setPace] = useState<Pace | null>(null);          // the account's three pace numbers: a preset fills them, locking the goal saves them
+    const [savedPace, setSavedPace] = useState<Pace | null>(null);
+    useEffect(() => {
+        getSettingsGroup("pace").then((g) => { const v = g.values as unknown as Pace; setPace(v); setSavedPace(v); }).catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (!languageId || states[languageId]) return;
@@ -69,6 +72,7 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
         setError("");
         setSaving(true);
         try {
+            if (pace && JSON.stringify(pace) !== JSON.stringify(savedPace)) { await saveSettingsGroup("pace", { ...pace }); setSavedPace(pace); }
             let s = await saveStudyGoal(languageId, { ...drafts[languageId], auto: false });
             if (rebuild) s = await resetStudyGoal(languageId);
             setStates((x) => ({ ...x, [languageId]: s }));
@@ -89,17 +93,23 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
     const edit = (patch: Partial<Draft>, own = false) => {
         setDrafts((d) => ({ ...d, [languageId]: { ...d[languageId], ...patch, ...(own ? { auto: false } : {}) } }));
     };
-    const suggested = states[languageId]?.suggested;
-    const useSuggested = () => suggested && edit({
-        auto: true,
-        n_vocabulary: suggested.n.vocabulary, n_grammar: suggested.n.grammar, n_calligraphy: suggested.n.calligraphy,
-        r_vocabulary: suggested.r.vocabulary, r_grammar: suggested.r.grammar, r_calligraphy: suggested.r.calligraphy,
-    });
-    const target = states[languageId]?.targets?.[draft?.period ?? "week"];
-    const sumN = draft ? draft.n_vocabulary + draft.n_grammar + draft.n_calligraphy : 0;
-    const sumR = draft ? draft.r_vocabulary + draft.r_grammar + draft.r_calligraphy : 0;
-    const mismatch = !!target && !draft?.auto && (sumN !== target.n || sumR !== target.r);     // the suggested split may round off by one: it is always allowed
     const shown = KINDS.filter((k) => !states[languageId]?.kinds || states[languageId].kinds!.includes(k.kind));       // the types this course studies
+    const kindsShown = shown.map((k) => k.kind);
+    /** The form still holds exactly this preset: its streak minimum and its numbers for the period (per type). Editing any of them un-selects it. */
+    const holds = (p: Pace, period: Period) => {
+        if (!draft || !pace || pace.streak_min_answers !== p.streak_min_answers) return false;
+        const q = presetQuantities(p.new_per_week, p.reviews_per_day, period, kindsShown);
+        return KINDS.every(({ kind, n, r }) => !kindsShown.includes(kind) || (draft[n] === q.n[kind] && draft[r] === q.r[kind]));
+    };
+    const preset = draft && (Object.values(presets) as Pace[]).find((p) => holds(p, draft.period));
+    const suggested = pace && draft ? presetQuantities(pace.new_per_week, pace.reviews_per_day, draft.period, kindsShown) : null;   // the pace in force (a preset's numbers), for this period
+    const fillFrom = (p: Pace, period: Period, auto = false) => {
+        const q = presetQuantities(p.new_per_week, p.reviews_per_day, period, kindsShown);
+        edit({ period, n_vocabulary: q.n.vocabulary ?? 0, n_grammar: q.n.grammar ?? 0, n_calligraphy: q.n.calligraphy ?? 0,
+               r_vocabulary: q.r.vocabulary ?? 0, r_grammar: q.r.grammar ?? 0, r_calligraphy: q.r.calligraphy ?? 0, ...(auto ? { auto: true } : {}) }, !auto);
+    };
+    const useSuggested = () => pace && draft && fillFrom(pace, draft.period, true);
+    const pickPeriod = (period: Period) => (preset ? fillFrom(preset, period) : edit({ period }));   // a preset in force follows the period
     const sameAsSuggested = !!suggested && shown.every(({ kind, n, r }) => draft?.[n] === suggested.n[kind] && draft?.[r] === suggested.r[kind]);
     const date = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 
@@ -150,10 +160,11 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                             <span className="text-sm opacity-70">{t("period")}</span>
                             <div className="filter-chips" role="group" aria-label={t("period")}>
                                 {PERIODS.map((k) => (
-                                    <button key={k} type="button" aria-pressed={draft.period === k} className={`filter-chip min-h-11 px-4 text-sm ${draft.period === k ? "active" : ""}`} onClick={() => edit({ period: k })}>{t(`period_${k}`)}</button>
+                                    <button key={k} type="button" aria-pressed={draft.period === k} className={`filter-chip min-h-11 px-4 text-sm ${draft.period === k ? "active" : ""}`} onClick={() => pickPeriod(k)}>{t(`period_${k}`)}</button>
                                 ))}
                             </div>
                         </div>
+                        {pace && <PresetPicker isSelected={(p) => holds(p, draft.period)} period={draft.period} onPick={(p) => { setPace(p); fillFrom(p, draft.period); }} />}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" role="status">
                             <span className={`inline-flex items-center gap-1.5 ${draft.auto ? "text-accent" : "text-muted"}`}>
                                 <Sparkles size={14} aria-hidden />{draft.auto ? t("goalAuto") : t("goalCustom")}
@@ -173,10 +184,15 @@ export default function StudyGoalsCard({ userId }: { userId: string }) {
                                 </div>
                             ))}
                         </div>
-                        {mismatch && target && <p className="text-sm text-danger" role="alert">{t("goalTotalsMismatch", { n: target.n, r: target.r, sumN, sumR })}</p>}
+                        {pace && (
+                            <label className="flex items-center justify-between gap-3 text-sm">
+                                <span className="flex flex-col"><span>{t("streakMinLabel")}</span><span className="text-xs text-muted">{t("streakMinHint")}</span></span>
+                                <NumberField min={1} max={1000} ariaLabel={t("streakMinLabel")} value={pace.streak_min_answers} onChange={(v) => setPace({ ...pace, streak_min_answers: v === "" ? 1 : v })} />
+                            </label>
+                        )}
                         <ToggleRow label={t("goalActive")} description={t("goalActiveDesc")} checked={draft.active} onChange={(v) => edit({ active: v })} />
                         <div className="flex flex-wrap items-center gap-3">
-                            <SaveButton isLoading={saving} disabled={mismatch} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
+                            <SaveButton isLoading={saving} onSuccessLabel={t("goalLocked")}>{t("goalLock")}</SaveButton>
                             {hasOwnMenu && <button type="button" className="btn btn-secondary min-h-11" onClick={cancelEdit}>{t("goalCancel")}</button>}
                         </div>
                     </section>

@@ -8,6 +8,7 @@ import ExerciseRunner from "./exerciseRunner";
 import BackButton from "@/components/ui/buttons/backButton";
 import ProgressBar from "../ui/progressBar";
 import ExerciseFooter from "./exerciseFooter";
+import ExerciseHint from "./exerciseHint";
 import LinkedGrammarSheet from "./linkedGrammarSheet";
 import { lastAttempt } from "./creditExercise";
 
@@ -49,7 +50,8 @@ export default function ExercisePractice( { exercise_lists } : { exercise_lists:
             <div className="flex items-center justify-between">
                 <span className="badge">{EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""] ? t(EXERCISE_TYPE_LABELS[currentExercise.exercise_type ?? ""]) : currentExercise.exercise_type}</span>
             </div>
-            <div key={currentExercise.id} className="animate-fade-in">
+            <div key={currentExercise.id} className="animate-fade-in flex flex-col gap-4">
+                <ExerciseHint exercise={currentExercise} />
                 <ExerciseRunner exercise={currentExercise} gaveUp={gaveUp} onFinished={() => setFinishedId(currentExercise.id)} />
             </div>
             </>) : null}

@@ -20,7 +20,7 @@
   "neutral": "Normal",
   "goalTitle": "Objectif d'étude",
   "goalHint": "Choisissez combien d'éléments nouveaux et à réviser contient le menu de chaque période, puis verrouillez les objectifs : le menu est construit tout de suite et reste fixe jusqu'à la fin de la période. Déverrouillez à tout moment pour le modifier. La progression et le menu complet sont sur la page de la langue.",
-  "period": "Période",
+  "period": "Période (tous les nombres ci-dessous en dépendent)",
   "period_week": "Hebdomadaire",
   "period_biweek": "Toutes les 2 semaines",
   "period_month": "Mensuel",
@@ -82,7 +82,7 @@
   "goalRebuildConfirm": "Verrouiller et reconstruire",
   "goalCancel": "Annuler",
   "goalHowTitle": "Comment les objectifs de la semaine sont-ils répartis par jour ?",
-  "goalHowBody": "Le menu de la semaine est un seul réservoir, pas une répartition fixe par jour. Chaque révision quotidienne y puise par ordre de priorité (les nouveaux éléments d'abord) et s'arrête à votre nombre de révisions par jour. Ce qui n'est pas terminé est reporté aux jours suivants, puis à la période suivante. Un élément est maîtrisé à partir d'un score de 60.",
+  "goalHowBody": "Le menu de la période est un seul réservoir, pas une répartition fixe par jour. Chaque révision quotidienne y puise par ordre de priorité (les nouveaux éléments d'abord) et s'arrête à la taille de votre révision quotidienne (fixée par le préréglage choisi). Ce qui n'est pas terminé est reporté aux jours suivants, puis à la période suivante. Un élément est maîtrisé à partir d'un score de 60.",
   "reviewStreakValidated": "Journée validée — série : {count}",
   "goalUnlockLabel": "Déverrouiller pour modifier vos objectifs",
   "goalLockedTitle": "Verrouillée jusqu'au {end}",
@@ -92,5 +92,7 @@
   "goalEditingKeep": "Votre menu actuel reste actif jusqu'à ce que vous verrouilliez à nouveau.",
   "goalLock": "Verrouiller les objectifs",
   "goalLocked": "Verrouillé",
-  "lessonContents": "Contenu de la leçon"
+  "lessonContents": "Contenu de la leçon",
+  "streakMinLabel": "Réponses pour un jour de série",
+  "streakMinHint": "Pour tout le compte : réponses nécessaires dans une journée (tous les cours)."
 }

@@ -20,7 +20,7 @@
   "neutral": "普通",
   "goalTitle": "学习目标",
   "goalHint": "设置每个周期的菜单包含多少新内容和复习内容，然后锁定目标：菜单会立即生成，并在周期结束前保持不变。随时可以解锁修改。进度和完整菜单显示在语言页面。",
-  "period": "周期",
+  "period": "周期（下面所有数字都按它计算）",
   "period_week": "每周",
   "period_biweek": "每两周",
   "period_month": "每月",
@@ -82,7 +82,7 @@
   "goalRebuildConfirm": "锁定并重建",
   "goalCancel": "取消",
   "goalHowTitle": "一周的目标如何分配到每天？",
-  "goalHowBody": "本周菜单是一个整体，而不是每天固定分配。每日复习按优先级（先学新内容）从中抽取，并在达到你的每日复习数量时停止。没完成的内容会顺延到之后几天，再顺延到下一周期。分数达到 60 即视为已掌握。",
+  "goalHowBody": "本周期菜单是一个整体，而不是每天固定分配。每日复习按优先级（先学新内容）从中抽取，并在达到你的每日复习量（由所选预设决定）时停止。没完成的内容会顺延到之后几天，再顺延到下一周期。分数达到 60 即视为已掌握。",
   "reviewStreakValidated": "今日已完成——连续 {count} 天",
   "goalUnlockLabel": "解锁以编辑目标",
   "goalLockedTitle": "已锁定至 {end}",
@@ -92,5 +92,7 @@
   "goalEditingKeep": "再次锁定之前，当前菜单继续生效。",
   "goalLock": "锁定目标",
   "goalLocked": "已锁定",
-  "lessonContents": "本课内容"
+  "lessonContents": "本课内容",
+  "streakMinLabel": "连续天数所需答题数",
+  "streakMinHint": "适用于整个账户：一天内需要回答的数量（所有课程）。"
 }

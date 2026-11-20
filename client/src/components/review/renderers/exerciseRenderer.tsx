@@ -3,6 +3,7 @@ import type Exercise from "@/interface/features/Exercise";
 import ExerciseRunner from "@/components/exercises/exerciseRunner";
 import RunnerBoundary from "@/components/exercises/runnerBoundary";
 import ExerciseFooter from "@/components/exercises/exerciseFooter";
+import ExerciseHint from "@/components/exercises/exerciseHint";
 import LinkedGrammarSheet from "@/components/exercises/linkedGrammarSheet";
 import { lastAttempt } from "@/components/exercises/creditExercise";
 import BackButton from "@/components/ui/buttons/backButton";
@@ -19,6 +20,7 @@ function ExerciseBody({ c }: { c: RendererCtx<Exercise> }) {
     const t = useTranslations("elements");
     return (
         <>
+            <div className="flex flex-wrap items-center justify-between gap-2"><ExerciseHint exercise={c.item} />{c.deleteButton}</div>   {/* Tip and Delete on one row */}
             <RunnerBoundary key={c.item.id} exerciseId={c.item.id} onSkip={() => c.onReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}>
                 <ExerciseRunner exercise={c.item} gaveUp={c.gaveUp} onFinished={c.onExerciseFinished} />
             </RunnerBoundary>

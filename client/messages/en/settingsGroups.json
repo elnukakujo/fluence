@@ -95,10 +95,10 @@
     "casual": "Casual",
     "standard": "Standard",
     "intensive": "Intensive",
-    "newPerWeek": "{n} new items per week",
-    "reviewsPerDay": "{n} reviews per day",
     "streakMin": "Streak day: {n} answers",
     "failed": "Could not apply this preset",
-    "applyNamed": "Apply the {name} preset"
+    "applyNamed": "Apply the {name} preset",
+    "newPerPeriod": "{n} new",
+    "reviewsPerPeriod": "{n} reviews"
   }
 }

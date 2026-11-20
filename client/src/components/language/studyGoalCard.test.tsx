@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ getStudyGoal: vi.fn(), saveStudyGoal: vi.fn(), resetStudyGoal: vi.fn() }));
+const settings = vi.hoisted(() => ({ getSettingsGroup: vi.fn(), saveSettingsGroup: vi.fn() }));
+vi.mock("@/api/settings", () => settings);
 vi.mock("@/api/studyGoal", () => api);
 vi.mock("@/api/language", () => ({ getAvailableLanguages: vi.fn().mockResolvedValue([{ id: "lang_1", name: "Japanese" }]) }));
 
@@ -18,7 +20,7 @@ const locked = {
         types: { vocabulary: types(20, 5), grammar: types(0, 0), calligraphy: types(0, 0) },
         next: { start: "2026-11-12", period: "week", pending: true, n: { vocabulary: 25, grammar: 0, calligraphy: 0 }, r: { vocabulary: 10, grammar: 0, calligraphy: 0 } } },
 };
-beforeEach(() => { vi.clearAllMocks(); api.getStudyGoal.mockResolvedValue(empty); api.saveStudyGoal.mockResolvedValue(empty); });
+beforeEach(() => { vi.clearAllMocks(); settings.getSettingsGroup.mockResolvedValue({ values: { new_per_week: 15, reviews_per_day: 40, streak_min_answers: 20 }, scopes: {}, overridden: [] }); settings.saveSettingsGroup.mockResolvedValue({}); api.getStudyGoal.mockResolvedValue(empty); api.saveStudyGoal.mockResolvedValue(empty); });
 
 describe("study goals card", () => {
     it("sends the period and the new and review quantities of each type, only for edited languages", async () => {
@@ -31,6 +33,31 @@ describe("study goals card", () => {
         expect(api.resetStudyGoal).not.toHaveBeenCalled();      // a first lock needs no rebuild: saving builds the menu
     });
 
+    it("a preset fills this period's numbers and the streak minimum, saved only when the goals are locked", async () => {
+        render(<StudyGoalsCard userId="u" />);
+        await userEvent.click(await screen.findByRole("button", { name: "Every 2 weeks" }));
+        expect(await screen.findByText("30 new")).toBeInTheDocument();                       // Standard, scaled to 2 weeks
+        await userEvent.click(screen.getByRole("button", { name: "Apply the Intensive preset" }));
+        expect(settings.saveSettingsGroup).not.toHaveBeenCalled();
+        fireEvent.submit(document.querySelector("form")!);
+        await waitFor(() => expect(settings.saveSettingsGroup).toHaveBeenCalledWith("pace", { new_per_week: 30, reviews_per_day: 80, streak_min_answers: 40 }));
+        expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ period: "biweek", n_vocabulary: 34, r_vocabulary: 91, auto: false }));
+    });
+
+    it("a preset card is highlighted only while the form holds its numbers", async () => {
+        render(<StudyGoalsCard userId="u" />);
+        const casual = await screen.findByRole("button", { name: "Apply the Casual preset" });
+        expect(casual).toHaveAttribute("aria-pressed", "false");                      // the form starts empty: nothing matches
+        await userEvent.click(casual);
+        expect(casual).toHaveAttribute("aria-pressed", "true");
+        await userEvent.click(screen.getAllByRole("button", { name: "Increase" })[0]);   // edit a number
+        expect(casual).toHaveAttribute("aria-pressed", "false");
+        await userEvent.click(casual);
+        expect(casual).toHaveAttribute("aria-pressed", "true");
+        await userEvent.click(screen.getByRole("button", { name: "Every 2 weeks" }));    // a preset in force follows the period
+        expect(casual).toHaveAttribute("aria-pressed", "true");
+    });
+
     it("shows a suggested goal as following the pace; editing a number makes it the user's own, and 'use suggested' goes back", async () => {
         const auto = { ...locked, goal: { ...locked.goal, auto: true }, suggested: { n: { vocabulary: 25, grammar: 6, calligraphy: 12 }, r: { vocabulary: 13, grammar: 3, calligraphy: 6 } } };
         api.getStudyGoal.mockResolvedValue(auto);
@@ -41,7 +68,7 @@ describe("study goals card", () => {
         await userEvent.click(screen.getByRole("button", { name: "Use suggested values" }));
         expect(screen.getByText("Suggested for your pace")).toBeInTheDocument();
         fireEvent.submit(document.querySelector("form")!);
-        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ auto: false, n_vocabulary: 25, r_calligraphy: 6 })));   // locking makes the numbers the user's own
+        await waitFor(() => expect(api.saveStudyGoal).toHaveBeenCalledWith("lang_1", expect.objectContaining({ auto: false, n_vocabulary: 9, r_calligraphy: 11 })));   // Standard, weekly; locking makes the numbers the user's own
     });
 
     it("tells the menu is locked and when the saved changes start", async () => {
