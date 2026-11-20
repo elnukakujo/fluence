@@ -26,7 +26,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 describe("exercise hint (RC-25)", () => {
     it("step 1 opens the grammar sheet, step 2 adds the words and characters; each step is a hint taken", async () => {
         render(<ExerciseHint exercise={exercise} />);
-        expect(api.getGrammarById).not.toHaveBeenCalled();                   // nothing is fetched until it is opened
+        expect(api.getVocabularyById).not.toHaveBeenCalled();                // words are fetched only when it is opened
         await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
         const dialog = await screen.findByRole("dialog");
         expect(await screen.findByText("A is B")).toBeInTheDocument();
@@ -37,6 +37,16 @@ describe("exercise hint (RC-25)", () => {
         expect(await screen.findByRole("dialog")).toHaveTextContent("water");
         expect(screen.getByRole("dialog")).toHaveTextContent("fire");
         expect(hintsTaken("ex_1")).toBe(2);
+    });
+
+    it("a grammar the card already shows below (hard grammar) is not in the hint: the words become step 1", async () => {
+        api.getGrammarById.mockResolvedValue({ id: "gram_1", title: "是 (shì)", explanation: "A is B", difficulty: 99 });
+        render(<ExerciseHint exercise={{ ...(exercise as object), id: "ex_hard" } as never} />);
+        await userEvent.click(await screen.findByRole("button", { name: /^Hint/ }));
+        const dialog = await screen.findByRole("dialog");
+        expect(await screen.findByText("water")).toBeInTheDocument();
+        expect(dialog).not.toHaveTextContent("A is B");
+        expect(hintsTaken("ex_hard")).toBe(1);
     });
 
     it("reading the hints again after the last step costs nothing", async () => {

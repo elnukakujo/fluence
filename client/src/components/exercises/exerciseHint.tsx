@@ -9,14 +9,15 @@ import { getGrammarById } from "@/api/grammar";
 import { getVocabularyById } from "@/api/vocabulary";
 import { getCalligraphyById } from "@/api/calligraphy";
 import { hintsTaken, takeHint } from "./creditExercise";
+import { TIER_LEARNING_DIFFICULTY } from "@/utils/cardTier";
 import type Exercise from "@/interface/features/Exercise";
 import type Grammar from "@/interface/features/Grammar";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Calligraphy from "@/interface/features/Calligraphy";
 
-type Linked = { grammars: Grammar[]; vocabularies: Vocabulary[]; calligraphies: Calligraphy[] };
+type Linked = { vocabularies: Vocabulary[]; calligraphies: Calligraphy[] };
 
-/** RC-25: the Hint of an exercise, the same button as on a vocabulary or calligraphy card. Step 1 opens the linked grammar sheet(s) in a dialog (a portal over the page);
+/** RC-25: the Hint of an exercise, the same button as on a vocabulary or calligraphy card. Step 1 opens the linked grammar sheet(s) (not the ones already open under the card: a hard grammar, see `sheetOpen`) in a dialog (a portal over the page);
  *  step 2 adds the related vocabulary and characters. Each step taken lowers what the attempt is credited (`creditExercise`); reading it again afterwards is free.
  *  An exercise with only words and characters linked has them as its one step; one linked to nothing opens a dialog that says so, at no cost. */
 export default function ExerciseHint({ exercise }: { exercise: Exercise }) {
@@ -25,18 +26,26 @@ export default function ExerciseHint({ exercise }: { exercise: Exercise }) {
     const [level, setLevel] = useState(() => hintsTaken(id));
     const [open, setOpen] = useState(false);
     const [linked, setLinked] = useState<Linked | null>(null);
-    const hasGrammar = (exercise.related_grammar ?? []).length > 0;
+    const [grammars, setGrammars] = useState<Grammar[] | null>(null);      // loaded up front: which sheets the card already shows decides the steps
+    const gramKey = (exercise.related_grammar ?? []).join(",");
+    const hintGrammars = grammars?.filter((g) => ((g as { difficulty?: number }).difficulty ?? 0) <= TIER_LEARNING_DIFFICULTY);
+    const hasGrammar = (hintGrammars ?? exercise.related_grammar ?? []).length > 0;
     const hasWords = (exercise.related_vocabulary ?? []).length + (exercise.related_calligraphy ?? []).length > 0;
     const steps = (hasGrammar ? 1 : 0) + (hasGrammar && hasWords ? 1 : 0) + (!hasGrammar && hasWords ? 1 : 0) || 1;
     const ids = [exercise.related_grammar, exercise.related_vocabulary, exercise.related_calligraphy].map((a) => (a ?? []).join(",")).join("|");
 
     useEffect(() => { setLevel(hintsTaken(id)); setOpen(false); setLinked(null); }, [id]);
     useEffect(() => {
+        let stale = false;
+        Promise.all((exercise.related_grammar ?? []).map((g) => getGrammarById(g).catch(() => null))).then((r) => { if (!stale) setGrammars(r.filter(Boolean) as Grammar[]); });
+        return () => { stale = true; };
+    }, [gramKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
         if (!open || linked) return;
         let stale = false;
         const all = <T,>(list: string[] | undefined, get: (x: string) => Promise<T>) => Promise.all((list ?? []).map((x) => get(x).catch(() => null))).then((r) => r.filter(Boolean) as T[]);
-        Promise.all([all(exercise.related_grammar, getGrammarById), all(exercise.related_vocabulary, getVocabularyById), all(exercise.related_calligraphy, getCalligraphyById)])
-            .then(([grammars, vocabularies, calligraphies]) => { if (!stale) setLinked({ grammars, vocabularies, calligraphies }); });
+        Promise.all([all(exercise.related_vocabulary, getVocabularyById), all(exercise.related_calligraphy, getCalligraphyById)])
+            .then(([vocabularies, calligraphies]) => { if (!stale) setLinked({ vocabularies, calligraphies }); });
         return () => { stale = true; };
     }, [open, linked, ids]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -52,9 +61,9 @@ export default function ExerciseHint({ exercise }: { exercise: Exercise }) {
             <HintButton level={level} steps={steps} onClick={onClick} reopen />
             {open && (
                 <Modal title={t("hintTitle")} subtitle={t("hintSubtitle")} onClose={() => setOpen(false)} wide>
-                    {!linked ? <p role="status">{t("tipLoading")}</p> : !hasGrammar && !hasWords ? <p>{t("tipEmpty")}</p> : (
+                    {!linked || !grammars ? <p role="status">{t("tipLoading")}</p> : !hasGrammar && !hasWords ? <p>{t("tipEmpty")}</p> : (
                         <div className="flex flex-col gap-5">
-                            {showGrammar && linked.grammars.map((g) => (
+                            {showGrammar && hintGrammars!.map((g) => (
                                 <section key={g.id} className="flex flex-col gap-2" aria-label={t("grammarSheet", { title: g.title })}>
                                     <h3 className="font-medium">{t("grammarSheet", { title: g.title })}</h3>
                                     <GrammarCard grammar={g} />
