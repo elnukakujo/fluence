@@ -299,3 +299,15 @@ def test_a_type_the_course_does_not_study_has_no_slots_picks_or_suggestion(db):
     assert svc.get("user_U1", "lang_L1")["n_calligraphy"] == 0 and svc.kinds("user_U1", "lang_L1") == ["vocabulary", "grammar"]
     sug = svc.suggested("user_U1", "week", "lang_L1")
     assert sug["n"]["calligraphy"] == 0 and sum(sug["n"].values()) == 15 and sum(sug["r"].values()) == 40
+
+
+def test_new_is_only_unseen_and_review_only_seen_even_outside_a_goal(db):
+    """SG-12: a card answered outside any goal (even wrongly, score 0) is Review material, never New; unseen is never Review."""
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    ScoreService().record_side("user_U1", "voc_V0", "front", "recognition", 0.0, "typed")   # wrong first answer: score stays 0
+    ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0, r_vocabulary=2)
+    kinds = {i.element_id: i.kind for i in svc.ensure_cycle("user_U1", "lang_L1", today=D0)}
+    assert kinds["voc_V0"] == "review" and kinds["voc_V3"] == "review"
+    assert {e for e, k in kinds.items() if k == "new"} == {"voc_V1", "voc_V2"}

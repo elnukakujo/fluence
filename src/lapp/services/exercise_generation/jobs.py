@@ -11,7 +11,7 @@ from ...utils import get_language_by_iso2t
 from ...services.capabilities import gated_api
 from ..features.exercise import ExerciseService
 from ..system_data import SourceService, UserPreferencesService
-from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch
+from .generate import KNOWN_MAX, add_mentioned_links, generate_batch, judge_batch, link_reason
 from .planner import plan_slots, plan_slots_from_mix
 from .pool import is_advanced, known_words, lesson_pool
 
@@ -78,7 +78,7 @@ def _run(app: Flask, job_id: str, user_id: str, lesson_id: str, count: int, api:
             known = list(dict.fromkeys(well_known + [p.label for p in pool]))[:KNOWN_MAX]       # what the learner knows, then this lesson's own elements
             items = generate_batch(slots, api, target, lambda: job.update(done=job["done"] + 1), source=source, known=known, advanced=advanced, level=level)
             add_mentioned_links(items, pool)
-            reasons = judge_batch(items, api, target, known=known, advanced=advanced, level=level)
+            reasons = [link_reason(i, pool) or r for i, r in zip(items, judge_batch(items, api, target, known=known, advanced=advanced, level=level))]   # EG-24
             batch_id = "batch_" + uuid.uuid4().hex[:12]
             created: list[tuple[str, str | None]] = []
             with db_manager.session_scope() as s:

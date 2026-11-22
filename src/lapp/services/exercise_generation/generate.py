@@ -187,3 +187,18 @@ def add_mentioned_links(items: list[dict], pool: list[PoolItem]) -> None:
                                  of("vocabulary"), of("grammar"), of("calligraphy"))
         for key, ids in found.items():
             item[key] = list(dict.fromkeys(item.get(key, []) + ids))
+
+
+def link_reason(item: dict, pool: list[PoolItem]) -> str | None:
+    """EG-24: a link is earned, never guessed. The anchor grammar is the design; a vocabulary or character the model claimed stays verified only
+    if the exercise text really uses it (the shared matcher, inflections included). Anything else flags the exercise so it stays out of reviews."""
+    by_id = {p.id: p for p in pool}
+    claimed = [i for key in RELATED.values() for i in item.get(key, [])]
+    if not claimed:
+        return "no association found"
+    text = {"question": _spoken_text(item), "answer": "" if item.get("exercise_type") == "conversation" else item["answer"],
+            "text_support": item.get("text_support"), "content": item.get("content")}
+    pairs = lambda kind: [(i, by_id[i].label) for i in claimed if i in by_id and by_id[i].kind == kind]
+    used = link_to_elements(text, pairs("vocabulary"), [], pairs("calligraphy"))
+    unverified = [by_id[i].label for i in claimed if i in by_id and by_id[i].kind != "grammar" and i not in used["related_vocabulary"] + used["related_calligraphy"]]
+    return f"links to confirm: {', '.join(unverified)}" if unverified else None

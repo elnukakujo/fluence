@@ -67,3 +67,13 @@ def test_an_imported_exercise_with_its_grammar_is_ready(app, db, media_root, sch
     _accept(app, db, media_root, [_ex("Use Greeting with hello"), grammar])
     with db.session_scope() as s:
         assert s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").one().review_reason is None
+
+
+def test_inflected_forms_link_but_unrelated_words_and_short_words_do_not():
+    voc = [("voc_V1", "heißen"), ("voc_V2", "Guten Tag"), ("voc_V3", "ab"), ("voc_V4", "lernen")]
+    f = lambda q: link_to_elements({"question": q, "answer": "", "text_support": None, "content": None}, voc, [], [])["related_vocabulary"]
+    assert f("Ich heiße Anna.") == ["voc_V1"]                      # heißen → heiße
+    assert f("Ich wünsche einen guten Tag!") == ["voc_V2"]          # every word of the label, inflected
+    assert f("Wir lernten gestern.") == ["voc_V4"]                  # lernen → lernten
+    assert f("Abends gehe ich heim.") == []                         # a short word must match whole: "ab" is not "Abends"
+    assert f("Das ist ein Hund.") == []

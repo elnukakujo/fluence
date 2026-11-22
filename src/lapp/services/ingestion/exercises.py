@@ -1,7 +1,10 @@
 """Rebuild imported exercise candidates from the review screen: merge several into one, or regenerate one."""
+import re
+import unicodedata
+
 from . import elements as el
 from .types import Chunk
-from .verify import normalise
+from .verify import normalise, normalise_keep_spaces
 
 
 def _finish(raw: dict, etype: str, support: str | None, chunk: Chunk) -> dict:
@@ -112,10 +115,22 @@ def _strings(value) -> list[str]:
     return [t for v in value for t in _strings(v)] if isinstance(value, list) else []
 
 
+_LATIN = re.compile(r"[^\W\d_]+")   # runs of letters (CJK runs are caught by the exact match)
+
+
 def link_to_elements(fields: dict, vocabulary: list[tuple[str, str]], grammar: list[tuple[str, str]],
                      calligraphy: list[tuple[str, str]]) -> dict[str, list[str]]:
     """The lesson elements ((id, text) pairs: word, grammar title, character) an exercise mentions in its question, answer, support or content."""
-    haystack = normalise(" ".join(_strings([fields.get("question"), fields.get("answer"), fields.get("text_support"), fields.get("content")])))
-    # ponytail: plain substring match, so a one-letter word links everywhere; a tokenizer-aware match if that shows up in practice
-    found = lambda pairs: [i for i, text in pairs if normalise(text) and normalise(text) in haystack]
+    text = " ".join(_strings([fields.get("question"), fields.get("answer"), fields.get("text_support"), fields.get("content")]))
+    haystack, tokens = normalise(text), _LATIN.findall(normalise_keep_spaces(text))
+
+    def mentioned(label: str) -> bool:
+        if not normalise(label):
+            return False
+        words = _LATIN.findall(normalise_keep_spaces(label))
+        if not any(w.isascii() or w[0].isalpha() and "LATIN" in unicodedata.name(w[0], "") for w in words):
+            return normalise(label) in haystack             # CJK and other scripts: exact substring (no spaces to tokenise on)
+        # inflected forms (heißen → ich heiße, parler → parlons): every word of the label needs a token starting with its stem; a short word must match whole
+        return bool(words) and all(any(t == w if len(w) < 5 else t.startswith(w[:max(4, len(w) - 2)]) for t in tokens) for w in words)
+    found = lambda pairs: [i for i, label in pairs if mentioned(label)]
     return {"related_vocabulary": found(vocabulary), "related_grammar": found(grammar), "related_calligraphy": found(calligraphy)}

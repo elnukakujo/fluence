@@ -382,11 +382,18 @@ class StudyGoalService:
 
     @staticmethod
     def _new_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None) -> list[str]:
-        """Up to n unstarted element ids (no Score row, or score 0) in lesson order, then creation order.
+        """Up to n unseen element ids (SG-12: never answered, never scored) in lesson order, then creation order.
         `only_lesson`: the soft gate is closed, draw from that lesson only."""
         ids = [i for i in StudyGoalService._language_elements(model, language_id, session, only_lesson) if i not in taken]
-        scores = StudyGoalService._scores(user_id, ids, session)
-        return [i for i in ids if scores.get(i, 0.0) == 0.0][:n]
+        seen = StudyGoalService._seen(user_id, ids, session)
+        return [i for i in ids if i not in seen][:n]
+
+    @staticmethod
+    def _seen(user_id, ids, session) -> dict:
+        """Priority inputs of the elements the learner has met: a score above 0 or an answer ever given (a wrong first answer counts)."""
+        now = datetime.now()
+        rows = ScoreService().priority_inputs(user_id, ids, now, learner_today(None, now), session=session) if ids else {}
+        return {i: r for i, r in rows.items() if r.score > 0 or r.last_seen_at is not None}
 
     @staticmethod
     def _review_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None) -> list[str]:
@@ -395,6 +402,6 @@ class StudyGoalService:
         if not ids:
             return []
         now = datetime.now()
-        seen = ScoreService().priority_inputs(user_id, ids, now, learner_today(None, now), session=session)   # ponytail: server zone until the learner's zone is passed in (Task 5)
+        seen = StudyGoalService._seen(user_id, ids, session)   # ponytail: server zone until the learner's zone is passed in (Task 5)
         ranked = sorted(seen, key=lambda i: review_priority(seen[i].score, seen[i].stability, seen[i].last_seen_at, seen[i].lapses, now), reverse=True)
         return ranked[:n]
