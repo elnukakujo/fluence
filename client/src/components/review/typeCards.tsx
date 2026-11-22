@@ -47,7 +47,7 @@ export default function TypeCards({ languageId, types, stats }: { languageId: st
                     );
                 })}
             </div>
-            <div className="sticky bottom-0 z-10 -mx-1 border-t border-border bg-surface px-1 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-10 -mx-1 border-t border-border bg-surface px-1 py-3 md:bottom-0">
                 <Link className="btn btn-primary inline-flex min-h-11 w-full items-center justify-center gap-2 sm:w-auto" href={queueHref(languageId, { scope: "type", type: current })}>
                     {t("typeStart", { type: t(`typeLabel.${current}`) })}{total !== undefined && ` · ${t("typeCount", { total })}`}
                 </Link>

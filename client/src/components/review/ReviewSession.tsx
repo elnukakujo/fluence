@@ -238,6 +238,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                             ) : (
                                 <BackButton onBefore={finish} href={backHref}>{backLabel}</BackButton>
                             )}
+                            {ended && <SessionSummary sessionId={sessionId} />}      {/* right under the way out, before the long details */}
                             {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
@@ -250,7 +251,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {editing && <EditElementDialog card={card} languageId={languageId ?? window.location.pathname.split("/")[2]}
                 onSaved={(fresh) => setEdited((e) => ({ ...e, [fresh.id!]: fresh }))} onClose={() => setEditing(false)} />}
             {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
-            {ended && <SessionSummary sessionId={sessionId} />}
+            {ended && !slot && <SessionSummary sessionId={sessionId} />}
         </article>
     );
 }

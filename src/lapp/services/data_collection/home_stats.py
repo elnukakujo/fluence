@@ -108,9 +108,12 @@ def type_stats(user_id: str, language_id: str, session: Optional[Session] = None
     cands = collect_candidates(user_id, language_id, Scope(), session)
     if cands is not None:
         queue, _sections, _spares = build_queue(cands, plan_budgets(cands, prefs_for(user_id, language_id, session), None, None))
+        due: dict[str, set] = {name: set() for name in out}       # a vocabulary is two cards (its sides) but one thing to know: count it once
         for card in queue:
             kind = (card[0] if isinstance(card, tuple) else card)
             name = "exercise" if isinstance(kind, Exercise) else next((n for n, m in _MODELS.items() if isinstance(kind, m)), None)
             if name:
-                out[name]["due"] += 1
+                due[name].add(kind.id)
+        for name, ids in due.items():
+            out[name]["due"] = len(ids)
     return out
