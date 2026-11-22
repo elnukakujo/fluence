@@ -54,5 +54,6 @@
   "wrongStroke": "Wrong stroke — try again",
   "clearButton": "Clear",
   "backToLesson": "Back to Lesson",
-  "resolveConflictError": "Failed to resolve conflict. Check console for details."
+  "resolveConflictError": "Failed to resolve conflict. Check console for details.",
+  "strokesRequired": "Enter the number of strokes (1 or more)"
 }

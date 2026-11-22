@@ -374,5 +374,8 @@
   "tipCalligraphy": "汉字",
   "hintTitle": "提示",
   "hintSubtitle": "这道练习所依据的内容。每多看一步，最高评分就会降低。",
-  "hintMoreAvailable": "再按一次提示可查看词汇和汉字。"
+  "hintMoreAvailable": "再按一次提示可查看词汇和汉字。",
+  "reviewAssociations": "关联（词汇、语法、书法）",
+  "reviewRedo": "重做或更改类型",
+  "reviewRedoGo": "重新生成"
 }

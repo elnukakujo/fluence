@@ -19,3 +19,14 @@ def test_an_unknown_or_empty_session_gives_zeros_and_another_users_session_is_no
     assert c.get("/api/review/session/never-used").get_json()["cards"] == 0
     c.post("/api/exercise/score", json=_body([_result("voc_V1", 1.0)]))      # no header: belongs to no session
     assert c.get("/api/review/session/sess-1").get_json()["cards"] == 1
+
+
+def test_type_stats_per_studied_type(app, db):
+    """RE-15: the Type tab's figures: total/seen/mean/fading/due per type; another user's language is a 404."""
+    c = _client(app, db)
+    body = c.get("/api/stats/lang_L1/types")
+    assert body.status_code == 200
+    out = body.get_json()
+    assert set(out) == {"vocabulary", "grammar", "calligraphy", "exercise"}
+    assert out["vocabulary"]["total"] == 2 and out["vocabulary"]["seen"] == 0 and out["exercise"]["seen"] is None
+    assert c.get("/api/stats/lang_nope/types").status_code == 404

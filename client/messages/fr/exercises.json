@@ -374,5 +374,8 @@
   "tipCalligraphy": "Caractères",
   "hintTitle": "Indice",
   "hintSubtitle": "Ce sur quoi repose cet exercice. Chaque étape abaisse la meilleure note possible.",
-  "hintMoreAvailable": "Appuyez encore sur Indice pour les mots et les caractères."
+  "hintMoreAvailable": "Appuyez encore sur Indice pour les mots et les caractères.",
+  "reviewAssociations": "Associations (vocabulaire, grammaire, calligraphie)",
+  "reviewRedo": "Refaire ou changer de type",
+  "reviewRedoGo": "Reconstruire"
 }

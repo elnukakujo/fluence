@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { queueHref } from "@/api/review";
 import EmptyState from "@/components/ui/emptyState";
+import TypeCards from "./typeCards";
+import type { TypeStats } from "@/api/dailyStats";
 
 type Choice = { id: string; label: string; color?: string };
 type Tab = "type" | "source" | "tag";
@@ -12,8 +14,8 @@ const TABS: Tab[] = ["type", "source", "tag"];
 
 /** Custom review: one criterion at a time (type, source or tag); each choice opens the existing queue page with that scope.
  *  Components (words, characters, passages) are never offered: `types` holds only what a course studies. */
-export default function CustomReviewPicker({ languageId, types, sources, tags }: {
-    languageId: string; types: string[]; sources: Choice[]; tags: Choice[];
+export default function CustomReviewPicker({ languageId, types, sources, tags, stats }: {
+    languageId: string; types: string[]; sources: Choice[]; tags: Choice[]; stats?: TypeStats | null;
 }) {
     const t = useTranslations("languages");
     const [active, setActive] = useState<Tab>("type");
@@ -52,6 +54,8 @@ export default function CustomReviewPicker({ languageId, types, sources, tags }:
                 <p className="text-muted">{t(`customHint.${active}`)}</p>
                 {list.length === 0 ? (
                     <EmptyState className="card">{t(`customEmpty.${active}`)}</EmptyState>
+                ) : active === "type" ? (
+                    <TypeCards languageId={languageId} types={types} stats={stats} />
                 ) : (
                     <ul className="flex list-none flex-wrap gap-3 pl-0">
                         {list.map((c) => (

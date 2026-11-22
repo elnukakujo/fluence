@@ -64,9 +64,21 @@
   "reviewCustom": "Custom review",
   "reviewCustomHint": "Pick what to review: a type, a source or a tag. Everything in it, in natural order, no time limit.",
   "customTabsLabel": "Review by",
-  "customTab": {"type": "Type", "source": "Source", "tag": "Tag"},
-  "customHint": {"type": "Everything of one type.", "source": "Everything that comes from one source.", "tag": "Everything with one tag."},
-  "customEmpty": {"type": "Nothing to pick: this course studies no element type.", "source": "You have no source yet. Add one on the Sources page and link it to your elements.", "tag": "You have no tag yet. Add one on the Tags page and link it to your elements."},
+  "customTab": {
+    "type": "Type",
+    "source": "Source",
+    "tag": "Tag"
+  },
+  "customHint": {
+    "type": "Everything of one type.",
+    "source": "Everything that comes from one source.",
+    "tag": "Everything with one tag."
+  },
+  "customEmpty": {
+    "type": "Nothing to pick: this course studies no element type.",
+    "source": "You have no source yet. Add one on the Sources page and link it to your elements.",
+    "tag": "You have no tag yet. Add one on the Tags page and link it to your elements."
+  },
   "typeLabel": {
     "vocabulary": "Vocabulary",
     "grammar": "Grammar",
@@ -77,5 +89,12 @@
   "lessonsTitle": "Lessons",
   "manage": "Manage",
   "reviewLesson": "Review this lesson",
-  "backToLanguage": "Back to Language"
+  "backToLanguage": "Back to Language",
+  "typeCardsLabel": "Type to review",
+  "typeDue": "due today",
+  "typeAverage": "average score",
+  "typeFading": "fading",
+  "typeSeen": "{seen} of {total} seen",
+  "typeCount": "{total, plural, one {# card} other {# cards}}",
+  "typeStart": "Review {type}"
 }

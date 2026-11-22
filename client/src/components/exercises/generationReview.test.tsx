@@ -4,7 +4,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ getExercisesByLesson: vi.fn(), updateExercise: vi.fn().mockResolvedValue({}), deleteExercise: vi.fn().mockResolvedValue(undefined) }));
+const api = vi.hoisted(() => ({ getExercisesByLesson: vi.fn(), updateExercise: vi.fn().mockResolvedValue({}), deleteExercise: vi.fn().mockResolvedValue(undefined), redoExercise: vi.fn() }));
+vi.mock("@/api/vocabulary", () => ({ getVocabularyByLesson: vi.fn().mockResolvedValue([]) }));
+vi.mock("@/api/grammar", () => ({ getGrammarByLesson: vi.fn().mockResolvedValue([]) }));
+vi.mock("@/api/calligraphy", () => ({ getCalligraphyByLesson: vi.fn().mockResolvedValue([]) }));
 vi.mock("@/api/exercise", () => api);
 const nav = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
@@ -40,6 +43,19 @@ describe("generated exercises review", () => {
     expect(api.updateExercise).toHaveBeenCalledWith("ex_1", expect.objectContaining({ review_reason: null, question: "Question ex_1", answer: "Answer ex_1", exercise_type: "essay" }));
     await waitFor(() => expect(screen.queryByText("answer is wrong")).toBeNull());
     expect(screen.getByText("too hard")).toBeInTheDocument();
+  });
+
+  it("redo rebuilds the exercise from its links: the new text and reason show, Accept stores the new links (EG-25)", async () => {
+    api.redoExercise.mockResolvedValue({ exercise_type: "essay", question: "Fresh question", answer: "Fresh answer", text_support: null, content: null,
+      links: { related_vocabulary: ["voc_V1"], related_grammar: [], related_calligraphy: [] }, review_reason: "links to confirm: dog" });
+    render(<GenerationReview lessonId="lesson_1" onClose={vi.fn()} />);
+    await userEvent.click((await screen.findAllByRole("button", { name: "Redo or change type" }))[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Rebuild" }));
+    expect(api.redoExercise).toHaveBeenCalledWith("ex_1", undefined);
+    expect(await screen.findByText("Fresh question")).toBeInTheDocument();
+    expect(screen.getByText("links to confirm: dog")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "Accept" })[0]);
+    expect(api.updateExercise).toHaveBeenCalledWith("ex_1", expect.objectContaining({ question: "Fresh question", related_vocabulary: ["voc_V1"], review_reason: null }));
   });
 
   it("delete removes the exercise", async () => {

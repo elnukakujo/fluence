@@ -9,7 +9,8 @@ from ...models.features import Exercise
 from ...services import ExerciseService
 from ...services.containers import LanguageService, LessonService
 from ...services.exercise_generation import jobs
-from ...services.exercise_generation.planner import offerable_types, plan_slots, suggest_count
+from ...services.exercise_generation.generate import generate_batch, link_reason
+from ...services.exercise_generation.planner import Slot, offerable_types, plan_slots, suggest_count
 from ...services.exercise_generation.pool import is_advanced, known_words, lesson_pool
 from ...services.features.study_constants import GEN_MAX
 from ...services.system_data import UserPreferencesService
@@ -152,3 +153,55 @@ def undo_batch(batch_id: str):
         for e in exercises:
             service.delete(e.id, session=s)
         return jsonify({"deleted": len(exercises)})
+
+
+@bp.route("/api/exercise/<exercise_id>/redo", methods=["POST"])
+@login_required
+def redo(exercise_id: str):
+    """Ask the model to rebuild one stored exercise from the elements it is linked to, as the same or another type (EG-25). Nothing is saved: the
+    reply is the fresh fields for the review to show; Accept stores them.
+    ---
+    tags:
+        - Exercise generation
+    parameters:
+        - {name: exercise_id, in: path, type: string, required: true}
+    responses:
+        200: {description: "{exercise_type, question, answer, text_support, content, links: {related_vocabulary, related_grammar, related_calligraphy}, review_reason}"}
+        400: {description: exercise_type is not one the learner may ask for}
+        409: {description: "text_gen_not_configured, or no_links (an exercise linked to nothing has nothing to be rebuilt from)"}
+        422: {description: the model returned nothing usable}
+    """
+    exercise = ExerciseService().get_by_id(exercise_id, as_dict=True)
+    if not exercise:
+        return jsonify({"error": "Unknown exercise"}), 404
+    lesson_id = exercise["lesson_id"]
+    require_write(lesson_id)
+    user_id = current_user_id()
+    etype = (request.get_json(silent=True) or {}).get("exercise_type") or exercise["exercise_type"]
+    if etype != exercise["exercise_type"] and etype not in _offerable(lesson_id):
+        return jsonify({"error": "exercise_type is not offered"}), 400
+    prefs = UserPreferencesService().get_by_user_id(user_id)
+    api = gated_api(prefs, "text_gen")
+    cap = capability_for(prefs, "exercise_generation")
+    if not cap.enabled or not api:
+        return jsonify({"error": "text_gen_not_configured", "reason": cap.reason, "needs": cap.needs}), 409
+    linked = {i for key in ("related_vocabulary", "related_grammar", "related_calligraphy") for i in (exercise.get(key) or [])}
+    with db_manager.session_scope() as s:
+        pool = lesson_pool(lesson_id, user_id, s)
+        well_known = known_words(lesson_id, user_id, s)
+        level = jobs.lesson_level(lesson_id, s)
+    items = sorted((p for p in pool if p.id in linked), key=lambda p: p.kind != "grammar")        # the grammar anchors, then the rest
+    if not items:
+        return jsonify({"error": "no_links"}), 409
+    lesson = LessonService().get_by_id(lesson_id, as_dict=True)
+    language = LanguageService().get_by_id(lesson["language_id"], as_dict=True)
+    source_iso = language.get("source_iso639_2t") or next(iter(prefs.native_language_iso639_2 or []), None)
+    source = jobs.target_name(source_iso) if source_iso else None
+    made = generate_batch([Slot(etype, items)], api, jobs.target_name(language.get("target_iso639_2t")), source=source if source != "the target language" else None,
+                          known=well_known, advanced=is_advanced(well_known), level=level)
+    if not made:
+        return jsonify({"error": "generation_failed"}), 422
+    item = made[0]
+    return jsonify({**{k: item[k] for k in ("exercise_type", "question", "answer", "text_support", "content")},
+                    "links": {k: item[k] for k in ("related_vocabulary", "related_grammar", "related_calligraphy")},
+                    "review_reason": link_reason(item, pool)})

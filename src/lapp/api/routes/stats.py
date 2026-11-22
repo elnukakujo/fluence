@@ -43,6 +43,23 @@ def stats_language_summary(language_id: str):
     return (jsonify(out), 200) if out is not None else (jsonify({'error': 'Not found'}), 404)
 
 
+@bp.route('/<language_id>/types', methods=['GET'])
+@login_required
+def stats_language_types(language_id: str):
+    """Per studied type: total, seen, mean score of the seen ones, cards fading, cards due in the daily review (the custom review's Type tab).
+    ---
+    tags:
+      - stats
+    responses:
+      200:
+        description: "{vocabulary|grammar|calligraphy|exercise: {total, seen, mean_seen, fading, due}}"
+      404:
+        description: Not the caller's language, or it does not exist
+    """
+    out = home_stats.type_stats(current_user_id(), language_id)
+    return (jsonify(out), 200) if out is not None else (jsonify({'error': 'Not found'}), 404)
+
+
 @bp.route('/<language_id>/snapshots', methods=['GET'])
 @login_required
 def stats_snapshots(language_id: str):

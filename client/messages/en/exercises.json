@@ -374,5 +374,8 @@
   "tipCalligraphy": "Characters",
   "hintTitle": "Hint",
   "hintSubtitle": "What this exercise rests on. Each step lowers the best grade you can earn.",
-  "hintMoreAvailable": "Press Hint again for the words and characters."
+  "hintMoreAvailable": "Press Hint again for the words and characters.",
+  "reviewAssociations": "Associations (vocabulary, grammar, calligraphy)",
+  "reviewRedo": "Redo or change type",
+  "reviewRedoGo": "Rebuild"
 }

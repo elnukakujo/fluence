@@ -37,3 +37,11 @@ export async function getHomeStats(): Promise<HomeStats> {
 export async function getLanguageSummary(languageId: string): Promise<LanguageSummary> {
   return apiFetch(`/api/stats/${languageId}/summary`, { errorMessage: "Failed to fetch the language summary", cache: "no-store" });
 }
+
+/** What the custom review's Type tab shows for one studied type. `due` = cards of it in today's daily review; exercises have no seen/score/fading. */
+export type TypeStat = { total: number; seen: number | null; mean_seen: number | null; fading: number | null; due: number };
+export type TypeStats = Record<string, TypeStat>;
+
+export async function getTypeStats(languageId: string): Promise<TypeStats> {
+  return apiFetch(`/api/stats/${languageId}/types`, { errorMessage: "Failed to fetch the type stats", cache: "no-store" });
+}
