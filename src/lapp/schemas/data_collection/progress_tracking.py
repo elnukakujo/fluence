@@ -12,5 +12,7 @@ class ProgressTrackingDict(BaseDataCollectionDict):
     hint_used: Optional[bool] = None
     attempt_number: Optional[int] = None
     daily_goal_reached_before: Optional[bool] = None
+    difficulty_before: Optional[float] = None
+    difficulty_after: Optional[float] = None
 
     element_id: Optional[str] = None

@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 import logging
 
+from flask import g, has_request_context
+
 from ...core.database import db_manager, transactional, resolve_related
 from ...models.features import Exercise, Grammar
 from ...schemas.features import ExerciseDict
@@ -313,6 +315,8 @@ class ExerciseService:
                 element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
+                difficulty_before=previous.difficulty if previous else 0.5,
+                difficulty_after=updated.difficulty,
                 result=updated.score >= previous_score,
                 duration_ms=duration_ms,
                 hint_used=hint_used,
@@ -336,6 +340,16 @@ class ExerciseService:
                                                  (exercise.related_calligraphy, calligraphy_service)) for e in related}
         if not {r["element_id"] for r in results} <= {*linked, ex_id}:      # the exercise itself stands for "no linked element"
             raise ValueError("a result names an element the exercise is not linked to")
+        if has_request_context():
+            g.review_card_id = ex_id             # every row this exercise writes is one card (ST-9)
+        try:
+            self._credit_results(ex_id, results, linked, user_id, duration_ms, hint_used, attempt, session)
+        finally:
+            if has_request_context():
+                g.review_card_id = None
+        return {"correct": sum(r["quality"] >= CORRECT_AT for r in results), "total": len(results)}
+
+    def _credit_results(self, ex_id, results, linked, user_id, duration_ms, hint_used, attempt, session) -> None:
         for (element_id, skill), (quality, evidence) in group_results(results).items():
             if element_id != ex_id:
                 # a vocabulary takes the skill of the exercise type (the client sends it, RD-126); a grammar takes exercise credit on its own "practice" row (SC-30)
@@ -344,7 +358,6 @@ class ExerciseService:
                                                 user_id=user_id, skill=face_skill, evidence_type=evidence, session=session)
         self.update_score(ex_id, mean(r["quality"] for r in results), duration_ms, hint_used=hint_used, attempt_number=attempt,
                           user_id=user_id, evidence_type=results[0]["evidence_type"], session=session)
-        return {"correct": sum(r["quality"] >= CORRECT_AT for r in results), "total": len(results)}
 
     @transactional
     def override(self, ex_id: str, user_id: str, attempt_id: str, results: list[dict], duration_ms: float,

@@ -312,6 +312,8 @@ class VocabularyService:
                 element_status=level_for(updated.score),
                 score_before=previous_score,
                 score_after=updated.score,
+                difficulty_before=previous.difficulty if previous else 0.5,
+                difficulty_after=updated.difficulty,
                 result=updated.score >= previous_score,
                 duration_ms=min(duration_ms, 10*60*1000),
                 hint_used=hint_used,

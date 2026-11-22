@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Optional
 
+from flask import g, has_request_context
+
 from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
@@ -48,6 +50,16 @@ def status_for(user_id: str, day: date, session: Session) -> DayStatus:
     return DayStatus(day, today.answers if today else 0, False, yesterday.streak_length if yesterday and yesterday.validated else 0)
 
 
+def review_session_id() -> Optional[str]:
+    """The review session the current request belongs to (header `X-Review-Session`, set by the client), if any."""
+    return getattr(g, "review_session_id", None) if has_request_context() else None
+
+
+def review_card_id() -> Optional[str]:
+    """The card being credited (an exercise sets it so the rows it writes for its elements count as one card)."""
+    return getattr(g, "review_card_id", None) if has_request_context() else None
+
+
 class StudyActivity:
     @transactional
     def record(self, user_id: str, language_id: str, answer: ProgressTrackingDict, tz: Optional[str] = None,
@@ -61,7 +73,8 @@ class StudyActivity:
             user_id=user_id, language_id=language_id, element_id=answer.element_id, element_type=answer.element_type,
             element_status=answer.element_status, score_before=answer.score_before, score_after=answer.score_after,
             result=answer.result, duration_ms=answer.duration_ms, hint_used=answer.hint_used, attempt_number=answer.attempt_number,
-            daily_goal_reached_before=row.validated)
+            daily_goal_reached_before=row.validated, difficulty_before=answer.difficulty_before, difficulty_after=answer.difficulty_after,
+            session_id=review_session_id(), card_id=review_card_id() or answer.element_id)
         db_manager.insert(obj=entry, session=session, commit=False)
         daily_stats_service.update(progress_tracking_id=entry.id, day=day, session=session)
         commitment_log_service.apply_progress_tracking(progress_tracking_id=entry.id, day=day, session=session)

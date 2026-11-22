@@ -20,6 +20,10 @@ class ProgressTracking(BaseDataCollectionModel):
     evidence_type = Column(String, nullable=True)
     level_before = Column(String, nullable=True)
     level_after = Column(String, nullable=True)
+    session_id = Column(String, nullable=True, index=True)       # one review session (ST-9)
+    card_id = Column(String, nullable=True)                      # the card these rows belong to: the exercise id for every row an exercise wrote
+    difficulty_before = Column(Float, nullable=True)
+    difficulty_after = Column(Float, nullable=True)
 
     # Foreign keys
     element_id = Column(String, nullable=False)  # No FK — BaseElementModel is abstract
