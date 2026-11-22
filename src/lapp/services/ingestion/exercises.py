@@ -115,7 +115,7 @@ def _strings(value) -> list[str]:
     return [t for v in value for t in _strings(v)] if isinstance(value, list) else []
 
 
-_LATIN = re.compile(r"[^\W\d_]+")   # runs of letters (CJK runs are caught by the exact match)
+_LATIN = re.compile(r"[^\W_]+")   # runs of letters and digits (CJK runs are caught by the exact match)
 
 
 def link_to_elements(fields: dict, vocabulary: list[tuple[str, str]], grammar: list[tuple[str, str]],
