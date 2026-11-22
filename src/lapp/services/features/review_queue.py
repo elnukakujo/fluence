@@ -295,6 +295,12 @@ def _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type
     return exercises, modes
 
 
+def exercise_rank(exercise, due: set[str]) -> int:
+    """RE-15: 0 = trains a card due in this review, 1 = linked to other elements only, 2 = linked to nothing (last resort). Sorting by it is stable."""
+    linked = {x.id for x in (*exercise.related_vocabulary, *exercise.related_grammar, *exercise.related_calligraphy)}
+    return 0 if linked & due else 1 if linked else 2
+
+
 def card_seconds(card, paces) -> float:
     """What a card costs: its content-based estimate pulled toward this learner's measured pace."""
     return estimate_seconds(card[0] if isinstance(card, tuple) else card, paces)
@@ -359,6 +365,8 @@ def build_queue(cands: Candidates, budgets: Budgets) -> tuple[list, list, list]:
     capped = frozenset(i for i, pi in inputs.items() if pi.capped)
     if daily:
         buckets[Exercise] = order_bucket(exercises, lambda c: priority_for(inputs, c.id, cands.now), {}, boosted, capped)
+        due = {(i[0] if isinstance(i, tuple) else i).id for m in (Vocabulary, Grammar, Calligraphy) for i in buckets[m][:quota[m]]}
+        buckets[Exercise].sort(key=lambda c: exercise_rank(c, due))       # the exercises that train what is being reviewed come first (RE-15)
     else:
         buckets[Exercise] = list(exercises)         # natural order
 
