@@ -6,7 +6,7 @@ import pytest
 from lapp.services import ReviewService  # services first: schemas<->services import cycle
 from lapp.models.system_data import User, Score
 from lapp.models.containers import Language, Lesson
-from lapp.models.features import Grammar
+from lapp.models.features import Exercise, Grammar
 from lapp.services.features.review_queue import Scope
 from lapp.services.system_data import ScoreService
 
@@ -20,6 +20,15 @@ def _seed(db, n=2):
         db.insert(Lesson(id="lesson_L1", user_id=U, language_id="lang_L1", title="L1", position=1), session=s, commit=False)
         for i in range(n):
             db.insert(Grammar(id=f"gram_G{i}", lesson_id="lesson_L1", title=f"g{i}", explanation="e"), session=s, commit=False)
+
+
+def _anchor(db, gid):
+    """DR-13: a seen grammar leaves the daily queue only when an exercise anchored on it takes its place."""
+    with db.session_scope() as s:
+        ex = Exercise(id=f"ex_{gid}", lesson_id="lesson_L1", exercise_type="translate", question="q", answer="a")
+        db.insert(ex, session=s, commit=False)
+        s.flush()
+        ex.related_grammar.append(s.get(Grammar, gid))
 
 
 def _replace(db, gid, practice=70):
@@ -39,6 +48,7 @@ def _ids(scope=None):
 def test_replaced_grammar_is_not_in_the_daily_queue(db):
     _seed(db)
     _replace(db, "gram_G0")
+    _anchor(db, "gram_G0")
     ids = _ids()
     assert "gram_G0" not in ids and "gram_G1" in ids
 
@@ -60,6 +70,7 @@ def test_replaced_grammar_in_the_goal_menu_does_not_break_the_queue(db):
     from lapp.services.features import StudyGoalService
     _seed(db)
     _replace(db, "gram_G0")
+    _anchor(db, "gram_G0")
     StudyGoalService().upsert(U, "lang_L1", "week", 0, 2, 0)     # a goal asking for grammar reviews
     assert "gram_G0" not in _ids()
 

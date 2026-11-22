@@ -93,12 +93,19 @@ def test_free_scope_returns_exactly_the_ids_and_ignores_the_time_budget(db):
     assert ids(cards) == set(asked) and {c.get("side") for c in cards if c["id"] == "voc_V0"} == {"front", "back"}
 
 
-def test_exercises_follow_the_linked_average_gate_in_every_scope(db):
+def test_exercises_follow_the_seen_gate_in_every_scope(db):
+    """RD-129: an exercise appears once every element it trains was seen once (not before, whatever the score)."""
     seed(db)
-    ScoreService().set(U, "voc_LINK", 5.0, 0.5)             # linked elements known too little (< 20)
-    assert not [c for c in queue(Scope("lesson", lesson_id="lesson_L1")) if c["kind"] == "exercise"]
-    ScoreService().set(U, "voc_LINK", 50.0, 0.5)
-    assert [c for c in queue(Scope("lesson", lesson_id="lesson_L1")) if c["kind"] == "exercise"]
+    with db.session_scope() as s:
+        for e in s.query(Exercise).filter(Exercise.id != "ex_E0").all():
+            s.delete(e)                                         # only ex_E0 stays, linked to voc_V0
+        s.flush()
+        ex = s.get(Exercise, "ex_E0")
+        ex.related_vocabulary.append(s.get(Vocabulary, "voc_V0"))
+    ids = lambda: [c["id"] for c in queue(Scope("lesson", lesson_id="lesson_L1")) if c["kind"] == "exercise"]
+    assert ids() == []                                          # the word it trains is unseen
+    ScoreService().set(U, "voc_V0", 5.0, 0.5)                   # seen once, whatever the score
+    assert ids() == ["ex_E0"]
 
 
 def test_daily_scope_is_the_default_queue(db):
@@ -130,10 +137,10 @@ def test_capped_items_rank_last_whatever_their_priority(db):
 def test_priority_inputs_report_the_day_gain_cap(db):
     seed(db)
     sv = ScoreService()
-    sv.record(U, "gram_G0", "recognition", 1.0, "typed")
+    sv.record(U, "gram_G0", "recognition", 0.75, "typed")                     # +15 of the day's 28
     now = datetime.now()
     assert not sv.priority_inputs(U, ["gram_G0"], now, now.date())["gram_G0"].capped
-    sv.record(U, "gram_G0", "recognition", 1.0, "typed")
+    sv.record(U, "gram_G0", "recognition", 1.0, "typed")                      # +13: the day's cap is reached
     pi = sv.priority_inputs(U, ["gram_G0"], now, now.date())["gram_G0"]
     assert pi.capped and pi.lapses == 0 and pi.stability > 0
 

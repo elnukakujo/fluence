@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from ...core.database import transactional
 from ...models.data_collection.progress_tracking import ProgressTracking
+from ...utils.element_kinds import kind_of
 
 EMPTY = {"cards": 0, "correct": 0, "duration_ms": 0, "avg_score_gain": 0.0, "avg_difficulty_change": 0.0, "by_type": {}}
 
@@ -32,7 +33,7 @@ class SessionStats:
         by_exercise: dict[str, list[ProgressTracking]] = {}
         cards = []
         for r in rows:
-            if (r.card_id or "").startswith("ex_"):
+            if getattr(kind_of(r.card_id), "name", None) == "Exercise":
                 by_exercise.setdefault(r.card_id, []).append(r)
             else:
                 cards.append(_card([r]))
