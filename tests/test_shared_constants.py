@@ -38,7 +38,7 @@ def test_goal_item_is_finished_at_the_known_level():
 
 def test_shared_json_matches_the_literal_table():
     assert _strip_todo(_load()) == {
-        "score": {"initialStabilityDays": 5, "stabilityCapDays": 180, "dayGainCap": 15,
+        "score": {"initialStabilityDays": 5, "stabilityCapDays": 180, "dayGainCap": 28, "gainK": 0.3, "growthGapHours": 12, "decayFloor": 10,
                   "evidenceWeights": {"typed": 1.0, "spoken": 1.0, "self_grade": 0.8, "multiple_choice": 0.6, "matching": 0.6}},
         "levels": {"weakBelow": 40, "knownFrom": 60, "masteredFrom": 85},
         "leech": {"enter": {"wrong": 4, "window": 8}, "leaveCorrectInRow": 3},

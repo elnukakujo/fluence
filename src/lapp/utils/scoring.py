@@ -4,8 +4,7 @@ No I/O, no database: every formula of the score model lives here so it can be un
 Numbers come from the owner's decisions (docs/superpowers/specs/2026-11-14-scoring-and-data-model-design.md)
 and are read from shared/study-constants.json; only the TODO(owner) ones below live here.
 
-STEP = 7.5 is the audit's day-one number (simulation S1: one perfect answer on a fresh item = +7.5 today),
-so a perfect typed answer moves a new item by the same order as before.
+Gain is proportional to the headroom (SC-31): a perfect answer closes GAIN_K of the gap to 100, a miss loses GAIN_K of the score.
 """
 from __future__ import annotations
 
@@ -31,7 +30,9 @@ LEECH_LEAVE_IN_ROW = _SHARED["leech"]["leaveCorrectInRow"]
 GRAMMAR_MIN_ANSWERS = _SHARED["grammarBlend"]["minAnswers"]
 GRAMMAR_ANCHOR = _SHARED["grammarBlend"]["anchorScore"]
 GRAMMAR_FLOOR = _SHARED["grammarBlend"]["floorWeight"]
-STEP = 7.5   # audit S1 day-one number (not a shared number: the client never computes deltas)
+GAIN_K = _SHARED["score"]["gainK"]                     # share of the headroom (right) or of the score (wrong) one full answer moves
+GROWTH_GAP_DAYS = _SHARED["score"]["growthGapHours"] / 24   # stability grows only when this long has passed since the last answer
+DECAY_FLOOR = _SHARED["score"]["decayFloor"]           # an answered row never fades below this (it stays Weak, not Unseen)
 # TODO(owner): quality at/above which an answer counts as correct (stability x2, leech streak). 0.5 = "hard" is a pass that earns nothing.
 CORRECT_AT = 0.5
 # TODO(owner): smallest stability after repeated wrong answers (÷2 each time); never reaches 0.
@@ -56,7 +57,7 @@ def effective_score(score: float, stability: float, last_seen_at: datetime | Non
     if last_seen_at is None or last_seen_at >= now:
         return score
     days = (now - last_seen_at).total_seconds() / 86400
-    return score * 0.5 ** (days / stability)
+    return max(score * 0.5 ** (days / stability), min(score, DECAY_FLOOR))   # SC-32: never below the floor, never raised by it
 
 
 def level_for(score: float) -> Level:
@@ -79,14 +80,16 @@ def apply_answer(state: ScoreState, quality: float, evidence_weight: float, now:
 
     today = _local_day(now, tz)
     day_gain = state.day_gain if state.day_date == today else 0.0
-    delta = (quality - 0.5) * 2 * evidence_weight * STEP
+    k = (quality - 0.5) * 2 * evidence_weight * GAIN_K        # signed share of the headroom / of the score
+    delta = k * (100.0 - score) if k > 0 else k * score
     if delta > 0:                                     # cap applies to gains only; losses are uncapped
         delta = min(delta, max(0.0, DAY_GAIN_CAP - day_gain))
         day_gain += delta
     score = min(max(score + delta, 0.0), 100.0)
 
     correct = quality >= CORRECT_AT
-    stability = state.stability * 2 if correct else state.stability / 2
+    spaced = state.last_seen_at is None or (now - state.last_seen_at).total_seconds() / 86400 >= GROWTH_GAP_DAYS
+    stability = (state.stability * 2 if spaced else state.stability) if correct else state.stability / 2   # SC-31
     stability = min(max(stability, MIN_STABILITY_DAYS), STABILITY_CAP_DAYS)
 
     recent = (state.recent + ("1" if correct else "0"))[-LEECH_WINDOW:]

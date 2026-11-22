@@ -44,14 +44,15 @@ def test_weak_below_40():
 
 def test_first_answer_on_unscored_item_does_not_crash():
     s = apply_answer(fresh(), 1.0, EVIDENCE_WEIGHTS["typed"], T0)
-    assert s.score == pytest.approx(7.5) and s.stability == 4 and s.last_seen_at == T0
+    assert s.score == pytest.approx(28) and s.stability == 4 and s.last_seen_at == T0   # 0.3 x 100 = 30, capped at 28 a day
 
 
 def test_stability_doubles_halves_and_caps():
     s = fresh()
-    for want in (4, 8, 16, 32, 64, 128, 180, 180):
-        s = apply_answer(s, 1.0, 1.0, T0 + DAY * 0)  # same instant: no decay
+    for i, want in enumerate((4, 8, 16, 32, 64, 128, 180, 180)):
+        s = apply_answer(s, 1.0, 1.0, T0 + DAY * i)  # one answer a day: each is spaced, stability doubles
         assert s.stability == want
+    assert apply_answer(fresh(stability=8, last_seen_at=T0), 1.0, 1.0, T0 + DAY / 4).stability == 8   # 6 h later: no growth (SC-31)
     w = apply_answer(fresh(stability=8), 0.0, 1.0, T0)
     assert w.stability == 4
     for _ in range(20):
@@ -83,9 +84,9 @@ def test_same_day_gain_capped_losses_not():
     s = fresh(score=0, last_seen_at=T0)
     for _ in range(10):
         s = apply_answer(s, 1.0, 1.0, T0)
-    assert s.score == pytest.approx(15)
+    assert s.score == pytest.approx(28)
     lost = apply_answer(s, 0.0, 1.0, T0)
-    assert lost.score == pytest.approx(15 - 7.5)
+    assert lost.score == pytest.approx(28 - 0.3 * 28)
     nxt = apply_answer(s, 1.0, 1.0, T0 + DAY)  # next learner-local day: cap resets
     assert nxt.score > s.score
 
@@ -96,9 +97,9 @@ def test_cap_resets_at_learner_local_midnight():
     s = fresh(score=0, last_seen_at=late_utc)
     for _ in range(5):
         s = apply_answer(s, 1.0, 1.0, late_utc, tz)
-    assert s.score == pytest.approx(15) and s.day_date == date(2026, 1, 1)
+    assert s.score == pytest.approx(28) and s.day_date == date(2026, 1, 1)
     after = apply_answer(s, 1.0, 1.0, late_utc + timedelta(hours=1), tz)  # 00:30 local, new day
-    assert after.day_date == date(2026, 1, 2) and after.score == pytest.approx(15 + 7.5, abs=0.2)
+    assert after.day_date == date(2026, 1, 2) and after.score == pytest.approx(28 + 0.3 * 72, abs=0.5)
 
 
 def test_leech_enters_on_fourth_wrong_in_last_eight_and_leaves_after_three_correct():
@@ -151,3 +152,26 @@ def test_blend_mixes_by_weight():
 
 def test_is_replaced_only_at_the_floor():
     assert is_replaced(0.1) and not is_replaced(0.55) and not is_replaced(1.0)
+
+
+def _days(n_per_day, quality, days=7, off=0):
+    s, t = fresh(stability=5), T0
+    for d in range(days):
+        for k in range(n_per_day):
+            s = apply_answer(s, quality, 1.0, T0 + DAY * d + timedelta(hours=k * 6))
+    return effective_score(s.score, s.stability, s.last_seen_at, T0 + DAY * (days - 1 + off) + timedelta(hours=6 * n_per_day))
+
+
+@pytest.mark.parametrize("n, quality, want", [(1, 1.0, 80), (1, 0.75, 60), (2, 1.0, 80)])   # 0.75 = best grade after one hint
+def test_a_week_of_daily_reviews_meets_the_objective(n, quality, want):
+    assert _days(n, quality) >= want
+
+
+def test_three_days_off_after_a_week_still_known():
+    assert _days(1, 0.75, off=3) >= 60
+
+
+def test_answered_row_fades_to_the_floor_not_to_zero_and_unseen_row_stays_zero():
+    assert effective_score(60, 5, T0, T0 + 400 * DAY) == pytest.approx(10)
+    assert effective_score(0, 5, T0, T0 + 400 * DAY) == 0
+    assert effective_score(4, 5, T0, T0 + 400 * DAY) == pytest.approx(4)   # the floor never raises

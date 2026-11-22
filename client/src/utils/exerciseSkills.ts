@@ -1,8 +1,8 @@
 import type Exercise from "@/interface/features/Exercise";
 
-/** Needs the learner to listen (dictation, or an answering exercise with audio). `reading` never does: its Play button is optional. */
+/** Needs the learner to listen: any exercise that carries audio (EX-18), whatever its type, and every dictation. `reading` never does: its Play button is optional (the text is on screen). */
 export function needsHearing(ex: Pick<Exercise, "exercise_type" | "audio_files">): boolean {
-    return ex.exercise_type === "dictation" || (ex.exercise_type === "answering" && !!ex.audio_files?.length);
+    return ex.exercise_type === "dictation" || (ex.exercise_type !== "reading" && !!ex.audio_files?.length);
 }
 
 /** Needs the learner to speak. */
