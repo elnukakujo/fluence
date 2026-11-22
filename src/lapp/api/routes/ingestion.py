@@ -1094,11 +1094,8 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
             if not existing:
                 answer = fields.get("answer") or ""
                 links = link_to_elements(fields, *_lesson_element_texts(session, lesson_id))
-                if not any(links.values()):     # an exercise is never stored unlinked
-                    notes_out.append(f"The exercise “{question[:40]}” was not added: it matches no element of this lesson.")
-                    if progress:
-                        progress()
-                    continue
+                if not any(links.values()):     # EG-24: kept, not guessed: held out of reviews until the owner links it
+                    notes_out.append(f"The exercise “{question[:40]}” matches no element of this lesson: it was added flagged, link it before it is reviewed.")
                 exercise_dict = ExerciseDict(
                     lesson_id=lesson_id,
                     exercise_type=fields.get("exercise_type") or "",
@@ -1106,7 +1103,7 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
                     answer=answer,
                     text_support=fields.get("text_support") or None,
                     content=fields.get("content") or None,
-                    review_reason=None if links["related_grammar"] or not lesson_has_grammar(lesson_id, session) else "no grammar linked",   # EX-17: held for review
+                    review_reason="no association found" if not any(links.values()) else None if links["related_grammar"] or not lesson_has_grammar(lesson_id, session) else "no grammar linked",   # EX-17: held for review
                     **links,
                 )
                 created_exercise = exercise_service.create(exercise_dict, session=session)

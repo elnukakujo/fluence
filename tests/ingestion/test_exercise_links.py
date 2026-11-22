@@ -44,13 +44,14 @@ def test_accept_links_an_exercise_to_the_vocabulary_and_grammar_of_the_same_impo
         assert [v.id for v in ex.related_vocabulary] and [g.title for g in ex.related_grammar] == ["Greeting"]
 
 
-def test_accept_does_not_store_an_exercise_that_matches_no_element(app, db, media_root, scheduled):
+def test_accept_keeps_an_exercise_that_matches_no_element_flagged(app, db, media_root, scheduled):
     res = _accept(app, db, media_root, [_ex("Describe your day")])
     body = res.get_json()
-    assert res.status_code == 200 and body["created_elements"] == 0
+    assert res.status_code == 200 and body["created_elements"] == 1
     assert any("matches no element" in n for n in body["notes"])
     with db.session_scope() as s:
-        assert s.query(Exercise).count() == 0
+        ex = s.query(Exercise).one()
+        assert ex.review_reason == "no association found" and not ex.related_vocabulary
 
 
 def test_an_imported_exercise_without_a_grammar_is_held_for_review_when_the_lesson_has_one(app, db, media_root, scheduled):
