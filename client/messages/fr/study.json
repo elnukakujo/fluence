@@ -94,5 +94,11 @@
   "goalLocked": "Verrouillé",
   "lessonContents": "Contenu de la leçon",
   "streakMinLabel": "Réponses pour un jour de série",
-  "streakMinHint": "Pour tout le compte : réponses nécessaires dans une journée (tous les cours)."
+  "streakMinHint": "Pour tout le compte : réponses nécessaires dans une journée (tous les cours).",
+  "sessionSummaryTitle": "Cette session",
+  "sessionCards": "Cartes faites",
+  "sessionCorrect": "Justes",
+  "sessionTime": "Durée",
+  "sessionAvgGain": "Gain moyen de score",
+  "sessionAvgDifficulty": "Variation moyenne de difficulté"
 }

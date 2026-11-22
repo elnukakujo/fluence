@@ -94,5 +94,11 @@
   "goalLocked": "已锁定",
   "lessonContents": "本课内容",
   "streakMinLabel": "连续天数所需答题数",
-  "streakMinHint": "适用于整个账户：一天内需要回答的数量（所有课程）。"
+  "streakMinHint": "适用于整个账户：一天内需要回答的数量（所有课程）。",
+  "sessionSummaryTitle": "本次学习",
+  "sessionCards": "完成卡片",
+  "sessionCorrect": "答对",
+  "sessionTime": "用时",
+  "sessionAvgGain": "平均得分提升",
+  "sessionAvgDifficulty": "平均难度变化"
 }

@@ -94,5 +94,11 @@
   "goalLocked": "Locked",
   "lessonContents": "Contents of this lesson",
   "streakMinLabel": "Answers for a streak day",
-  "streakMinHint": "Every account's streak: answers needed in a day (all courses)."
+  "streakMinHint": "Every account's streak: answers needed in a day (all courses).",
+  "sessionSummaryTitle": "This session",
+  "sessionCards": "Cards done",
+  "sessionCorrect": "Correct",
+  "sessionTime": "Time",
+  "sessionAvgGain": "Average score gained",
+  "sessionAvgDifficulty": "Average difficulty change"
 }

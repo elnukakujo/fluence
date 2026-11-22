@@ -25,6 +25,8 @@ import { Pencil } from "lucide-react";
 import EditElementDialog from "./EditElementDialog";
 import ReviewDeleteButton from "./ReviewDeleteButton";
 import EmptyState from "@/components/ui/emptyState";
+import SessionSummary from "./SessionSummary";
+import { setReviewSession } from "@/api/apiFetch";
 
 export type { SessionItem, SessionOptions } from "./types";
 
@@ -61,6 +63,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const slot = remaining[0];
     const currentIndex = done.length;
     const [streak, setStreak] = useState<number | null>(null);
+    const [sessionId] = useState(() => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);   // not crypto.randomUUID: it needs https
+    useEffect(() => { setReviewSession(sessionId); return () => setReviewSession(undefined); }, [sessionId]);
     const finishedRef = useRef(false);
     const finish = () => {          // the queue's last card was answered: the day counts for the streak, once
         if (finishedRef.current || !languageId || options?.completeOnFinish === false) return;
@@ -68,6 +72,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         completeReview(languageId, queue.length).then((r) => setStreak(r.just_validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
     };
     const last = remaining.length === 1;
+    const ended = (last && graded) || (!slot && done.length > 0);      // the session is over: show its totals
     useEffect(() => { if (last && graded) finish(); });
     useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [edited, setEdited] = useState<Record<string, ReviewCard>>({});   // element id -> its fresh data after an edit made during this session
@@ -245,6 +250,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {editing && <EditElementDialog card={card} languageId={languageId ?? window.location.pathname.split("/")[2]}
                 onSaved={(fresh) => setEdited((e) => ({ ...e, [fresh.id!]: fresh }))} onClose={() => setEditing(false)} />}
             {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
+            {ended && <SessionSummary sessionId={sessionId} />}
         </article>
     );
 }
