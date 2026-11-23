@@ -109,6 +109,7 @@
   "streakMinLabel": "Answers for a streak day",
   "streakMinHint": "Every account's streak: answers needed in a day (all courses).",
   "seeResults": "See results",
+  "sessionLoading": "Adding up your session…",
   "sessionSummaryTitle": "This session",
   "sessionCards": "Cards done",
   "sessionCorrect": "Correct",

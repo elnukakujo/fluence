@@ -24,7 +24,7 @@ export default function ActionBar({ phase, onNext, result, children, nextLabel }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [phase, onNext]);
-    if (phase === "grade") return <FormActions wide testId="action-bar">{children}</FormActions>;
+    if (phase === "grade") return <FormActions wide aboveNav testId="action-bar">{children}</FormActions>;
     const delta = result ? Math.round(result.after) - Math.round(result.before) : 0;
     const strip = (
         <span aria-live="polite" data-testid="result-strip" className="flex flex-col">
@@ -40,7 +40,7 @@ export default function ActionBar({ phase, onNext, result, children, nextLabel }
         </span>
     );
     return (
-        <FormActions note={strip} testId="action-bar">
+        <FormActions note={strip} aboveNav testId="action-bar">
             {children ?? <button type="button" className="btn btn-primary min-h-11 inline-flex items-center gap-2 px-6" onClick={onNext} autoFocus>{nextLabel ?? t("nextButton")}<ArrowRight size={16} aria-hidden /></button>}
         </FormActions>
     );

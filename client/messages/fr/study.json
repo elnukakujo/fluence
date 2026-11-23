@@ -109,6 +109,7 @@
   "streakMinLabel": "Réponses pour un jour de série",
   "streakMinHint": "Pour tout le compte : réponses nécessaires dans une journée (tous les cours).",
   "seeResults": "Voir le résultat",
+  "sessionLoading": "Calcul de votre session…",
   "sessionSummaryTitle": "Cette session",
   "sessionCards": "Cartes faites",
   "sessionCorrect": "Justes",

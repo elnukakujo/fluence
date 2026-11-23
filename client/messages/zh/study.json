@@ -109,6 +109,7 @@
   "streakMinLabel": "连续天数所需答题数",
   "streakMinHint": "适用于整个账户：一天内需要回答的数量（所有课程）。",
   "seeResults": "查看结果",
+  "sessionLoading": "正在统计本次学习…",
   "sessionSummaryTitle": "本次学习",
   "sessionCards": "完成卡片",
   "sessionCorrect": "答对",

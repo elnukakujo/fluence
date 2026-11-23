@@ -48,6 +48,22 @@ describe("SessionSummary", () => {
         expect(screen.getByRole("button", { name: /Back to course/ })).toBeInTheDocument();
         expect(getSessionStats).toHaveBeenCalledTimes(1);
     });
+    it("shows a loading bar with the way out while the totals load, then the totals", async () => {
+        let resolve: (v: unknown) => void = () => {};
+        vi.mocked(getSessionStats).mockReturnValue(new Promise((r) => { resolve = r; }) as never);
+        render(<SessionSummary sessionId="s1" languageId="lang_1" backHref="/languages/lang_1" againHref="/x" />);
+        expect(screen.getByTestId("summary-loading")).toHaveTextContent("Adding up your session…");
+        expect(screen.getByRole("progressbar")).toBeInTheDocument();
+        expect(screen.getByTestId("summary-bar")).toBeInTheDocument();
+        resolve(base);
+        expect(await screen.findByText("52/70")).toBeInTheDocument();
+        expect(screen.queryByTestId("summary-loading")).toBeNull();
+    });
+    it("a bar that sits above the phone's bottom navigation", async () => {
+        show();
+        await screen.findByText("52/70");
+        expect(screen.getByTestId("summary-bar").className).toContain("bottom-[calc(3.5rem+env(safe-area-inset-bottom))]");
+    });
     it("formats short and long times", () => {
         expect(formatSessionTime(42000)).toBe("42s");
         expect(formatSessionTime(125000)).toBe("2m 5s");

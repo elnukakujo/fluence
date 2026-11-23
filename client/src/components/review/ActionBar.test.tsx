@@ -10,7 +10,12 @@ describe("ActionBar", () => {
         render(<ActionBar phase="grade"><button>Good</button></ActionBar>);
         expect(screen.getByRole("button", { name: "Good" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
-        expect(screen.getByTestId("action-bar").className).toMatch(/sticky bottom-0/);          // the element forms' own save bar
+        expect(screen.getByTestId("action-bar").className).toMatch(/sticky/);          // the element forms' own save bar
+    });
+    it("sits above the phone's global bottom navigation, not over it", () => {
+        render(<ActionBar phase="grade"><button>Good</button></ActionBar>);
+        expect(screen.getByTestId("action-bar").className).toContain("bottom-[calc(3.5rem+env(safe-area-inset-bottom))]");
+        expect(screen.getByTestId("action-bar").className).toContain("md:bottom-0");
     });
     it("after grading shows the result strip over a Next button; the strip is polite", async () => {
         const onNext = vi.fn();

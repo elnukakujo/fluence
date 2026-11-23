@@ -23,18 +23,29 @@ export default function SessionSummary({ sessionId, languageId, backHref, backLa
     const tLevel = useTranslations("home.level");
     const tType = useTranslations("languages.typeLabel");
     const [stats, setStats] = useState<SessionStats | null>(null);
+    const [failed, setFailed] = useState(false);
     useEffect(() => {
         let alive = true;
-        reviewSessionIdle().then(() => getSessionStats(sessionId)).then((s) => { if (alive) setStats(s); }).catch(() => undefined);
+        reviewSessionIdle().then(() => getSessionStats(sessionId)).then((s) => { if (alive) setStats(s); }).catch(() => { if (alive) setFailed(true); });
         return () => { alive = false; };
     }, [sessionId]);
     const bar = (
-        <FormActions wide testId="summary-bar">
+        <FormActions wide aboveNav testId="summary-bar">
                 <BackButton href={backHref}>{backLabel ?? t("sessionBack")}</BackButton>
                 {againHref && <a className="btn btn-primary min-h-11 inline-flex flex-1 items-center justify-center gap-2" href={againHref}><RotateCcw size={16} aria-hidden />{t("sessionAnotherRound")}</a>}
         </FormActions>
     );
-    if (!stats || stats.cards === 0) return bar;       // the way out is there while the totals load
+    if (!stats && !failed) return (       // the totals take a moment (the last answers are still being saved): a bar says so, and the way out is already there
+        <section className="flex flex-col gap-4" aria-busy="true" data-testid="summary-loading">
+            <div className="card flex flex-col gap-3" role="status">
+                <h2 className="section-title">{t("sessionSummaryTitle")}</h2>
+                <ProgressBar indeterminate current={0} total={1} showLabel={false} showPercent={false} ariaLabel={t("sessionLoading")} />
+                <p className="text-sm text-muted">{t("sessionLoading")}</p>
+            </div>
+            {bar}
+        </section>
+    );
+    if (!stats || stats.cards === 0) return bar;       // nothing to total (or it could not be read): just the way out
     const sign = (n: number, digits: number) => `${n > 0 ? "+" : ""}${n.toFixed(digits)}`;
     const missed = stats.to_revisit.length;
     const goal = stats.goal_progress;
