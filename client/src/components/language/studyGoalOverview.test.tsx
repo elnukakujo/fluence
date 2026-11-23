@@ -25,7 +25,7 @@ describe("study goal menu", () => {
         expect(screen.queryByText("Grammar")).toBeNull();
         expect(screen.getByLabelText("5/20 mastered")).toBeInTheDocument();
         expect(screen.getByLabelText("4 of 10 reviewed")).toBeInTheDocument();
-        expect(screen.getByText(/\+3 carried over/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/\+3 carried over/)).toBeInTheDocument();          // the carried ones have a bar of their own
         expect(screen.getByText(/5 days left/)).toBeInTheDocument();
         expect(screen.queryByText(/new elements available|review elements available/)).toBeNull();
         expect(screen.getByRole("link", { name: /Edit goal/ })).toHaveAttribute("href", "/s#goals");
@@ -53,6 +53,22 @@ describe("study goal menu", () => {
         expect(screen.getByLabelText("+2 carried over, +0.9 in progress")).toBeInTheDocument();
         const names = screen.getAllByRole("link").map((a) => a.textContent).filter((x) => ["水", "茶"].some((c) => x?.includes(c)));
         expect(names.map((n) => n?.replace(" ↺", ""))).toEqual(["茶", "水"]);                    // closest first inside a group
+    });
+    it("each card has a strip with one segment per element, a count to go and the three counts in words", () => {
+        const st = state();
+        st.progress.items = [
+            { id: "voc_1", kind: "vocabulary", role: "new", label: "水", lesson_id: "l", done: true, carried: false, progress: null, to_go: null },
+            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "l", done: false, carried: true, progress: 0.95, to_go: 3 },
+            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "l", done: false, carried: false, progress: 0, to_go: 2 },
+            { id: "cal_1", kind: "calligraphy", role: "new", label: "海", lesson_id: "l", done: true, carried: false, progress: null, to_go: null },
+        ] as never;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        const strips = screen.getAllByTestId("goal-strip");
+        expect(strips).toHaveLength(2);                                                          // vocabulary and calligraphy (grammar has no slots in this state)
+        const voc = strips[0];
+        expect(Array.from(voc.children).map((c) => c.getAttribute("data-state"))).toEqual(["done", "started", "none"]);   // done first, then the closest
+        expect(voc).toHaveAttribute("aria-label", "Vocabulary: 1 done, 1 started, 1 not started");
+        expect(screen.getAllByTestId("to-go").map((e) => e.textContent)).toEqual(["2 to go", "All done"]);
     });
     it("lists the menu in a New group and a Review group, done ones checked", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);

@@ -72,8 +72,9 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
                             <li key={kind} className="goal-tile">
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="inline-flex items-center gap-2 text-sm font-medium text-ink"><Icon size={16} aria-hidden />{t(label)}</span>
-                                    {row.carried > 0 && <span className="text-xs text-muted">{t("goalCarried", { n: row.carried })}</span>}
+                                    {mine.length > 0 && <span className="font-serif text-xl font-semibold tabular-nums text-ink" data-testid="to-go">{mine.every((i) => i.done) ? t("goalAllDone") : <>{mine.filter((i) => !i.done).length} <span className="font-sans text-xs font-normal text-muted">{t("goalToGo")}</span></>}</span>}
                                 </div>
+                                {mine.length > 0 && <Strip items={mine} label={t(label)} />}
                                 <div className="grid grid-cols-2 gap-4">
                                     {row.n > 0 && (
                                         <Meter title={t("goalColNew")} aria={t("goalProgress", { mastered: row.mastered, picked: row.picked })} value={row.mastered} total={row.picked} partial={row.partial}
@@ -107,6 +108,31 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
                 </ul>
             )}
         </section>
+    );
+}
+
+/** One segment per element on the menu, carried ones included: done solid, started filled by its progress, not started empty; done first, then the closest.
+ *  The counts under it say the same in words, so no colour carries the meaning alone. */
+function Strip({ items, label }: { items: GoalItem[]; label: string }) {
+    const t = useTranslations("study");
+    const share = (i: GoalItem) => (i.done ? 1 : i.progress ?? 0);
+    const sorted = [...items].sort((a, b) => share(b) - share(a));
+    const done = items.filter((i) => i.done).length;
+    const started = items.filter((i) => !i.done && share(i) > 0).length;
+    const none = items.length - done - started;
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="flex gap-[3px]" role="img" aria-label={`${label}: ${t("goalLegendDone", { n: done })}, ${t("goalLegendStarted", { n: started })}, ${t("goalLegendNone", { n: none })}`} data-testid="goal-strip">
+                {sorted.map((i) => (
+                    <span key={i.id} data-state={i.done ? "done" : share(i) > 0 ? "started" : "none"} className="relative h-3.5 min-w-[3px] flex-1 overflow-hidden rounded-[4px] bg-border">
+                        <span className={`absolute inset-y-0 left-0 ${i.done ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round(share(i) * 100)}%` }} />
+                    </span>
+                ))}
+            </div>
+            <p className="flex flex-wrap gap-x-3 text-[11px] text-muted" aria-hidden>
+                <span>{t("goalLegendDone", { n: done })}</span><span>{t("goalLegendStarted", { n: started })}</span><span>{t("goalLegendNone", { n: none })}</span>
+            </p>
+        </div>
     );
 }
 
