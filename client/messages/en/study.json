@@ -29,6 +29,7 @@
   "goalCalligraphy": "New calligraphy",
   "goalActive": "Goal active",
   "goalSave": "Save goal",
+  "goalPartial": "+{n} in progress",
   "goalProgress": "{mastered}/{picked} mastered",
   "goalCarried": "+{n} carried over",
   "goalCycle": "{start} → {end}",

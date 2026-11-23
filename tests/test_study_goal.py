@@ -311,3 +311,18 @@ def test_new_is_only_unseen_and_review_only_seen_even_outside_a_goal(db):
     kinds = {i.element_id: i.kind for i in svc.ensure_cycle("user_U1", "lang_L1", today=D0)}
     assert kinds["voc_V0"] == "review" and kinds["voc_V3"] == "review"
     assert {e for e, k in kinds.items() if k == "new"} == {"voc_V1", "voc_V2"}
+
+
+def test_partial_progress_counts_unmet_items_as_fractions_of_the_known_bar(db):
+    """SG-13: a new element at 30 is half of one; a done one counts nothing extra; a vocabulary review with one side seen is half."""
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0, r_vocabulary=1)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=30.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=70.0, difficulty=0.5)                       # done: not partial
+    ScoreService().record_side("user_U1", "voc_V3", "front", "recognition", 1.0, "typed")
+    t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
+    assert t["mastered"] == 1 and t["partial"] == pytest.approx(0.5)
+    assert t["review_done"] == 0 and t["review_partial"] == pytest.approx(0.5)

@@ -29,6 +29,7 @@
   "goalCalligraphy": "新书法",
   "goalActive": "目标已启用",
   "goalSave": "保存目标",
+  "goalPartial": "另有 {n} 进行中",
   "goalProgress": "已掌握 {mastered}/{picked}",
   "goalCarried": "+{n} 个延续",
   "goalCycle": "{start} → {end}",

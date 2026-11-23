@@ -30,6 +30,14 @@ describe("study goal menu", () => {
         expect(screen.queryByText(/new elements available|review elements available/)).toBeNull();
         expect(screen.getByRole("link", { name: /Edit goal/ })).toHaveAttribute("href", "/s#goals");
     });
+    it("shows the partial progress of unmet elements as a lighter layer and a number, in the accessible name too", () => {
+        const st = state();
+        st.progress.types.vocabulary = { ...st.progress.types.vocabulary, partial: 2.43, review_partial: 0 } as typeof st.progress.types.vocabulary;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        expect(screen.getByText("+2.4 in progress")).toBeInTheDocument();
+        expect(screen.getByLabelText("5/20 mastered, +2.4 in progress")).toBeInTheDocument();
+        expect(screen.getAllByTestId("progress-partial")).toHaveLength(1);                    // only the bar that has partial progress
+    });
     it("lists the menu in a New group and a Review group, done ones checked", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);
         expect(screen.getByText("Show 3 elements")).toBeInTheDocument();

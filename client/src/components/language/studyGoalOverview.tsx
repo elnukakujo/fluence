@@ -75,11 +75,11 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     {row.n > 0 && (
-                                        <Meter title={t("goalColNew")} aria={t("goalProgress", { mastered: row.mastered, picked: row.picked })} value={row.mastered} total={row.picked}
+                                        <Meter title={t("goalColNew")} aria={t("goalProgress", { mastered: row.mastered, picked: row.picked })} value={row.mastered} total={row.picked} partial={row.partial}
                                             barLabel={`${t(label)}: ${t("goalColNew")}`} short={row.picked < row.n ? t("goalShort", { picked: row.picked, n: row.n }) : undefined} hint={t("goalShortHint")} />
                                     )}
                                     {row.r > 0 && (
-                                        <Meter accent title={t("goalColReview")} aria={t("goalReviewProgress", { done: row.review_done, picked: row.review_picked })} value={row.review_done} total={row.review_picked}
+                                        <Meter accent title={t("goalColReview")} aria={t("goalReviewProgress", { done: row.review_done, picked: row.review_picked })} value={row.review_done} total={row.review_picked} partial={row.review_partial}
                                             barLabel={`${t(label)}: ${t("goalColReview")}`} short={row.review_picked < row.r ? t("goalReviewShort", { picked: row.review_picked, n: row.r }) : undefined} hint={t("goalReviewShortHint")} />
                                     )}
                                 </div>
@@ -103,16 +103,20 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
 
 /** One bar of a goal tile: caption, `done / picked`, and, when the language has fewer elements than the goal asks for, a warning icon
  *  (its sentence is the tooltip and, for a screen reader, hidden text). */
-function Meter({ title, aria, value, total, barLabel, short, hint, accent = false }: { title: string; aria: string; value: number; total: number; barLabel: string; short?: string; hint: string; accent?: boolean }) {
+function Meter({ title, aria, value, total, barLabel, short, hint, accent = false, partial = 0 }: { title: string; aria: string; value: number; total: number; barLabel: string; short?: string; hint: string; accent?: boolean; partial?: number }) {
+    const t = useTranslations("study");
+    const extra = Math.round(partial * 10) / 10;                        // 0.3 of an element is still progress: show it with one decimal
+    const inProgress = extra > 0 ? t("goalPartial", { n: extra }) : null;
     return (
         <div className="flex min-w-0 flex-col gap-1">
             <p className="flex items-baseline justify-between gap-1 text-xs text-muted">
                 <span className="inline-flex items-center gap-1">{title}
                     {short && <span title={`${short}. ${hint}`} className="inline-flex text-warning"><TriangleAlert size={12} aria-hidden /><span className="sr-only">{short}</span></span>}
                 </span>
-                <span className="text-base font-semibold tabular-nums text-ink" aria-label={aria}>{value}<span className="text-xs font-normal text-muted"> / {total}</span></span>
+                <span className="text-base font-semibold tabular-nums text-ink" aria-label={inProgress ? `${aria}, ${inProgress}` : aria}>{value}<span className="text-xs font-normal text-muted"> / {total}</span></span>
             </p>
-            <ProgressBar thin accent={accent} current={value} total={Math.max(total, 1)} showLabel={false} showPercent={false} ariaLabel={barLabel} />
+            {inProgress && <p className="text-xs text-muted tabular-nums">{inProgress}</p>}
+            <ProgressBar thin accent={accent} current={value} total={Math.max(total, 1)} showLabel={false} showPercent={false} ariaLabel={barLabel} partial={partial} />
         </div>
     );
 }

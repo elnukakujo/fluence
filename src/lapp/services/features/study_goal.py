@@ -228,7 +228,8 @@ class StudyGoalService:
         items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
         done = self._done(items, user_id, session)
         types = {k: {"n": lock["n"][k], "picked": 0, "mastered": 0, "carried": 0,
-                     "r": lock["r"][k], "review_picked": 0, "review_done": 0} for k in TYPES}
+                     "r": lock["r"][k], "review_picked": 0, "review_done": 0, "partial": 0.0, "review_partial": 0.0} for k in TYPES}
+        part = self._partials(items, done, start, user_id, session)
         listed = []
         for i in items:
             kind = _type_of(i.element_id)
@@ -236,6 +237,8 @@ class StudyGoalService:
             current = i.cycle_start == start
             if not current and finished:
                 continue                                     # old periods only carry unfinished elements
+            if current and i.id in part:
+                row["partial" if i.kind == "new" else "review_partial"] += part[i.id]
             if current and i.kind == "new":
                 row["picked"] += 1
                 row["mastered"] += int(finished)
@@ -337,6 +340,32 @@ class StudyGoalService:
         # effective scores; a vocabulary is computed from its sides (no stored parent row)
         return {eid: r.score for eid, r in ScoreService().get_many(user_id, list(element_ids), session=session).items()}
 
+    @staticmethod
+    def _sides_seen(reviews, user_id, session):
+        """({review item id: the cards to answer}, {card id: its latest answer}); a vocabulary is two cards (its sides)."""
+        sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
+        rows = session.query(Score.element_id, Score.last_seen_at).filter(
+            Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
+        seen: dict = {}
+        for element_id, last in rows:       # a side has one row per skill: its latest answer counts
+            if last and (seen.get(element_id) is None or last > seen[element_id]):
+                seen[element_id] = last
+        return sides, seen
+
+    def _partials(self, items, done, start, user_id, session) -> dict[str, float]:
+        """RC-27 / SG-13: how far each unmet item of the running period is (0..1): a new one by its score over the Known bar,
+        a review one by the share of its sides answered since the period began. Uses no threshold but `KNOWN_FROM`."""
+        open_items = [i for i in items if i.cycle_start == start and i.id not in done]
+        news = [i for i in open_items if i.kind == "new"]
+        scores = self._scores(user_id, [i.element_id for i in news], session)
+        out = {i.id: min(scores.get(i.element_id, 0.0) / KNOWN_FROM, 1.0) for i in news}
+        reviews = [i for i in open_items if i.kind == "review"]
+        sides, seen = self._sides_seen(reviews, user_id, session)
+        since = datetime.combine(start, time.min)
+        for i in reviews:
+            out[i.id] = sum(1 for x in sides[i.id] if (seen.get(x) or datetime.min) >= since) / len(sides[i.id])
+        return out
+
     def _done(self, items, user_id, session) -> set[str]:
         """Ids of the finished items: a new one once it reached known at any moment (`succeeded_at`, permanent: decay never
         undoes it, DM-53), a review one once reviewed since its own period began (both sides for vocabulary)."""
@@ -349,13 +378,7 @@ class StudyGoalService:
             session.flush()
         finished = {i.id for i in items if i.kind == "new" and i.succeeded_at is not None}
         reviews = [i for i in items if i.kind == "review"]
-        sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
-        rows = session.query(Score.element_id, Score.last_seen_at).filter(
-            Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
-        seen: dict = {}
-        for element_id, last in rows:       # a side has one row per skill: its latest answer counts
-            if last and (seen.get(element_id) is None or last > seen[element_id]):
-                seen[element_id] = last
+        sides, seen = self._sides_seen(reviews, user_id, session)
         for i in reviews:
             since = datetime.combine(i.cycle_start, time.min)
             if all((seen.get(x) or datetime.min) >= since for x in sides[i.id]):
