@@ -18,6 +18,8 @@ type ProgressBarProps = {
     active?: boolean;
     /** Length unknown: the bar slides instead of filling, and carries no value. */
     indeterminate?: boolean;
+    /** Partial progress of what is not done yet, in the same unit as `current`: drawn as a lighter layer behind the fill. */
+    partial?: number;
 };
 
 export default function ProgressBar({
@@ -33,8 +35,11 @@ export default function ProgressBar({
     thin = false,
     active = false,
     indeterminate = false,
+    partial = 0,
 }: ProgressBarProps) {
     const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+
+    const partialPercent = total > 0 && partial > 0 ? Math.min(100, Math.round(((current + partial) / total) * 100)) : 0;
 
     return (
         <div className={`flex flex-col gap-1.5 ${className}`}>
@@ -45,6 +50,7 @@ export default function ProgressBar({
                 </div>
             )}
             <div className={`progress-bar-track${thin ? " is-sm" : ""}`} title={title}>
+                {partialPercent > percent && <div className="progress-bar-partial" data-testid="progress-partial" style={{ width: `${partialPercent}%` }} aria-hidden />}
                 <div
                     className={`progress-bar-fill${accent ? " is-accent" : ""}${active || indeterminate ? " is-active" : ""}${indeterminate ? " is-indeterminate" : ""}`}
                     style={indeterminate ? undefined : { width: `${percent}%` }}

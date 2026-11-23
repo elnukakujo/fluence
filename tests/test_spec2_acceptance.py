@@ -31,11 +31,11 @@ def _page(c):
     return c.get("/api/vocabulary/voc_V1").get_json()
 
 
-def test_front_answer_gives_7_5_3_75_and_two_side_rows_no_parent_row(app, db):
+def test_front_answer_gives_28_14_and_two_side_rows_no_parent_row(app, db):
     c = _client(app, db)
     assert _answer(c, "front", similarity=1.0).status_code == 200
     p = _page(c)
-    assert p["front_score"] == pytest.approx(7.5) and p["back_score"] == 0 and p["score"] == pytest.approx(3.75)
+    assert p["front_score"] == pytest.approx(28) and p["back_score"] == 0 and p["score"] == pytest.approx(14)
     assert p["score_level"] == "learning" and p["stability"] == pytest.approx(4.0) and p["is_leech"] is False
     assert "status" not in p and set(p["skills"]) >= {"recognition"}
     with db.session_scope() as s:
@@ -45,7 +45,7 @@ def test_front_answer_gives_7_5_3_75_and_two_side_rows_no_parent_row(app, db):
 def test_a_grade_button_answer_weighs_0_8(app, db):
     c = _client(app, db)
     _answer(c, "front", similarity=1.0, evidence_type="self_grade")
-    assert _page(c)["front_score"] == pytest.approx(6.0) and _page(c)["score"] == pytest.approx(3.0)
+    assert _page(c)["front_score"] == pytest.approx(24.0) and _page(c)["score"] == pytest.approx(12.0)   # 0.8 x 0.3 x 100
 
 
 def test_back_answer_then_overall_is_the_mean_of_the_sides(app, db):
@@ -53,17 +53,17 @@ def test_back_answer_then_overall_is_the_mean_of_the_sides(app, db):
     _answer(c, "front", similarity=1.0)
     _answer(c, "back", similarity=1.0)
     p = _page(c)
-    assert p["score"] == pytest.approx((p["front_score"] + p["back_score"]) / 2)
+    assert p["score"] == pytest.approx((p["front_score"] + p["back_score"]) / 2, abs=0.1)   # the sides are shown rounded, the parent is not
     assert p["back_score"] > 0
 
 
-def test_same_day_gain_is_capped_at_15_and_a_wrong_answer_is_not(app, db):
+def test_same_day_gain_is_capped_at_28_and_a_wrong_answer_is_not(app, db):
     c = _client(app, db)
     for _ in range(6):
         _answer(c, "front", similarity=1.0)
-    assert _page(c)["front_score"] == pytest.approx(15.0)       # +7.5 +6.. capped per day
+    assert _page(c)["front_score"] == pytest.approx(28.0)       # one perfect answer is already 30: capped per day
     _answer(c, "front", similarity=0.0)
-    assert _page(c)["front_score"] < 15.0
+    assert _page(c)["front_score"] < 28.0
 
 
 def test_four_wrong_answers_flag_a_leech_and_three_right_clear_it(app, db):

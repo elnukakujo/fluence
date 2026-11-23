@@ -31,10 +31,10 @@ const STRUCTURED_TYPES: NonNullable<Exercise["exercise_type"]>[] = [
     "type_in_the_blank", "select_in_the_blank", "matching", "organize", "true_false", "quizz",
 ];
 
-export interface LessonElements {
-    vocabularies: Vocabulary[];
-    grammars: Grammar[];
-    calligraphies: Calligraphy[];
+export interface LessonElements {         // a list is undefined when the course does not study that type (SG-14): no selector, no link
+    vocabularies?: Vocabulary[];
+    grammars?: Grammar[];
+    calligraphies?: Calligraphy[];
 }
 
 const EXERCISE_TYPE_OPTIONS: NonNullable<Exercise["exercise_type"]>[] = [
@@ -226,7 +226,7 @@ export default function ExerciseForm({
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const linked = relatedVocabularies.length + relatedGrammars.length + relatedCalligraphies.length > 0;
-        const needsGrammar = lessonElements.grammars.length > 0 && relatedGrammars.length === 0;     // EX-17: a grammar of the lesson, when it has one
+        const needsGrammar = (lessonElements.grammars?.length ?? 0) > 0 && relatedGrammars.length === 0;     // EX-17: a grammar of the lesson, when it has one
         setLinkError(!linked ? "link" : needsGrammar ? "grammar" : null);
         if (!linked || needsGrammar) return;       // every exercise belongs to at least one element of its lesson
 
@@ -423,7 +423,7 @@ export default function ExerciseForm({
                     )}
 
                     <section className="flex flex-col space-y-4 w-full items-baseline">
-                        <OpenCloseMenu
+                        {lessonElements.vocabularies && <OpenCloseMenu
                             elements={lessonElements.vocabularies.map((item) => ({
                                 id: item.id!,
                                 value: item.word.word + " - " + item.word.translation,
@@ -431,14 +431,14 @@ export default function ExerciseForm({
                             selectedElements={relatedVocabularies}
                             setSelectedElements={setRelatedVocabularies}
                             label={t("associatedVocabulary")}
-                        />
-                        <OpenCloseMenu
+                        />}
+                        {lessonElements.grammars && <OpenCloseMenu
                             elements={lessonElements.grammars.map((item) => ({ id: item.id!, value: item.title }))}
                             selectedElements={relatedGrammars}
                             setSelectedElements={setRelatedGrammars}
                             label={t("associatedGrammar")}
-                        />
-                        <OpenCloseMenu
+                        />}
+                        {lessonElements.calligraphies && <OpenCloseMenu
                             elements={lessonElements.calligraphies.map((item) => ({
                                 id: item.id!,
                                 value: item.character.character + " - " + item.character.phonetic,
@@ -446,7 +446,7 @@ export default function ExerciseForm({
                             selectedElements={relatedCalligraphies}
                             setSelectedElements={setRelatedCalligraphies}
                             label={t("associatedCalligraphies")}
-                        />
+                        />}
                         {linkError && <InlineError>{t(linkError === "grammar" ? "grammarRequired" : "linkRequired")}</InlineError>}
                     </section>
 

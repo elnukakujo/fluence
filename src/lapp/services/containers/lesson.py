@@ -307,6 +307,9 @@ class LessonService:
             session=session
         )
 
+        from ..features.studied_types import studied_types        # lazy: the features package imports the containers
+        studied = studied_types(user_id, lesson.language_id, session=session)       # SG-14: a type that is off does not count in the lesson's score
+        components = [c for c in components if type(c).__name__.lower() in studied]
         result = refresh(user_id, lesson_id, [c.id for c in components], digits=1, touch=touch, session=session)
         if result:
             logger.info(f"Updated lesson {lesson_id} score: {result.score}")

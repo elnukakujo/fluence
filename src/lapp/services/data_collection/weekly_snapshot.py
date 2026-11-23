@@ -14,6 +14,7 @@ from ...models.features import Calligraphy, Grammar, Vocabulary
 from ...models.system_data import StudyGoal, StudyGoalItem
 from ...utils.learner_clock import learner_today, week_bounds, week_closed_at
 from ...utils.scoring import KNOWN_FROM, MASTERED_FROM
+from ..features.studied_types import studied_types
 from ..system_data import ScoreService
 
 MAX_CATCH_UP_WEEKS = 104        # an account idle for longer than two years gets the last two years of weeks, no more
@@ -23,7 +24,8 @@ MAX_CATCH_UP_WEEKS = 104        # an account idle for longer than two years gets
 def level_counts(user_id: str, language_id: str, now: datetime, session: Optional[Session] = None) -> dict:
     """Level counts of a language at `now` (decay applied): seen elements by level, fading (succeeded once, below known now),
     `total` elements, and `mean_seen` (mean score of the seen ones, None when none). Coverage = seen / total; the two are never mixed (DM-7)."""
-    ids = [i for model in (Vocabulary, Grammar, Calligraphy)
+    studied = studied_types(user_id, language_id, session=session)       # SG-14: a type that is off is not counted (past snapshots stay as written)
+    ids = [i for kind, model in (("vocabulary", Vocabulary), ("grammar", Grammar), ("calligraphy", Calligraphy)) if kind in studied
            for (i,) in session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)]
     scores = ScoreService().get_many(user_id, ids, now=now, session=session)
     by = [r.score or 0.0 for r in scores.values()]

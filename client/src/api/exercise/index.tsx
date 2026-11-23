@@ -88,3 +88,11 @@ export async function getActiveGeneration(lessonId: string): Promise<(Generation
 export async function undoGenerationBatch(batchId: string): Promise<{ deleted: number }> {
   return apiFetch(`/api/exercise-batch/${batchId}`, { method: "DELETE", errorMessage: "undo_failed" });
 }
+
+/** What the model rebuilt for a stored exercise (nothing is saved until the review accepts it). */
+export type RedoResult = { exercise_type: NonNullable<Exercise["exercise_type"]>; question: string; answer: string; text_support: string | null; content: Exercise["content"] | null;
+  links: { related_vocabulary: string[]; related_grammar: string[]; related_calligraphy: string[] }; review_reason: string | null };
+
+export async function redoExercise(exerciseId: string, exerciseType?: string): Promise<RedoResult> {
+  return apiFetch(`/api/exercise/${exerciseId}/redo`, { method: "POST", body: { exercise_type: exerciseType }, errorMessage: "Failed to rebuild the exercise" });
+}

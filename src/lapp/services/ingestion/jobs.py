@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from ...core.database import db_manager, transactional
 from ...models.features import Calligraphy, Vocabulary
+from ..features.studied_types import studied_types
 from ...models.system_data import IngestionJob
 from ...services.capabilities import gated_api
 from ...utils.model_api import ModelAPIError
@@ -288,7 +289,8 @@ def _classify(ctx: _Ctx, doc: Document, target_name: str) -> dict[str, list]:
             raise
         logger.warning("Page classification failed: %s", e)
         kinds = {p.index + 1: list(ALL_KINDS) for p in doc.pages}
-    return {str(n): k for n, k in kinds.items()}
+    studied = _studied(ctx.job)
+    return {str(n): [x for x in k if x in studied] for n, k in kinds.items()}
 
 
 def _target_name(ctx: _Ctx) -> str:
@@ -302,9 +304,18 @@ def _save_document(ctx: _Ctx, doc: Document) -> None:
     out.write_text(doc.model_dump_json())
 
 
+def _studied(job: dict) -> list[str]:
+    """The kinds the job's language studies (SG-14): the parser neither proposes nor creates the others, and says nothing about them."""
+    with db_manager.session_scope() as s:
+        return studied_types(job["user_id"], job["language_id"], session=s)
+
+
 def _kinds_by_page(job: dict) -> dict[int, list] | None:
-    """The job's confirmed kinds with int page keys; None (legacy job) = vocabulary only."""
-    return {int(k): v for k, v in job["page_kinds"].items()} if job["page_kinds"] else None
+    """The job's confirmed kinds with int page keys, minus kinds the language does not study; None (legacy job) = vocabulary only."""
+    if not job["page_kinds"]:
+        return None
+    studied = _studied(job)
+    return {int(k): [x for x in v if x in studied] for k, v in job["page_kinds"].items()}
 
 
 def _run(app: Flask, svc: IngestionJobService, job_id: str) -> None:

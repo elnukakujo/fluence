@@ -8,10 +8,16 @@ from sqlalchemy.orm import Session
 from ...core.database import transactional
 from ...models.containers import Language
 from ...models.data_collection import DailyStats, LearnerDay, WeeklySnapshot
+from ...models.features import Calligraphy, Exercise, Grammar, Vocabulary
+from ...models.containers import Lesson
+from ..system_data import ScoreService
+from ...models.system_data import StudyGoal, StudyGoalItem
+from ...utils.scoring import KNOWN_FROM
 from ...utils.learner_clock import learner_today, week_bounds
 from ..features.review_queue import Scope, build_queue, card_seconds, collect_candidates, plan_budgets
 from ..system_data.prefs_view import prefs_for
 from .study_activity import status_for
+from ..features.studied_types import studied_types
 from .weekly_snapshot import level_counts
 
 HEATMAP_WEEKS = 12
@@ -77,3 +83,42 @@ def snapshots(user_id: str, language_id: str, weeks: int = 12, session: Optional
     rows = session.query(WeeklySnapshot).filter_by(user_id=user_id, language_id=language_id) \
         .order_by(WeeklySnapshot.week_start.desc()).limit(max(1, min(weeks, 104))).all()
     return [{**r.to_dict(), "coverage": r.n_seen / r.n_total if r.n_total else 0.0} for r in reversed(rows)]
+
+
+_MODELS = {"vocabulary": Vocabulary, "grammar": Grammar, "calligraphy": Calligraphy}
+
+
+@transactional
+def type_stats(user_id: str, language_id: str, session: Optional[Session] = None) -> Optional[dict]:
+    """Per studied type, for the custom review's Type tab (RE-15): {total, seen, mean_seen, fading, due}. `due` is how many cards of that type
+    the daily review would serve now; `fading` the ones that reached Known once and are below it now; exercises only have total and due."""
+    if session.query(Language.id).filter(Language.id == language_id, Language.user_id == user_id).first() is None:
+        return None
+    now = datetime.now()
+    succeeded = {i for (i,) in session.query(StudyGoalItem.element_id).join(StudyGoal, StudyGoal.id == StudyGoalItem.goal_id).filter(
+        StudyGoal.user_id == user_id, StudyGoal.language_id == language_id, StudyGoalItem.succeeded_at.isnot(None))}
+    studied = studied_types(user_id, language_id, session=session)       # SG-14: a type that is off has no card
+    out = {}
+    for name, model in _MODELS.items():
+        if name not in studied:
+            continue
+        ids = [i for (i,) in session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)]
+        scores = ScoreService().get_many(user_id, ids, now=now, session=session)
+        by = [r.score or 0.0 for r in scores.values()]
+        out[name] = {"total": len(ids), "cards": len(ids) * (2 if name == "vocabulary" else 1), "seen": len(by), "mean_seen": round(sum(by) / len(by), 1) if by else None, "due": 0,
+                     "fading": sum(1 for i in succeeded if i in scores and (scores[i].score or 0.0) < KNOWN_FROM)}
+    if "exercise" in studied:
+        out["exercise"] = {"total": session.query(Exercise.id).join(Lesson, Lesson.id == Exercise.lesson_id).filter(
+            Lesson.language_id == language_id, Exercise.review_reason.is_(None)).count(), "seen": None, "mean_seen": None, "fading": None, "due": 0}
+    cands = collect_candidates(user_id, language_id, Scope(), session)
+    if cands is not None:
+        queue, _sections, _spares = build_queue(cands, plan_budgets(cands, prefs_for(user_id, language_id, session), None, None))
+        due: dict[str, set] = {name: set() for name in out}       # a vocabulary is two cards (its sides) but one thing to know: count it once
+        for card in queue:
+            kind = (card[0] if isinstance(card, tuple) else card)
+            name = "exercise" if isinstance(kind, Exercise) else next((n for n, m in _MODELS.items() if isinstance(kind, m)), None)
+            if name in due:
+                due[name].add(kind.id)
+        for name, ids in due.items():
+            out[name]["due"] = len(ids)
+    return out

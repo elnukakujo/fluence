@@ -215,11 +215,15 @@ describe("grammar form", () => {
 });
 
 describe("calligraphy form", () => {
-    const CHAR = { character: "水", phonetic: "", meaning: undefined, radical: undefined, strokes: undefined, image_files: [], audio_files: [] };
+    const CHAR = { character: "水", phonetic: "", meaning: undefined, radical: undefined, strokes: 4, image_files: [], audio_files: [] };
 
     it("creates, sends the payload, then returns to the lesson", async () => {
         render(<CalligraphyForm lesson_id="lesson_1" />);
         await userEvent.type(field("Character *"), "水");
+        await submitByName(/Add Calligraphy/);
+        expect(m.createCalligraphy).not.toHaveBeenCalled();              // CA-11: no stroke count, no save
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+        await userEvent.type(screen.getByLabelText("Strokes"), "4");
         await submitByName(/Add Calligraphy/);
         await waitFor(() => expect(m.createCalligraphy).toHaveBeenCalledTimes(1));
         expect(m.createCalligraphy).toHaveBeenCalledWith({ character: CHAR, example_words: [], example_sentences: [], lesson_id: "lesson_1", tags: [], sources: [] }, undefined);
@@ -237,6 +241,7 @@ describe("calligraphy form", () => {
     it("sends the picked tags and sources, an example word and an example sentence", async () => {
         render(<CalligraphyForm lesson_id="lesson_1" />);
         await userEvent.type(field("Character *"), "水");
+        await userEvent.type(screen.getByLabelText("Strokes"), "4");
         await userEvent.click(screen.getByText("pick tag"));
         await userEvent.click(screen.getByText("pick source"));
         await userEvent.click(screen.getByRole("button", { name: /Add Example Word/i }));
@@ -264,6 +269,7 @@ describe("calligraphy form", () => {
         m.createCalligraphy.mockRejectedValue(new Error("boom"));
         render(<CalligraphyForm lesson_id="lesson_1" />);
         await userEvent.type(field("Character *"), "水");
+        await userEvent.type(screen.getByLabelText("Strokes"), "4");
         await submitByName(/Add Calligraphy/);
         await waitFor(() => expect(alertSpy).toHaveBeenCalledWith("Failed to create calligraphy. Check console for details."));
         expect(m.push).not.toHaveBeenCalled();
@@ -273,6 +279,7 @@ describe("calligraphy form", () => {
         m.createCalligraphy.mockRejectedValueOnce(conflict()).mockRejectedValueOnce(conflict());
         render(<CalligraphyForm lesson_id="lesson_1" />);
         await userEvent.type(field("Character *"), "水");
+        await userEvent.type(screen.getByLabelText("Strokes"), "4");
         await submitByName(/Add Calligraphy/);
         await userEvent.click(await screen.findByText("keep"));
         await waitFor(() => expect(m.createCalligraphy).toHaveBeenCalledTimes(2));

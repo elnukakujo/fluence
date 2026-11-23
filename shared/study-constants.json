@@ -2,7 +2,10 @@
   "score": {
     "initialStabilityDays": 5,
     "stabilityCapDays": 180,
-    "dayGainCap": 15,
+    "dayGainCap": 28,
+    "gainK": 0.3,
+    "growthGapHours": 12,
+    "decayFloor": 10,
     "evidenceWeights": {
       "typed": 1.0,
       "spoken": 1.0,

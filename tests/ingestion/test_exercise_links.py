@@ -44,13 +44,14 @@ def test_accept_links_an_exercise_to_the_vocabulary_and_grammar_of_the_same_impo
         assert [v.id for v in ex.related_vocabulary] and [g.title for g in ex.related_grammar] == ["Greeting"]
 
 
-def test_accept_does_not_store_an_exercise_that_matches_no_element(app, db, media_root, scheduled):
+def test_accept_keeps_an_exercise_that_matches_no_element_flagged(app, db, media_root, scheduled):
     res = _accept(app, db, media_root, [_ex("Describe your day")])
     body = res.get_json()
-    assert res.status_code == 200 and body["created_elements"] == 0
+    assert res.status_code == 200 and body["created_elements"] == 1
     assert any("matches no element" in n for n in body["notes"])
     with db.session_scope() as s:
-        assert s.query(Exercise).count() == 0
+        ex = s.query(Exercise).one()
+        assert ex.review_reason == "no association found" and not ex.related_vocabulary
 
 
 def test_an_imported_exercise_without_a_grammar_is_held_for_review_when_the_lesson_has_one(app, db, media_root, scheduled):
@@ -67,3 +68,13 @@ def test_an_imported_exercise_with_its_grammar_is_ready(app, db, media_root, sch
     _accept(app, db, media_root, [_ex("Use Greeting with hello"), grammar])
     with db.session_scope() as s:
         assert s.query(Exercise).filter(Exercise.lesson_id == "lesson_L1").one().review_reason is None
+
+
+def test_inflected_forms_link_but_unrelated_words_and_short_words_do_not():
+    voc = [("voc_V1", "heißen"), ("voc_V2", "Guten Tag"), ("voc_V3", "ab"), ("voc_V4", "lernen")]
+    f = lambda q: link_to_elements({"question": q, "answer": "", "text_support": None, "content": None}, voc, [], [])["related_vocabulary"]
+    assert f("Ich heiße Anna.") == ["voc_V1"]                      # heißen → heiße
+    assert f("Ich wünsche einen guten Tag!") == ["voc_V2"]          # every word of the label, inflected
+    assert f("Wir lernten gestern.") == ["voc_V4"]                  # lernen → lernten
+    assert f("Abends gehe ich heim.") == []                         # a short word must match whole: "ab" is not "Abends"
+    assert f("Das ist ein Hund.") == []

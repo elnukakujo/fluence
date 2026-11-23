@@ -12,9 +12,24 @@ from ...services.capabilities import capability_for, gated_api
 from ...utils.request import parse_json
 from ...core.database import db_manager
 from ...services.features.exercise import lesson_has_grammar
+from ...services.features.studied_types import studied_types
+from ...models.containers import Lesson
 logger = logging.getLogger(__name__)
 bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
 exercise_service = ExerciseService()
+_LINKS = {"related_vocabulary": "vocabulary", "related_grammar": "grammar", "related_calligraphy": "calligraphy"}
+
+
+def _visible_links(items: list[dict]) -> list[dict]:
+    """SG-14: links to a type the exercise's language does not study stay stored but are not shown (re-enabling the type brings them back)."""
+    with db_manager.session_scope() as s:
+        language_of = dict(s.query(Lesson.id, Lesson.language_id).filter(Lesson.id.in_({i["lesson_id"] for i in items})).all())
+        studied = {lang: studied_types(current_user_id(), lang, session=s) for lang in set(language_of.values())}
+    for item in items:
+        for key, kind in _LINKS.items():
+            if kind not in studied.get(language_of.get(item["lesson_id"]), (kind,)):
+                item[key] = []
+    return items
 
 @bp.route('/language/<language_id>', methods=['GET'])
 @login_required
@@ -41,7 +56,7 @@ def get_all_exercise_from_language(language_id: str):
     """
     require_write(language_id)
     exercise = exercise_service.get_all(language_id=language_id, as_dict=True)
-    return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise)))
+    return jsonify(_visible_links(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise))))
 
 
 @bp.route('/lesson/<lesson_id>', methods=['GET'])
@@ -70,7 +85,7 @@ def get_all_exercise_from_lesson(lesson_id: str):
     require_write(lesson_id)
     SourceService().link_generated_exercises(current_user_id(), lesson_id)   # exercises generated before the shared AI source existed
     exercise = exercise_service.get_all(lesson_id=lesson_id, as_dict=True)
-    return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise)))
+    return jsonify(_visible_links(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), exercise))))
 
 
 @bp.route('/<exercise_id>', methods=['GET'])
@@ -102,7 +117,7 @@ def get_exercise(exercise_id: str):
     if not exercise:
         return jsonify({'error': 'exercise not found'}), 404
     
-    return jsonify(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), [exercise]))[0])
+    return jsonify(_visible_links(ExerciseUserPrefService().annotate(current_user_id(), ScoreService().merge(current_user_id(), [exercise])))[0])
 
 
 @bp.route('/', methods=['POST'])

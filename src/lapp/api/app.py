@@ -73,6 +73,7 @@ def create_app(config_name: str = 'default') -> Flask:
 
     # Log every request so activity (reviews, edits, …) shows up in /api/logs
     register_request_logging(app)
+    register_review_context(app)
     
     # Register error handlers
     register_error_handlers(app)
@@ -327,6 +328,15 @@ def register_logs_endpoint(app: Flask) -> None:
     @admin_required
     def get_logs():
         return jsonify({'logs': list(_log_buffer)})
+
+
+def register_review_context(app: Flask) -> None:
+    """The client tags each answer with its review session (`X-Review-Session`); the progress rows keep it (ST-9). Anything odd is ignored."""
+
+    @app.before_request
+    def _review_session():
+        sid = request.headers.get("X-Review-Session", "")
+        g.review_session_id = sid if 0 < len(sid) <= 64 and all(c.isalnum() or c in "-_" for c in sid) else None
 
 
 def register_request_logging(app: Flask) -> None:

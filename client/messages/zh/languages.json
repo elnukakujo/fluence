@@ -64,9 +64,21 @@
   "reviewCustom": "自定义复习",
   "reviewCustomHint": "选择要复习的内容：类型、来源或标签。其中的全部内容，按自然顺序，没有时间限制。",
   "customTabsLabel": "按以下方式复习",
-  "customTab": {"type": "类型", "source": "来源", "tag": "标签"},
-  "customHint": {"type": "某一类型的全部内容。", "source": "来自某个来源的全部内容。", "tag": "带有某个标签的全部内容。"},
-  "customEmpty": {"type": "没有可选项：本课程没有学习任何元素类型。", "source": "你还没有来源。请在“来源”页面添加，并关联到你的内容。", "tag": "你还没有标签。请在“标签”页面添加，并关联到你的内容。"},
+  "customTab": {
+    "type": "类型",
+    "source": "来源",
+    "tag": "标签"
+  },
+  "customHint": {
+    "type": "某一类型的全部内容。",
+    "source": "来自某个来源的全部内容。",
+    "tag": "带有某个标签的全部内容。"
+  },
+  "customEmpty": {
+    "type": "没有可选项：本课程没有学习任何元素类型。",
+    "source": "你还没有来源。请在“来源”页面添加，并关联到你的内容。",
+    "tag": "你还没有标签。请在“标签”页面添加，并关联到你的内容。"
+  },
   "typeLabel": {
     "vocabulary": "词汇",
     "grammar": "语法",
@@ -77,5 +89,14 @@
   "lessonsTitle": "课程",
   "manage": "管理",
   "reviewLesson": "复习本课",
-  "backToLanguage": "返回语言"
+  "backToLanguage": "返回语言",
+  "typeCardsLabel": "选择复习类型",
+  "typeDue": "今日待复习",
+  "typeAverage": "平均得分",
+  "typeFading": "正在遗忘",
+  "typeSeen": "已见 {seen} / {total}",
+  "typeResume": "继续 {done} / {total}",
+  "typeWords": "{total} 个词",
+  "typeCount": "{total} 张卡片",
+  "typeStart": "复习{type}"
 }

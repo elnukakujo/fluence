@@ -49,6 +49,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions 
     const [radical, setRadical] = useState<string|undefined>(calligraphyData.character?.radical || undefined);
     const [componentList, setComponentList] = useState<string[]>(calligraphyData.character?.component_glyphs ?? []);
     const [strokes, setStrokes] = useState<number|undefined>(calligraphyData.character?.strokes || undefined);
+    const [strokesMissing, setStrokesMissing] = useState(false);          // CA-11: a character needs its stroke count
     const [imageUrl, setImageUrl] = useState<string[]>(calligraphyData.character?.image_files || []);
     const [audioUrl, setAudioUrl] = useState<string[]>(calligraphyData.character?.audio_files || []);
 
@@ -98,7 +99,7 @@ export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions 
     return (
         <>
         {shell.conflictProps && <ConflictDialog {...shell.conflictProps} />}
-        <FormLayout onSubmit={shell.handleSubmit}>
+        <FormLayout onSubmit={(e) => { if (!strokes) { e.preventDefault(); setStrokesMissing(true); return; } shell.handleSubmit(e); }}>
             <FormSection title={t("formHeading")} columns={4}>
                 <Field label={t("characterLabel")} required labelClassName={FORM_LABEL}>
                     <input className="input text-center font-serif text-2xl" lang="zh" value={character} onChange={(e) => setCharacter(e.target.value)} />
@@ -110,8 +111,9 @@ export default function CalligraphyForm({calligraphy, lesson_id, radicalOptions 
                     <input className="input" value={meaning || ""} onChange={(e) => setMeaning(e.target.value)} />
                 </Field>
                 <span className="flex flex-col gap-1">
-                    <span className={FORM_LABEL}>{t("strokesLabel")}</span>
-                    <NumberField fill min={0} ariaLabel={t("strokesLabel")} value={strokes ?? ""} onChange={(v) => setStrokes(v === "" || v === 0 ? undefined : v)} />
+                    <span className={FORM_LABEL}>{t("strokesLabel")} <span aria-hidden>*</span></span>
+                    <NumberField fill min={0} ariaLabel={t("strokesLabel")} value={strokes ?? ""} onChange={(v) => { setStrokes(v === "" || v === 0 ? undefined : v); setStrokesMissing(false); }} />
+                    {strokesMissing && <span role="alert" className="text-sm text-danger">{t("strokesRequired")}</span>}
                 </span>
             </FormSection>
             <CharacterLinksField

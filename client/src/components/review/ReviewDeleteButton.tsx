@@ -27,8 +27,8 @@ export default function ReviewDeleteButton({ elementId, onDeleted }: { elementId
 
     return (
         <div className="flex flex-col items-end gap-1">
-            <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center justify-center gap-2" onClick={() => { setFailed(false); setAsking(true); }}>
-                <Trash2 size={16} aria-hidden />{t("deleteButton")}
+            <button type="button" className="btn btn-secondary !p-2 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label={t("deleteButton")} title={t("deleteButton")} onClick={() => { setFailed(false); setAsking(true); }}>
+                <Trash2 size={18} aria-hidden />
             </button>
             {failed && <p role="alert" className="text-sm text-danger">{t("deleteFailed")}</p>}
             {asking && <ConfirmDialog danger message={t("deleteCardConfirm")} confirmLabel={tUi("confirmDelete")} onConfirm={confirm} onCancel={() => setAsking(false)} />}

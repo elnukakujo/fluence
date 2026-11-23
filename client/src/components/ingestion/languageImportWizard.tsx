@@ -198,6 +198,7 @@ function StructureStep({ job, onConfirmed, onRestart }: { job: Job; onConfirmed:
                   <div className="mt-2 pl-4">
                     <PageKindsWithViewer
                       jobId={job.id}
+                      languageId={job.language_id}
                       pages={lessonPages}
                       value={pageKinds as any}
                       onChange={(newPageKinds) => setPageKinds(newPageKinds as any)}

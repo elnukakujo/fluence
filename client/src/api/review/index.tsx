@@ -59,3 +59,4 @@ export function queueHref(languageId: string, params: ScopeParams): string {
 export async function completeReview(languageId: string, cards: number): Promise<{ streak: number; validated: boolean; just_validated: boolean }> {
   return apiFetch(`/api/review/${languageId}/complete`, { method: "POST", body: { cards }, errorMessage: "Failed to complete the review" });
 }
+

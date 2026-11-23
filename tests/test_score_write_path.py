@@ -57,7 +57,8 @@ def _client(app, db):
 def test_valid_answer_returns_levels(app, db):
     r = _client(app, db).post("/api/vocabulary/score", json=OK)
     assert r.status_code == 200
-    assert r.json == {"success": True, "level_before": "learning", "level_after": "learning"}
+    assert r.json["success"] is True and (r.json["level_before"], r.json["level_after"]) == ("learning", "learning")
+    assert r.json["score_before"] == 0.0 and r.json["score_after"] >= 0.0 and r.json["capped"] is False       # RC-27: the strip's numbers
 
 
 @pytest.mark.parametrize("change", [

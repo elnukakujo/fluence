@@ -12,7 +12,8 @@ import { getExerciseLevel } from "@/utils/speech_levels";
 import { speakingLabel } from "@/utils/speakingLabel";
 import ProgressBar from "@/components/ui/progressBar";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
+import { CheckButton } from "./evaluatedFrame";
+import FeedbackNote from "./feedbackNote";
 const AudioRecorder = dynamic(() => import('@/components/media/audioRecorder'), { ssr: false });
 
 export default function SpeakingExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
@@ -109,18 +110,10 @@ export default function SpeakingExercise({ exercise, onFinished }: Omit<Exercise
             )}
 
             {hasFeedback && currentLevel && (
-                <FeedbackPanel correct={correct}>
-                    {similarity !== null && <p className="font-medium">{t(`speakingLabel.${speakingLabel(similarity).label}`)}</p>}
+                <FeedbackNote verdict={correct ? "correct" : "wrong"} headline={similarity !== null ? t(`speakingLabel.${speakingLabel(similarity).label}`) : currentLevel.label} message={feedbackMessage} level={currentLevel}>
                     {similarity !== null && <SpeakingBar similarity={similarity} />}
-                    <h3>{currentLevel.label}</h3>
-                    <p className="italic">`&quot;`{currentLevel.description}`&quot;`</p>
-                    <p>
-                        {feedbackMessage && (
-                            <span className="font-medium">{t("feedback")} </span>
-                        )}
-                        {feedbackMessage}
-                    </p>
-                </FeedbackPanel>
+                    <p className="italic">{currentLevel.description}</p>
+                </FeedbackNote>
             )}
         </div>
     );

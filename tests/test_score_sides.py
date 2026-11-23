@@ -13,7 +13,7 @@ def _seed(db):
 def test_one_side_moves_the_parent_by_half(db):
     _seed(db)
     parent = ScoreService().record_side("user_U1", "voc_B", "front", "recognition", 1.0, "typed")
-    assert parent.score == pytest.approx(7.5 / 2)               # the other side counts 0
+    assert parent.score == pytest.approx(28 / 2)               # the other side counts 0
 
 
 def test_parent_is_the_mean_of_the_sides(db):
@@ -31,10 +31,10 @@ def test_parent_is_per_skill_then_averaged(db):
         ScoreService().record_side("user_U1", "voc_B", side, "recall", 1.0, "typed")
     ScoreService().record_side("user_U1", "voc_B", "front", "recognition", 0.0, "typed")
     out = ScoreService().merge("user_U1", [{"id": "voc_B"}])[0]
-    assert out["skills"]["recall"]["score"] == pytest.approx(7.5)             # (7.5 + 7.5) / 2
+    assert out["skills"]["recall"]["score"] == pytest.approx(28)             # (28 + 28) / 2
     assert out["skills"]["recognition"]["score"] == pytest.approx(0)          # (0 + 0) / 2
-    assert out["score"] == pytest.approx(7.5 / 2)
-    assert out["front_score"] == pytest.approx(3.75) and out["back_score"] == pytest.approx(7.5)   # a side averages the skills it carries
+    assert out["score"] == pytest.approx(28 / 2)
+    assert out["front_score"] == pytest.approx(14) and out["back_score"] == pytest.approx(28)   # a side averages the skills it carries
 
 
 def test_clamped(db):

@@ -22,19 +22,19 @@ def _age(db, element_id, days):
 def test_first_answer_creates_the_row_with_stability(db):
     _seed_users(db)
     s = ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
-    assert s.score == pytest.approx(7.5) and s.stability == 4 and s.skill == "recall"
+    assert s.score == pytest.approx(28) and s.stability == 4 and s.skill == "recall"
     created_at = s.created_at
     s2 = ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
     assert s2.id == s.id and s2.created_at == created_at     # same row, created_at set once
-    assert s2.score > s.score and s2.stability == 8
+    assert s2.score == s.score and s2.stability == 4        # same day: the day's gain is capped and the stability does not double twice (SC-31)
 
 
 def test_a_second_skill_gets_its_own_row(db):
     _seed_users(db)
     a = ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
     b = ScoreService().record("user_U1", "voc_V1", "recognition", 0.0, "typed")
-    assert a.id != b.id and a.score == pytest.approx(7.5) and b.score == 0
-    assert ScoreService().get("user_U1", "voc_V1", skill="recall").score == pytest.approx(7.5)
+    assert a.id != b.id and a.score == pytest.approx(28) and b.score == 0
+    assert ScoreService().get("user_U1", "voc_V1", skill="recall").score == pytest.approx(28)
 
 
 def test_difficulty_follows_stability(db):
@@ -53,7 +53,7 @@ def test_record_isolation(db):
     _seed_users(db)
     ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
     ScoreService().record("user_U2", "voc_V1", "recall", 0.0, "typed")
-    assert ScoreService().get("user_U1", "voc_V1").score == pytest.approx(7.5)
+    assert ScoreService().get("user_U1", "voc_V1").score == pytest.approx(28)
     assert ScoreService().get("user_U2", "voc_V1").score == 0
 
 
@@ -68,10 +68,10 @@ def test_get_many(db):
 
 def test_reads_decay_without_writing(db):
     _seed_users(db)
-    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")        # 7.5, stability 4
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")        # 28, stability 4
     _age(db, "gram_G1", 4)
-    assert ScoreService().get("user_U1", "gram_G1").score == pytest.approx(3.75, abs=0.05)
-    assert ScoreService().get("user_U1", "gram_G1", skill="recognition").score == pytest.approx(7.5)   # stored value untouched
+    assert ScoreService().get("user_U1", "gram_G1").score == pytest.approx(14, abs=0.05)
+    assert ScoreService().get("user_U1", "gram_G1", skill="recognition").score == pytest.approx(28)   # stored value untouched
 
 
 def test_element_score_is_the_mean_of_its_skills(db):
@@ -89,9 +89,9 @@ def test_merge_attaches_score_level_and_skills(db):
     _seed_users(db)
     ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")
     out = ScoreService().merge("user_U1", [{"id": "gram_G1"}, {"id": "gram_G9"}])
-    assert out[0]["score"] == pytest.approx(7.5)
+    assert out[0]["score"] == pytest.approx(28)
     assert out[0]["score_level"] == "learning" and out[0]["weak"] is True and out[0]["is_leech"] is False
-    assert out[0]["skills"]["recognition"]["score"] == pytest.approx(7.5)
+    assert out[0]["skills"]["recognition"]["score"] == pytest.approx(28)
     assert out[1]["score"] == 0.0 and out[1]["difficulty"] == 0.5
     assert out[1]["skills"] == {} and out[1]["score_level"] == "learning"
 

@@ -173,7 +173,12 @@ export default function CalligraphyPracticeCanvas({
   }
 
   if (referenceStrokes === undefined) {
-    return <p className="text-sm text-muted" role="status">{t("loadingStrokeData")}</p>;
+    return (      // the same layout as the canvas, with a 300 px placeholder: the card shows at once and nothing jumps when the strokes arrive
+      <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center">
+        {info && <div className="order-2 w-full md:order-1 md:w-80 md:shrink-0">{info}</div>}
+        <div className="order-1 h-[300px] w-[300px] animate-pulse rounded border border-border bg-border/40 md:order-2" data-testid="stroke-skeleton" role="status" aria-busy="true" aria-label={t("loadingStrokeData")} />
+      </div>
+    );
   }
   if (referenceStrokes === null) {
     return <EmptyState className="text-sm">{t("noStrokeData")}</EmptyState>;

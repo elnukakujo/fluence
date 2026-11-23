@@ -4,6 +4,7 @@ from ...services import ReviewService
 from ...services.features.review_queue import Scope
 from ...services.system_data import ScoreService
 from ...services.data_collection import StudyActivity
+from ...services.data_collection.session_stats import SessionStats
 from ...services.data_collection.weekly_snapshot import WeeklySnapshotService
 from ...services.system_data.prefs_view import prefs_for, remember_timezone
 from ...core.auth import login_required, require_owns, require_write, current_user_id
@@ -101,6 +102,23 @@ def set_note(element_id: str):
     ScoreService().set_note(current_user_id(), element_id, note.strip())
     return jsonify({'ok': True})
 
+
+
+@bp.route('/session/<session_id>', methods=['GET'])
+@login_required
+def session_summary(session_id: str):
+    """What one review session came to: cards, correct, time, average score gained, average difficulty change, per type (ST-9), plus levels_crossed, to_revisit, hints_used, avg_seconds_per_card, goal_progress (RC-27).
+
+    ---
+    tags:
+        - Review
+    parameters:
+        - {name: session_id, in: path, type: string, required: true}
+    responses:
+        200:
+            description: "{cards, correct, duration_ms, avg_score_gain, avg_difficulty_change, by_type, levels_crossed, to_revisit, hints_used, avg_seconds_per_card, goal_progress}; zeros for an unknown session"
+    """
+    return jsonify(SessionStats().get(current_user_id(), session_id))
 
 
 @bp.route('/<language_id>/complete', methods=['POST'])

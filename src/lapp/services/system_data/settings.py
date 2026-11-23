@@ -196,4 +196,15 @@ def update_group(user_id: str, group: str, values: dict, language_id: Optional[s
             session.add(CourseSetting(id=db_manager.generate_new_id(model_class=CourseSetting, session=session),
                                       user_id=user_id, language_id=language_id, key=key, value=value))
     session.flush()
+    if "element_types" in clean and language_id:
+        _refresh_scores(user_id, language_id, session)
     return read_group(user_id, group, language_id, session=session)
+
+
+def _refresh_scores(user_id: str, language_id: str, session) -> None:
+    """SG-14: lesson and language scores are stored; a type switched on or off changes what they average, so rewrite them (no row counts as reviewed)."""
+    from ...models.containers import Lesson
+    from ..containers import LanguageService, LessonService
+    for (lesson_id,) in session.query(Lesson.id).filter(Lesson.language_id == language_id).all():
+        LessonService().update_score(lesson_id, user_id=user_id, touch=False, session=session)
+    LanguageService().update_score(language_id, user_id=user_id, touch=False, session=session)

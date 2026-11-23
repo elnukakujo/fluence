@@ -3,6 +3,7 @@ import json
 import pytest
 
 from lapp.services.exercise_generation import generate as gen
+from lapp.services.exercise_generation.generate import link_reason
 from lapp.services.exercise_generation.planner import PoolItem, Slot
 
 API = {"base_url": "https://x/v1", "api_key": "k", "model": "m"}
@@ -216,3 +217,23 @@ def test_the_judge_prompt_asks_for_the_two_grammar_flags(model):
     gen.judge_batch([{"exercise_type": "essay", "question": "Q", "answer": "A", "text_support": None, "content": None, "linked": ["ne...pas"]}], API, "French", level="B1")
     system = model.calls[0][0]["content"]
     assert "does not exercise the linked grammar" in system and "below the lesson level" in system and "B1" in system
+
+
+def _item(**kw):
+    base = {"exercise_type": "essay", "question": "Q", "answer": "A", "text_support": None, "content": None,
+            "related_vocabulary": [], "related_grammar": [], "related_calligraphy": []}
+    return {**base, **kw}
+
+
+def test_a_claimed_link_the_text_does_not_use_flags_the_exercise_and_a_used_one_does_not():
+    """EG-24: the planner's companions are random; only a link the text confirms is verified."""
+    pool = [V1, V2, G1]
+    assert link_reason(_item(question="the cat sleeps", related_vocabulary=["voc_V1"]), pool) is None
+    assert link_reason(_item(question="the cat sleeps", related_vocabulary=["voc_V1", "voc_V2"]), pool) == "links to confirm: dog"
+    assert link_reason(_item(question="no word of the slot", related_grammar=["gram_G1"]), pool) is None      # the anchor grammar is the design
+    assert link_reason(_item(), pool) == "no association found"
+
+
+def test_an_inflected_claimed_vocabulary_counts_as_used():
+    heissen = PoolItem("vocabulary", "voc_V5", "heißen", 0)
+    assert link_reason(_item(question="Ich heiße Anna", related_vocabulary=["voc_V5"]), [heissen]) is None

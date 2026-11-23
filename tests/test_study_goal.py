@@ -299,3 +299,59 @@ def test_a_type_the_course_does_not_study_has_no_slots_picks_or_suggestion(db):
     assert svc.get("user_U1", "lang_L1")["n_calligraphy"] == 0 and svc.kinds("user_U1", "lang_L1") == ["vocabulary", "grammar"]
     sug = svc.suggested("user_U1", "week", "lang_L1")
     assert sug["n"]["calligraphy"] == 0 and sum(sug["n"].values()) == 15 and sum(sug["r"].values()) == 40
+
+
+def test_new_is_only_unseen_and_review_only_seen_even_outside_a_goal(db):
+    """SG-12: a card answered outside any goal (even wrongly, score 0) is Review material, never New; unseen is never Review."""
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    ScoreService().record_side("user_U1", "voc_V0", "front", "recognition", 0.0, "typed")   # wrong first answer: score stays 0
+    ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0, r_vocabulary=2)
+    kinds = {i.element_id: i.kind for i in svc.ensure_cycle("user_U1", "lang_L1", today=D0)}
+    assert kinds["voc_V0"] == "review" and kinds["voc_V3"] == "review"
+    assert {e for e, k in kinds.items() if k == "new"} == {"voc_V1", "voc_V2"}
+
+
+def test_partial_progress_counts_unmet_items_as_fractions_of_the_known_bar(db):
+    """SG-13: a new element at 30 is half of one; a done one counts nothing extra; a vocabulary review with one side seen is half."""
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    ScoreService().set("user_U1", "voc_V3", score=40.0, difficulty=0.5, touch=False)
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0, r_vocabulary=1)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=30.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=70.0, difficulty=0.5)                       # done: not partial
+    ScoreService().record_side("user_U1", "voc_V3", "front", "recognition", 1.0, "typed")
+    t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
+    assert t["mastered"] == 1 and t["partial"] == pytest.approx(0.5)
+    assert t["review_done"] == 0 and t["review_partial"] == pytest.approx(0.5)
+
+
+def test_each_unmet_item_says_how_far_it_is_and_carried_ones_count(db):
+    """SG-13: the menu shows every element's distance: points left to Known (new) or sides left (review), carried items included."""
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=30.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=70.0, difficulty=0.5)
+    items = {i["id"]: i for i in svc.progress("user_U1", "lang_L1", today=D0)["items"]}
+    assert (items["voc_V0"]["progress"], items["voc_V0"]["to_go"]) == (0.5, 30)
+    assert items["voc_V1"]["progress"] is None and items["voc_V1"]["to_go"] is None          # done
+    later = svc.progress("user_U1", "lang_L1", today=D0 + timedelta(days=7))
+    carried = [i for i in later["items"] if i["carried"]]
+    assert [i["id"] for i in carried] == ["voc_V0"] and carried[0]["to_go"] == 30
+    assert later["types"]["vocabulary"]["carried_partial"] == pytest.approx(0.5)
+
+
+def test_items_carry_their_score_and_level_for_the_hover_card(db):
+    _seed(db, n=3)
+    svc = StudyGoalService()
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=30.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=70.0, difficulty=0.5)
+    items = {i["id"]: i for i in svc.progress("user_U1", "lang_L1", today=D0)["items"]}
+    assert (items["voc_V0"]["score"], items["voc_V0"]["level"]) == (30.0, "learning")
+    assert (items["voc_V1"]["score"], items["voc_V1"]["level"]) == (70.0, "known")

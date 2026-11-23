@@ -1,3 +1,4 @@
+import math
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
@@ -12,10 +13,10 @@ from ...utils import review_priority
 from ...utils.learner_clock import learner_today
 from ..system_data.prefs_view import prefs_for
 from ...models.system_data import UserPreferences
-from ...utils.scoring import KNOWN_FROM
+from ...utils.scoring import level_for, KNOWN_FROM
 from ..system_data import ScoreService
 from .lesson_gate import GateService
-from ..system_data.settings import resolve
+from .studied_types import studied_types
 from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
@@ -126,7 +127,7 @@ class StudyGoalService:
     @transactional
     def kinds(self, user_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:
         """The goal types the course studies (its Element types setting): the card and the menu show only these."""
-        wanted = resolve(user_id, language_id, "element_types", session=session)
+        wanted = studied_types(user_id, language_id, session=session)      # SG-14
         return [k for k in TYPES if k in wanted]
 
     def _hide_unstudied(self, goal: StudyGoal, user_id: str, session) -> None:
@@ -228,7 +229,9 @@ class StudyGoalService:
         items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
         done = self._done(items, user_id, session)
         types = {k: {"n": lock["n"][k], "picked": 0, "mastered": 0, "carried": 0,
-                     "r": lock["r"][k], "review_picked": 0, "review_done": 0} for k in TYPES}
+                     "r": lock["r"][k], "review_picked": 0, "review_done": 0, "partial": 0.0, "review_partial": 0.0, "carried_partial": 0.0} for k in TYPES}
+        part = self._partials(items, done, user_id, session)
+        shown_scores = self._scores(user_id, list({i.element_id for i in items}), session)       # the hover card: score and level of each element
         listed = []
         for i in items:
             kind = _type_of(i.element_id)
@@ -236,6 +239,11 @@ class StudyGoalService:
             current = i.cycle_start == start
             if not current and finished:
                 continue                                     # old periods only carry unfinished elements
+            if i.id in part:
+                if current:
+                    row["partial" if i.kind == "new" else "review_partial"] += part[i.id][0]
+                else:
+                    row["carried_partial"] += part[i.id][0]
             if current and i.kind == "new":
                 row["picked"] += 1
                 row["mastered"] += int(finished)
@@ -246,7 +254,9 @@ class StudyGoalService:
                 row["carried"] += 1
             label, lesson_id = self._describe(i.element_id, session)
             listed.append({"id": i.element_id, "kind": kind, "role": i.kind, "label": label, "lesson_id": lesson_id,
-                           "done": finished, "carried": not current})
+                           "done": finished, "carried": not current,
+                           "progress": None if finished else round(part[i.id][0], 2), "to_go": None if finished else part[i.id][1],
+                           "score": round(shown_scores.get(i.element_id, 0.0), 1), "level": level_for(shown_scores.get(i.element_id, 0.0))})
         pending = (goal.period != lock["period"]
                    or any(getattr(goal, TYPES[k][1]) != lock["n"][k] or getattr(goal, TYPES[k][2]) != lock["r"][k] for k in TYPES))
         return {"period": lock["period"], "active": goal.active, "cycle_start": start.isoformat(), "cycle_end": end.isoformat(),
@@ -337,6 +347,33 @@ class StudyGoalService:
         # effective scores; a vocabulary is computed from its sides (no stored parent row)
         return {eid: r.score for eid, r in ScoreService().get_many(user_id, list(element_ids), session=session).items()}
 
+    @staticmethod
+    def _sides_seen(reviews, user_id, session):
+        """({review item id: the cards to answer}, {card id: its latest answer}); a vocabulary is two cards (its sides)."""
+        sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
+        rows = session.query(Score.element_id, Score.last_seen_at).filter(
+            Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
+        seen: dict = {}
+        for element_id, last in rows:       # a side has one row per skill: its latest answer counts
+            if last and (seen.get(element_id) is None or last > seen[element_id]):
+                seen[element_id] = last
+        return sides, seen
+
+    def _partials(self, items, done, user_id, session) -> dict[str, tuple[float, int]]:
+        """RC-27 / SG-13: how far each unmet item is, as (share 0..1, what is left): a new one by its score over the Known bar (points left), a review one by
+        the share of its sides answered since its own period began (sides left). Carried items count too. Uses no threshold but `KNOWN_FROM`."""
+        open_items = [i for i in items if i.id not in done]
+        news = [i for i in open_items if i.kind == "new"]
+        scores = self._scores(user_id, [i.element_id for i in news], session)
+        out = {i.id: (min(scores.get(i.element_id, 0.0) / KNOWN_FROM, 1.0), max(1, math.ceil(KNOWN_FROM - scores.get(i.element_id, 0.0)))) for i in news}
+        reviews = [i for i in open_items if i.kind == "review"]
+        sides, seen = self._sides_seen(reviews, user_id, session)
+        for i in reviews:
+            since = datetime.combine(i.cycle_start, time.min)
+            answered = sum(1 for x in sides[i.id] if (seen.get(x) or datetime.min) >= since)
+            out[i.id] = (answered / len(sides[i.id]), len(sides[i.id]) - answered)
+        return out
+
     def _done(self, items, user_id, session) -> set[str]:
         """Ids of the finished items: a new one once it reached known at any moment (`succeeded_at`, permanent: decay never
         undoes it, DM-53), a review one once reviewed since its own period began (both sides for vocabulary)."""
@@ -349,13 +386,7 @@ class StudyGoalService:
             session.flush()
         finished = {i.id for i in items if i.kind == "new" and i.succeeded_at is not None}
         reviews = [i for i in items if i.kind == "review"]
-        sides = {i.id: ([f"{i.element_id}#{s}" for s in SIDES] if _type_of(i.element_id) == "vocabulary" else [i.element_id]) for i in reviews}
-        rows = session.query(Score.element_id, Score.last_seen_at).filter(
-            Score.user_id == user_id, Score.element_id.in_([x for v in sides.values() for x in v])).all() if reviews else []
-        seen: dict = {}
-        for element_id, last in rows:       # a side has one row per skill: its latest answer counts
-            if last and (seen.get(element_id) is None or last > seen[element_id]):
-                seen[element_id] = last
+        sides, seen = self._sides_seen(reviews, user_id, session)
         for i in reviews:
             since = datetime.combine(i.cycle_start, time.min)
             if all((seen.get(x) or datetime.min) >= since for x in sides[i.id]):
@@ -382,11 +413,18 @@ class StudyGoalService:
 
     @staticmethod
     def _new_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None) -> list[str]:
-        """Up to n unstarted element ids (no Score row, or score 0) in lesson order, then creation order.
+        """Up to n unseen element ids (SG-12: never answered, never scored) in lesson order, then creation order.
         `only_lesson`: the soft gate is closed, draw from that lesson only."""
         ids = [i for i in StudyGoalService._language_elements(model, language_id, session, only_lesson) if i not in taken]
-        scores = StudyGoalService._scores(user_id, ids, session)
-        return [i for i in ids if scores.get(i, 0.0) == 0.0][:n]
+        seen = StudyGoalService._seen(user_id, ids, session)
+        return [i for i in ids if i not in seen][:n]
+
+    @staticmethod
+    def _seen(user_id, ids, session) -> dict:
+        """Priority inputs of the elements the learner has met: a score above 0 or an answer ever given (a wrong first answer counts)."""
+        now = datetime.now()
+        rows = ScoreService().priority_inputs(user_id, ids, now, learner_today(None, now), session=session) if ids else {}
+        return {i: r for i, r in rows.items() if r.score > 0 or r.last_seen_at is not None}
 
     @staticmethod
     def _review_elements(model, language_id, user_id, taken, n, session, only_lesson: Optional[str] = None) -> list[str]:
@@ -395,6 +433,6 @@ class StudyGoalService:
         if not ids:
             return []
         now = datetime.now()
-        seen = ScoreService().priority_inputs(user_id, ids, now, learner_today(None, now), session=session)   # ponytail: server zone until the learner's zone is passed in (Task 5)
+        seen = StudyGoalService._seen(user_id, ids, session)   # ponytail: server zone until the learner's zone is passed in (Task 5)
         ranked = sorted(seen, key=lambda i: review_priority(seen[i].score, seen[i].stability, seen[i].last_seen_at, seen[i].lapses, now), reverse=True)
         return ranked[:n]

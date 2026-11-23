@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { getStudiedTypes } from "@/lib/studiedTypes";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { pageImageUrl } from "@/api/ingestion";
 import PagePanel from "./pagePanel";
@@ -12,6 +13,7 @@ type Props = {
   value: Record<number, Kind[]>;
   onChange: (value: Record<number, Kind[]>) => void;
   jobId?: string;
+  languageId?: string;         // the kinds the course does not study are not offered (SG-14)
   onFocusPage?: (page: number) => void;
 };
 
@@ -23,8 +25,11 @@ function getKindLabel(kind: Kind, t: ReturnType<typeof useTranslations>): string
   return t(map[kind] || kind);
 }
 
-export default function PageKinds({ pages, value, onChange, jobId, onFocusPage }: Props) {
+export default function PageKinds({ pages, value, onChange, jobId, languageId, onFocusPage }: Props) {
   const t = useTranslations("ingestion");
+  const [studied, setStudied] = useState<string[] | null>(null);
+  useEffect(() => { if (languageId) getStudiedTypes(languageId).then(setStudied); }, [languageId]);
+  const kinds = KINDS.filter((k) => !studied || studied.includes(k === "exercise" ? "exercises" : k));
   const toggleKind = (page: number, kind: Kind) => {
     const currentKinds = value[page] || [];
     const newKinds = currentKinds.includes(kind)
@@ -55,7 +60,7 @@ export default function PageKinds({ pages, value, onChange, jobId, onFocusPage }
                 </div>
                 <div className="flex-1">
                   <div role="group" aria-label={`Kinds on page ${page}`} className="flex flex-wrap gap-2">
-                    {KINDS.map((kind) => {
+                    {kinds.map((kind) => {
                       const isActive = kindsForPage.includes(kind);
                       return (
                         <button

@@ -1,3 +1,5 @@
+import type { LessonElements } from "@/components/exercises/exerciseForm";
+import { getStudiedTypes, studiedElements } from "@/lib/studiedTypes";
 import { getLanguageById } from "@/api/language";
 import type Exercise from "@/interface/features/Exercise";
 import ExerciseForm from "@/components/exercises/exerciseForm";
@@ -16,12 +18,6 @@ type paramsType = {
     ex_id: string;
 };
 
-interface LessonElements {
-    vocabularies: Vocabulary[];
-    grammars: Grammar[];
-    calligraphies: Calligraphy[];
-}
-
 export default async function UpdateExercisePage({ params }: { params: Promise<paramsType> }) {
     const t = await getTranslations("languages");
     const { language_id, lesson_id, ex_id } = await params;
@@ -31,11 +27,7 @@ export default async function UpdateExercisePage({ params }: { params: Promise<p
     const grammars: Grammar[] = await getGrammarByLesson(lesson_id);
     const vocabularies: Vocabulary[] = await getVocabularyByLesson(lesson_id);
 
-    const lessonElements: LessonElements = {
-        calligraphies,
-        grammars,
-        vocabularies
-    };
+    const lessonElements: LessonElements = studiedElements(await getStudiedTypes(language_id), { vocabularies, grammars, calligraphies });
 
     return (
         <main>

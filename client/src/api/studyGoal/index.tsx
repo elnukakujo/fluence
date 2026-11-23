@@ -3,8 +3,8 @@ import { apiFetch } from "../apiFetch";
 export type GoalKind = "vocabulary" | "grammar" | "calligraphy";
 /** Quantities are per period; the saved ones start with the NEXT period, the running period's menu is locked. */
 export interface StudyGoal { id: string; language_id: string; period: "week" | "biweek" | "month"; start_date: string; n_vocabulary: number; n_grammar: number; n_calligraphy: number; r_vocabulary: number; r_grammar: number; r_calligraphy: number; active: boolean; auto: boolean }
-export interface GoalTypeProgress { n: number; picked: number; mastered: number; carried: number; r: number; review_picked: number; review_done: number }
-export interface GoalItem { id: string; kind: GoalKind; role: "new" | "review"; label: string; lesson_id: string | null; done: boolean; carried: boolean }
+export interface GoalTypeProgress { n: number; picked: number; mastered: number; carried: number; r: number; review_picked: number; review_done: number; partial?: number; review_partial?: number; carried_partial?: number }
+export interface GoalItem { id: string; kind: GoalKind; role: "new" | "review"; label: string; lesson_id: string | null; done: boolean; carried: boolean; progress?: number | null; to_go?: number | null; score?: number; level?: string }
 export interface StudyGoalProgress {
     period: string; active: boolean; cycle_start: string; cycle_end: string;
     types: Record<GoalKind, GoalTypeProgress>; items: GoalItem[];

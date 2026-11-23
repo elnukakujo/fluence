@@ -16,18 +16,52 @@ const picker = (over: Partial<Parameters<typeof CustomReviewPicker>[0]> = {}) =>
   render(<CustomReviewPicker languageId="lang_1" types={["vocabulary", "grammar", "calligraphy", "exercise"]} sources={sources} tags={tags} {...over} />);
 
 describe("custom review picker", () => {
-  it("starts on the type tab and links each type to its queue", () => {
-    picker();
+  const STATS = {
+    vocabulary: { total: 400, seen: 100, mean_seen: 41.6, fading: 7, due: 30 },
+    grammar: { total: 50, seen: 20, mean_seen: 55, fading: 0, due: 12 },
+    calligraphy: { total: 80, seen: 10, mean_seen: 20, fading: 2, due: 5 },
+    exercise: { total: 200, seen: null, mean_seen: null, fading: null, due: 9 },
+  };
+
+  it("starts on the type tab: one card per type with its figures, the one with most due selected, one start bar", () => {
+    picker({ stats: STATS });
     expect(screen.getByRole("tab", { name: "Type" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("link", { name: "Grammar" })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=type&type=grammar");
-    expect(screen.getByRole("link", { name: "Exercises" })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=type&type=exercise");
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
+    expect(screen.getByRole("radio", { name: /Vocabulary/ })).toBeChecked();                 // 30 due, the most
+    expect(screen.getByText("100 of 400 seen")).toBeInTheDocument();
+    expect(screen.getByText("42")).toBeInTheDocument();                                      // average score, rounded
+    expect(screen.getByRole("link", { name: /Review Vocabulary · 400 cards/ })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=type&type=vocabulary");
+  });
+
+  it("a vocabulary start bar says cards and words: 110 cards · 55 words", () => {
+    picker({ stats: { ...STATS, vocabulary: { ...STATS.vocabulary, total: 55, cards: 110 } } });
+    expect(screen.getByRole("link", { name: /Review Vocabulary · 110 cards · 55 words/ })).toBeInTheDocument();
+  });
+
+  it("tells where an interrupted review of the chosen type stands", () => {
+    localStorage.setItem("review-resume:/languages/lang_1/review/queue?scope=type&type=vocabulary", JSON.stringify({ ids: ["a", "b", "c", "d"], done: ["a", "b", "c"], sessionId: "s", day: new Date().toLocaleDateString("sv") }));
+    picker({ stats: STATS });
+    expect(screen.getByRole("link", { name: /Resume 3 \/ 4 · Review Vocabulary/ })).toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  it("choosing another type moves the start bar to it", async () => {
+    picker({ stats: STATS });
+    await userEvent.click(screen.getByRole("radio", { name: /Exercises/ }));
+    expect(screen.getByRole("link", { name: /Review Exercises/ })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=type&type=exercise");
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("still works without figures (they could not be fetched)", () => {
+    picker();
+    expect(screen.getByRole("link", { name: "Review Vocabulary" })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=type&type=vocabulary");
   });
 
   it("lists sources then tags on their tabs, each with its own scope", async () => {
     picker();
     await userEvent.click(screen.getByRole("tab", { name: "Source" }));
     expect(screen.getByRole("link", { name: "Genki" })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=source&source_id=src_1");
-    expect(screen.queryByRole("link", { name: "Grammar" })).toBeNull();
+    expect(screen.queryByRole("radio")).toBeNull();
     await userEvent.click(screen.getByRole("tab", { name: "Tag" }));
     expect(screen.getByRole("link", { name: "travel" })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=tag&tag_id=tag_1");
   });
@@ -54,8 +88,8 @@ describe("custom review picker", () => {
 
   it("offers only the types the course studies and never a component", () => {
     picker({ types: ["vocabulary"] });
-    expect(screen.getAllByRole("link")).toHaveLength(1);
-    expect(screen.queryByRole("link", { name: /character|word|passage|radical/i })).toBeNull();
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(screen.queryByRole("radio", { name: /character|word|passage|radical/i })).toBeNull();
   });
 
   it("the old by-type page redirects to the custom review", async () => {

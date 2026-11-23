@@ -11,6 +11,7 @@ import type Exercise from "@/interface/features/Exercise";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
+import ActionBar, { type ActionResult } from "./ActionBar";
 import ReviewHeader from "@/components/elements/reviewHeader";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
@@ -20,11 +21,15 @@ import LeechPanel from "@/components/elements/leechPanel";
 import { pickReplacement } from "@/utils/replaceCard";
 import { suggestedGrade } from "@/utils/cardHints";
 import { isExercise, rendererFor } from "./renderers";
+import { preloadAhead } from "@/lib/review/lookAhead";
+import { clearResume, loadResume, saveResume } from "@/lib/review/resume";
 import type { RendererCtx, SessionItem, SessionOptions, ShellState, TypedState } from "./types";
 import { Pencil } from "lucide-react";
 import EditElementDialog from "./EditElementDialog";
 import ReviewDeleteButton from "./ReviewDeleteButton";
 import EmptyState from "@/components/ui/emptyState";
+import SessionSummary from "./SessionSummary";
+import { setReviewSession } from "@/api/apiFetch";
 
 export type { SessionItem, SessionOptions } from "./types";
 
@@ -44,6 +49,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const [graded, setGraded] = useState<boolean>(false);
     const [finishedId, setFinishedId] = useState<string>();   // exercise whose answer is final (solved, out of attempts or given up); a replacing spare has another id
     const [gaveUpId, setGaveUpId] = useState<string>();
+    const [result, setResult] = useState<ActionResult | null>(null);       // what the answer did to the card: the strip over Next
     const [typed, setTyped] = useState<TypedState>(null);
     const [typedPending, setTypedPending] = useState(false);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
@@ -61,21 +67,43 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const slot = remaining[0];
     const currentIndex = done.length;
     const [streak, setStreak] = useState<number | null>(null);
+    const [sessionId, setSessionId] = useState(() => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);   // not crypto.randomUUID: it needs https
+    useEffect(() => { setReviewSession(sessionId); return () => setReviewSession(undefined); }, [sessionId]);
+    const resumeKey = typeof window !== "undefined" && languageId ? window.location.pathname + window.location.search : null;   // language and scope are both in the URL
+    useEffect(() => {      // an interrupted review picks up: the cards already answered stay done, and the totals keep one session
+        const saved = resumeKey ? loadResume(resumeKey) : null;
+        if (!saved) return;
+        const here = new Set(queue.map(keyOf));
+        const kept = saved.done.filter((id) => here.has(id));
+        if (kept.length) { setDone(kept); setSessionId(saved.sessionId); }
+    }, []);       // eslint-disable-line react-hooks/exhaustive-deps -- once, on arrival
     const finishedRef = useRef(false);
     const finish = () => {          // the queue's last card was answered: the day counts for the streak, once
         if (finishedRef.current || !languageId || options?.completeOnFinish === false) return;
         finishedRef.current = true;
         completeReview(languageId, queue.length).then((r) => setStreak(r.just_validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
     };
+    const againHref = typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined;   // the same queue page, reloaded: a fresh queue
     const last = remaining.length === 1;
-    useEffect(() => { if (last && graded) finish(); });
-    useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [edited, setEdited] = useState<Record<string, ReviewCard>>({});   // element id -> its fresh data after an edit made during this session
     const [editing, setEditing] = useState(false);
     const shown = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
     const card = shown && edited[shown.id!] ? { ...shown, ...edited[shown.id!] } as ReviewCard : shown;
+    const cardDone = graded || (!!card && (finishedId === card.id || gaveUpId === card.id));      // graded, or an exercise whose answer is final
+    const ended = (last && cardDone) || (!slot && done.length > 0);      // the session is over: its totals are saved and the day counts
+    const [resultsOpen, setResultsOpen] = useState(false);              // the last card keeps its feedback until the learner moves on: then the result stands alone
+    const showResults = ended && (resultsOpen || !slot);
+    useEffect(() => {
+        if (!resumeKey) return;
+        if (ended) clearResume(resumeKey);
+        else if (done.length) saveResume(resumeKey, { ids: queue.map(keyOf), done, sessionId });
+    }, [done, ended]);       // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (ended && typeof window.scrollTo === "function") window.scrollTo({ top: 0 }); }, [ended]);
+    useEffect(() => { if (last && cardDone) finish(); });
+    useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
+    useEffect(() => { preloadAhead(queue, queue.findIndex((c) => c === slot)); }, [slot]);       // the next two cards' strokes and audio load while this one is worked on
     const renderer = card ? rendererFor(card) : null;
     const autoDraw = !!card && !!renderer?.opensDrawing?.(card);
 
@@ -92,6 +120,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         setShowPractice(autoDraw);
         setPracticeResult(null);
         setCantHear(false);
+        setResult(null);
         if (autoDraw && card && renderer?.canOpenDrawing) {        // no stroke data for this character: flip it, never a blank canvas
             let stale = false;
             renderer.canOpenDrawing(card).then((ok) => { if (!ok && !stale) setShowPractice(false); });
@@ -102,8 +131,9 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     if (!card || !renderer) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
-                <EmptyState>{t("nothingToReview")}</EmptyState>
-                <BackButton href={backHref}>{backLabel}</BackButton>
+                {showResults
+                    ? <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />
+                    : <><EmptyState>{t("nothingToReview")}</EmptyState><BackButton href={backHref}>{backLabel}</BackButton></>}
             </article>
         );
     }
@@ -111,7 +141,10 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const handleGrade = (score: number, evidence: Evidence = "self_grade") => {
         setGraded(true);
         const side = renderer.scoreSide?.(card);
-        updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side });
+        const shownId = card.id;
+        Promise.resolve(updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side }))
+            .then((r) => { if (r && typeof r.score_after === "number" && shownId === card.id) setResult({ before: r.score_before ?? 0, after: r.score_after, level: r.level_after ?? "learning", levelUp: r.level_before !== r.level_after && ["known", "mastered"].includes(r.level_after), capped: !!r.capped }); })
+            .catch(() => undefined);
     };
 
     const reveal = () => {
@@ -124,6 +157,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const handleGoNext = () => {
         setDone([...done, keyOf(slot)]);
     };
+    const goOn = () => (last ? setResultsOpen(true) : handleGoNext());     // after an answer: the next card, or from the last one on to the result
 
     // RC-23: the card's element is gone (no score is written); a spare standing in for the slot ends the slot too.
     const handleDeleted = () => {
@@ -150,8 +184,16 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         else { setHiddenTranslation(false); handleGrade(0, "multiple_choice"); }
     };
 
+    const answered = renderer.whole ? finishedId === card.id || gaveUpId === card.id : graded;   // an element is only edited once its card is done
+    const editButton = answered && (
+        <button type="button" className="btn btn-secondary !p-2 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label={t("editButton")} title={t("editButton")} onClick={() => setEditing(true)}>
+            <Pencil size={18} aria-hidden />
+        </button>
+    );
+
+
     const ctx: RendererCtx = {
-        ...state, ...view, hintShown, item: card, languageId, deleteButton,
+        ...state, ...view, hintShown, item: card, languageId, deleteButton, editButton,
         reveal, pickChoice, effectiveLevel, hintUsed,
         openPractice: () => setShowPractice(true),
         closePractice: () => setShowPractice(false),
@@ -168,16 +210,16 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         onExerciseFinished: () => setFinishedId(card.id),
         onGiveUp: () => setGaveUpId(card.id),
         onReplace: handleReplace,
-        onNext: handleGoNext,
+        onNext: goOn,
         onBackFinish: finish,
         backLabel,
     };
 
-    const answered = renderer.whole ? ctx.finished || ctx.gaveUp : graded;   // an element is only edited once its card is done
-    const editButton = answered && (
-        <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center justify-center gap-2" onClick={() => setEditing(true)}>
-            <Pencil size={16} aria-hidden />{t("editButton")}
-        </button>
+    if (showResults) return (       // the result stands alone: the card, its header, feedback and buttons are gone, and the bar is the page's last child
+        <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
+            <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />
+            {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
+        </article>
     );
 
     return (
@@ -198,15 +240,14 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                     card.last_seen_at ? `${t("lastSeen")}: ${new Date(card.last_seen_at).toLocaleDateString()}` : "",
                 ].filter(Boolean)}
                 progressLabel={t("reviewProgress")}
-                badges={view.tier ? <TierBadge tier={view.tier} /> : undefined}
+                badges={<>{view.tier && <TierBadge tier={view.tier} />}{card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}</>}
             />
 
-            {!hintShown && !renderer.whole && <div className="flex justify-end">{deleteButton}</div>}
+            {!hintShown && !renderer.whole && <div className="flex items-start justify-end gap-2">{editButton}{deleteButton}</div>}
 
-            {renderer.whole ? <>{renderer.whole(ctx)}{editButton}</> : (
+            {renderer.whole ? renderer.whole(ctx) : (
                 <>
                     {renderer.pre?.(ctx)}
-                    {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
                     <div className="flex flex-col gap-2">
                         {hintShown && (
                             <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} shown={{ detail: view.showDetail, example: !!view.example }}
@@ -217,23 +258,10 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
                     {renderer.escape?.(ctx)}
 
-                    {/* ── Grade buttons (hidden while drawing; "I can't draw" brings them back) ── */}
-                    {!hiddenTranslation && !graded && !showPractice && (
-                        <RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
-                    )}
-
+                    {/* grade buttons: the pinned bar at the end of this article (hidden while drawing; "I can't draw" brings them back) */}
                     {/* ── Post-grade content ───────────────────────── */}
                     {graded && (
                         <>
-                            {/* next first: the details below can be long, the action must stay in view */}
-                            {remaining.length > 1 ? (
-                                <button className="btn btn-primary min-h-11 w-full" onClick={handleGoNext} autoFocus>
-                                    {t("nextButton")}
-                                </button>
-                            ) : (
-                                <BackButton onBefore={finish} href={backHref}>{backLabel}</BackButton>
-                            )}
-                            {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
                             <ElementSourcesCard element={card} />
@@ -245,6 +273,11 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {editing && <EditElementDialog card={card} languageId={languageId ?? window.location.pathname.split("/")[2]}
                 onSaved={(fresh) => setEdited((e) => ({ ...e, [fresh.id!]: fresh }))} onClose={() => setEditing(false)} />}
             {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
+            {/* last child, so it sticks to the bottom of the screen like the forms' Save bar; the last card's way out is the end screen's bar */}
+            {!renderer.whole && !hiddenTranslation && !graded && !showPractice && (
+                <ActionBar phase="grade"><RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} /></ActionBar>
+            )}
+            {!renderer.whole && graded && <ActionBar phase="next" onNext={goOn} result={result} nextLabel={last ? tStudy("seeResults") : undefined} />}
         </article>
     );
 }

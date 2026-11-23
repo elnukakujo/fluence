@@ -61,9 +61,9 @@ def test_route_validates_only_after_an_answer(app, db):
     _seed(db)
     c = app.test_client()
     c.set_cookie('session_token', AuthService().create_session("user_S1", remember=False))
-    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 0, "validated": False}
+    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 0, "validated": False, "just_validated": False}
     StudyActivity().record("user_S1", "lang_S1", ProgressTrackingDict(
         element_id="voc_1", element_type="vocabulary", element_status="learning", score_before=0.0, score_after=10.0, result=True, duration_ms=1000.0), tz="UTC")
-    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 1, "validated": True}
-    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 1, "validated": True}
+    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 1, "validated": True, "just_validated": True}
+    assert c.post('/api/review/lang_S1/complete', json={}, headers={"X-Timezone": "UTC"}).get_json() == {"streak": 1, "validated": True, "just_validated": False}
     assert _longest() == 1

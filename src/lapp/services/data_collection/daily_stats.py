@@ -159,6 +159,8 @@ class DailyStatsService:
             day=day,
             session=session,
         )
+        if progress_tracking.card_id is not None and progress_tracking.element_id != progress_tracking.card_id:
+            return daily_stats                       # RC-27: a linked element an exercise credits is scored, not counted again
         daily_stats.items_reviewed += 1
         if progress_tracking.result is True:
             daily_stats.items_correct += 1

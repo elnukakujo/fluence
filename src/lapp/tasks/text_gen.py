@@ -16,6 +16,7 @@ from ..models.base import (
     grammar_example_word_link,
 )
 from ..schemas import GrammarDict, CalligraphyDict, VocabularyDict
+from ..services.features.studied_types import studied_types
 from ..services import TextGeneratorService, GrammarService, VocabularyService, CalligraphyService
 from ..services.system_data import UserPreferencesService
 from ..services.capabilities import gated_api
@@ -145,6 +146,8 @@ def generate_missing_texts(app: Flask):
                 progress.set_postfix_str(f"{type(feature).__name__} {feature.id}")
                 language: Language = db_manager.find_by_pk(Language(id=feature.lesson.language_id), session=session)
                 lang_codes = f"{language.source_iso639_2t}->{language.target_iso639_2t}"
+                if type(feature).__name__.lower() not in studied_types(language.user_id, language.id, session=session):
+                    continue                                      # SG-14: nothing is generated for a type the language does not study
 
                 if language.user_id not in ai_gen_by_user:
                     prefs = user_preferences_service.get_by_user_id(language.user_id, session=session)

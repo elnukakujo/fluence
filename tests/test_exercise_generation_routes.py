@@ -37,7 +37,7 @@ def _client(app, uid):
 
 
 def _item(n, reason=None):
-    return {"exercise_type": "essay", "question": f"Q{n}?", "answer": "A", "text_support": None, "content": None, "review_reason": None,
+    return {"exercise_type": "essay", "question": f"Q{n} about w0?", "answer": "A", "text_support": None, "content": None, "review_reason": None,
             "linked": ["w0"], "related_vocabulary": ["voc_V0"], "related_grammar": [], "related_calligraphy": []}
 
 
@@ -235,3 +235,43 @@ def test_generate_without_a_grammar_is_409_no_grammar(app, db, stub):
     _lesson(db, grammar=False)
     r = _client(app, "user_U1").post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6})
     assert r.status_code == 409 and r.get_json()["error"] == "no_grammar"
+
+
+def test_a_generated_exercise_that_does_not_use_its_linked_word_is_flagged_not_published(app, db, stub, monkeypatch):
+    """EG-24: the link is the model's claim; the text must confirm it, or the exercise waits for the owner."""
+    _user(db, "user_U1")
+    _lesson(db)
+    stub.reasons = [None, None, None]
+    monkeypatch.setattr(jobs, "generate_batch", lambda slots, api, target, progress=lambda: None, **kw: [progress() or {**_item(0), "question": "Nothing about it"}])
+    c = _client(app, "user_U1")
+    job = _wait(c, c.post("/api/lesson/lesson_L1/exercises/generate", json={"count": 6}).get_json()["job_id"])
+    assert job["result"]["saved"] == 0 and len(job["result"]["flagged"]) == 1
+    flagged = next(e for e in c.get("/api/exercise/lesson/lesson_L1").get_json() if e["review_reason"])
+    assert flagged["review_reason"] == "links to confirm: w0"
+
+
+def test_redo_rebuilds_a_stored_exercise_from_its_links_and_saves_nothing(app, db, monkeypatch):
+    """EG-25: the model rebuilds it (same or another type); the reply is for the review to show, the stored exercise is unchanged until accepted."""
+    from lapp.api.routes import exercise_generation as routes
+    _user(db, "user_U1")
+    _lesson(db)
+    with db.session_scope() as s:
+        ex = Exercise(id="ex_E1", lesson_id="lesson_L1", exercise_type="essay", question="old", answer="old")
+        db.insert(ex, session=s, commit=False)
+        s.flush()
+        ex.related_vocabulary.append(s.get(Vocabulary, "voc_V0"))
+        ex.related_grammar.append(s.get(Grammar, "gram_G0"))
+    seen = {}
+    def fake(slots, api, target, **kw):
+        seen["slot"] = [(i.id, i.kind) for i in slots[0].items]; seen["type"] = slots[0].exercise_type
+        return [{**_item(1), "question": "fresh about w0", "related_grammar": ["gram_G0"]}]
+    monkeypatch.setattr(routes, "generate_batch", fake)
+    c = _client(app, "user_U1")
+    r = c.post("/api/exercise/ex_E1/redo", json={})
+    assert r.status_code == 200 and r.get_json()["question"] == "fresh about w0" and r.get_json()["review_reason"] is None
+    assert seen["type"] == "essay" and seen["slot"][0] == ("gram_G0", "grammar") and ("voc_V0", "vocabulary") in seen["slot"]      # the grammar anchors
+    assert c.get("/api/exercise/ex_E1").get_json()["question"] == "old"
+    assert c.post("/api/exercise/ex_E1/redo", json={"exercise_type": "not_a_type"}).status_code == 400
+    with db.session_scope() as s:
+        db.insert(Exercise(id="ex_E2", lesson_id="lesson_L1", exercise_type="essay", question="q", answer="a"), session=s, commit=False)
+    assert c.post("/api/exercise/ex_E2/redo", json={}).status_code == 409                       # linked to nothing: nothing to rebuild from

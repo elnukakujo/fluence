@@ -41,6 +41,7 @@ export type ItemView = {
 
 /** Everything a slot function may use: the item, shell state, derived view and the shell's callbacks. */
 export type RendererCtx<T extends SessionItem = SessionItem> = ShellState & ItemView & {
+    editButton?: ReactNode;                           // the session's Edit (only once the card is answered), laid out next to Delete
     deleteButton?: ReactNode;                         // the session's Delete, for a renderer that lays it out itself (`whole`)
     item: T;
     hintShown: boolean;           // the hint ladder is on screen (shell: tier set, card hidden, not drawing, no leech choice)

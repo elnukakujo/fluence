@@ -1,3 +1,5 @@
+import type { LessonElements } from "@/components/exercises/exerciseForm";
+import { getStudiedTypes, studiedElements } from "@/lib/studiedTypes";
 import { getLanguageById } from "@/api/language";
 import { getCalligraphyByLesson } from "@/api/calligraphy";
 import { getGrammarByLesson } from "@/api/grammar";
@@ -8,12 +10,6 @@ import Grammar from "@/interface/features/Grammar";
 import Vocabulary from "@/interface/features/Vocabulary";
 import { getTranslations } from "next-intl/server";
 
-interface LessonElements {
-    vocabularies: Vocabulary[];
-    grammars: Grammar[];
-    calligraphies: Calligraphy[];
-}
-
 export default async function createExercisePage({ params }: { params: Promise<{ language_id: string; lesson_id: string }> }) {
     const t = await getTranslations("languages");
     const { language_id, lesson_id } = await params;
@@ -22,11 +18,7 @@ export default async function createExercisePage({ params }: { params: Promise<{
     const grammars: Grammar[] = await getGrammarByLesson(lesson_id);
     const vocabularies: Vocabulary[] = await getVocabularyByLesson(lesson_id);
 
-    const lessonElements: LessonElements = {
-        vocabularies,
-        grammars,
-        calligraphies
-    };
+    const lessonElements: LessonElements = studiedElements(await getStudiedTypes(language_id), { vocabularies, grammars, calligraphies });
 
     return (
         <main className="flex flex-col items-center justify-center">

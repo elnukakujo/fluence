@@ -14,7 +14,6 @@ export default function SkipButtons({ exercise, onSkip, onGiveUp }: { exercise: 
     const hear = needsHearing(exercise);
     const speak = needsSpeaking(exercise);
     const start = useRef(performance.now());
-    const Icon = hear ? EarOff : MicOff;
     const dontKnow = () => {
         creditExercise(exercise, 0, Math.round(performance.now() - start.current), false, 1);
         forgetAttempt();
@@ -25,9 +24,14 @@ export default function SkipButtons({ exercise, onSkip, onGiveUp }: { exercise: 
             <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" onClick={dontKnow}>
                 <CircleHelp size={16} aria-hidden />{t("dontKnow")}
             </button>
-            {(hear || speak) && (
-                <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" title={t("skipThisExercise")} onClick={() => onSkip(hear ? "hearing" : "speaking")}>
-                    <Icon size={16} aria-hidden />{hear ? t("cantHear") : t("cantSpeak")}
+            {hear && (
+                <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" title={t("skipThisExercise")} onClick={() => onSkip("hearing")}>
+                    <EarOff size={16} aria-hidden />{t("cantHear")}
+                </button>
+            )}
+            {speak && (
+                <button type="button" className="btn btn-secondary inline-flex items-center gap-2 min-h-11" title={t("skipThisExercise")} onClick={() => onSkip("speaking")}>
+                    <MicOff size={16} aria-hidden />{t("cantSpeak")}
                 </button>
             )}
         </div>

@@ -10,6 +10,7 @@ from ..models.components import Character, Passage, Word
 from ..models.containers import Language, Lesson
 from ..models.features import Calligraphy, Exercise, Grammar, Vocabulary
 from ..models.system_data import Collaboration, LessonShare, Source, Tag
+from .features.studied_types import studied_types
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,14 @@ def lesson_scope(user_id: str, session: Session):
 
 
 class SearchService:
+    @staticmethod
+    def _studied(user_id: str, kind: str, results: list[dict[str, Any]], session: Session) -> list[dict[str, Any]]:
+        """SG-14: a result of a type that its language does not study is not offered."""
+        cache: dict[str, bool] = {}
+        for r in results:
+            cache.setdefault(r["language_id"], kind in studied_types(user_id, r["language_id"], session=session))
+        return [r for r in results if cache[r["language_id"]]]
+
     def _append_results(self, buckets: dict[str, list[dict[str, Any]]], results: list[dict[str, Any]]) -> None:
         for result in results:
             buckets[result["type"]].append(result)
@@ -92,10 +101,11 @@ class SearchService:
             .order_by(Word.word)
             .all()
         )
-        return [
+        found = [
             {"category": "feature", "type": "vocabulary", "id": row.id, "label": row.label, "lesson_id": row.lesson_id, "language_id": self._get_lesson_language_id(row.lesson_id, session)}
             for row in rows
         ]
+        return self._studied(user_id, "vocabulary", found, session)
 
     def _search_grammar(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
         rows = (
@@ -105,10 +115,11 @@ class SearchService:
             .order_by(Grammar.title)
             .all()
         )
-        return [
+        found = [
             {"category": "feature", "type": "grammar", "id": row.id, "label": row.label, "lesson_id": row.lesson_id, "language_id": self._get_lesson_language_id(row.lesson_id, session)}
             for row in rows
         ]
+        return self._studied(user_id, "grammar", found, session)
 
     def _search_calligraphy(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
         rows = (
@@ -119,10 +130,11 @@ class SearchService:
             .order_by(Character.character)
             .all()
         )
-        return [
+        found = [
             {"category": "feature", "type": "calligraphy", "id": row.id, "label": row.label, "lesson_id": row.lesson_id, "language_id": self._get_lesson_language_id(row.lesson_id, session)}
             for row in rows
         ]
+        return self._studied(user_id, "calligraphy", found, session)
 
     def _search_exercise(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
         rows = (
@@ -132,10 +144,11 @@ class SearchService:
             .order_by(Exercise.question)
             .all()
         )
-        return [
+        found = [
             {"category": "feature", "type": "exercise", "id": row.id, "label": row.label, "lesson_id": row.lesson_id, "language_id": self._get_lesson_language_id(row.lesson_id, session)}
             for row in rows
         ]
+        return self._studied(user_id, "exercise", found, session)
 
     def _search_character(self, user_id: str, query_pattern: str, session: Session) -> list[dict[str, Any]]:
         rows = (

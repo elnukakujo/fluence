@@ -25,15 +25,68 @@ describe("study goal menu", () => {
         expect(screen.queryByText("Grammar")).toBeNull();
         expect(screen.getByLabelText("5/20 mastered")).toBeInTheDocument();
         expect(screen.getByLabelText("4 of 10 reviewed")).toBeInTheDocument();
-        expect(screen.getByText(/\+3 carried over/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/\+3 carried over/)).toBeInTheDocument();          // the carried ones have a bar of their own
         expect(screen.getByText(/5 days left/)).toBeInTheDocument();
         expect(screen.queryByText(/new elements available|review elements available/)).toBeNull();
         expect(screen.getByRole("link", { name: /Edit goal/ })).toHaveAttribute("href", "/s#goals");
     });
+    it("shows the partial progress of unmet elements as a lighter layer and a number, in the accessible name too", () => {
+        const st = state();
+        st.progress.types.vocabulary = { ...st.progress.types.vocabulary, partial: 2.43, review_partial: 0 } as typeof st.progress.types.vocabulary;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        expect(screen.getByText("+2.4 in progress")).toBeInTheDocument();
+        expect(screen.getByLabelText("5/20 mastered, +2.4 in progress")).toBeInTheDocument();
+        expect(screen.getAllByTestId("progress-partial")).toHaveLength(1);                    // only the bar that has partial progress
+    });
+    it("says how far every element is: points to Known, sides left, the closest one first, and the carried ones as a bar of their own", () => {
+        const st = state();
+        st.progress.types.vocabulary = { ...st.progress.types.vocabulary, carried: 2, carried_partial: 0.9 } as typeof st.progress.types.vocabulary;
+        st.progress.items = [
+            { id: "voc_1", kind: "vocabulary", role: "new", label: "水", lesson_id: "lesson_1", done: false, carried: true, progress: 0.2, to_go: 48 },
+            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "lesson_1", done: false, carried: true, progress: 0.95, to_go: 3 },
+            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "lesson_2", done: false, carried: false, progress: 0.5, to_go: 1 },
+        ] as never;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        expect(screen.getByText("Closest to done: 茶 · 3 to Known")).toBeInTheDocument();       // the one a few points away is named without opening the list
+        expect(screen.getByText("48 to Known", { ignore: "[role=tooltip] *" })).toBeInTheDocument();
+        expect(screen.getByText("1 side left", { ignore: "[role=tooltip] *" })).toBeInTheDocument();
+        expect(screen.getByLabelText("+2 carried over, +0.9 in progress")).toBeInTheDocument();
+        const names = screen.getAllByRole("link").map((a) => a.textContent).filter((x) => ["水", "茶"].some((c) => x?.includes(c)));
+        expect(names.map((n) => n?.replace(" ↺", ""))).toEqual(["茶", "水"]);                    // closest first inside a group
+    });
+    it("each card has a strip with one segment per element, a count to go and the three counts in words", () => {
+        const st = state();
+        st.progress.items = [
+            { id: "voc_1", kind: "vocabulary", role: "new", label: "水", lesson_id: "l", done: true, carried: false, progress: null, to_go: null },
+            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "l", done: false, carried: true, progress: 0.95, to_go: 3 },
+            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "l", done: false, carried: false, progress: 0, to_go: 2 },
+            { id: "cal_1", kind: "calligraphy", role: "new", label: "海", lesson_id: "l", done: true, carried: false, progress: null, to_go: null },
+        ] as never;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        const strips = screen.getAllByTestId("goal-strip");
+        expect(strips).toHaveLength(2);                                                          // vocabulary and calligraphy (grammar has no slots in this state)
+        const voc = strips[0];
+        expect(Array.from(voc.children).map((c) => c.firstElementChild?.getAttribute("data-state"))).toEqual(["done", "started", "none"]);   // done first, then the closest
+        expect(voc).toHaveAttribute("aria-label", "Vocabulary: 1 done, 1 started, 1 not started");
+        expect(screen.getAllByTestId("to-go").map((e) => e.textContent)).toEqual(["2 to go", "All done"]);
+    });
+    it("each strip square has a hover tab with the element's name, score, level and what is left", () => {
+        const st = state();
+        st.progress.items = [
+            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "l", done: false, carried: true, progress: 0.95, to_go: 3, score: 57.2, level: "learning" },
+            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "l", done: true, carried: false, progress: null, to_go: null, score: 71, level: "known" },
+        ] as never;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        const tabs = screen.getAllByTestId("segment-tab");
+        expect(tabs[0]).toHaveTextContent("火Score 71 · Knowndone");                                // done ones come first
+        expect(tabs[1]).toHaveTextContent("茶 ↺Score 57 · Learning3 to Known");
+        expect(tabs[0]).toHaveAttribute("role", "tooltip");
+        expect(tabs[0].className).toContain("pointer-events-none");                               // it never steals the pointer from the strip
+    });
     it("lists the menu in a New group and a Review group, done ones checked", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);
         expect(screen.getByText("Show 3 elements")).toBeInTheDocument();
-        for (const w of ["水", "茶", "火"]) expect(screen.getByText(new RegExp(w))).toBeInTheDocument();
+        for (const w of ["水", "茶", "火"]) expect(screen.getAllByText(new RegExp(w), { ignore: "[role=tooltip] *" })[0]).toBeInTheDocument();
     });
     it("links each element to its own page", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);

@@ -794,6 +794,7 @@
     background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  .progress-bar-partial { position: absolute; inset: 0 auto 0 0; border-radius: var(--radius-full); background: var(--color-primary); opacity: 0.3; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
   .progress-bar-fill.is-accent { background: var(--color-accent); }
   .progress-bar-fill.is-active::after {
     content: ""; position: absolute; inset: 0; transform: translateX(-100%);
@@ -808,7 +809,7 @@
   @keyframes gen-slide { from { margin-left: 0; } to { margin-left: 60%; } }
   @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) {
-    .progress-bar-fill { transition: none; }
+    .progress-bar-fill, .progress-bar-partial { transition: none; }
     .progress-bar-fill.is-active::after { animation: none; }
     .progress-bar-fill.is-indeterminate { animation: none; width: 100%; }
     .dialog-enter { animation: none; }
@@ -832,19 +833,27 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  /* Review motion (RC-27): one cue per event, only for people who have not asked for less motion */
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse-once { animation: pulse-once 0.9s ease-out 1; }
+    .fade-in-group { animation: fade-in 0.35s ease-out 1; }
+    @keyframes pulse-once { 0% { transform: scale(1); } 35% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  }
+
   /* ── Recall grade buttons ──────────────────────────────────────── */
   .grade-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 0.625rem 0.5rem;
+    justify-content: center;
+    padding: 0.5rem 0.25rem;
     border-radius: var(--radius);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-    flex: 1 1 7rem;
+    min-width: 0;
     min-height: 2.75rem;      /* 44px touch target */
   }
   .grade-btn:active { transform: scale(0.97); }
