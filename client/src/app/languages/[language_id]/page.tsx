@@ -23,8 +23,8 @@ export default async function Language({ params }: { params: Promise<{ language_
     const isOwner = userId === language.user_id;
     const ownerId = language.user_id;
     const [shared, dailyStats, commitmentLog, studyGoal, summary] = await Promise.all([
-        getSharedLessons(),
-        ownerId ? getTodayDailyStats(ownerId, language_id) : null,
+        getSharedLessons().catch(() => []),                // a failing side panel must not take the page down
+        ownerId ? getTodayDailyStats(ownerId, language_id).catch(() => null) : null,
         ownerId ? import("@/api/commitmentLog").then((m) => m.getCommitmentLogForUserLanguage(ownerId, language_id)) : null,
         isOwner ? getStudyGoal(language_id).catch(() => null) : null,
         getLanguageSummary(language_id).catch(() => undefined),      // only this language's numbers, not every language's
@@ -69,7 +69,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                     </NavButton>
                 </section>
                 <aside className="dash-aside">
-                    <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} studyGoal={studyGoal} settingsHref={`/user/${userId}/update#goals`} />
+                    <LanguageStatsPanel dailyStats={dailyStats} commitmentLog={commitmentLog} studyGoal={studyGoal} settingsHref={`/user/${userId ?? ""}/update#goals`} />
                     <ElementPerformanceCard element={language} />
                     <ElementTagsCard element={language} />
                     <ElementSourcesCard element={language} />
@@ -80,7 +80,7 @@ export default async function Language({ params }: { params: Promise<{ language_
                                 <p>{t("updateLanguage")}</p>
                             </NavButton>
                             <ImportButton languageId={language_id} label={t("importLessonsFromDocument")}
-                                href={`${base}/import`} settingsHref={`/user/${userId}/update`} />
+                                href={`${base}/import`} settingsHref={`/user/${userId ?? ""}/update`} />
                             {isOwner && <CollaborateButton targetType="language" targetId={language_id} />}
                             <DeleteButton element_id={language_id}/>
                         </div>
