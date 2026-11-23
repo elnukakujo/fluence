@@ -51,8 +51,9 @@ describe("resume", () => {
         render(<ReviewSession items={[word("front"), word("back")]} options={{ languageId: "lang1" }} />);
         await userEvent.click(await screen.findByText("Click to reveal"));
         await userEvent.click(screen.getByText(/good/i));
-        expect(screen.queryByRole("button", { name: /^Next$/ })).toBeNull();           // the front was skipped: this was the last card, so the end screen's bar is up
+        await userEvent.click(screen.getByRole("button", { name: "See results" }));       // the front was skipped: this was the last card
         expect(await screen.findByTestId("summary-bar")).toBeInTheDocument();
+        expect(screen.queryByText("Click to reveal")).toBeNull();                       // the result stands alone
         expect(localStorage.getItem("review-resume:/languages/lang1/review/queue?scope=type&type=vocabulary")).toBeNull();      // finished: nothing to resume
     });
 });
@@ -67,5 +68,21 @@ describe("edit and delete", () => {
         const edit = screen.getByRole("button", { name: /Edit/ });
         const del = screen.getByRole("button", { name: /Delete/ });
         expect(edit.closest(".justify-end")).toBe(del.closest(".justify-end"));
+    });
+});
+
+describe("the end of a session", () => {
+    it("keeps the last card and its feedback until 'See results', then shows the result alone", async () => {
+        m.score.mockResolvedValue({});
+        render(<ReviewSession items={[word("front")]} options={{ languageId: "lang1" }} />);
+        await userEvent.click(screen.getByText("Click to reveal"));
+        await userEvent.click(screen.getByText(/good/i));
+        expect(screen.getByRole("button", { name: "See results" })).toBeInTheDocument();       // the answered card is still there to read
+        expect(screen.getByRole("button", { name: /Edit/ })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole("button", { name: "See results" }));
+        expect(await screen.findByTestId("summary-bar")).toBeInTheDocument();
+        for (const gone of [/Edit/, /Delete/, /^Hint/, /See results/]) expect(screen.queryByRole("button", { name: gone })).toBeNull();
+        expect(screen.queryByRole("progressbar")).toBeNull();                                  // no "13 / 14" bar, no card
+        expect(screen.queryByText("水")).toBeNull();
     });
 });

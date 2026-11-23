@@ -10,7 +10,7 @@ import { canOverride, overrideAttempt } from "./creditExercise";
 /** Footer shared by /ex/practice and the daily review: skip buttons while the exercise runs, a full-width Next once it is finished
  *  (or `last`, the closing action, on the final exercise). */
 export default function ExerciseFooter({ exercise, finished, isLast, onGiveUp, onSkip, onNext, last, pinned }: {
-    exercise: Exercise; finished: boolean; isLast: boolean; onGiveUp: () => void; onSkip: (lacks: "hearing" | "speaking") => void; onNext: () => void; last?: ReactNode; /** In the review: the finished state sits in the pinned action bar (not on the last card, whose way out is the end screen). */ pinned?: boolean;
+    exercise: Exercise; finished: boolean; isLast: boolean; onGiveUp: () => void; onSkip: (lacks: "hearing" | "speaking") => void; onNext: () => void; last?: ReactNode; /** In the review: the finished state sits in the pinned action bar (the last card too: its "See results" is that bar's button). */ pinned?: boolean;
 }) {
     const t = useTranslations("exercises");
     const [disputed, setDisputed] = useState(false);
@@ -18,7 +18,7 @@ export default function ExerciseFooter({ exercise, finished, isLast, onGiveUp, o
     const iWasRight = !disputed && canOverride(exercise.id!) && (
         <button type="button" className="btn btn-secondary w-full min-h-11" onClick={() => { setDisputed(true); void overrideAttempt(exercise.id!); }}>{t("iWasRight")}</button>
     );
-    if (isLast && last !== undefined) return <>{iWasRight}{last}</>;
+    if (isLast && last !== undefined) return pinned ? <ActionBar phase="next"><div className="flex w-full flex-col gap-2">{iWasRight}{last}</div></ActionBar> : <>{iWasRight}{last}</>;
     const next = (
         <div className="flex flex-col gap-2">
             {iWasRight}

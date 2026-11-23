@@ -90,7 +90,9 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const shown = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
     const card = shown && edited[shown.id!] ? { ...shown, ...edited[shown.id!] } as ReviewCard : shown;
     const cardDone = graded || (!!card && (finishedId === card.id || gaveUpId === card.id));      // graded, or an exercise whose answer is final
-    const ended = (last && cardDone) || (!slot && done.length > 0);      // the session is over: show its totals
+    const ended = (last && cardDone) || (!slot && done.length > 0);      // the session is over: its totals are saved and the day counts
+    const [resultsOpen, setResultsOpen] = useState(false);              // the last card keeps its feedback until the learner moves on: then the result stands alone
+    const showResults = ended && (resultsOpen || !slot);
     useEffect(() => {
         if (!resumeKey) return;
         if (ended) clearResume(resumeKey);
@@ -129,9 +131,9 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     if (!card || !renderer) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
-                {ended && <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />}
-                <EmptyState>{t("nothingToReview")}</EmptyState>
-                {!ended && <BackButton href={backHref}>{backLabel}</BackButton>}
+                {showResults
+                    ? <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />
+                    : <><EmptyState>{t("nothingToReview")}</EmptyState><BackButton href={backHref}>{backLabel}</BackButton></>}
             </article>
         );
     }
@@ -155,6 +157,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const handleGoNext = () => {
         setDone([...done, keyOf(slot)]);
     };
+    const goOn = () => (last ? setResultsOpen(true) : handleGoNext());     // after an answer: the next card, or from the last one on to the result
 
     // RC-23: the card's element is gone (no score is written); a spare standing in for the slot ends the slot too.
     const handleDeleted = () => {
@@ -207,14 +210,20 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         onExerciseFinished: () => setFinishedId(card.id),
         onGiveUp: () => setGaveUpId(card.id),
         onReplace: handleReplace,
-        onNext: handleGoNext,
+        onNext: goOn,
         onBackFinish: finish,
         backLabel,
     };
 
+    if (showResults) return (       // the result stands alone: the card, its header, feedback and buttons are gone, and the bar is the page's last child
+        <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
+            <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />
+            {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
+        </article>
+    );
+
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
-            {ended && <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />}      {/* once, on top: the result leads */}
             <ReviewHeader
                 kind={tStudy(renderer.kindKey)}
                 side={renderer.sideOf?.(card) ? tStudy(renderer.sideOf(card)!) : undefined}
@@ -268,7 +277,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {!renderer.whole && !hiddenTranslation && !graded && !showPractice && (
                 <ActionBar phase="grade"><RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} /></ActionBar>
             )}
-            {!renderer.whole && graded && remaining.length > 1 && <ActionBar phase="next" onNext={handleGoNext} result={result} />}
+            {!renderer.whole && graded && <ActionBar phase="next" onNext={goOn} result={result} nextLabel={last ? tStudy("seeResults") : undefined} />}
         </article>
     );
 }

@@ -17,6 +17,7 @@ function GrammarSheet({ exercise, done, gaveUp }: { exercise: Exercise; done: bo
 // Exercises are interactive practice, not flip-cards.
 function ExerciseBody({ c }: { c: RendererCtx<Exercise> }) {
     const t = useTranslations("elements");
+    const tStudy = useTranslations("study");
     return (
         <>
             <div className="flex flex-wrap items-center justify-between gap-2"><ExerciseHint exercise={c.item} /><div className="flex items-start gap-2">{c.editButton}{c.deleteButton}</div></div>   {/* Tip, Edit and Delete on one row */}
@@ -26,7 +27,7 @@ function ExerciseBody({ c }: { c: RendererCtx<Exercise> }) {
             <GrammarSheet exercise={c.item} done={c.gaveUp || c.finished} gaveUp={c.gaveUp} />
             <ExerciseFooter exercise={c.item} finished={c.gaveUp || c.finished} isLast={c.isLast}
                 onGiveUp={c.onGiveUp} onSkip={c.onReplace} onNext={c.onNext}
-                pinned last={null} />
+                pinned last={<button type="button" autoFocus className="btn btn-primary w-full min-h-11" onClick={c.onNext}>{tStudy("seeResults")}</button>} />
         </>
     );
 }

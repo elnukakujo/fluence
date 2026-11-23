@@ -22,6 +22,7 @@ describe("leaving a finished review", () => {
         render(<ReviewSession items={[word]} options={{ languageId: "lang1" }} />);
         await userEvent.click(screen.getByText("Click to reveal"));
         await userEvent.click(screen.getByText(/good/i));
+        await userEvent.click(screen.getByRole("button", { name: "See results" }));
         await userEvent.click(screen.getByRole("button", { name: /Back to Language/i }));
         expect(m.push).toHaveBeenCalledWith("/languages/lang1");
     });

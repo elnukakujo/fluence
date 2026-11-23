@@ -9,7 +9,7 @@ export type ActionResult = { before: number; after: number; level: string; level
 
 /** The review's action bar (RC-27): the same bar as the element forms' Save (`FormActions`), stuck to the bottom of the screen so the thumb never moves.
  *  Before the card is graded it holds the grading controls (children); afterwards one row: what the answer did on the left, Next on the right. Enter or Space also moves on. */
-export default function ActionBar({ phase, onNext, result, children }: { phase: "grade" | "next"; onNext?: () => void; result?: ActionResult | null; children?: ReactNode }) {
+export default function ActionBar({ phase, onNext, result, children, nextLabel }: { phase: "grade" | "next"; onNext?: () => void; result?: ActionResult | null; children?: ReactNode; nextLabel?: string }) {
     const t = useTranslations("elements");
     const tLevel = useTranslations("home.level");
     useEffect(() => {
@@ -41,7 +41,7 @@ export default function ActionBar({ phase, onNext, result, children }: { phase: 
     );
     return (
         <FormActions note={strip} testId="action-bar">
-            {children ?? <button type="button" className="btn btn-primary min-h-11 inline-flex items-center gap-2 px-6" onClick={onNext} autoFocus>{t("nextButton")}<ArrowRight size={16} aria-hidden /></button>}
+            {children ?? <button type="button" className="btn btn-primary min-h-11 inline-flex items-center gap-2 px-6" onClick={onNext} autoFocus>{nextLabel ?? t("nextButton")}<ArrowRight size={16} aria-hidden /></button>}
         </FormActions>
     );
 }

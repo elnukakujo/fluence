@@ -24,6 +24,8 @@ describe("session as lesson study", () => {
         render(<ReviewSession items={[word("front")]} options={{ languageId: "lang1", finishAction: "lesson" }} />);
         await flip();
         await userEvent.click(screen.getByText(/good/i));
+        expect(m.completeReview).toHaveBeenCalledWith("lang1", 1);                       // the day counts as soon as the last card is answered
+        await userEvent.click(screen.getByRole("button", { name: "See results" }));
         expect(screen.getByRole("button", { name: /Back to lesson/i })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /Back to Language/i })).toBeNull();
         await userEvent.click(screen.getByRole("button", { name: /Back to lesson/i }));
@@ -34,6 +36,7 @@ describe("session as lesson study", () => {
         render(<ReviewSession items={[word("front")]} options={{ languageId: "lang1" }} />);
         await flip();
         await userEvent.click(screen.getByText(/good/i));
+        await userEvent.click(screen.getByRole("button", { name: "See results" }));
         await userEvent.click(screen.getByRole("button", { name: /Back to Language/i }));
         expect(m.completeReview).toHaveBeenCalledWith("lang1", 1);
     });

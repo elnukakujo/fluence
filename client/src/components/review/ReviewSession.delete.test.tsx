@@ -65,7 +65,7 @@ describe("delete from a review (RC-23)", () => {
         await userEvent.click(screen.getByRole("button", { name: /^Next$/ }));
         await userEvent.click(deleteBtn());
         await confirm();
-        expect(await screen.findByText(/nothing to review/i)).toBeInTheDocument();
+        expect(await screen.findByTestId("summary-bar")).toBeInTheDocument();          // the result stands alone
         await vi.waitFor(() => expect(m.completeReview).toHaveBeenCalledTimes(1));
     });
 
