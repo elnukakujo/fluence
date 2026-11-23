@@ -38,6 +38,13 @@ describe("custom review picker", () => {
     expect(screen.getByRole("link", { name: /Review Vocabulary · 110 cards · 55 words/ })).toBeInTheDocument();
   });
 
+  it("tells where an interrupted review of the chosen type stands", () => {
+    localStorage.setItem("review-resume:/languages/lang_1/review/queue?scope=type&type=vocabulary", JSON.stringify({ ids: ["a", "b", "c", "d"], done: ["a", "b", "c"], sessionId: "s", day: new Date().toLocaleDateString("sv") }));
+    picker({ stats: STATS });
+    expect(screen.getByRole("link", { name: /Resume 3 \/ 4 · Review Vocabulary/ })).toBeInTheDocument();
+    localStorage.clear();
+  });
+
   it("choosing another type moves the start bar to it", async () => {
     picker({ stats: STATS });
     await userEvent.click(screen.getByRole("radio", { name: /Exercises/ }));

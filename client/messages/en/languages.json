@@ -95,6 +95,7 @@
   "typeAverage": "average score",
   "typeFading": "fading",
   "typeSeen": "{seen} of {total} seen",
+  "typeResume": "Resume {done} / {total}",
   "typeWords": "{total, plural, one {# word} other {# words}}",
   "typeCount": "{total, plural, one {# card} other {# cards}}",
   "typeStart": "Review {type}"

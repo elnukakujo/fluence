@@ -37,3 +37,22 @@ describe("the pinned bar in a review", () => {
         expect(screen.queryByTestId("level-up")).toBeNull();
     });
 });
+
+describe("resume", () => {
+    it("a reopened queue skips the cards already answered and keeps the same session", async () => {
+        localStorage.clear();
+        window.history.pushState({}, "", "/languages/lang1/review/queue?scope=type&type=vocabulary");
+        m.score.mockResolvedValue({});
+        const first = render(<ReviewSession items={[word("front"), word("back")]} options={{ languageId: "lang1" }} />);
+        await userEvent.click(screen.getByText("Click to reveal"));
+        await userEvent.click(screen.getByText(/good/i));
+        await userEvent.click(screen.getByRole("button", { name: /^Next$/ }));
+        first.unmount();
+        render(<ReviewSession items={[word("front"), word("back")]} options={{ languageId: "lang1" }} />);
+        await userEvent.click(await screen.findByText("Click to reveal"));
+        await userEvent.click(screen.getByText(/good/i));
+        expect(screen.queryByRole("button", { name: /^Next$/ })).toBeNull();           // the front was skipped: this was the last card, so the end screen's bar is up
+        expect(await screen.findByTestId("summary-bar")).toBeInTheDocument();
+        expect(localStorage.getItem("review-resume:/languages/lang1/review/queue?scope=type&type=vocabulary")).toBeNull();      // finished: nothing to resume
+    });
+});

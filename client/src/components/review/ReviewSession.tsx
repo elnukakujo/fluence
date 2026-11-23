@@ -22,6 +22,7 @@ import { pickReplacement } from "@/utils/replaceCard";
 import { suggestedGrade } from "@/utils/cardHints";
 import { isExercise, rendererFor } from "./renderers";
 import { preloadAhead } from "@/lib/review/lookAhead";
+import { clearResume, loadResume, saveResume } from "@/lib/review/resume";
 import type { RendererCtx, SessionItem, SessionOptions, ShellState, TypedState } from "./types";
 import { Pencil } from "lucide-react";
 import EditElementDialog from "./EditElementDialog";
@@ -67,8 +68,16 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const slot = remaining[0];
     const currentIndex = done.length;
     const [streak, setStreak] = useState<number | null>(null);
-    const [sessionId] = useState(() => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);   // not crypto.randomUUID: it needs https
+    const [sessionId, setSessionId] = useState(() => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);   // not crypto.randomUUID: it needs https
     useEffect(() => { setReviewSession(sessionId); return () => setReviewSession(undefined); }, [sessionId]);
+    const resumeKey = typeof window !== "undefined" && languageId ? window.location.pathname + window.location.search : null;   // language and scope are both in the URL
+    useEffect(() => {      // an interrupted review picks up: the cards already answered stay done, and the totals keep one session
+        const saved = resumeKey ? loadResume(resumeKey) : null;
+        if (!saved) return;
+        const here = new Set(queue.map(keyOf));
+        const kept = saved.done.filter((id) => here.has(id));
+        if (kept.length) { setDone(kept); setSessionId(saved.sessionId); }
+    }, []);       // eslint-disable-line react-hooks/exhaustive-deps -- once, on arrival
     const finishedRef = useRef(false);
     const finish = () => {          // the queue's last card was answered: the day counts for the streak, once
         if (finishedRef.current || !languageId || options?.completeOnFinish === false) return;
@@ -83,6 +92,11 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const card = shown && edited[shown.id!] ? { ...shown, ...edited[shown.id!] } as ReviewCard : shown;
     const cardDone = graded || (!!card && (finishedId === card.id || gaveUpId === card.id));      // graded, or an exercise whose answer is final
     const ended = (last && cardDone) || (!slot && done.length > 0);      // the session is over: show its totals
+    useEffect(() => {
+        if (!resumeKey) return;
+        if (ended) clearResume(resumeKey);
+        else if (done.length) saveResume(resumeKey, { ids: queue.map(keyOf), done, sessionId });
+    }, [done, ended]);       // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => { if (ended && typeof window.scrollTo === "function") window.scrollTo({ top: 0 }); }, [ended]);
     useEffect(() => { if (last && cardDone) finish(); });
     useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
