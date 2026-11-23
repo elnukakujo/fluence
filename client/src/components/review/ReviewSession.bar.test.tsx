@@ -56,3 +56,16 @@ describe("resume", () => {
         expect(localStorage.getItem("review-resume:/languages/lang1/review/queue?scope=type&type=vocabulary")).toBeNull();      // finished: nothing to resume
     });
 });
+
+describe("edit and delete", () => {
+    it("Edit appears after grading in the same row as Delete", async () => {
+        m.score.mockResolvedValue({});
+        render(<ReviewSession items={[word("front"), word("back")]} options={{ languageId: "lang1" }} />);
+        await userEvent.click(screen.getByText("Click to reveal"));
+        expect(screen.queryByRole("button", { name: /Edit/ })).toBeNull();
+        await userEvent.click(screen.getByText(/good/i));
+        const edit = screen.getByRole("button", { name: /Edit/ });
+        const del = screen.getByRole("button", { name: /Delete/ });
+        expect(edit.closest(".justify-end")).toBe(del.closest(".justify-end"));
+    });
+});

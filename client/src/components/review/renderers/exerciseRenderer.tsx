@@ -19,7 +19,7 @@ function ExerciseBody({ c }: { c: RendererCtx<Exercise> }) {
     const t = useTranslations("elements");
     return (
         <>
-            <div className="flex flex-wrap items-center justify-between gap-2"><ExerciseHint exercise={c.item} />{c.deleteButton}</div>   {/* Tip and Delete on one row */}
+            <div className="flex flex-wrap items-center justify-between gap-2"><ExerciseHint exercise={c.item} /><div className="flex items-start gap-2">{c.editButton}{c.deleteButton}</div></div>   {/* Tip, Edit and Delete on one row */}
             <RunnerBoundary key={c.item.id} exerciseId={c.item.id} onSkip={() => c.onReplace(null)} message={t("exerciseBroken")} skipLabel={t("skipBroken")}>
                 <ExerciseRunner exercise={c.item} gaveUp={c.gaveUp} onFinished={c.onExerciseFinished} />
             </RunnerBoundary>

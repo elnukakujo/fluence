@@ -181,8 +181,16 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         else { setHiddenTranslation(false); handleGrade(0, "multiple_choice"); }
     };
 
+    const answered = renderer.whole ? finishedId === card.id || gaveUpId === card.id : graded;   // an element is only edited once its card is done
+    const editButton = answered && (
+        <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center justify-center gap-2" onClick={() => setEditing(true)}>
+            <Pencil size={16} aria-hidden />{t("editButton")}
+        </button>
+    );
+
+
     const ctx: RendererCtx = {
-        ...state, ...view, hintShown, item: card, languageId, deleteButton,
+        ...state, ...view, hintShown, item: card, languageId, deleteButton, editButton,
         reveal, pickChoice, effectiveLevel, hintUsed,
         openPractice: () => setShowPractice(true),
         closePractice: () => setShowPractice(false),
@@ -203,13 +211,6 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         onBackFinish: finish,
         backLabel,
     };
-
-    const answered = renderer.whole ? ctx.finished || ctx.gaveUp : graded;   // an element is only edited once its card is done
-    const editButton = answered && (
-        <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center justify-center gap-2" onClick={() => setEditing(true)}>
-            <Pencil size={16} aria-hidden />{t("editButton")}
-        </button>
-    );
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
@@ -233,9 +234,9 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                 badges={<>{view.tier && <TierBadge tier={view.tier} />}{card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}</>}
             />
 
-            {!hintShown && !renderer.whole && <div className="flex justify-end">{deleteButton}</div>}
+            {!hintShown && !renderer.whole && <div className="flex items-start justify-end gap-2">{editButton}{deleteButton}</div>}
 
-            {renderer.whole ? <>{renderer.whole(ctx)}{editButton}</> : (
+            {renderer.whole ? renderer.whole(ctx) : (
                 <>
                     {renderer.pre?.(ctx)}
                     <div className="flex flex-col gap-2">
@@ -252,7 +253,6 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                     {/* ── Post-grade content ───────────────────────── */}
                     {graded && (
                         <>
-                            {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
                             <ElementSourcesCard element={card} />
