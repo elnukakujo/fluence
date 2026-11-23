@@ -5,7 +5,7 @@ from pathlib import Path
 
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
-from ..services.features.studied_types import studied_types
+from ...services.features.studied_types import studied_types
 from ...core.auth import current_user_id, login_required, owner_user_id, require_write
 from ...core.database import db_manager
 from ...schemas.components import WordDict

@@ -69,7 +69,7 @@ def test_lesson_score_ignores_a_disabled_type_and_saving_the_setting_refreshes_i
     LessonService().update_score("lesson_L1", user_id="user_U1")
     both = sc.get("user_U1", "lesson_L1").score
     _studies(c, ["vocabulary", "grammar", "exercises"])
-    assert sc.get("user_U1", "lesson_L1").score > both and round(sc.get("user_U1", "lesson_L1").score) == 80
+    assert sc.get("user_U1", "lesson_L1").score > both and round(sc.get("user_U1", "lesson_L1").score) == 40      # voc 80 and the unseen grammar 0; calligraphy 20 no longer drags it
     _studies(c, ALL)
     assert sc.get("user_U1", "lesson_L1").score == both
 
