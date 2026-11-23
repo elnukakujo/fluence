@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const scoreExercise = vi.fn().mockResolvedValue({});
@@ -39,6 +39,20 @@ describe("I was right", () => {
             unmount();
             forgetAttempt();
         }
+    });
+
+    it("shows what the answer did to the scores in the bar's strip, once the server answers", async () => {
+        scoreExercise.mockResolvedValueOnce({ correct: 1, total: 2, summary: { before: 10, after: 30, level: "learning", level_up: false } });
+        creditExercise(ex, 0.5, 10, false, 1);
+        render(<ExerciseFooter {...props} pinned />);
+        await waitFor(() => expect(screen.getByTestId("result-strip")).toHaveTextContent("+20 pointsCard score 10 → 30 · Learning"));
+    });
+
+    it("shows nothing but the saved note when the server sent no summary", async () => {
+        creditExercise(ex, 0.5, 10, false, 1);
+        render(<ExerciseFooter {...props} pinned />);
+        await waitFor(() => expect(scoreExercise).toHaveBeenCalled());
+        expect(screen.getByTestId("result-strip")).not.toHaveTextContent("points");
     });
 
     it("is not offered after a right attempt or a give-up", () => {

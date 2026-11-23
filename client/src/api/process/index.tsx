@@ -43,15 +43,18 @@ export async function updateScoreById(elementId: string, a: Answer) {
 export type ExerciseResult = { element_id: string; quality: number; skill: Skill; evidence_type: Evidence };
 
 /** Credit one exercise attempt: the server counts only a `final` one and answers `{correct, total}` (never a score). */
-export async function scoreExercise(exerciseId: string, a: { results: ExerciseResult[]; attempt: number; final: boolean; durationMs: number; hintUsed: boolean }): Promise<{ correct?: number; total?: number }> {
+export async function scoreExercise(exerciseId: string, a: { results: ExerciseResult[]; attempt: number; final: boolean; durationMs: number; hintUsed: boolean }): Promise<{ correct?: number; total?: number; summary?: ScoreSummary | null }> {
   return apiFetch("/api/exercise/score", {
     method: "POST", errorMessage: "Failed to update score",
     body: { exercise_id: exerciseId, results: a.results, attempt: a.attempt, final: a.final, duration_ms: a.durationMs, hint_used: a.hintUsed },
   });
 }
 
+/** What an answer did to the elements the exercise credited: the mean score before and after, its level, and whether one crossed up. */
+export type ScoreSummary = { before: number; after: number; level: string; level_up: boolean };
+
 /** "I was right": credit a wrong final attempt at full quality, once per `attemptId` (the server answers `{credited}`). */
-export async function overrideExercise(exerciseId: string, a: { attemptId: string; results: ExerciseResult[]; attempt: number; durationMs: number; hintUsed: boolean }): Promise<{ credited?: boolean }> {
+export async function overrideExercise(exerciseId: string, a: { attemptId: string; results: ExerciseResult[]; attempt: number; durationMs: number; hintUsed: boolean }): Promise<{ credited?: boolean; summary?: ScoreSummary | null }> {
   return apiFetch(`/api/exercise/${exerciseId}/override`, {
     method: "POST", errorMessage: "Failed to override",
     body: { attempt_id: a.attemptId, results: a.results, attempt: a.attempt, duration_ms: a.durationMs, hint_used: a.hintUsed },

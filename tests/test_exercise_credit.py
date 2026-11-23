@@ -1,5 +1,5 @@
 """Per-element exercise credit (spec 2 Task 7): each blank credits its own element, one update per element,
-final attempt only, and the response is `correct`/`total`, never a score."""
+final attempt only, and the response is `correct`/`total` plus a `summary` of what the answer did to the credited elements (the bar under the card)."""
 import pytest
 
 from lapp.models.system_data import User, Score
@@ -60,7 +60,7 @@ def test_one_right_one_wrong_credits_each_its_own_element(app, db):
         ScoreService().record(U, "voc_V2", "recall", 1.0, "typed")
     a0, b0 = _score("voc_V1"), _score("voc_V2")
     r = c.post("/api/exercise/score", json=_body([_result("voc_V1", 1.0), _result("voc_V2", 0.0)]))
-    assert r.status_code == 200 and r.json == {"success": True, "correct": 1, "total": 2}
+    assert r.status_code == 200 and {k: r.json[k] for k in ("success", "correct", "total")} == {"success": True, "correct": 1, "total": 2}
     assert _score("voc_V1") > a0 and _score("voc_V2") < b0
 
 
@@ -80,7 +80,7 @@ def test_a_non_final_attempt_posts_no_score(app, db):
 def test_final_posts_once_and_returns_no_score(app, db):
     c = _client(app, db)
     r = c.post("/api/exercise/score", json=_body([_result("voc_V1", 1.0), _result("voc_V2", 1.0)]))
-    assert "score" not in r.json and (r.json["correct"], r.json["total"]) == (2, 2)
+    assert "score" not in r.json and (r.json["correct"], r.json["total"]) == (2, 2)     # the elements' own scores are not listed; `summary` is the mean change
     assert _stability(db, "voc_V1#front") == 10
 
 
@@ -138,3 +138,20 @@ def test_exercise_credit_writes_the_practice_skill_on_a_grammar(app, db):
         skills = {x.skill for x in s.query(Score).filter(Score.user_id == U, Score.element_id == "gram_G1")}
     assert skills == {"practice"}
     assert _score("voc_V1") > 0
+
+
+def test_the_response_summarises_what_the_answer_did_to_the_credited_elements(app, db):
+    c = _client(app, db)
+    r = c.post("/api/exercise/score", json=_body([_result("voc_V1", 1.0), _result("voc_V2", 1.0)]))
+    summary = r.json["summary"]
+    assert summary["before"] == 0.0 and summary["after"] == pytest.approx(28.0) and summary["level"] == "learning"     # two first right answers: the mean of two +28
+    assert summary["level_up"] is False
+    assert _score("voc_V1") == pytest.approx(28.0)
+
+
+def test_a_wrong_answer_shows_a_drop_in_the_summary(app, db):
+    c = _client(app, db)
+    ScoreService().record(U, "voc_V1", "recall", 1.0, "typed")
+    ScoreService().record(U, "voc_V2", "recall", 1.0, "typed")
+    s = c.post("/api/exercise/score", json=_body([_result("voc_V1", 0.0), _result("voc_V2", 0.0)])).json["summary"]
+    assert s["after"] < s["before"] and s["level_up"] is False
