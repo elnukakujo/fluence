@@ -83,12 +83,12 @@ def cleanup_orphaned_media(app: Flask):
 
             for subdir in ["images", "audio"]:
                 target = media_root / subdir
-                files = [Path(e.path) for e in os.scandir(target) if e.is_file()]
-                logger.info(f"🔍 Scanning {len(files)} files in {target}")
-
                 if not target.is_dir():
                     logger.warning(f"⚠️  Media sub-directory not found: {target}")
                     continue
+
+                files = [Path(e.path) for e in os.scandir(target) if e.is_file()]
+                logger.info(f"🔍 Scanning {len(files)} files in {target}")
 
                 for path in tqdm(files, desc=f"Scanning {subdir}"):
                     scanned += 1
