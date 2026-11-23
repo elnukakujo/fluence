@@ -27,6 +27,20 @@ describe("I was right", () => {
         expect(screen.queryByRole("button", { name: "I was right" })).toBeNull();
     });
 
+    it("sits on the same row as Next, in the pinned bar and out of it", () => {
+        for (const pinned of [false, true]) {
+            creditExercise(ex, 0, 10, false, 1);
+            const { unmount } = render(<ExerciseFooter {...props} pinned={pinned} />);
+            const right = screen.getByRole("button", { name: "I was right" });
+            const next = screen.getByRole("button", { name: "Next Exercise" });
+            expect(right.parentElement).toBe(next.parentElement);
+            expect(right.parentElement).toHaveClass("flex", "items-center");
+            expect(right.parentElement).not.toHaveClass("flex-col");
+            unmount();
+            forgetAttempt();
+        }
+    });
+
     it("is not offered after a right attempt or a give-up", () => {
         creditExercise(ex, 1, 10, false, 1);
         const { unmount } = render(<ExerciseFooter {...props} />);

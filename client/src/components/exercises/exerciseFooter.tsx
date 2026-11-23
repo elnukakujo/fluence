@@ -16,13 +16,14 @@ export default function ExerciseFooter({ exercise, finished, isLast, onGiveUp, o
     const [disputed, setDisputed] = useState(false);
     if (!finished) return <SkipButtons exercise={exercise} onSkip={onSkip} onGiveUp={onGiveUp} />;
     const iWasRight = !disputed && canOverride(exercise.id!) && (
-        <button type="button" className="btn btn-secondary w-full min-h-11" onClick={() => { setDisputed(true); void overrideAttempt(exercise.id!); }}>{t("iWasRight")}</button>
+        <button type="button" className="btn btn-secondary min-h-11" onClick={() => { setDisputed(true); void overrideAttempt(exercise.id!); }}>{t("iWasRight")}</button>
     );
-    if (isLast && last !== undefined) return pinned ? <ActionBar phase="next"><div className="flex w-full flex-col gap-2">{iWasRight}{last}</div></ActionBar> : <>{iWasRight}{last}</>;
+    // "I was right" and the way on share one row, in the pinned bar and out of it.
+    if (isLast && last !== undefined) return pinned ? <ActionBar phase="next"><div className="flex items-center gap-2">{iWasRight}{last}</div></ActionBar> : <div className="flex items-center gap-2">{iWasRight}{last}</div>;
     const next = (
-        <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
             {iWasRight}
-            <button type="button" autoFocus className="btn btn-primary w-full min-h-11" onClick={onNext}>{t("nextExercise")}</button>
+            <button type="button" autoFocus className={`btn btn-primary min-h-11 ${pinned ? "px-4" : "flex-1"}`} onClick={onNext}>{t("nextExercise")}</button>
         </div>
     );
     return pinned ? <ActionBar phase="next">{next}</ActionBar> : next;
