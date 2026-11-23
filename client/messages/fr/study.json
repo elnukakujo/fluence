@@ -101,5 +101,14 @@
   "sessionCorrect": "Justes",
   "sessionTime": "Durée",
   "sessionAvgGain": "Gain moyen de score",
-  "sessionAvgDifficulty": "Variation moyenne de difficulté"
+  "sessionAvgDifficulty": "Variation moyenne de difficulté",
+  "sessionLevelsUp": "{count, plural, one {# carte monte d'un niveau} other {# cartes montent d'un niveau}}",
+  "sessionToRevisit": "{count, plural, one {# carte à revoir} other {# cartes à revoir}}",
+  "sessionReviewMissed": "Revoir ces {count} maintenant",
+  "sessionHints": "Indices utilisés",
+  "sessionPace": "Par carte",
+  "sessionGoal": "Objectifs de la semaine",
+  "sessionGoalMet": "{met} / {total} atteints",
+  "sessionAnotherRound": "Un autre tour",
+  "sessionBack": "Retour au cours"
 }

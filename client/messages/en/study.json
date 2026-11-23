@@ -101,5 +101,14 @@
   "sessionCorrect": "Correct",
   "sessionTime": "Time",
   "sessionAvgGain": "Average score gained",
-  "sessionAvgDifficulty": "Average difficulty change"
+  "sessionAvgDifficulty": "Average difficulty change",
+  "sessionLevelsUp": "{count, plural, one {# card moved up a level} other {# cards moved up a level}}",
+  "sessionToRevisit": "{count, plural, one {# card to revisit} other {# cards to revisit}}",
+  "sessionReviewMissed": "Review these {count} now",
+  "sessionHints": "Hints used",
+  "sessionPace": "Per card",
+  "sessionGoal": "This week's objectives",
+  "sessionGoalMet": "{met} / {total} met",
+  "sessionAnotherRound": "Another round",
+  "sessionBack": "Back to course"
 }

@@ -36,6 +36,12 @@ let reviewSession: string | undefined;
 /** While a review runs, every API call carries its session id so the server can total the session (ST-9). */
 export function setReviewSession(id?: string) { reviewSession = id; }
 
+const inflight = new Set<Promise<unknown>>();
+/** Resolves once every request sent during the review session has settled: the end screen reads the totals after the last answer landed (RC-27). */
+export async function reviewSessionIdle(): Promise<void> {
+  while (inflight.size) await Promise.allSettled([...inflight]);
+}
+
 /** The browser's IANA time zone ("" when it cannot tell). */
 function browserTimeZone(): string {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
@@ -43,7 +49,14 @@ function browserTimeZone(): string {
 
 /** The only place that calls fetch. `path` is `/api/…`, `/media/…` or an absolute URL (sent without auth headers). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wrappers used to return res.json() (any); callers narrow via T
-export async function apiFetch<T = any>(path: string, opts: ApiOptions): Promise<T> {
+export function apiFetch<T = any>(path: string, opts: ApiOptions): Promise<T> {
+  const p = send<T>(path, opts);
+  if (reviewSession && !path.includes("/review/session/")) { inflight.add(p); p.then(() => inflight.delete(p), () => inflight.delete(p)); }
+  return p;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function send<T = any>(path: string, opts: ApiOptions): Promise<T> {
   const absolute = /^https?:\/\//.test(path);
   const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
   let headers: Record<string, string> | undefined;

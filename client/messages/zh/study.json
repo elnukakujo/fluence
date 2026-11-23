@@ -101,5 +101,14 @@
   "sessionCorrect": "答对",
   "sessionTime": "用时",
   "sessionAvgGain": "平均得分提升",
-  "sessionAvgDifficulty": "平均难度变化"
+  "sessionAvgDifficulty": "平均难度变化",
+  "sessionLevelsUp": "{count} 张卡片升级",
+  "sessionToRevisit": "{count} 张卡片需要再看",
+  "sessionReviewMissed": "现在复习这 {count} 张",
+  "sessionHints": "使用提示",
+  "sessionPace": "每张用时",
+  "sessionGoal": "本周目标",
+  "sessionGoalMet": "已完成 {met} / {total}",
+  "sessionAnotherRound": "再来一轮",
+  "sessionBack": "返回课程"
 }

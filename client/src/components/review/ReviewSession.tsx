@@ -71,8 +71,10 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         finishedRef.current = true;
         completeReview(languageId, queue.length).then((r) => setStreak(r.just_validated ? r.streak : null)).catch(() => { finishedRef.current = false; });
     };
+    const againHref = typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined;   // the same queue page, reloaded: a fresh queue
     const last = remaining.length === 1;
     const ended = (last && graded) || (!slot && done.length > 0);      // the session is over: show its totals
+    useEffect(() => { if (ended && typeof window.scrollTo === "function") window.scrollTo({ top: 0 }); }, [ended]);
     useEffect(() => { if (last && graded) finish(); });
     useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [edited, setEdited] = useState<Record<string, ReviewCard>>({});   // element id -> its fresh data after an edit made during this session
@@ -107,8 +109,9 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     if (!card || !renderer) {
         return (
             <article className="flex flex-col space-y-6 max-w-2xl mx-auto items-center">
+                {ended && <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />}
                 <EmptyState>{t("nothingToReview")}</EmptyState>
-                <BackButton href={backHref}>{backLabel}</BackButton>
+                {!ended && <BackButton href={backHref}>{backLabel}</BackButton>}
             </article>
         );
     }
@@ -187,6 +190,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
     return (
         <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
+            {ended && <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />}      {/* once, on top: the result leads */}
             <ReviewHeader
                 kind={tStudy(renderer.kindKey)}
                 side={renderer.sideOf?.(card) ? tStudy(renderer.sideOf(card)!) : undefined}
@@ -238,7 +242,6 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                             ) : (
                                 <BackButton onBefore={finish} href={backHref}>{backLabel}</BackButton>
                             )}
-                            {ended && <SessionSummary sessionId={sessionId} />}      {/* right under the way out, before the long details */}
                             {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
@@ -251,7 +254,6 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {editing && <EditElementDialog card={card} languageId={languageId ?? window.location.pathname.split("/")[2]}
                 onSaved={(fresh) => setEdited((e) => ({ ...e, [fresh.id!]: fresh }))} onClose={() => setEditing(false)} />}
             {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
-            {ended && !slot && <SessionSummary sessionId={sessionId} />}
         </article>
     );
 }
