@@ -162,12 +162,11 @@
   "generateClose": "关闭",
   "need_review": "待审核",
   "reviewTitle": "审核生成的练习",
-  "reviewIntro": "这些练习未通过检查。在你接受之前，它们不会出现在练习中。",
+  "reviewIntro": "这些练习未通过检查。在你确认之前，它们不会出现在练习中。",
   "reviewReasonLabel": "原因",
-  "reviewAccept": "接受",
-  "reviewEdit": "编辑",
-  "reviewDelete": "删除",
-  "reviewAcceptAll": "全部接受",
+  "reviewDraftBadge": "已生成",
+  "reviewDraftTitle": "由模型生成;确认后才会用于课程",
+  "reviewAcceptAll": "全部确认",
   "reviewDeleteAll": "全部删除",
   "reviewLater": "稍后",
   "reviewFailed": "出错了，请重试。",
@@ -376,6 +375,5 @@
   "hintSubtitle": "这道练习所依据的内容。每多看一步，最高评分就会降低。",
   "hintMoreAvailable": "再按一次提示可查看词汇和汉字。",
   "reviewAssociations": "关联（词汇、语法、书法）",
-  "reviewRedo": "重做或更改类型",
   "reviewRedoGo": "重新生成"
 }

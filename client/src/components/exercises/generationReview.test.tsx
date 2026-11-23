@@ -37,24 +37,24 @@ describe("generated exercises review", () => {
     expect(screen.getAllByText("Question ex_1")).toHaveLength(1);
   });
 
-  it("accept clears the reason (and nothing else changes) and removes the card", async () => {
+  it("confirm clears the reason (and nothing else changes) and removes the card", async () => {
     render(<GenerationReview lessonId="lesson_1" onClose={vi.fn()} />);
-    await userEvent.click((await screen.findAllByRole("button", { name: "Accept" }))[0]);
+    await userEvent.click((await screen.findAllByRole("button", { name: "Confirm" }))[0]);
     expect(api.updateExercise).toHaveBeenCalledWith("ex_1", expect.objectContaining({ review_reason: null, question: "Question ex_1", answer: "Answer ex_1", exercise_type: "essay" }));
     await waitFor(() => expect(screen.queryByText("answer is wrong")).toBeNull());
     expect(screen.getByText("too hard")).toBeInTheDocument();
   });
 
-  it("redo rebuilds the exercise from its links: the new text and reason show, Accept stores the new links (EG-25)", async () => {
+  it("redo rebuilds the exercise from its links: the new text and reason show, Confirm stores the new links (EG-25)", async () => {
     api.redoExercise.mockResolvedValue({ exercise_type: "essay", question: "Fresh question", answer: "Fresh answer", text_support: null, content: null,
       links: { related_vocabulary: ["voc_V1"], related_grammar: [], related_calligraphy: [] }, review_reason: "links to confirm: dog" });
     render(<GenerationReview lessonId="lesson_1" onClose={vi.fn()} />);
-    await userEvent.click((await screen.findAllByRole("button", { name: "Redo or change type" }))[0]);
+    await userEvent.click((await screen.findAllByRole("button", { name: "Redo" }))[0]);
     await userEvent.click(screen.getByRole("button", { name: "Rebuild" }));
     expect(api.redoExercise).toHaveBeenCalledWith("ex_1", undefined);
     expect(await screen.findByText("Fresh question")).toBeInTheDocument();
     expect(screen.getByText("links to confirm: dog")).toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole("button", { name: "Accept" })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: "Confirm" })[0]);
     expect(api.updateExercise).toHaveBeenCalledWith("ex_1", expect.objectContaining({ question: "Fresh question", related_vocabulary: ["voc_V1"], review_reason: null }));
   });
 
@@ -65,10 +65,10 @@ describe("generated exercises review", () => {
     await waitFor(() => expect(screen.queryByText("too hard")).toBeNull());
   });
 
-  it("accept all accepts every flagged exercise and closes when none is left", async () => {
+  it("confirm all confirms every flagged exercise and closes when none is left", async () => {
     const onClose = vi.fn();
     render(<GenerationReview lessonId="lesson_1" onClose={onClose} />);
-    await userEvent.click(await screen.findByRole("button", { name: "Accept all" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Confirm all" }));
     await waitFor(() => expect(api.updateExercise).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
@@ -79,12 +79,12 @@ describe("generated exercises review", () => {
     await waitFor(() => expect(api.deleteExercise).toHaveBeenCalledTimes(2));
   });
 
-  it("an edit is what gets accepted", async () => {
+  it("an edit is what gets confirmed", async () => {
     api.getExercisesByLesson.mockResolvedValue([ex("ex_q", { review_reason: "check", exercise_type: "quizz", content: { options: ["a", "b"], correct: [0] }, answer: "a" })]);
     render(<GenerationReview lessonId="lesson_1" onClose={vi.fn()} />);
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     await userEvent.click(screen.getAllByRole("checkbox")[1]);        // the second option becomes a correct one too
-    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
     const sent = api.updateExercise.mock.calls[0][1];
     expect(sent.content.correct).toEqual([0, 1]);
     expect(sent.review_reason).toBeNull();

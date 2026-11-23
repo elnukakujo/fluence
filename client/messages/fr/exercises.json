@@ -162,12 +162,11 @@
   "generateClose": "Fermer",
   "need_review": "relecture",
   "reviewTitle": "Relire les exercices générés",
-  "reviewIntro": "Ces exercices ont été mis en doute par les vérifications. Ils restent hors de la pratique tant que vous ne les acceptez pas.",
+  "reviewIntro": "Ces exercices ont été mis en doute par les vérifications. Ils restent hors de la pratique tant que vous ne les confirmez pas.",
   "reviewReasonLabel": "Raison",
-  "reviewAccept": "Accepter",
-  "reviewEdit": "Modifier",
-  "reviewDelete": "Supprimer",
-  "reviewAcceptAll": "Tout accepter",
+  "reviewDraftBadge": "Généré",
+  "reviewDraftTitle": "Fait par le modèle ; confirmez-le pour l'utiliser dans le cours",
+  "reviewAcceptAll": "Tout confirmer",
   "reviewDeleteAll": "Tout supprimer",
   "reviewLater": "Plus tard",
   "reviewFailed": "Une erreur est survenue. Réessayez.",
@@ -376,6 +375,5 @@
   "hintSubtitle": "Ce sur quoi repose cet exercice. Chaque étape abaisse la meilleure note possible.",
   "hintMoreAvailable": "Appuyez encore sur Indice pour les mots et les caractères.",
   "reviewAssociations": "Associations (vocabulaire, grammaire, calligraphie)",
-  "reviewRedo": "Refaire ou changer de type",
   "reviewRedoGo": "Reconstruire"
 }

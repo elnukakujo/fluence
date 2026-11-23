@@ -9,14 +9,12 @@ import { deleteExercise, getExercisesByLesson, redoExercise, updateExercise } fr
 import { getVocabularyByLesson } from "@/api/vocabulary";
 import { getGrammarByLesson } from "@/api/grammar";
 import { getCalligraphyByLesson } from "@/api/calligraphy";
-import OpenCloseMenu from "@/components/ui/selectMenu/openCloseMenu";
-import RegenerateForm from "@/components/ingestion/regenerateForm";
+import ClassicSelectMenu from "@/components/ui/selectMenu/classicSelectMenu";
 import type Vocabulary from "@/interface/features/Vocabulary";
 import type Grammar from "@/interface/features/Grammar";
 import type Calligraphy from "@/interface/features/Calligraphy";
-import ExerciseBody from "@/components/ingestion/exerciseBody";
-import ExerciseEditor from "@/components/ingestion/exerciseEditor";
-import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
+import ExerciseReviewCard from "@/components/ingestion/exerciseReviewCard";
+import { switchesInPlace } from "@/lib/ingestion/exerciseEdit";
 import type Exercise from "@/interface/features/Exercise";
 import type { Row } from "@/lib/ingestion/review";
 import InlineError from "@/components/ui/inlineError";
@@ -39,10 +37,8 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
     const t = useTranslations("exercises");
     const router = useRouter();
     const [entries, setEntries] = useState<Entry[] | null>(null);
-    const [editing, setEditing] = useState<string[]>([]);
     const [lesson, setLesson] = useState<Lesson | null>(null);           // the lesson's elements: what an exercise can be linked to (EG-25)
-    const [redoing, setRedoing] = useState<string | null>(null);          // entry whose "redo" form is open
-    const [redoBusy, setRedoBusy] = useState(false);
+    const [rebuildingId, setRebuildingId] = useState<string | null>(null);   // the entry the model is rebuilding
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const closeRef = useRef<HTMLButtonElement>(null);
@@ -72,16 +68,17 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
     };
     const remove = async (e: Entry) => { await deleteExercise(e.id); return e.id; };
     const setLinks = (id: string, links: Partial<Links>) => setEntries((cur) => (cur ?? []).map((e) => (e.id === id ? { ...e, links: { ...e.links, ...links } } : e)));
-    const redo = async (e: Entry, type?: string) => {          // the model rebuilds it from its linked elements; the review shows the result, Accept stores it
-        setRedoBusy(true);
+    const redo = async (e: Entry, type?: string): Promise<boolean> => {          // the model rebuilds it from its linked elements; the review shows the result, Confirm stores it
+        setRebuildingId(e.id);
         setError("");
         try {
             const r = await redoExercise(e.id, type);
             setEntries((cur) => (cur ?? []).map((x) => (x.id === e.id ? { ...x, reason: r.review_reason ?? "", links: r.links,
                 row: { ...x.row, exercise_type: r.exercise_type, question: r.question, answer: r.answer, text_support: r.text_support, content: (r.content ?? null) as Row["content"] } } : x)));
-            setRedoing(null);
-        } catch { setError("failed"); } finally { setRedoBusy(false); }
+            return true;
+        } catch { setError("failed"); return false; } finally { setRebuildingId(null); }
     };
+    const changeType = (e: Entry, to: string) => (switchesInPlace(e.row.exercise_type, to) ? patch(e.id, { exercise_type: to }) : void redo(e, to));
     const patch = (id: string, p: Partial<Row>) => setEntries((cur) => (cur ?? []).map((e) => (e.id === id ? { ...e, row: { ...e.row, ...p } } : e)));
 
     return (
@@ -93,50 +90,45 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
                 {error && <InlineError>{t("reviewFailed")}</InlineError>}
                 {entries && entries.length > 0 && (
                     <>
-                        <div className="flex flex-wrap gap-2">
-                            <button type="button" className="btn btn-primary min-h-11" disabled={busy} onClick={() => run(async () => { const ids: string[] = []; for (const e of entries) ids.push(await accept(e)); return ids; })}>{t("reviewAcceptAll")}</button>
-                            <button type="button" className="btn btn-secondary min-h-11" disabled={busy} onClick={() => run(async () => { const ids: string[] = []; for (const e of entries) ids.push(await remove(e)); return ids; })}>{t("reviewDeleteAll")}</button>
+                        <div className="btn-row flex-wrap">
+                            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run(async () => { const ids: string[] = []; for (const e of entries) ids.push(await accept(e)); return ids; })}>{t("reviewAcceptAll")}</button>
+                            <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => run(async () => { const ids: string[] = []; for (const e of entries) ids.push(await remove(e)); return ids; })}>{t("reviewDeleteAll")}</button>
                         </div>
-                        <ul className="flex list-none flex-col gap-3 p-0">
+                        <ul className="m-0 flex list-none flex-col gap-2 p-0">
                             {entries.map((e) => (
-                                <li key={e.id} className="card flex flex-col gap-2">
-                                    <p className="flex flex-wrap items-center gap-2">
-                                        <span className="badge">{EXERCISE_TYPE_KEY[e.row.exercise_type ?? ""] ? t(EXERCISE_TYPE_KEY[e.row.exercise_type ?? ""]) : e.row.exercise_type}</span>
-                                        {e.reason && <span className="badge badge-warn"><span className="sr-only">{t("reviewReasonLabel")}: </span>{e.reason}</span>}
-                                    </p>
-                                    {editing.includes(e.id)
-                                        ? <ExerciseEditor row={e.row} onChange={(p) => patch(e.id, p)} />
-                                        : <ExerciseBody row={e.row} />}
-                                    {lesson && (
+                                <ExerciseReviewCard key={e.id} row={e.row} badge={t("reviewDraftBadge")} badgeTitle={t("reviewDraftTitle")}
+                                    footer={e.reason ? <ul className="list-disc pl-5 text-sm" aria-label={t("reviewReasonLabel")}><li>{e.reason}</li></ul> : undefined}
+                                    rebuilding={rebuildingId === e.id} withRequest={false} rebuildGoLabel={t("reviewRedoGo")} busy={busy}
+                                    onPatch={() => {}} onEdit={(p) => patch(e.id, p)} onChangeType={(to) => changeType(e, to)} onRebuild={(o) => redo(e, o.exercise_type)}
+                                    onConfirm={() => run(async () => [await accept(e)])} onDelete={() => run(async () => [await remove(e)])}
+                                    extra={lesson && (
                                         <details className="flex flex-col gap-2">
-                                            <summary className="cursor-pointer text-sm font-medium">{t("reviewAssociations")}</summary>
-                                            <div className="flex flex-col items-baseline gap-3 pt-2">
-                                                {lesson.vocabularies && <OpenCloseMenu elements={lesson.vocabularies.map((v) => ({ id: v.id!, value: `${v.word.word} - ${v.word.translation}` }))}
-                                                    selectedElements={e.links.related_vocabulary} setSelectedElements={(v) => setLinks(e.id, { related_vocabulary: v as string[] })} label={t("associatedVocabulary")} />}
-                                                {lesson.grammars && <OpenCloseMenu elements={lesson.grammars.map((g) => ({ id: g.id!, value: g.title }))}
-                                                    selectedElements={e.links.related_grammar} setSelectedElements={(v) => setLinks(e.id, { related_grammar: v as string[] })} label={t("associatedGrammar")} />}
-                                                {lesson.calligraphies && <OpenCloseMenu elements={lesson.calligraphies.map((c) => ({ id: c.id!, value: `${c.character.character} - ${c.character.phonetic}` }))}
-                                                    selectedElements={e.links.related_calligraphy} setSelectedElements={(v) => setLinks(e.id, { related_calligraphy: v as string[] })} label={t("associatedCalligraphies")} />}
+                                            <summary className="min-h-11 cursor-pointer text-sm font-medium">{t("reviewAssociations")}</summary>
+                                            <div className="flex flex-col gap-3 pt-2">
+                                                {lesson.vocabularies && <Associated label={t("associatedVocabulary")} elements={lesson.vocabularies.map((v) => ({ id: v.id!, value: `${v.word.word} - ${v.word.translation}` }))}
+                                                    selected={e.links.related_vocabulary} onChange={(v) => setLinks(e.id, { related_vocabulary: v })} />}
+                                                {lesson.grammars && <Associated label={t("associatedGrammar")} elements={lesson.grammars.map((g) => ({ id: g.id!, value: g.title }))}
+                                                    selected={e.links.related_grammar} onChange={(v) => setLinks(e.id, { related_grammar: v })} />}
+                                                {lesson.calligraphies && <Associated label={t("associatedCalligraphies")} elements={lesson.calligraphies.map((c) => ({ id: c.id!, value: `${c.character.character} - ${c.character.phonetic}` }))}
+                                                    selected={e.links.related_calligraphy} onChange={(v) => setLinks(e.id, { related_calligraphy: v })} />}
                                             </div>
                                         </details>
-                                    )}
-                                    {redoing === e.id && <RegenerateForm withRequest={false} busy={redoBusy} goLabel={t("reviewRedoGo")} onSubmit={(o) => redo(e, o.exercise_type)} onCancel={() => setRedoing(null)} />}
-                                    <div className="flex flex-wrap gap-2">
-                                        <button type="button" className="btn btn-primary min-h-11" disabled={busy} onClick={() => run(async () => [await accept(e)])}>{t("reviewAccept")}</button>
-                                        <button type="button" className="btn btn-secondary min-h-11" disabled={busy || redoBusy} aria-expanded={redoing === e.id} onClick={() => setRedoing(redoing === e.id ? null : e.id)}>{t("reviewRedo")}</button>
-                                        <button type="button" className="btn btn-secondary min-h-11" aria-expanded={editing.includes(e.id)}
-                                            onClick={() => setEditing((cur) => (cur.includes(e.id) ? cur.filter((i) => i !== e.id) : [...cur, e.id]))}>{t("reviewEdit")}</button>
-                                        <button type="button" className="btn btn-secondary min-h-11" disabled={busy} onClick={() => run(async () => [await remove(e)])}>{t("reviewDelete")}</button>
-                                    </div>
-                                </li>
+                                    )} />
                             ))}
                         </ul>
                     </>
                 )}
                 <div className="flex justify-end">
-                    <button ref={closeRef} type="button" className="btn btn-secondary min-h-11" onClick={finish}>{t("reviewLater")}</button>
+                    <button ref={closeRef} type="button" className="btn btn-secondary" onClick={finish}>{t("reviewLater")}</button>
                 </div>
             </div>
         </div>
     );
+}
+
+// What an exercise is linked to: the same dropdown as everywhere (several can be chosen; the chips show what is linked).
+function Associated({ label, elements, selected, onChange }: { label: string; elements: { id: string; value: string }[]; selected: string[]; onChange: (ids: string[]) => void }) {
+    const names = new Map(elements.map((e) => [e.id, e.value]));
+    return <ClassicSelectMenu multiple label={label} className="w-full" options={elements.map((e) => e.id)} optionLabel={(id) => names.get(id)}
+        selectedOption={selected} onChange={(v) => onChange(v as string[])} />;
 }

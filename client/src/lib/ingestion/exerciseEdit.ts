@@ -85,3 +85,7 @@ export function blankStart(question: string, answer: string): { segments: string
   const answers = answer.split(/\s*(?:,|__)\s*/);
   return { segments, rows: segments.slice(1).map((_, i) => ({ answer: answers[i] ?? "", options: "" })) };
 }
+
+/** The free-text types share one shape (no content), so one is switched for another in place; any other change rebuilds the exercise with the model. */
+export const FREE_TEXT_TYPES = ["essay", "answering", "translate"];
+export const switchesInPlace = (from?: string | null, to?: string | null) => [from, to].every((x) => FREE_TEXT_TYPES.includes(x ?? ""));

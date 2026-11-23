@@ -9,7 +9,7 @@ import MergeEditor, { fieldName } from "./mergeEditor";
 type Existing = Record<string, string | number | boolean | null>;
 
 // Compact card for one candidate: summary, trust badge, Confirm / Edit / Delete. Edit reveals the fields (children).
-export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, onReload, onEnhance, reloading, children }: {
+export default function ReviewCard({ row, summary, badge, badgeTitle, existing, mergeFields, onPatch, onFocus, footer, media, preview, lead, onReload, reloadOpen, onEnhance, reloading, onConfirm, onDelete, busy, children }: {
   row: Row;
   summary: ReactNode;
   badge: string;
@@ -23,7 +23,11 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
   preview?: ReactNode; // shown only while not editing (the textarea replaces it)
   onReload?: () => void; // asks the model for a fresh pass over this item
   onEnhance?: () => void; // asks the model to add what the source lacks (e.g. an explanation)
+  reloadOpen?: boolean;  // the form the reload button opens is showing (aria-expanded)
   reloading?: boolean;
+  onConfirm?: () => void; // the item is stored by Confirm at once (the generated exercises) instead of being ticked for a later Add
+  onDelete?: () => void;  // ... and Delete removes it at once, with no Undo row
+  busy?: boolean;         // a stored change is under way: Confirm and Delete wait
   lead?: ReactNode;    // the select-mode tick, above the state line
   children: ReactNode;
 }) {
@@ -48,17 +52,17 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
       {lead}
       <p className="review-state text-sm font-semibold">{row.selected ? t("confirmedState") : t("pendingState")}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-0 flex-1 break-words">{summary}</div>
+        <div className="min-w-[12rem] flex-1 break-words">{summary}</div>      {/* a long badge wraps to the next line instead of crushing the type menu */}
         <span className="badge" title={badgeTitle}>{badge}</span>
         {onEnhance && (
-          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
+          <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
             aria-label={t("enhance")} title={t("enhance")} onClick={onEnhance}>
             <Sparkles size={16} aria-hidden />
           </button>
         )}
         {onReload && (
-          <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
-            aria-label={reloading ? t("reloading") : t("reload")} title={t("reload")} onClick={onReload}>
+          <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-accent-soft disabled:opacity-50" disabled={reloading}
+            aria-label={reloading ? t("reloading") : t("reload")} aria-expanded={reloadOpen} title={t("reload")} onClick={onReload}>
             <RefreshCw size={16} aria-hidden className={reloading ? "animate-spin" : ""} />
           </button>
         )}
@@ -90,10 +94,10 @@ export default function ReviewCard({ row, summary, badge, badgeTitle, existing, 
       {footer}
       {undecided && <p className="text-sm">{t("chooseFirst")}</p>}
       <div className="btn-row flex-wrap">
-        <button type="button" className={`btn ${row.selected ? "btn-secondary" : "btn-primary"}`} disabled={undecided}
-          onClick={() => onPatch({ selected: !row.selected })}>{row.selected ? t("undoConfirm") : t("confirm")}</button>
+        <button type="button" className={`btn ${row.selected && !onConfirm ? "btn-secondary" : "btn-primary"}`} disabled={undecided || busy}
+          onClick={onConfirm ?? (() => onPatch({ selected: !row.selected }))}>{row.selected && !onConfirm ? t("undoConfirm") : t("confirm")}</button>
         <button type="button" className="btn btn-secondary" aria-expanded={editing} onClick={() => setEditing((e) => !e)}>{editing ? t("doneEditing") : t("edit")}</button>
-        <button type="button" className="btn btn-secondary" onClick={() => onPatch({ deleted: true, selected: false })}>{t("delete")}</button>
+        <button type="button" className="btn btn-secondary" disabled={busy} onClick={onDelete ?? (() => onPatch({ deleted: true, selected: false }))}>{t("delete")}</button>
       </div>
     </li>
   );

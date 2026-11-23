@@ -162,12 +162,11 @@
   "generateClose": "Close",
   "need_review": "review",
   "reviewTitle": "Review generated exercises",
-  "reviewIntro": "These exercises were doubted by the checks. They stay out of practice until you accept them.",
+  "reviewIntro": "These exercises were doubted by the checks. They stay out of practice until you confirm them.",
   "reviewReasonLabel": "Reason",
-  "reviewAccept": "Accept",
-  "reviewEdit": "Edit",
-  "reviewDelete": "Delete",
-  "reviewAcceptAll": "Accept all",
+  "reviewDraftBadge": "Generated",
+  "reviewDraftTitle": "Made by the model; confirm it to use it in the course",
+  "reviewAcceptAll": "Confirm all",
   "reviewDeleteAll": "Delete all",
   "reviewLater": "Later",
   "reviewFailed": "Something went wrong. Try again.",
@@ -376,6 +375,5 @@
   "hintSubtitle": "What this exercise rests on. Each step lowers the best grade you can earn.",
   "hintMoreAvailable": "Press Hint again for the words and characters.",
   "reviewAssociations": "Associations (vocabulary, grammar, calligraphy)",
-  "reviewRedo": "Redo or change type",
   "reviewRedoGo": "Rebuild"
 }
