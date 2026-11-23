@@ -1,4 +1,4 @@
-import { apiFetch } from "../apiFetch";
+import { ApiError, apiFetch } from "../apiFetch";
 import Exercise from "@/interface/features/Exercise";
 
 export async function getExerciseById(exerciseId: string) {
@@ -37,8 +37,7 @@ export async function generateLineAudio(exerciseId: string, line: number): Promi
       errorMessage: "tts_failed",
     });
   } catch (error) {
-    if (error instanceof Error) throw new Error(error.message);
-    throw error;
+    throw withServerCode(error);
   }
 }
 
@@ -51,7 +50,8 @@ export type GenerationJob = {
   result?: { batch_id: string; saved: number; flagged: string[] };
 };
 
-const codeOf = async (res: Response, fallback: string) => ((await res.json().catch(() => ({}))) as { error?: string }).error ?? fallback;
+/** The server's {error} code becomes the message (apiFetch keeps its own fixed text in `message`). */
+const withServerCode = (error: unknown) => (error instanceof ApiError && error.serverMessage ? new Error(error.serverMessage) : error);
 
 /** Recommended number of exercises for a lesson and the planned mix of types. */
 export async function suggestGeneration(lessonId: string): Promise<{ count: number; mix: Record<string, number>; pool: number; types?: string[] }> {
@@ -60,19 +60,26 @@ export async function suggestGeneration(lessonId: string): Promise<{ count: numb
 
 /** Starts a background generation; returns the job id. Throws an Error whose message is the server's code (text_gen_not_configured, empty_lesson, ...). */
 export async function startGeneration(lessonId: string, count: number, mix?: Record<string, number>): Promise<string> {
-  const res = await apiFetch(`/api/lesson/${lessonId}/exercises/generate`, {
-    method: "POST",
-    body: mix ? { count, mix } : { count },
-    errorMessage: "generate_failed",
-  });
-  return res.job_id;
+  try {
+    const res = await apiFetch(`/api/lesson/${lessonId}/exercises/generate`, {
+      method: "POST",
+      body: mix ? { count, mix } : { count },
+      errorMessage: "generate_failed",
+    });
+    return res.job_id;
+  } catch (error) {
+    throw withServerCode(error);
+  }
 }
 
 /** Progress of a generation job. Throws Error("lost") when the server no longer knows the job (restart). */
 export async function getGeneration(jobId: string): Promise<GenerationJob> {
-  const res = await apiFetch<Response>(`/api/exercise-generation/${jobId}`, { raw: true, errorMessage: "progress_failed" });
-  if (res.status === 404) throw new Error("lost");
-  return await res.json();
+  try {
+    return await apiFetch<GenerationJob>(`/api/exercise-generation/${jobId}`, { errorMessage: "progress_failed" });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) throw new Error("lost");
+    throw error;
+  }
 }
 
 /** The lesson's job left running (or just failed) while the user was elsewhere, or null. */

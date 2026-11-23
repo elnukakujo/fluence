@@ -74,8 +74,8 @@ function SpeechLine({
     isPlaying: boolean;
     registerAudioRef?: (element: HTMLAudioElement | null) => void;
 }) {
-    if (line.audioIndex === null) {throw new Error("User lines must have an audio index for reference playback"); }
-    const audioSrc = `${BASE_URL}${audioFiles[line.audioIndex]}`;
+    const clip = line.audioIndex === null ? undefined : audioFiles[line.audioIndex];      // a line may have no clip ("No audio"): it shows its text only
+    const audioSrc = clip ? `${BASE_URL}${clip}` : null;
     const baseStyle = isUser ? 'text-accent border-accent/40' : 'text-muted border-border';
     const highlightStyle = isUser
         ? 'text-accent border-accent'
@@ -86,10 +86,10 @@ function SpeechLine({
             <h4 className="font-medium">{userName}</h4>
             <p className='text-sm italic'>{line.text}</p>
             <div>
-                {isUser && (
+                {isUser && audioSrc && (
                     <p className="text-xs text-muted">{/* t("reference") */}Reference:</p>
                 )}
-                <audio ref={registerAudioRef} src={audioSrc} controls className="h-8 w-48"/>
+                {audioSrc && <audio ref={registerAudioRef} src={audioSrc} controls className="h-8 w-48"/>}
             </div>
         </fieldset>
     );

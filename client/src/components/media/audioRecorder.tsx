@@ -13,6 +13,7 @@ let encoderReady: Promise<void> | null = null;
 function getEncoderReady(): Promise<void> {
     if (!encoderReady) {
         encoderReady = connect().then(register);
+        encoderReady.catch(() => { encoderReady = null; });   // a failed load must be retried, not cached forever
     }
     return encoderReady;
 }
@@ -37,6 +38,7 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
     const previewUrlRef = useRef<string | null>(null);
     const mediaRecorderRef = useRef<InstanceType<typeof MediaRecorder> | null>(null);
     const chunksRef = useRef<Blob[]>([]);
+    const unmountedRef = useRef(false);
 
     const isRecording = status === "recording";
     const isProcessing = status === "processing" || status === "uploading";
@@ -55,16 +57,23 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
         setErrorMsg("");
         chunksRef.current = [];
 
-        // Ensure the WAV encoder worker is registered before recording
-        await getEncoderReady();
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-            },
-        });
+        let stream: MediaStream;
+        try {
+            // Ensure the WAV encoder worker is registered before recording
+            await getEncoderReady();
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: false,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                },
+            });
+        } catch (err) {   // permission denied, no microphone, encoder failed to load
+            if (unmountedRef.current) return;
+            setErrorMsg(err instanceof Error ? err.message : String(err));
+            setStatus("error");
+            return;
+        }
 
         // extendable-media-recorder records directly to audio/wav —
         // no manual encoding, no decodeAudioData, no cross-browser hacks needed
@@ -77,6 +86,7 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
 
         recorder.addEventListener("stop", async () => {
             stream.getTracks().forEach((t) => t.stop());
+            if (unmountedRef.current) return;   // the learner left mid-recording: nothing to show or upload
             setStatus("processing");
 
             try {
@@ -106,7 +116,14 @@ export default function AudioRecorder({ onUploadSuccess, onUploadError }: AudioR
 
     const stopRecording = () => mediaRecorderRef.current?.stop();
 
-    useEffect(() => () => revokePreview(), []);
+    useEffect(() => {
+        unmountedRef.current = false;
+        return () => {
+            unmountedRef.current = true;
+            if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();   // releases the microphone
+            revokePreview();
+        };
+    }, []);
 
     // ── Render ────────────────────────────────────────────────────────────────
 
