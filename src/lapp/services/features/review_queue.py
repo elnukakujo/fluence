@@ -270,17 +270,11 @@ def _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type
     """Ready (content fits, audio present), not banned exercises of the scope, past the linked-average gate (`free` skips the gate:
     the learner named them)."""
     if scope.kind == "type" and Exercise not in models:
-        pool = []
-        if scope.element_type in MODEL_OF_TYPE:                 # a type other than exercise: those linked to its cards
-            in_scope = {c[0].id if isinstance(c, tuple) else c.id for b in buckets.values() for c in b}
-            pool = [e for e in session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids), Exercise.review_reason.is_(None)).all()
-                    if in_scope & {x.id for x in (*e.related_vocabulary, *e.related_grammar, *e.related_calligraphy)}]
+        pool = []                                               # a named type serves only that type (vocabulary never brings exercises)
     else:
         pool = session.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids), Exercise.review_reason.is_(None)).all()
-        if scope.kind in ("tag", "source", "free"):
-            in_scope = {c[0].id if isinstance(c, tuple) else c.id for b in buckets.values() for c in b}
-            pool = [e for e in pool if e.id in ids or e.lesson_id in ids
-                    or in_scope & {x.id for x in (*e.related_vocabulary, *e.related_grammar, *e.related_calligraphy)}]
+        if scope.kind in ("tag", "source", "free"):             # only exercises the tag/source/learner names themselves, never ones merely linked to a scoped card
+            pool = [e for e in pool if e.id in ids or e.lesson_id in ids]
             if scope.kind == "free":
                 pool = [e for e in pool if e.id in ids]
     exercises = [c for c in pool if not c.needs]

@@ -83,7 +83,13 @@ def test_source_scope(db):
 
 def test_type_scope_keeps_the_type(db):
     seed(db)
-    assert {c["kind"] for c in queue(Scope("type", element_type="grammar"))} <= {"grammar", "exercise"}
+    assert {c["kind"] for c in queue(Scope("type", element_type="grammar"))} == {"grammar"}
+
+
+def test_vocabulary_and_calligraphy_scopes_never_bring_exercises(db):
+    seed(db)
+    for t in ("vocabulary", "calligraphy"):
+        assert "exercise" not in {c["kind"] for c in queue(Scope("type", element_type=t))}
 
 
 def test_free_scope_returns_exactly_the_ids_and_ignores_the_time_budget(db):
