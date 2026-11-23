@@ -833,6 +833,13 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  /* Review motion (RC-27): one cue per event, only for people who have not asked for less motion */
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse-once { animation: pulse-once 0.9s ease-out 1; }
+    .fade-in-group { animation: fade-in 0.35s ease-out 1; }
+    @keyframes pulse-once { 0% { transform: scale(1); } 35% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  }
+
   /* ── Recall grade buttons ──────────────────────────────────────── */
   .grade-btn {
     display: flex;

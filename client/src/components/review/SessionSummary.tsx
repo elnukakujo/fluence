@@ -28,7 +28,7 @@ export default function SessionSummary({ sessionId, languageId, backHref, backLa
         return () => { alive = false; };
     }, [sessionId]);
     const bar = (
-        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-4 py-3 md:bottom-0" data-testid="summary-bar">
+        <div className="m-0 fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-4 py-3 md:bottom-0" data-testid="summary-bar">
             <div className="mx-auto flex max-w-2xl gap-2">
                 <BackButton href={backHref}>{backLabel ?? t("sessionBack")}</BackButton>
                 {againHref && <a className="btn btn-primary min-h-11 inline-flex flex-1 items-center justify-center gap-2" href={againHref}><RotateCcw size={16} aria-hidden />{t("sessionAnotherRound")}</a>}
@@ -65,14 +65,14 @@ export default function SessionSummary({ sessionId, languageId, backHref, backLa
                     {languageId && <a className="btn btn-secondary min-h-11 inline-flex items-center justify-center" href={queueHref(languageId, { scope: "free", ids: stats.to_revisit })}>{t("sessionReviewMissed", { count: missed })}</a>}
                 </div>
             )}
-            <ul className="card grid list-none grid-cols-2 gap-x-3 gap-y-4 pl-0 sm:grid-cols-4">
+            <ul className="card grid list-none grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-4">
                 <li className="figure"><b>{sign(stats.avg_score_gain, 1)}</b><span>{t("sessionAvgGain")}</span></li>
                 <li className="figure"><b>{stats.hints_used}</b><span>{t("sessionHints")}</span></li>
                 <li className="figure"><b>{stats.avg_seconds_per_card.toFixed(1)}s</b><span>{t("sessionPace")}</span></li>
                 <li className="figure"><b>{sign(stats.avg_difficulty_change, 3)}</b><span>{t("sessionAvgDifficulty")}</span></li>
             </ul>
             {Object.keys(stats.by_type).length > 1 && (
-                <ul className="card flex list-none flex-wrap gap-x-6 gap-y-2 pl-0 text-sm" data-testid="by-type">
+                <ul className="card flex list-none flex-wrap gap-x-6 gap-y-2 text-sm" data-testid="by-type">
                     {Object.entries(stats.by_type).map(([type, n]) => <li key={type}><b>{n}</b> {tType(type)}</li>)}
                 </ul>
             )}

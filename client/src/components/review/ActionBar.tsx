@@ -23,7 +23,7 @@ export default function ActionBar({ phase, onNext, result, children }: { phase: 
         return () => window.removeEventListener("keydown", onKey);
     }, [phase, onNext]);
     return (
-        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-4 py-3 md:bottom-0" data-testid="action-bar">
+        <div className="m-0 fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-4 py-3 md:bottom-0" data-testid="action-bar">
             <div className="mx-auto flex max-w-2xl flex-col gap-2">
                 {phase === "next" && (
                     <p className="flex items-center justify-between text-sm" aria-live="polite" data-testid="result-strip">
