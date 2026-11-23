@@ -101,7 +101,7 @@ def type_stats(user_id: str, language_id: str, session: Optional[Session] = None
         ids = [i for (i,) in session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)]
         scores = ScoreService().get_many(user_id, ids, now=now, session=session)
         by = [r.score or 0.0 for r in scores.values()]
-        out[name] = {"total": len(ids), "seen": len(by), "mean_seen": round(sum(by) / len(by), 1) if by else None, "due": 0,
+        out[name] = {"total": len(ids), "cards": len(ids) * (2 if name == "vocabulary" else 1), "seen": len(by), "mean_seen": round(sum(by) / len(by), 1) if by else None, "due": 0,
                      "fading": sum(1 for i in succeeded if i in scores and (scores[i].score or 0.0) < KNOWN_FROM)}
     out["exercise"] = {"total": session.query(Exercise.id).join(Lesson, Lesson.id == Exercise.lesson_id).filter(
         Lesson.language_id == language_id, Exercise.review_reason.is_(None)).count(), "seen": None, "mean_seen": None, "fading": None, "due": 0}

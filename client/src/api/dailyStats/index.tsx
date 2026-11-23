@@ -39,7 +39,7 @@ export async function getLanguageSummary(languageId: string): Promise<LanguageSu
 }
 
 /** What the custom review's Type tab shows for one studied type. `due` = cards of it in today's daily review; exercises have no seen/score/fading. */
-export type TypeStat = { total: number; seen: number | null; mean_seen: number | null; fading: number | null; due: number };
+export type TypeStat = { total: number; cards?: number; seen: number | null; mean_seen: number | null; fading: number | null; due: number };
 export type TypeStats = Record<string, TypeStat>;
 
 export async function getTypeStats(languageId: string): Promise<TypeStats> {

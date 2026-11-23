@@ -95,6 +95,7 @@
   "typeAverage": "平均得分",
   "typeFading": "正在遗忘",
   "typeSeen": "已见 {seen} / {total}",
+  "typeWords": "{total} 个词",
   "typeCount": "{total} 张卡片",
   "typeStart": "复习{type}"
 }

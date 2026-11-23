@@ -30,3 +30,9 @@ def test_type_stats_per_studied_type(app, db):
     assert set(out) == {"vocabulary", "grammar", "calligraphy", "exercise"}
     assert out["vocabulary"]["total"] == 2 and out["vocabulary"]["seen"] == 0 and out["exercise"]["seen"] is None
     assert c.get("/api/stats/lang_nope/types").status_code == 404
+
+
+def test_type_stats_cards_counts_both_sides_of_a_vocabulary(app, db):
+    """RC-27: the picker says how many cards the queue will hold: 2 sides per word."""
+    out = _client(app, db).get("/api/stats/lang_L1/types").get_json()
+    assert out["vocabulary"]["cards"] == 4 and out["vocabulary"]["total"] == 2

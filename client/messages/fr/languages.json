@@ -95,6 +95,7 @@
   "typeAverage": "score moyen",
   "typeFading": "en baisse",
   "typeSeen": "{seen} vues sur {total}",
+  "typeWords": "{total, plural, one {# mot} other {# mots}}",
   "typeCount": "{total, plural, one {# carte} other {# cartes}}",
   "typeStart": "Réviser : {type}"
 }

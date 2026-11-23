@@ -33,6 +33,11 @@ describe("custom review picker", () => {
     expect(screen.getByRole("link", { name: /Review Vocabulary · 400 cards/ })).toHaveAttribute("href", "/languages/lang_1/review/queue?scope=type&type=vocabulary");
   });
 
+  it("a vocabulary start bar says cards and words: 110 cards · 55 words", () => {
+    picker({ stats: { ...STATS, vocabulary: { ...STATS.vocabulary, total: 55, cards: 110 } } });
+    expect(screen.getByRole("link", { name: /Review Vocabulary · 110 cards · 55 words/ })).toBeInTheDocument();
+  });
+
   it("choosing another type moves the start bar to it", async () => {
     picker({ stats: STATS });
     await userEvent.click(screen.getByRole("radio", { name: /Exercises/ }));
