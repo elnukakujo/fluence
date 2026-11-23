@@ -301,15 +301,15 @@ class CharacterService:
         if resolving_conflict:
             existing.audio_files = stack_lists(existing.audio_files, update_data.get('audio_files'))
             existing.image_files = stack_lists(existing.image_files, update_data.get('image_files'))
-            existing.tags = stack_related(existing.tags, data.tags, Tag, session)
-            existing.sources = stack_related(existing.sources, data.sources, Source, session)
+            existing.tags = stack_related(existing.tags, data.tags, Tag, session, anchor=existing)
+            existing.sources = stack_related(existing.sources, data.sources, Source, session, anchor=existing)
         else:
             existing.audio_files = update_data.get('audio_files', existing.audio_files)
             existing.image_files = update_data.get('image_files', existing.image_files)
             if data.tags is not None:
-                existing.tags = resolve_related(data.tags, Tag, session)
+                existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
             if data.sources is not None:
-                existing.sources = resolve_related(data.sources, Source, session)
+                existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 

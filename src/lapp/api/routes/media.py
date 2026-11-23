@@ -4,11 +4,15 @@ from werkzeug.exceptions import HTTPException
 import logging
 logger = logging.getLogger(__name__)
 
-from ...core.auth import login_required
+from ...core.auth import login_required, admin_required
 from ...services import MediaService
 
 bp = Blueprint('media', __name__)
 _PRIVATE_DIRS = {'ingestion', 'parse_cache'}
+
+def _is_private(path) -> bool:
+    return str(path).lstrip("/\\").split("/", 1)[0] in _PRIVATE_DIRS
+
 
 # Required because MediaService depends on current_app context which may not be available at import time
 def get_media_service() -> MediaService:
@@ -47,7 +51,7 @@ def serve_media(filename: str):
             description: Not Found - File does not exist
     """
     # Per-job upload folders and the parse cache are private; the owner reaches them through /api/ingestion.
-    if filename.lstrip("/\\").split("/", 1)[0] in _PRIVATE_DIRS:
+    if _is_private(filename):
         abort(404)
     try:
         media_root, file_path = get_media_service().get_file_path(filename)
@@ -207,7 +211,7 @@ def upload_audio():
 
 
 @bp.route('/media/delete/', methods=['DELETE'])
-@login_required
+@admin_required   # media files are shared across users and carry no owner: the app itself never calls this
 def delete_media():
     """
     Delete a media file.
@@ -255,6 +259,8 @@ def delete_media():
         if not data or 'file_path' not in data:
             return jsonify({'success': False, 'error': 'file_path is required'}), 400
 
+        if _is_private(data['file_path']):
+            return jsonify({'success': False, 'error': 'File not found'}), 404
         result = get_media_service().delete_file(data['file_path'])
         
         if 'error' in result:
@@ -288,6 +294,8 @@ def media_info(filename: str):
             "exists": true
         }
     """
+    if _is_private(filename):
+        abort(404)
     try:
         result = get_media_service().get_file_info(filename)
         

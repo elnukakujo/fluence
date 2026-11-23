@@ -106,10 +106,10 @@ class TagService:
             return None
 
         # Update fields
-        existing.user_id = tag_data.user_id
-        existing.name = tag_data.name
-        existing.color = tag_data.color
-        existing.description = tag_data.description
+        # The owner never changes through an update; only the fields the caller sent are written.
+        for field in ("name", "color", "description"):
+            if field in tag_data.model_fields_set:
+                setattr(existing, field, getattr(tag_data, field))
 
         modified = db_manager.modify(existing, session=session, commit=False)
         return self._serialize(modified, as_dict, include_relations)

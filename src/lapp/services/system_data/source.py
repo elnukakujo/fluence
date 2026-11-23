@@ -114,11 +114,10 @@ class SourceService:
             return None
 
         # Update fields
-        existing.user_id = source_data.user_id
-        existing.title = source_data.title
-        existing.date = source_data.date
-        existing.description = source_data.description
-        existing.source_type = source_data.source_type
+        # The owner never changes through an update; only the fields the caller sent are written.
+        for field in ("title", "date", "description", "source_type"):
+            if field in source_data.model_fields_set:
+                setattr(existing, field, getattr(source_data, field))
 
         modified = db_manager.modify(existing, session=session, commit=False)
         return self._serialize(modified, as_dict, include_relations)

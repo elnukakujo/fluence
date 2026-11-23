@@ -165,13 +165,13 @@ class VocabularyService:
             if on_conflict == "merge":
                 existing_vocabulary.image_files = stack_lists(existing_vocabulary.image_files, data.image_files)
                 existing_vocabulary.audio_files = stack_lists(existing_vocabulary.audio_files, data.audio_files)
-                existing_vocabulary.tags = stack_related(existing_vocabulary.tags, data.tags, Tag, session)
-                existing_vocabulary.sources = stack_related(existing_vocabulary.sources, data.sources, Source, session)
+                existing_vocabulary.tags = stack_related(existing_vocabulary.tags, data.tags, Tag, session, anchor=existing_vocabulary)
+                existing_vocabulary.sources = stack_related(existing_vocabulary.sources, data.sources, Source, session, anchor=existing_vocabulary)
             elif on_conflict == "overwrite":
                 existing_vocabulary.image_files = data.image_files or []
                 existing_vocabulary.audio_files = data.audio_files or []
-                existing_vocabulary.tags = resolve_related(data.tags, Tag, session)
-                existing_vocabulary.sources = resolve_related(data.sources, Source, session)
+                existing_vocabulary.tags = resolve_related(data.tags, Tag, session, anchor=existing_vocabulary)
+                existing_vocabulary.sources = resolve_related(data.sources, Source, session, anchor=existing_vocabulary)
             # "keep": leave existing_vocabulary's lists untouched
             existing_vocabulary.example_sentences = example_sentences or existing_vocabulary.example_sentences
             result = db_manager.modify(existing_vocabulary, session=session, commit=False)
@@ -190,8 +190,8 @@ class VocabularyService:
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
             example_sentences=example_sentences,
-            tags=resolve_related(data.tags, Tag, session),
-            sources=resolve_related(data.sources, Source, session),
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data),
         )
 
         result = db_manager.insert(obj=vocabulary, session=session, commit=False)
@@ -248,9 +248,9 @@ class VocabularyService:
             setattr(existing, key, value)
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 

@@ -177,15 +177,15 @@ class LessonService:
             logger.warning(f"LessonContainer not found: {lesson_id}")
             return None
 
-        update_data: LessonDict = data.model_dump(exclude={'id', 'language_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
+        update_data: LessonDict = data.model_dump(exclude={'id', 'user_id', 'language_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
 
         for key, value in update_data.items():
             setattr(existing, key, value)
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 

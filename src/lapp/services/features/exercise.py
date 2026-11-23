@@ -239,9 +239,9 @@ class ExerciseService:
             )
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
         return self._serialize(result, as_dict, include_relations)

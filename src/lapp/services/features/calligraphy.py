@@ -211,11 +211,11 @@ class CalligraphyService:
 
         if existing_calligraphy:
             if on_conflict == "merge":
-                existing_calligraphy.tags = stack_related(existing_calligraphy.tags, data.tags, Tag, session)
-                existing_calligraphy.sources = stack_related(existing_calligraphy.sources, data.sources, Source, session)
+                existing_calligraphy.tags = stack_related(existing_calligraphy.tags, data.tags, Tag, session, anchor=existing_calligraphy)
+                existing_calligraphy.sources = stack_related(existing_calligraphy.sources, data.sources, Source, session, anchor=existing_calligraphy)
             elif on_conflict == "overwrite":
-                existing_calligraphy.tags = resolve_related(data.tags, Tag, session)
-                existing_calligraphy.sources = resolve_related(data.sources, Source, session)
+                existing_calligraphy.tags = resolve_related(data.tags, Tag, session, anchor=existing_calligraphy)
+                existing_calligraphy.sources = resolve_related(data.sources, Source, session, anchor=existing_calligraphy)
             # "keep": leave existing_calligraphy's lists untouched
             existing_calligraphy.example_words = example_words or existing_calligraphy.example_words
             existing_calligraphy.example_sentences = example_sentences or existing_calligraphy.example_sentences
@@ -238,8 +238,8 @@ class CalligraphyService:
             character=character,
             example_words=example_words,
             example_sentences=example_sentences,
-            tags=resolve_related(data.tags, Tag, session),
-            sources=resolve_related(data.sources, Source, session),
+            tags=resolve_related(data.tags, Tag, session, anchor=lesson),
+            sources=resolve_related(data.sources, Source, session, anchor=lesson),
         )
 
         result = db_manager.insert(obj=calligraphy, session=session, commit=False)
@@ -306,9 +306,9 @@ class CalligraphyService:
             setattr(existing, key, value)
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 

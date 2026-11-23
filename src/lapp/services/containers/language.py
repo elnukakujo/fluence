@@ -251,9 +251,9 @@ class LanguageService:
             existing.iso1, existing.target_iso639_2t = supported.iso1, supported.iso2
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 

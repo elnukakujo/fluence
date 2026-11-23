@@ -789,7 +789,30 @@ def transactional(method):
     return wrapper
 
 
-def stack_related(existing_items, incoming_refs, model_class, session: Session):
+def content_owner(anchor, session: Session):
+    """The user who owns the content `anchor` belongs to: a container, a feature (via its lesson) or a component (via its
+    language). `anchor` is an ORM row or anything with a `lesson_id` / `language_id`. None when it cannot be told."""
+    from ..models.containers import Language, Lesson   # local: the models import this module
+    for attr, model in (("user_id", None), ("lesson_id", Lesson), ("language_id", Language)):
+        value = getattr(anchor, attr, None)
+        if not value:
+            continue
+        if model is None:
+            return value
+        parent = session.get(model, value)
+        if parent is not None:
+            return content_owner(parent, session)
+    return None
+
+
+def _owned_by_content_owner(query, model_class, anchor, session: Session):
+    """Tags and sources attach only when they belong to the content's owner (a collaborator edits the owner's content,
+    so it carries the owner's labels): another user's tag id is never attached nor read back."""
+    owner = content_owner(anchor, session) if anchor is not None else None
+    return query.filter(model_class.user_id == owner) if owner else query
+
+
+def stack_related(existing_items, incoming_refs, model_class, session: Session, anchor=None):
     """Union existing ORM objects with incoming {id: ...}-like refs, by id.
 
     Used to combine tags/sources when resolving a create() duplicate — like
@@ -800,14 +823,17 @@ def stack_related(existing_items, incoming_refs, model_class, session: Session):
     new_ids = [ref.id for ref in (incoming_refs or []) if getattr(ref, "id", None) and ref.id not in existing_ids]
     if not new_ids:
         return existing_items
-    new_items = session.query(model_class).filter(model_class.id.in_(new_ids)).all()
-    return existing_items + new_items
+    query = _owned_by_content_owner(session.query(model_class).filter(model_class.id.in_(new_ids)), model_class, anchor, session)
+    return existing_items + query.all()
 
 
-def resolve_related(refs, model_class, session: Session):
-    """Query and return the ORM objects matching incoming {id: ...}-like refs, by id."""
+def resolve_related(refs, model_class, session: Session, anchor=None):
+    """Query and return the ORM objects matching incoming {id: ...}-like refs, by id.
+    `anchor` (the element being saved) restricts them to its owner's tags / sources."""
     ids = [ref.id for ref in (refs or []) if getattr(ref, "id", None)]
-    return session.query(model_class).filter(model_class.id.in_(ids)).all() if ids else []
+    if not ids:
+        return []
+    return _owned_by_content_owner(session.query(model_class).filter(model_class.id.in_(ids)), model_class, anchor, session).all()
 
 # Convenience function for Flask initialization
 def init_db(app: Flask) -> DatabaseManager:
