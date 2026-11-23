@@ -65,15 +65,11 @@ export const calligraphyRenderer: ItemRenderer<Calligraphy> = {
     // A strong character is always drawn; on other days a stable third of the weaker ones is, instead of the flip card.
     opensDrawing: (item) => { const tier = tierFor(item); return tier === "maintaining" || isDrawFirst(item, tier, new Date()); },
     canOpenDrawing: (item) => loadStrokeData(item.character.character ?? "").then((s) => !!s).catch(() => false),
-    pre: (c) => (
-        <>
-            {!c.showPractice && !c.hintShown && <PracticeButton c={c} />}
-            {c.practiceResult && <PracticeResult r={c.practiceResult} />}
-        </>
-    ),
+    actions: (c) => (!c.showPractice && !c.hintShown ? <PracticeButton c={c} /> : null),     // in the row of Edit and Delete
+    pre: (c) => (c.practiceResult ? <PracticeResult r={c.practiceResult} /> : null),
     hintExtra: (c) => <PracticeButton c={c} />,
     body: (c) => c.showPractice ? (
-        <CalligraphyPracticeCanvas character={c.item.character.character ?? ""} tier={c.tier!}
+        <CalligraphyPracticeCanvas key={c.item.id} character={c.item.character.character ?? ""} tier={c.tier!}
             onResult={async (r) => {
                 try {
                     await submitCalligraphyDrawing(c.item.id!, r.similarity, r.strokeOrderErrors, c.elapsedMs(), c.hintUsed || guidanceFor(c.tier!) !== "none");   // a shown guide counts as a hint

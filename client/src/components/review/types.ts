@@ -82,6 +82,7 @@ export type ItemRenderer<T extends SessionItem = SessionItem> = {
     opensDrawing?(item: T): boolean;                  // calligraphy: a strong / drawn-first card opens on the canvas
     canOpenDrawing?(item: T): Promise<boolean>;       // ... unless there is no stroke data for it: then it is flipped, never a blank canvas
     pre?(ctx: RendererCtx<T>): ReactNode;             // above the leech panel
+    actions?(ctx: RendererCtx<T>): ReactNode;          // at the left of the row of Edit and Delete (before the hint ladder is open)
     hintExtra?(ctx: RendererCtx<T>): ReactNode;       // child of the hint ladder
     body?(ctx: RendererCtx<T>): ReactNode;
     escape?(ctx: RendererCtx<T>): ReactNode;          // "I can't hear" / "I can't draw", below the card

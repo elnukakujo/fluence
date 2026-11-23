@@ -243,7 +243,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                 badges={<>{view.tier && <TierBadge tier={view.tier} />}{card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}</>}
             />
 
-            {!hintShown && !renderer.whole && <div className="flex items-start justify-end gap-2">{editButton}{deleteButton}</div>}
+            {!hintShown && !renderer.whole && <div className="flex items-start gap-2">{renderer.actions?.(ctx)}<div className="ml-auto flex items-start gap-2">{editButton}{deleteButton}</div></div>}
 
             {renderer.whole ? renderer.whole(ctx) : (
                 <>
