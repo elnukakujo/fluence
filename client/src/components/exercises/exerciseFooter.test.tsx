@@ -25,7 +25,7 @@ describe("ExerciseFooter", () => {
         render(<ExerciseFooter {...base} finished isLast={false} />);
         expect(screen.queryByRole("button", { name: "I don't know" })).toBeNull();
         const next = screen.getByRole("button", { name: "Next Exercise" });
-        expect(next).toHaveClass("w-full");
+        expect(next).toHaveClass("flex-1");      // alone it takes the whole row
         fireEvent.click(next);
         expect(base.onNext).toHaveBeenCalledTimes(1);
     });

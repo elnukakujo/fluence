@@ -86,6 +86,15 @@ describe("review card: draw-first calligraphy", () => {
         expect(screen.getByRole("button", { name: /Good/ })).toBeInTheDocument();
     });
 
+    it("the Practice button sits in the same row as Edit and Delete, not on a row of its own", () => {
+        m.isDrawFirst.mockReturnValue(false);
+        render(<ReviewFlashCard cards={[call(40)]} />);
+        const practice = screen.getByRole("button", { name: "Practice" });
+        const del = screen.getByRole("button", { name: /Delete/ });
+        expect(practice.parentElement).toContainElement(del);       // [Practice] ... [Edit Delete] in one flex row
+        expect(practice.parentElement).toHaveClass("flex");
+    });
+
     it("no stroke data falls back to the flip card", async () => {
         m.loadStrokeData.mockResolvedValue(null);
         render(<ReviewFlashCard cards={[call(40)]} />);

@@ -142,8 +142,8 @@ class GrammarService:
             example_sentences=example_sentences,
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data)
         )
 
         result = db_manager.insert(obj=grammar, session=session, commit=False)
@@ -193,9 +193,9 @@ class GrammarService:
             setattr(existing, key, value)
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 

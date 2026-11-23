@@ -161,12 +161,19 @@ def generate_missing_texts(app: Flask):
                 flags, api = ai_gen_by_user[language.user_id]
                 if isinstance(feature, Vocabulary) and flags["example_sentence"] and not is_passage(feature.word.word, feature.word.word_type):
                     # Local Tatoeba corpus first: no endpoint needed, no model call. An empty answer from the endpoint is remembered.
-                    if _try_corpus(feature, language, vocabulary_service, session):
+                    try:
+                        used_corpus = _try_corpus(feature, language, vocabulary_service, session)
+                    except Exception as e:                  # one bad feature must not end the run
+                        session.rollback()
+                        error_count += 1
+                        logger.error(f"❌ Corpus lookup failed for Feature ID {feature.id}: {e}", exc_info=True)
+                        continue
+                    if used_corpus:
                         success_count += 1
                         continue
-                    if recently_failed("example", feature.id, session=session):
-                        progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [no example found recently, not retried yet]")
-                        continue
+                if recently_failed("example", feature.id, session=session):   # an empty answer is remembered for every type, not retried on each run
+                    progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [no example found recently, not retried yet]")
+                    continue
                 if not api or not api["base_url"]:
                     progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [no text-gen api configured for user]")
                     continue
@@ -220,9 +227,8 @@ def generate_missing_texts(app: Flask):
                     progress.set_postfix_str(f"{type(feature).__name__} {feature.id} [{lang_codes}]: {text[:40]!r} -> {(generated_text or '')[:40]!r}")
 
                     if generated_text is None or not generated_text.strip():
-                        if isinstance(feature, Vocabulary):
-                            remember_failure("example", feature.id, session=session)
-                            session.commit()
+                        remember_failure("example", feature.id, session=session)
+                        session.commit()
                         logger.error(f"❌ Failed to generate text for Feature ID {feature.id}: empty or null result")
                         error_count += 1
                         continue

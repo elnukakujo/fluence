@@ -199,6 +199,8 @@ class UserPreferencesService:
 
         # Update fields
         for field, value in data.model_dump(exclude_unset=True).items():
+            if field in ("id", "user_id"):
+                continue  # a preferences row never changes owner or id
             if field in ("ai_gen_api_key", "ai_tts_api_key") and not value:
                 continue  # keys are write-only: omitted or empty keeps the stored one
             if field == "ai_endpoints":

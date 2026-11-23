@@ -70,6 +70,15 @@ describe("study goal menu", () => {
         expect(voc).toHaveAttribute("aria-label", "Vocabulary: 1 done, 1 started, 1 not started");
         expect(screen.getAllByTestId("to-go").map((e) => e.textContent)).toEqual(["2 to go", "All done"]);
     });
+    it("a strip of many squares can shrink to the card: no fixed minimum width, a thinner gap", () => {
+        const st = state();
+        st.progress.items = Array.from({ length: 63 }, (_, n) => ({ id: `voc_${n}`, kind: "vocabulary", role: "new", label: `w${n}`, lesson_id: "l", done: n < 54, carried: false, progress: 0, to_go: 1 })) as never;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        const strip = screen.getAllByTestId("goal-strip")[0];
+        expect(strip).toHaveClass("gap-px");
+        expect(strip.children).toHaveLength(63);
+        expect(Array.from(strip.children).every((c) => c.classList.contains("min-w-0") && !c.className.includes("min-w-["))).toBe(true);   // a 3px minimum x 63 pushed the strip past the card
+    });
     it("each strip square has a hover tab with the element's name, score, level and what is left", () => {
         const st = state();
         st.progress.items = [

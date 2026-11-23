@@ -105,6 +105,7 @@ def generate_missing_component_audio(app: Flask):
             progress = tqdm(components_without_audio, desc="Generating missing audio")
             for component in progress:
                 progress.set_postfix_str(f"{type(component).__name__} {component.id}")
+                text = None   # the except below logs it: it may fail before it is read
                 try:
                     # Generate audio using TTS service
                     language = db_manager.find_by_pk(Language(id=component.language_id), session=session)

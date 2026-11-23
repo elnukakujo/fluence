@@ -162,22 +162,15 @@ class UserService:
             logger.warning(f"User with ID {user_id} not found for update.")
             return None
 
-        # Update fields
-        user.preferences = user_preferences_service.create(
-            data=UserPreferencesDict(
-                user_id=user_id,
-                native_language_iso639_2=update_data.preferences.native_language_iso639_2 if update_data.preferences else [],
-                learning_goals=update_data.preferences.learning_goals if update_data.preferences else "",
-                ai_feedback_enabled=update_data.preferences.ai_feedback_enabled if update_data.preferences else True,
-                ai_learnable_sentence_enabled=update_data.preferences.ai_learnable_sentence_enabled if update_data.preferences else True,
-                ai_example_sentence_enabled=update_data.preferences.ai_example_sentence_enabled if update_data.preferences else True,
-                ai_example_word_enabled=update_data.preferences.ai_example_word_enabled if update_data.preferences else True,
-                ai_tts_enabled=update_data.preferences.ai_tts_enabled if update_data.preferences else True,
-                # ai_gen_*/ai_tts_* connection fields are intentionally omitted here - see the
-                # matching comment in create() above.
-            ),
-            session=session,
-        )
+        # Preferences change only when the caller sent some, and then only the fields it sent
+        # (a profile save of just the display name must not reset goals or AI switches).
+        # ai_gen_*/ai_tts_* connection fields are intentionally omitted here - see the matching comment in create() above.
+        if update_data.preferences is not None:
+            sent = update_data.preferences.model_dump(exclude_unset=True, include={
+                "native_language_iso639_2", "learning_goals", "ai_feedback_enabled", "ai_learnable_sentence_enabled",
+                "ai_example_sentence_enabled", "ai_example_word_enabled", "ai_tts_enabled"})
+            user.preferences = user_preferences_service.create(
+                data=UserPreferencesDict(user_id=user_id, **sent), session=session)
 
         fields = update_data.model_dump(exclude={"id", "preferences"}, exclude_unset=True)
         password = fields.pop("password", None)

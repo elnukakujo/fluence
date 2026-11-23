@@ -35,9 +35,52 @@ def type_error(item: dict) -> str | None:
     return None
 
 
-def code_error(item: dict, allowed_ids: set[str], grammar_ids: set[str] | None = None) -> str | None:
+SCRIPT_OF = {"Japanese": "kana", "Chinese": "han", "Korean": "hangul", "Russian": "cyrillic", "Ukrainian": "cyrillic", "Macedonian": "cyrillic", "Greek": "greek"}   # any other language of the app: Latin letters
+_SCRIPTS = {"kana": re.compile(r"[\u3040-\u30ff]"), "han": re.compile(r"[\u3400-\u9fff]"), "hangul": re.compile(r"[\uac00-\ud7af]"),
+            "cyrillic": re.compile(r"[\u0400-\u04ff]"), "greek": re.compile(r"[\u0370-\u03ff]"), "latin": re.compile(r"[A-Za-z\u00c0-\u024f]")}
+
+
+def written_in(text: str, language: str | None) -> bool | None:
+    """Is `text` written in the script of `language`? None when the language is not one we can tell by its letters (or is unknown).
+    Latin-script languages cannot be told apart from each other here: French and English both pass as Latin. What it catches is the model
+    writing Chinese where Japanese or English belongs: Japanese has kana, Chinese has none, English has no Han at all."""
+    if not language or language == "the target language":
+        return None
+    count = {name: len(rx.findall(text)) for name, rx in _SCRIPTS.items()}
+    total = sum(count.values())
+    if not total:
+        return False
+    script = SCRIPT_OF.get(language, "latin")
+    if script == "kana":      # Japanese: kana, and kanji with it
+        return count["kana"] > 0 and (count["kana"] + count["han"]) / total >= 0.6
+    if script == "han":       # Chinese: Han and no kana
+        return count["han"] / total >= 0.8 and count["kana"] == 0 and count["hangul"] == 0
+    return count[script] / total >= 0.8
+
+
+def language_error(item: dict, target: str | None, learner: str | None) -> str | None:
+    """A translate goes between the lesson's two languages, an answering is answered in the target language (the model copies the languages of its examples)."""
+    if not target or target == "the target language":
+        return None
+    etype, q, a = item.get("exercise_type"), (item.get("question") or ""), (item.get("answer") or "")
+    if etype == "translate":
+        q_t, a_t = written_in(q, target), written_in(a, target)
+        if learner:
+            q_l, a_l = written_in(q, learner), written_in(a, learner)
+            ok = (q_l is not False and a_t) or (q_t and a_l is not False)        # learner -> target, or target -> learner
+        else:
+            ok = q_t or a_t                                                      # the learner's language is unknown: one side must be the target
+        if not ok:
+            return f"a translate goes between {target} and {learner or 'the learner’s language'} only: one side is a {target} sentence, the other its translation, in no other language"
+    if etype == "answering" and written_in(a, target) is False:
+        return f"an answering `answer` is a full sentence in {target}"
+    return None
+
+
+def code_error(item: dict, allowed_ids: set[str], grammar_ids: set[str] | None = None, languages: tuple[str | None, str | None] | None = None) -> str | None:
     """None if `item` ({exercise_type, question, answer, content, links}) passes, else the first problem.
-    `grammar_ids` = the slot's grammars: when given, `links` must name at least one (EG-17)."""
+    `grammar_ids` = the slot's grammars: when given, `links` must name at least one (EG-17).
+    `languages` = (target, learner) names: when given, the languages of a translate / answering are checked."""
     etype = item.get("exercise_type")
     if etype not in EXERCISE_TYPES:
         return f"unknown exercise type {etype!r}"
@@ -48,6 +91,8 @@ def code_error(item: dict, allowed_ids: set[str], grammar_ids: set[str] | None =
     if etype in ANSWER_REQUIRED and not (item.get("answer") or "").strip():
         return "the answer is empty"
     if (error := type_error(item)):
+        return error
+    if languages and (error := language_error(item, *languages)):
         return error
     if etype == "type_in_the_blank" and not (item.get("text_support") or "").strip():
         return "a type-in gap needs a clue in `text_support` (a word bank, the base form or the translation of each missing word), otherwise the answer is a guess"

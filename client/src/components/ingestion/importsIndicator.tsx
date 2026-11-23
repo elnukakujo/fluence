@@ -112,14 +112,16 @@ export default function ImportsIndicator() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let alive = true;
-    const loop = async () => {
+    let generation = 0;   // a refresh while a load is in flight starts a new chain; the old one then stops instead of polling twice
+    const loop = async (mine = generation) => {
       if (!document.hidden) await load();
-      if (alive) timer = setTimeout(loop, busy.current ? POLL_ACTIVE_MS : POLL_IDLE_MS);
+      if (alive && mine === generation) timer = setTimeout(() => loop(), busy.current ? POLL_ACTIVE_MS : POLL_IDLE_MS);
     };
     const refreshNow = () => {
       if (document.hidden) return;
+      generation += 1;
       clearTimeout(timer);
-      loop();
+      loop(generation);
     };
     loop();
     document.addEventListener("visibilitychange", refreshNow);

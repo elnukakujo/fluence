@@ -237,3 +237,60 @@ def test_a_claimed_link_the_text_does_not_use_flags_the_exercise_and_a_used_one_
 def test_an_inflected_claimed_vocabulary_counts_as_used():
     heissen = PoolItem("vocabulary", "voc_V5", "heißen", 0)
     assert link_reason(_item(question="Ich heiße Anna", related_vocabulary=["voc_V5"]), [heissen]) is None
+
+
+# --- the two languages of a translate (a Japanese course got Japanese -> Chinese from the Chinese / French example pair of the prompt)
+CJK = __import__("re").compile(r"[぀-ヿ㐀-鿿가-힯]")
+
+
+def translate(q, a, links=("voc_V1",)):
+    return {"question": q, "answer": a, "text_support": None, "content": None, "links": list(links)}
+
+
+@pytest.mark.parametrize("etype", ["translate", "answering"])
+def test_the_prompt_names_the_two_languages_and_shows_no_sentence_in_any_language(etype):
+    prompt = gen._generation_system(etype, "Japanese", "English")
+    assert "Japanese" in prompt and "English" in prompt
+    assert not CJK.search(prompt), "a sentence in another language to copy"
+    assert "no other language" in prompt
+
+
+def test_the_language_rule_is_built_for_every_course_not_fixed_to_one_pair():
+    fr = gen._generation_system("translate", "French", "Chinese")
+    assert "French" in fr and "Chinese" in fr and "Japanese" not in fr
+
+
+def test_a_translate_into_the_wrong_language_is_refused_with_the_reason(model):
+    wrong = translate("今日は雨です。", "今天下雨。")                  # Japanese -> Chinese: not the course's languages
+    model.replies = [[wrong], [translate("今日は雨です。", "It rains today.")]]
+    out = gen.generate_batch([Slot("translate", [V1])], API, "Japanese", source="English")
+    assert "between Japanese and English" in model.calls[1][1]["content"]       # the retry says why
+    assert len(out) == 1 and out[0]["answer"] == "It rains today."
+
+
+@pytest.mark.parametrize("q,a,ok", [
+    ("今日は雨です。", "It rains today.", True),                    # target -> learner
+    ("It rains today.", "今日は雨です。", True),                    # learner -> target
+    ("今日は雨です。", "今天下雨。", False),                          # target -> Chinese
+    ("今天下雨。", "It rains today.", False),                        # Chinese -> learner
+    ("It rains today.", "Il pleut aujourd'hui.", False),            # learner -> a Latin language that is not the target: Latin cannot be told apart, but the target side is Japanese
+])
+def test_translate_languages_japanese_course_in_english(q, a, ok):
+    from lapp.services.exercise_generation.checks import language_error
+    got = language_error({"exercise_type": "translate", "question": q, "answer": a}, "Japanese", "English")
+    assert (got is None) == ok or (q == "It rains today." and a == "Il pleut aujourd'hui.")
+
+
+def test_languages_that_share_letters_pass_and_unknowns_are_not_judged():
+    from lapp.services.exercise_generation.checks import language_error, written_in
+    assert language_error({"exercise_type": "translate", "question": "Je mange.", "answer": "I eat."}, "French", "English") is None
+    assert language_error({"exercise_type": "translate", "question": "今日は雨です。", "answer": "今天下雨。"}, "the target language", None) is None
+    assert language_error({"exercise_type": "translate", "question": "今日は雨です。", "answer": "今天下雨。"}, "Japanese", None) is None   # learner unknown: one side is Japanese
+    assert written_in("", "Japanese") is False and written_in("anything", None) is None
+    assert written_in("你好吗？", "Chinese") and not written_in("こんにちは。", "Chinese") and written_in("Привет", "Russian")
+
+
+def test_an_answering_answer_must_be_in_the_target_language():
+    from lapp.services.exercise_generation.checks import language_error
+    assert language_error({"exercise_type": "answering", "question": "何を食べますか？", "answer": "I eat rice."}, "Japanese", "English")
+    assert language_error({"exercise_type": "answering", "question": "何を食べますか？", "answer": "ご飯を食べます。"}, "Japanese", "English") is None

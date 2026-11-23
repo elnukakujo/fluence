@@ -10,10 +10,8 @@ import ItemActionBar from "@/components/elements/itemActionBar";
 import { SelectAllRow, SelectionScope, SelectToggle, useItemSelection, type BarProps, type Kind } from "@/components/elements/itemSelection";
 import Tick from "@/components/elements/tick";
 import { mergeExercises, mergeGrammar, pageImageUrl, regenerateExercise, regenerateGrammar, type ExerciseItem } from "@/api/ingestion";
-import { contentIsValid } from "@/lib/ingestion/exerciseEdit";
-import { EXERCISE_TYPE_KEY } from "@/i18n/exerciseTypes";
-import ExerciseBody from "./exerciseBody";
-import ExerciseEditor from "./exerciseEditor";
+import { contentIsValid, switchesInPlace } from "@/lib/ingestion/exerciseEdit";
+import ExerciseReviewCard from "./exerciseReviewCard";
 import RegenerateForm from "./regenerateForm";
 import {
   type AcceptPayload, type Candidate, type Filter, type Row, type RowKind, countRows, filterRows, hasConflict, infoNotes, mergeExerciseRows, mergeRows, needsDecision,
@@ -61,7 +59,6 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
 }) {
   const t = useTranslations("ingestion");
   const tEl = useTranslations("elements");
-  const tEx = useTranslations("exercises");
   const [rows, setRows] = useState<Row[]>(() => initialRows(candidates));
   const [filter, setFilter] = useState<Filter>("all");
   const [tab, setTab] = useState<RowKind | null>(null);
@@ -103,9 +100,8 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
     const flags = fixed ? r.candidate.flags.filter((f) => f.code !== "content_invalid") : r.candidate.flags;
     return { ...r, ...change, candidate: { ...r.candidate, flags } };
   }));
-  const [regenId, setRegenId] = useState<string | null>(null);
   const exerciseItem = (r: Row): ExerciseItem => ({ exercise_type: r.exercise_type, question: r.question, answer: r.answer, text_support: r.text_support, content: r.content, chunk_id: r.candidate.chunk_id });
-  const regenerate = async (row: Row, opts: { exercise_type?: string; request?: string }) => {
+  const regenerate = async (row: Row, opts: { exercise_type?: string; request?: string }): Promise<boolean> => {
     setReloadingId(row.candidate.id);
     setError(null);
     try {
@@ -113,16 +109,17 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       // back to pending: the user checks the new pass
       setRows((rs) => rs.map((r) => (r.candidate.id === row.candidate.id
         ? { ...r, exercise_type, question, answer, text_support, content, selected: false, candidate: { ...r.candidate, status, flags } } : r)));
-      setRegenId(null);
+      return true;
     } catch (e) {
       setError(t("reloadFailed", { message: e instanceof Error ? e.message : "" }));
+      return false;
     } finally {
       setReloadingId(null);
     }
   };
   // free-text types share one shape (no content), so they switch in place; any other change rebuilds the content with the model
   const changeType = (row: Row, to: string) => {
-    if ([row.exercise_type, to].every((x) => ["essay", "answering", "translate"].includes(x ?? ""))) patch(row.candidate.id, { exercise_type: to });
+    if (switchesInPlace(row.exercise_type, to)) patch(row.candidate.id, { exercise_type: to });
     else regenerate(row, { exercise_type: to });
   };
   const [filterOpen, setFilterOpen] = useState(false);
@@ -279,20 +276,10 @@ export default function ReviewPanel({ jobId, filename, candidates, addLabel, onA
       const generated = has("answer_generated");
       const invalid = has("content_invalid");
       return (
-        <ReviewCard {...common} summary={
-            <ClassicSelectMenu className="w-64 max-w-full" ariaLabel={t("changeType")} disabled={reloadingId === c.id} placeholder={t("exerciseFallback")}
-              options={Object.keys(EXERCISE_TYPE_KEY)} optionLabel={(id) => tEx(EXERCISE_TYPE_KEY[id as keyof typeof EXERCISE_TYPE_KEY])}
-              selectedOption={row.exercise_type ?? ""} onChange={(v) => changeType(row, v as string)} />}
-          preview={<ExerciseBody row={row} />}
-          onReload={() => setRegenId(regenId === c.id ? null : c.id)} reloading={reloadingId === c.id}
-          footer={<>
-            {footer}
-            {regenId === c.id && <RegenerateForm withRequest busy={reloadingId === c.id} onSubmit={(o) => regenerate(row, o)} onCancel={() => setRegenId(null)} />}
-          </>}
+        <ExerciseReviewCard {...common} rebuilding={reloadingId === c.id} withRequest
+          onEdit={(p) => editExercise(row, p)} onChangeType={(to) => changeType(row, to)} onRebuild={(o) => regenerate(row, o)}
           badge={invalid ? t("contentInvalid") : has("needs_audio") && !generated ? t("needsAudio") : generated ? t("generatedAnswer") : c.status === "verified" ? t("verifiedBadge") : t("checkBadge")}
-          badgeTitle={invalid ? c.flags.find((f) => f.code === "content_invalid")?.message ?? "" : generated ? t("generatedAnswerTitle") : confirmedTitle}>
-          <ExerciseEditor row={row} onChange={(p) => editExercise(row, p)} />
-        </ReviewCard>
+          badgeTitle={invalid ? c.flags.find((f) => f.code === "content_invalid")?.message ?? "" : generated ? t("generatedAnswerTitle") : confirmedTitle} />
       );
     }
     const generated = has("translation_generated");

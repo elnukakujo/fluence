@@ -395,7 +395,7 @@ def score_exercise():
                 hint_used: {type: boolean}
     responses:
         200:
-            description: "{success, correct, total}; no score is returned"
+            description: "{success, correct, total, summary}; summary = {before, after, level, level_up}: the mean score change of the elements it credited, for the bar under the card"
         400:
             description: Invalid body, or a result names an element the exercise is not linked to
         404:

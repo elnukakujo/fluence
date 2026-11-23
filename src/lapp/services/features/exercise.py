@@ -10,6 +10,7 @@ from ...core.database import db_manager, transactional, resolve_related
 from ...models.features import Exercise, Grammar
 from ...schemas.features import ExerciseDict
 from ...schemas.data_collection.progress_tracking import ProgressTrackingDict
+from ...models.data_collection import ProgressTracking
 from ...models.system_data import Tag, Source, Score, OverrideFlag
 from statistics import mean
 
@@ -188,8 +189,8 @@ class ExerciseService:
             draft=bool(exercise_data.get("draft")),
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data)
         )
         exercise.related_calligraphy, exercise.related_vocabulary, exercise.related_grammar = self._resolve_associations(
             calligraphy=related_calligraphy,
@@ -239,9 +240,9 @@ class ExerciseService:
             )
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
         return self._serialize(result, as_dict, include_relations)
@@ -332,7 +333,9 @@ class ExerciseService:
                attempt: int = 1, session: Optional[Session] = None) -> dict | None:
         """Credit each linked element from its own blanks / pairs, once per (element, skill) at the average quality.
         Only called for the final attempt. The exercise's own row gets the mean of every result.
-        Returns {correct, total} (one per result, never a score), None if the exercise is missing; ValueError for an element it is not linked to."""
+        Returns {correct, total, summary}, None if the exercise is missing; ValueError for an element it is not linked to.
+        `summary` is what the answer did, for the bar under the card: the mean score before and after over the linked elements it credited
+        (the exercise's own row when it links none), the level of that mean, and whether one of them crossed up into known / mastered."""
         exercise = self.get_by_id(ex_id, session=session)
         if not exercise:
             return None
@@ -342,12 +345,27 @@ class ExerciseService:
             raise ValueError("a result names an element the exercise is not linked to")
         if has_request_context():
             g.review_card_id = ex_id             # every row this exercise writes is one card (ST-9)
+        started = datetime.now()
         try:
             self._credit_results(ex_id, results, linked, user_id, duration_ms, hint_used, attempt, session)
         finally:
             if has_request_context():
                 g.review_card_id = None
-        return {"correct": sum(r["quality"] >= CORRECT_AT for r in results), "total": len(results)}
+        return {"correct": sum(r["quality"] >= CORRECT_AT for r in results), "total": len(results),
+                "summary": self._summary(ex_id, user_id, started, session)}
+
+    @staticmethod
+    def _summary(ex_id: str, user_id: str, since: datetime, session: Session) -> dict | None:
+        """The rows this credit wrote (one card, ST-9): the same parts the session summary averages."""
+        session.flush()
+        rows = session.query(ProgressTracking).filter(ProgressTracking.user_id == user_id, ProgressTracking.card_id == ex_id,
+                                                      ProgressTracking.created_at >= since).all()
+        parts = [r for r in rows if r.element_type != "exercise"] or rows
+        if not parts:
+            return None
+        before, after = mean(r.score_before for r in parts), mean(r.score_after for r in parts)
+        return {"before": before, "after": after, "level": level_for(after),
+                "level_up": any(level_for(r.score_after) != level_for(r.score_before) and level_for(r.score_after) != "learning" for r in parts)}
 
     def _credit_results(self, ex_id, results, linked, user_id, duration_ms, hint_used, attempt, session) -> None:
         for (element_id, skill), (quality, evidence) in group_results(results).items():

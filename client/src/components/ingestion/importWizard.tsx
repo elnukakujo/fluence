@@ -167,14 +167,18 @@ function JobView({ jobId, languageId, lessonId, lessonTitle, settingsHref }: Pro
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
     const tick = async () => {
       try {
         const j = await getJob(jobId);
         if (!alive) return;
+        failures = 0;
         setJob(j);
         if (ACTIVE_STATUSES.includes(j.status)) timer = setTimeout(tick, 2000);
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : t("couldNotLoad"));
+        if (!alive) return;
+        if (++failures < 3) { timer = setTimeout(tick, 2000); return; }   // the scan keeps running on the server: one failed poll is not the end
+        setError(e instanceof Error ? e.message : t("couldNotLoad"));
       }
     };
     tick();

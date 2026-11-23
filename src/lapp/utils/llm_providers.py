@@ -151,7 +151,7 @@ def auth_headers(base_url: str, api_key: str, auth_type: str) -> tuple[str, dict
     elif auth_type == "x-api-key" and key:
         headers["x-api-key"] = key
     elif auth_type == "param" and key:
-        url = f"{base_url}?key={key}"
+        url = f"{base_url}{'&' if '?' in base_url else '?'}key={key}"
     # "none" or empty key → no auth header
     return url, headers
 

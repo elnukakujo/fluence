@@ -23,8 +23,13 @@ def close_weeks(app: Flask) -> int:
     written = 0
     with app.app_context():
         with db_manager.session_scope() as session:
-            for (user_id,) in session.query(User.id).all():
-                written += len(WeeklySnapshotService().catch_up(user_id, prefs_for(user_id, session=session).timezone, session=session))
+            user_ids = [uid for (uid,) in session.query(User.id).all()]
+        for user_id in user_ids:   # one session per learner: one bad account must not roll back or block the others
+            try:
+                with db_manager.session_scope() as session:
+                    written += len(WeeklySnapshotService().catch_up(user_id, prefs_for(user_id, session=session).timezone, session=session))
+            except Exception:
+                logger.exception("Weekly snapshots failed for user %s", user_id)
     if written:
         logger.info("Wrote %s weekly snapshot(s)", written)
     return written

@@ -1,14 +1,20 @@
+from werkzeug.exceptions import RequestEntityTooLarge
 from flask import Blueprint, request, jsonify, send_from_directory, abort, current_app
 from werkzeug.exceptions import HTTPException
 
 import logging
 logger = logging.getLogger(__name__)
 
-from ...core.auth import login_required
+from ...core.auth import login_required, admin_required
 from ...services import MediaService
 
 bp = Blueprint('media', __name__)
 _PRIVATE_DIRS = {'ingestion', 'parse_cache'}
+_BODY_HEADROOM = 1024 * 1024   # multipart framing around the file
+
+def _is_private(path) -> bool:
+    return str(path).lstrip("/\\").split("/", 1)[0] in _PRIVATE_DIRS
+
 
 # Required because MediaService depends on current_app context which may not be available at import time
 def get_media_service() -> MediaService:
@@ -47,7 +53,7 @@ def serve_media(filename: str):
             description: Not Found - File does not exist
     """
     # Per-job upload folders and the parse cache are private; the owner reaches them through /api/ingestion.
-    if filename.lstrip("/\\").split("/", 1)[0] in _PRIVATE_DIRS:
+    if _is_private(filename):
         abort(404)
     try:
         media_root, file_path = get_media_service().get_file_path(filename)
@@ -115,6 +121,7 @@ def upload_image():
         500:
             description: Internal Server Error
     """
+    request.max_content_length = current_app.config.get('MAX_IMAGE_SIZE', 5 * 1024 * 1024) + _BODY_HEADROOM   # refused before the body is spooled
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
@@ -132,6 +139,8 @@ def upload_image():
         
         return jsonify({'success': True, **result}), 201
             
+    except RequestEntityTooLarge:
+        return jsonify({'success': False, 'error': 'File too large'}), 413
     except Exception as e:
         logger.error(f"Image upload error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
@@ -184,6 +193,7 @@ def upload_audio():
         500:
             description: Internal Server Error
     """
+    request.max_content_length = current_app.config.get('MAX_AUDIO_SIZE', 10 * 1024 * 1024) + _BODY_HEADROOM
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
@@ -201,13 +211,15 @@ def upload_audio():
         
         return jsonify({'success': True, **result}), 201
             
+    except RequestEntityTooLarge:
+        return jsonify({'success': False, 'error': 'File too large'}), 413
     except Exception as e:
         logger.error(f"Audio upload error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/media/delete/', methods=['DELETE'])
-@login_required
+@admin_required   # media files are shared across users and carry no owner: the app itself never calls this
 def delete_media():
     """
     Delete a media file.
@@ -255,6 +267,8 @@ def delete_media():
         if not data or 'file_path' not in data:
             return jsonify({'success': False, 'error': 'file_path is required'}), 400
 
+        if _is_private(data['file_path']):
+            return jsonify({'success': False, 'error': 'File not found'}), 404
         result = get_media_service().delete_file(data['file_path'])
         
         if 'error' in result:
@@ -288,6 +302,8 @@ def media_info(filename: str):
             "exists": true
         }
     """
+    if _is_private(filename):
+        abort(404)
     try:
         result = get_media_service().get_file_info(filename)
         

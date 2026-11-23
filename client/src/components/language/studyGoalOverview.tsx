@@ -71,11 +71,11 @@ function Strip({ items, label, left }: { items: GoalItem[]; label: string; left:
     const none = items.length - done - started;
     return (
         <div className="flex flex-col gap-1">
-            <div className="flex gap-[3px]" role="img" aria-label={`${label}: ${t("goalLegendDone", { n: done })}, ${t("goalLegendStarted", { n: started })}, ${t("goalLegendNone", { n: none })}`} data-testid="goal-strip">
+            <div className={`flex ${items.length > 40 ? "gap-px" : "gap-[3px]"}`} role="img" aria-label={`${label}: ${t("goalLegendDone", { n: done })}, ${t("goalLegendStarted", { n: started })}, ${t("goalLegendNone", { n: none })}`} data-testid="goal-strip">
                 {sorted.map((i, n) => {
                     const edge = n < sorted.length / 3 ? "left-0" : n >= (2 * sorted.length) / 3 ? "right-0" : "left-1/2 -translate-x-1/2";      // the tab never leaves the card
                     return (
-                        <span key={i.id} className="group relative flex-1 min-w-[3px]">
+                        <span key={i.id} className="group relative min-w-0 flex-1">
                             <span data-state={i.done ? "done" : share(i) > 0 ? "started" : "none"} className="relative block h-3.5 overflow-hidden rounded-[4px] bg-border group-hover:brightness-125">
                                 <span className={`absolute inset-y-0 left-0 ${i.done ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round(share(i) * 100)}%` }} />
                             </span>

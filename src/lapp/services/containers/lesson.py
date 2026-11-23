@@ -139,9 +139,9 @@ class LessonService:
                 session=session
             ),
             position=0 if last is None else last + 1,
-            **{k: v for k, v in data.model_dump(exclude={'status', 'score', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True).items()},
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
+            **{k: v for k, v in data.model_dump(exclude={'id', 'status', 'score', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True).items()},
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data)
         )
         result = db_manager.insert(obj=lesson, session=session, commit=False)
 
@@ -177,15 +177,15 @@ class LessonService:
             logger.warning(f"LessonContainer not found: {lesson_id}")
             return None
 
-        update_data: LessonDict = data.model_dump(exclude={'id', 'language_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
+        update_data: LessonDict = data.model_dump(exclude={'id', 'user_id', 'language_id', 'score', 'status', 'created_at', 'last_seen_at', 'tags', 'sources'}, exclude_none=True)
 
         for key, value in update_data.items():
             setattr(existing, key, value)
 
         if data.tags is not None:
-            existing.tags = resolve_related(data.tags, Tag, session)
+            existing.tags = resolve_related(data.tags, Tag, session, anchor=existing)
         if data.sources is not None:
-            existing.sources = resolve_related(data.sources, Source, session)
+            existing.sources = resolve_related(data.sources, Source, session, anchor=existing)
 
         result = db_manager.modify(existing, session=session, commit=False)
 
@@ -213,6 +213,7 @@ class LessonService:
             logger.warning(f"Lesson not found: {lesson_id}")
             return False
 
+        ScoreService().delete_for_lessons([existing], session=session)    # its scores go with it (SC-17, EM-2)
         success = db_manager.delete(existing, session=session, commit=False)
 
         if success:

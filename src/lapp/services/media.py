@@ -67,7 +67,7 @@ class MediaService:
             Dict with file info or error
         """
         # Validate file type using handler's method
-        if not self.file_handler._is_allowed_image(file.filename):
+        if not file.filename or not self.file_handler._is_allowed_image(file.filename):
             from config import Config
             return {'error': f'File type not allowed. Allowed types: {Config.ALLOWED_IMAGE_EXTENSIONS}'}
         
@@ -110,7 +110,7 @@ class MediaService:
             Dict with file info or error
         """
         # Validate file type using handler's method
-        if not self.file_handler._is_allowed_audio(file.filename):
+        if not file.filename or not self.file_handler._is_allowed_audio(file.filename):
             from config import Config
             return {'error': f'File type not allowed. Allowed types: {Config.ALLOWED_AUDIO_EXTENSIONS}'}
         
