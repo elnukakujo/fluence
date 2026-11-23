@@ -20,13 +20,13 @@ from ...utils.scoring import INITIAL_STABILITY_DAYS
 from ..system_data import ScoreService, ExerciseUserPrefService
 from ..system_data.exercise_user_pref import effective_mode
 from ..system_data.prefs_view import PrefsView, prefs_for
-from ..system_data.settings import resolve
 from ..system_data.score import SIDES, side_id
 from ...utils.helpers import base_element_id
 from .card_time import estimate_seconds, pace_ratios
 from .exercise_share import exercise_quota, exercise_share, is_eligible, knowledge
 from .side_pattern import make_side_picker
 from .study_constants import BOOST_FACTOR, NO_GOAL_NEW
+from .studied_types import studied_types
 from .study_goal import StudyGoalService, TYPES
 
 # The flashcard-able feature types, in review (round-robin) order.
@@ -216,9 +216,8 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
     ids = _scope_ids(scope, session) if scope.kind in ("tag", "source", "free") else set()
     keep = _keep_in_scope(scope, ids)
     models = (MODEL_OF_TYPE[scope.element_type],) if scope.kind == "type" and scope.element_type in MODEL_OF_TYPE else (Vocabulary, Grammar, Calligraphy)
-    wanted = resolve(user_id, language_id, "element_types", session=session) if scope.kind not in ("type", "free") else None     # the course's own choice; a named type or card is always served
-    if wanted is not None:
-        models = tuple(m for m in models if kind_of[m] in wanted)
+    studied = studied_types(user_id, language_id, session=session)       # SG-14: the course's own choice binds every scope, a named type included (it is then just empty)
+    models = tuple(m for m in models if kind_of.get(m, "exercise") in studied)
     scoped_cards = {}
     for model in (Vocabulary, Grammar, Calligraphy):
         cards = session.query(model).filter(model.lesson_id.in_(lesson_ids)).all() if model in models else []
@@ -257,7 +256,7 @@ def collect_candidates(user_id: str, language_id: str, scope: Scope, session) ->
             buckets[model] = order_bucket(items, lambda c: priority_for(inputs, c.id, now), goal_rank, set(), capped)
 
     exercises, modes = _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type_prefs, models, session)
-    if wanted is not None and "exercises" not in wanted:
+    if "exercise" not in studied:
         exercises, modes = [], {}
     if daily:       # DR-13: a grammar card is for the unseen; once seen, its exercises replace it (a seen grammar without any keeps its card)
         anchored = {g.id for e in exercises for g in e.related_grammar}
@@ -283,7 +282,9 @@ def _ready_exercises(user_id, language_id, scope, lesson_ids, buckets, ids, type
     exercises = [c for c in exercises if modes[c.id] != "ban"]
     if scope.kind != "free":
         # An exercise appears once every element it trains was seen once (RD-129; never the exercise's own score).
-        linked = {c.id: [e.id for e in (*c.related_vocabulary, *c.related_grammar, *c.related_calligraphy)] for c in exercises}
+        studied = studied_types(user_id, language_id, session=session)
+        hidden = tuple(p for p, kind in (("voc_", "vocabulary"), ("gram_", "grammar"), ("call_", "calligraphy")) if kind not in studied)
+        linked = {c.id: [e.id for e in (*c.related_vocabulary, *c.related_grammar, *c.related_calligraphy) if not e.id.startswith(hidden)] for c in exercises}      # a hidden type's link neither gates nor trains
         element_scores = ScoreService().get_many(user_id, sorted({i for ids_ in linked.values() for i in ids_}), session=session)
         exercises = [c for c in exercises if is_eligible([i in element_scores and element_scores[i].last_seen_at is not None for i in linked[c.id]])]
     return exercises, modes

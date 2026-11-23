@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from ...models.features import Calligraphy, Grammar, Vocabulary
 from ..features.study_constants import GEN_ADVANCED_FROM, GEN_KNOWN_SCORE, GEN_THIN_POOL
+from ..features.studied_types import studied_types
 from ..system_data import ScoreService
 from .planner import PoolItem
 
@@ -13,11 +14,13 @@ _KINDS = ((Vocabulary, "vocabulary", lambda e: e.word.word), (Grammar, "grammar"
 def lesson_pool(lesson_id: str, user_id: str, session: Session) -> list[PoolItem]:
     from ...models.containers import Lesson
     lesson = session.get(Lesson, lesson_id)
-    own = [(m, k, label(e), e) for m, k, label in _KINDS for e in session.query(m).filter(m.lesson_id == lesson_id).all()]
+    studied = studied_types(user_id, lesson.language_id, session=session)       # SG-14: a type that is off gives no slot and no companion
+    kinds = [(m, k, label) for m, k, label in _KINDS if k in studied]
+    own = [(m, k, label(e), e) for m, k, label in kinds for e in session.query(m).filter(m.lesson_id == lesson_id).all()]
     lesson_ids = {e.id for *_, e in own}      # what the lesson itself holds; borrowed elements never anchor an exercise (EG-15)
     if own and len(own) < GEN_THIN_POOL:
         taken = {e.id for *_, e in own}
-        for m, k, label in _KINDS:
+        for m, k, label in kinds:
             rows = (session.query(m).join(Lesson, m.lesson_id == Lesson.id)
                     .filter(Lesson.language_id == lesson.language_id, m.lesson_id != lesson_id, Lesson.level == lesson.level).all())
             own += [(m, k, label(e), e) for e in rows if e.id not in taken]

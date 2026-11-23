@@ -11,6 +11,7 @@ from ...schemas.containers import LessonDict
 from ...models.containers import Lesson
 from ...models.system_data import Tag, Source
 from ...models.features import Calligraphy, Vocabulary, Grammar, Exercise
+from ..features.studied_types import studied_types
 from ...core.database import db_manager, transactional, resolve_related
 from .language import LanguageService
 from ..system_data import ScoreService
@@ -307,6 +308,8 @@ class LessonService:
             session=session
         )
 
+        studied = studied_types(user_id, lesson.language_id, session=session)       # SG-14: a type that is off does not count in the lesson's score
+        components = [c for c in components if type(c).__name__.lower() in studied]
         result = refresh(user_id, lesson_id, [c.id for c in components], digits=1, touch=touch, session=session)
         if result:
             logger.info(f"Updated lesson {lesson_id} score: {result.score}")

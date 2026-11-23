@@ -16,7 +16,7 @@ from ...models.system_data import UserPreferences
 from ...utils.scoring import KNOWN_FROM
 from ..system_data import ScoreService
 from .lesson_gate import GateService
-from ..system_data.settings import resolve
+from .studied_types import studied_types
 from .study_constants import DEFAULT_GOAL_PERIOD, default_goal_quantities
 
 PERIOD_DAYS = {"week": 7, "biweek": 14, "month": 30}
@@ -127,7 +127,7 @@ class StudyGoalService:
     @transactional
     def kinds(self, user_id: str, language_id: str, session: Optional[Session] = None) -> list[str]:
         """The goal types the course studies (its Element types setting): the card and the menu show only these."""
-        wanted = resolve(user_id, language_id, "element_types", session=session)
+        wanted = studied_types(user_id, language_id, session=session)      # SG-14
         return [k for k in TYPES if k in wanted]
 
     def _hide_unstudied(self, goal: StudyGoal, user_id: str, session) -> None:

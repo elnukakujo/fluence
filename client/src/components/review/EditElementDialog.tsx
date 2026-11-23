@@ -1,5 +1,6 @@
 "use client";
 
+import { getStudiedTypes, studiedElements } from "@/lib/studiedTypes";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/dialogs/modal";
@@ -46,11 +47,11 @@ export default function EditElementDialog({ card, languageId, onSaved, onClose }
                     return <CalligraphyForm calligraphy={c} lesson_id={lessonId} radicalOptions={radicalOptions} onDone={done(() => getCalligraphyById(card.id!))} />;
                 }
                 default: {
-                    const [exercise, language, vocabularies, grammars, calligraphies] = await Promise.all([
-                        getExerciseById(card.id!), getLanguageById(languageId), getVocabularyByLesson(lessonId), getGrammarByLesson(lessonId), getCalligraphyByLesson(lessonId),
+                    const [exercise, language, vocabularies, grammars, calligraphies, types] = await Promise.all([
+                        getExerciseById(card.id!), getLanguageById(languageId), getVocabularyByLesson(lessonId), getGrammarByLesson(lessonId), getCalligraphyByLesson(lessonId), getStudiedTypes(languageId),
                     ]);
                     return <ExerciseForm exercise={exercise} lesson_id={lessonId} languageIso={language.target_iso639_2t}
-                        lessonElements={{ vocabularies, grammars, calligraphies }} onDone={done(() => getExerciseById(card.id!))} />;
+                        lessonElements={studiedElements(types, { vocabularies, grammars, calligraphies })} onDone={done(() => getExerciseById(card.id!))} />;
                 }
             }
         })().then((f) => { if (!stale) setForm(f); }).catch(() => { if (!stale) setError(true); });

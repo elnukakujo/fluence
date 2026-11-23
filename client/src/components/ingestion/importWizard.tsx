@@ -285,7 +285,7 @@ function PagesStep({ job, lessonId, lessonTitle, base, onRestart }: {
         <p className="text-sm opacity-70">{t("confirmPageKindsDescription")}</p>
         {pagesData.warnings.length > 0 && (<ul className="list-disc pl-5 text-sm">{pagesData.warnings.map((w) => <li key={w}>{w}</li>)}</ul>)}
       </header>
-      <PageKindsWithViewer pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
+      <PageKindsWithViewer languageId={job.language_id} pages={pages} value={pageKinds as any} onChange={(newPageKinds) => setPageKinds(newPageKinds as any)} jobId={job.id} />
       {error && <InlineError>Error: {error}</InlineError>}
       <div className="btn-row flex-wrap">
         <button type="button" className="btn btn-secondary" disabled={saving} onClick={onRestart}>{t("startAnotherDocument")}</button>

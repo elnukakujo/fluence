@@ -17,6 +17,7 @@ from ...utils.learner_clock import learner_today, week_bounds
 from ..features.review_queue import Scope, build_queue, card_seconds, collect_candidates, plan_budgets
 from ..system_data.prefs_view import prefs_for
 from .study_activity import status_for
+from ..features.studied_types import studied_types
 from .weekly_snapshot import level_counts
 
 HEATMAP_WEEKS = 12
@@ -96,15 +97,19 @@ def type_stats(user_id: str, language_id: str, session: Optional[Session] = None
     now = datetime.now()
     succeeded = {i for (i,) in session.query(StudyGoalItem.element_id).join(StudyGoal, StudyGoal.id == StudyGoalItem.goal_id).filter(
         StudyGoal.user_id == user_id, StudyGoal.language_id == language_id, StudyGoalItem.succeeded_at.isnot(None))}
+    studied = studied_types(user_id, language_id, session=session)       # SG-14: a type that is off has no card
     out = {}
     for name, model in _MODELS.items():
+        if name not in studied:
+            continue
         ids = [i for (i,) in session.query(model.id).join(Lesson, Lesson.id == model.lesson_id).filter(Lesson.language_id == language_id)]
         scores = ScoreService().get_many(user_id, ids, now=now, session=session)
         by = [r.score or 0.0 for r in scores.values()]
         out[name] = {"total": len(ids), "cards": len(ids) * (2 if name == "vocabulary" else 1), "seen": len(by), "mean_seen": round(sum(by) / len(by), 1) if by else None, "due": 0,
                      "fading": sum(1 for i in succeeded if i in scores and (scores[i].score or 0.0) < KNOWN_FROM)}
-    out["exercise"] = {"total": session.query(Exercise.id).join(Lesson, Lesson.id == Exercise.lesson_id).filter(
-        Lesson.language_id == language_id, Exercise.review_reason.is_(None)).count(), "seen": None, "mean_seen": None, "fading": None, "due": 0}
+    if "exercise" in studied:
+        out["exercise"] = {"total": session.query(Exercise.id).join(Lesson, Lesson.id == Exercise.lesson_id).filter(
+            Lesson.language_id == language_id, Exercise.review_reason.is_(None)).count(), "seen": None, "mean_seen": None, "fading": None, "due": 0}
     cands = collect_candidates(user_id, language_id, Scope(), session)
     if cands is not None:
         queue, _sections, _spares = build_queue(cands, plan_budgets(cands, prefs_for(user_id, language_id, session), None, None))
@@ -112,7 +117,7 @@ def type_stats(user_id: str, language_id: str, session: Optional[Session] = None
         for card in queue:
             kind = (card[0] if isinstance(card, tuple) else card)
             name = "exercise" if isinstance(kind, Exercise) else next((n for n, m in _MODELS.items() if isinstance(kind, m)), None)
-            if name:
+            if name in due:
                 due[name].add(kind.id)
         for name, ids in due.items():
             out[name]["due"] = len(ids)

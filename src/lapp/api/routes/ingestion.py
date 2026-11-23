@@ -5,6 +5,7 @@ from pathlib import Path
 
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
+from ..services.features.studied_types import studied_types
 from ...core.auth import current_user_id, login_required, owner_user_id, require_write
 from ...core.database import db_manager
 from ...schemas.components import WordDict
@@ -1022,10 +1023,13 @@ def _add_elements(session, job: dict, lesson_id: str, language_id: str, elements
     calligraphy_service = CalligraphyService()
 
     created = 0
+    studied = studied_types(current_user_id(), language_id, session=session)       # SG-14: a kind the language does not study is silently not created
 
     for elem in elements:
         kind = elem.get("kind")
         fields = elem.get("fields", {})
+        if kind in ("grammar", "calligraphy", "exercise") and kind not in studied:
+            continue
 
         if kind == "grammar":
             title = str(fields.get("title", "")).strip()

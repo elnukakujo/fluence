@@ -1,5 +1,7 @@
 "use client";
 
+import { ALL_TYPES, getStudiedTypes, studiedElements } from "@/lib/studiedTypes";
+import { getLessonById } from "@/api/lesson";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -21,7 +23,7 @@ import InlineError from "@/components/ui/inlineError";
 
 type Links = { related_vocabulary: string[]; related_grammar: string[]; related_calligraphy: string[] };
 type Entry = { id: string; reason: string; row: Row; links: Links };
-type Lesson = { vocabularies: Vocabulary[]; grammars: Grammar[]; calligraphies: Calligraphy[] };
+type Lesson = { vocabularies?: Vocabulary[]; grammars?: Grammar[]; calligraphies?: Calligraphy[] };      // undefined = the course does not study that type
 
 // The import review's per-type body and editors want a Row; a stored exercise needs only the exercise fields of it.
 const toEntry = (e: Exercise): Entry => ({
@@ -47,8 +49,9 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
 
     useEffect(() => {
         getExercisesByLesson(lessonId).then((list: Exercise[]) => setEntries(list.filter((e) => e.draft || e.review_reason).map(toEntry)), () => setError("failed"));
-        Promise.all([getVocabularyByLesson(lessonId), getGrammarByLesson(lessonId), getCalligraphyByLesson(lessonId)])
-            .then(([vocabularies, grammars, calligraphies]) => setLesson({ vocabularies, grammars, calligraphies }), () => setLesson(null));
+        Promise.all([getVocabularyByLesson(lessonId), getGrammarByLesson(lessonId), getCalligraphyByLesson(lessonId),
+            getLessonById(lessonId).then((l) => getStudiedTypes(l.language_id)).catch(() => ALL_TYPES)])
+            .then(([vocabularies, grammars, calligraphies, types]) => setLesson(studiedElements(types, { vocabularies, grammars, calligraphies })), () => setLesson(null));
     }, [lessonId]);
 
     const finish = () => { router.refresh(); onClose(); };
@@ -108,12 +111,12 @@ export default function GenerationReview({ lessonId, onClose }: { lessonId: stri
                                         <details className="flex flex-col gap-2">
                                             <summary className="cursor-pointer text-sm font-medium">{t("reviewAssociations")}</summary>
                                             <div className="flex flex-col items-baseline gap-3 pt-2">
-                                                <OpenCloseMenu elements={lesson.vocabularies.map((v) => ({ id: v.id!, value: `${v.word.word} - ${v.word.translation}` }))}
-                                                    selectedElements={e.links.related_vocabulary} setSelectedElements={(v) => setLinks(e.id, { related_vocabulary: v as string[] })} label={t("associatedVocabulary")} />
-                                                <OpenCloseMenu elements={lesson.grammars.map((g) => ({ id: g.id!, value: g.title }))}
-                                                    selectedElements={e.links.related_grammar} setSelectedElements={(v) => setLinks(e.id, { related_grammar: v as string[] })} label={t("associatedGrammar")} />
-                                                <OpenCloseMenu elements={lesson.calligraphies.map((c) => ({ id: c.id!, value: `${c.character.character} - ${c.character.phonetic}` }))}
-                                                    selectedElements={e.links.related_calligraphy} setSelectedElements={(v) => setLinks(e.id, { related_calligraphy: v as string[] })} label={t("associatedCalligraphies")} />
+                                                {lesson.vocabularies && <OpenCloseMenu elements={lesson.vocabularies.map((v) => ({ id: v.id!, value: `${v.word.word} - ${v.word.translation}` }))}
+                                                    selectedElements={e.links.related_vocabulary} setSelectedElements={(v) => setLinks(e.id, { related_vocabulary: v as string[] })} label={t("associatedVocabulary")} />}
+                                                {lesson.grammars && <OpenCloseMenu elements={lesson.grammars.map((g) => ({ id: g.id!, value: g.title }))}
+                                                    selectedElements={e.links.related_grammar} setSelectedElements={(v) => setLinks(e.id, { related_grammar: v as string[] })} label={t("associatedGrammar")} />}
+                                                {lesson.calligraphies && <OpenCloseMenu elements={lesson.calligraphies.map((c) => ({ id: c.id!, value: `${c.character.character} - ${c.character.phonetic}` }))}
+                                                    selectedElements={e.links.related_calligraphy} setSelectedElements={(v) => setLinks(e.id, { related_calligraphy: v as string[] })} label={t("associatedCalligraphies")} />}
                                             </div>
                                         </details>
                                     )}
