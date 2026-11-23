@@ -143,7 +143,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         const gradeLabel = tUi(score >= 1 ? "easy" : score >= 0.75 ? "good" : score >= 0.5 ? "hard" : "again");
         const shownId = card.id;
         Promise.resolve(updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side }))
-            .then((r) => { if (r && typeof r.score_after === "number" && shownId === card.id) setResult({ gradeLabel, before: r.score_before ?? 0, after: r.score_after, levelUp: r.level_before !== r.level_after && ["known", "mastered"].includes(r.level_after) }); })
+            .then((r) => { if (r && typeof r.score_after === "number" && shownId === card.id) setResult({ gradeLabel, before: r.score_before ?? 0, after: r.score_after, levelUp: r.level_before !== r.level_after && ["known", "mastered"].includes(r.level_after), capped: !!r.capped }); })
             .catch(() => undefined);
     };
 
@@ -214,7 +214,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     );
 
     return (
-        <article className="flex flex-col space-y-6 max-w-2xl mx-auto pb-40">
+        <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
             {ended && <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />}      {/* once, on top: the result leads */}
             <ReviewHeader
                 kind={tStudy(renderer.kindKey)}
@@ -250,16 +250,10 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
                     {renderer.escape?.(ctx)}
 
-                    {/* ── Grade buttons (hidden while drawing; "I can't draw" brings them back) ── */}
-                    {!hiddenTranslation && !graded && !showPractice && (
-                        <ActionBar phase="grade"><RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} /></ActionBar>
-                    )}
-
+                    {/* grade buttons: the pinned bar at the end of this article (hidden while drawing; "I can't draw" brings them back) */}
                     {/* ── Post-grade content ───────────────────────── */}
                     {graded && (
                         <>
-                            {/* the pinned bar keeps Next in view however long the details below are; the last card's way out is the end screen's bar */}
-                            {remaining.length > 1 && <ActionBar phase="next" onNext={handleGoNext} result={result} />}
                             {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
@@ -272,6 +266,11 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {editing && <EditElementDialog card={card} languageId={languageId ?? window.location.pathname.split("/")[2]}
                 onSaved={(fresh) => setEdited((e) => ({ ...e, [fresh.id!]: fresh }))} onClose={() => setEditing(false)} />}
             {streak !== null && <p className="callout" role="status">{tStudy("reviewStreakValidated", { count: streak })}</p>}
+            {/* last child, so it sticks to the bottom of the screen like the forms' Save bar; the last card's way out is the end screen's bar */}
+            {!renderer.whole && !hiddenTranslation && !graded && !showPractice && (
+                <ActionBar phase="grade"><RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} /></ActionBar>
+            )}
+            {!renderer.whole && graded && remaining.length > 1 && <ActionBar phase="next" onNext={handleGoNext} result={result} />}
         </article>
     );
 }

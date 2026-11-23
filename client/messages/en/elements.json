@@ -17,6 +17,7 @@
   "relatedPassages": "Passages",
   "noRelatedComponents": "No related components found.",
   "nothingToReview": "Nothing to review today 🎉",
+  "dailyLimit": "Daily limit reached for this card",
   "levelUp": "Level up",
   "answerSaved": "Answer saved",
   "nextButton": "Next",

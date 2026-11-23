@@ -20,11 +20,11 @@ export function FormLayout({ onSubmit, children }: { onSubmit: React.FormEventHa
 }
 
 /** The save bar: stays at the bottom of the viewport so the action is never a long scroll away. */
-export function FormActions({ note, children }: { note?: string; children: ReactNode }) {
+export function FormActions({ note, children, wide = false, testId }: { note?: ReactNode; children: ReactNode; testId?: string; /** The actions take the whole row (the review's grade buttons). */ wide?: boolean }) {
     return (
-        <div className="sticky bottom-0 z-[60] pb-[calc(0.75rem+env(safe-area-inset-bottom))] -mx-2 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-2 pt-3 backdrop-blur">
-            <p className="text-sm text-muted">{note}</p>
-            <div className="flex gap-3">{children}</div>
+        <div data-testid={testId} className="sticky bottom-0 mb-0 z-[60] pb-[calc(0.75rem+env(safe-area-inset-bottom))] -mx-2 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-2 pt-3 backdrop-blur">
+            {note && <p className="text-sm text-muted">{note}</p>}
+            <div className={`flex gap-3 ${wide ? "w-full" : "ml-auto"}`}>{children}</div>
         </div>
     );
 }

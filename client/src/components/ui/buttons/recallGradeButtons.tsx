@@ -45,25 +45,20 @@ export default function RecallGradeButtons({ onGrade, suggested }: RecallGradeBu
     }));
 
     return (
-        <section className="flex flex-col gap-2">
-            <p className="text-xs" style={{ color: "var(--color-muted)" }}>
-                {t("howWellRemember")}
-            </p>
-            <div className="btn-row flex-wrap">
-                {GRADES.map(({ value, label, hint, score }, i) => (
-                    <button
-                        key={value}
-                        onClick={() => onGrade(score)}
-                        className={`grade-btn grade-${value}`}
-                        aria-keyshortcuts={String(i + 1)}
-                    >
-                        <span className="grade-dot" />
-                        <span className="grade-label">{label}</span>
-                        <span className="grade-hint">{hint}</span>
-                        {suggested === value && <span className="badge">{t("suggested")}</span>}
-                    </button>
-                ))}
-            </div>
-        </section>
+        <div role="group" aria-label={t("howWellRemember")} className="grid w-full grid-cols-4 gap-2">
+            {GRADES.map(({ value, label, hint, score }, i) => (
+                <button
+                    key={value}
+                    onClick={() => onGrade(score)}
+                    className={`grade-btn grade-${value}${suggested === value ? " ring-2 ring-primary" : ""}`}
+                    aria-keyshortcuts={String(i + 1)}
+                    title={hint}
+                >
+                    <span className="flex items-center gap-1.5"><span className="grade-dot" /><span className="grade-label">{label}</span></span>
+                    <span className="grade-hint hidden sm:block">{hint}</span>
+                    {suggested === value && <span className="sr-only">{t("suggested")}</span>}
+                </button>
+            ))}
+        </div>
     );
 }

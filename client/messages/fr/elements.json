@@ -17,6 +17,7 @@
   "relatedPassages": "Passages",
   "noRelatedComponents": "Aucun composant connexe trouvé.",
   "nothingToReview": "Rien à réviser aujourd'hui 🎉",
+  "dailyLimit": "Limite du jour atteinte pour cette carte",
   "levelUp": "Niveau supérieur",
   "answerSaved": "Réponse enregistrée",
   "nextButton": "Suivant",

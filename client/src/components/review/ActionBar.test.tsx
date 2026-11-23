@@ -10,7 +10,7 @@ describe("ActionBar", () => {
         render(<ActionBar phase="grade"><button>Good</button></ActionBar>);
         expect(screen.getByRole("button", { name: "Good" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
-        expect(screen.getByTestId("action-bar").className).toMatch(/fixed/);
+        expect(screen.getByTestId("action-bar").className).toMatch(/sticky bottom-0/);          // the element forms' own save bar
     });
     it("after grading shows the result strip over a Next button; the strip is polite", async () => {
         const onNext = vi.fn();
@@ -20,6 +20,11 @@ describe("ActionBar", () => {
         expect(screen.queryByTestId("level-up")).toBeNull();
         await userEvent.click(screen.getByRole("button", { name: "Next" }));
         expect(onNext).toHaveBeenCalledTimes(1);
+    });
+    it("says so when the day's limit was reached, instead of a number that did not move", () => {
+        render(<ActionBar phase="next" onNext={() => {}} result={{ gradeLabel: "Easy", before: 7, after: 7, levelUp: false, capped: true }} />);
+        expect(screen.getByTestId("result-strip")).toHaveTextContent("EasyDaily limit reached for this card");
+        expect(screen.getByTestId("result-strip")).not.toHaveTextContent("7 → 7");
     });
     it("marks a level up only when the card crossed a level", () => {
         render(<ActionBar phase="next" onNext={() => {}} result={{ gradeLabel: "Easy", before: 55, after: 64, levelUp: true }} />);
