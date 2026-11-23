@@ -91,6 +91,24 @@ def test_same_day_gain_capped_losses_not():
     assert nxt.score > s.score
 
 
+def test_losses_give_allowance_back_so_a_bad_streak_can_be_climbed_out_of_the_same_day():
+    """SC-34: the cap counts the day's net gain. Gain 28, lose some, and the lost part can be won again the same day."""
+    s = fresh(score=0, last_seen_at=T0)
+    for _ in range(10):
+        s = apply_answer(s, 1.0, 1.0, T0)
+    assert s.day_gain == pytest.approx(28)
+    s = apply_answer(s, 0.0, 1.0, T0)                        # 28 -> 19.6
+    assert s.score == pytest.approx(19.6) and s.day_gain == pytest.approx(19.6)
+    s = apply_answer(s, 1.0, 1.0, T0)                        # back to the cap, no further
+    assert s.score == pytest.approx(28) and s.day_gain == pytest.approx(28)
+    assert apply_answer(s, 1.0, 1.0, T0).score == pytest.approx(28)
+
+
+def test_a_loss_before_any_gain_does_not_bank_allowance():
+    s = apply_answer(fresh(score=50, last_seen_at=T0), 0.0, 1.0, T0)
+    assert s.day_gain == 0.0                                  # never negative: the day cannot gain more than 28 net of nothing
+
+
 def test_cap_resets_at_learner_local_midnight():
     tz = timezone(timedelta(hours=9))
     late_utc = datetime(2026, 1, 1, 14, 30, tzinfo=timezone.utc)   # 23:30 local (+9)

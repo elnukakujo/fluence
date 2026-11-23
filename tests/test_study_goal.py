@@ -343,3 +343,15 @@ def test_each_unmet_item_says_how_far_it_is_and_carried_ones_count(db):
     carried = [i for i in later["items"] if i["carried"]]
     assert [i["id"] for i in carried] == ["voc_V0"] and carried[0]["to_go"] == 30
     assert later["types"]["vocabulary"]["carried_partial"] == pytest.approx(0.5)
+
+
+def test_items_carry_their_score_and_level_for_the_hover_card(db):
+    _seed(db, n=3)
+    svc = StudyGoalService()
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=30.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=70.0, difficulty=0.5)
+    items = {i["id"]: i for i in svc.progress("user_U1", "lang_L1", today=D0)["items"]}
+    assert (items["voc_V0"]["score"], items["voc_V0"]["level"]) == (30.0, "learning")
+    assert (items["voc_V1"]["score"], items["voc_V1"]["level"]) == (70.0, "known")

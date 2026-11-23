@@ -13,7 +13,7 @@ from ...utils import review_priority
 from ...utils.learner_clock import learner_today
 from ..system_data.prefs_view import prefs_for
 from ...models.system_data import UserPreferences
-from ...utils.scoring import KNOWN_FROM
+from ...utils.scoring import level_for, KNOWN_FROM
 from ..system_data import ScoreService
 from .lesson_gate import GateService
 from .studied_types import studied_types
@@ -231,6 +231,7 @@ class StudyGoalService:
         types = {k: {"n": lock["n"][k], "picked": 0, "mastered": 0, "carried": 0,
                      "r": lock["r"][k], "review_picked": 0, "review_done": 0, "partial": 0.0, "review_partial": 0.0, "carried_partial": 0.0} for k in TYPES}
         part = self._partials(items, done, user_id, session)
+        shown_scores = self._scores(user_id, list({i.element_id for i in items}), session)       # the hover card: score and level of each element
         listed = []
         for i in items:
             kind = _type_of(i.element_id)
@@ -254,7 +255,8 @@ class StudyGoalService:
             label, lesson_id = self._describe(i.element_id, session)
             listed.append({"id": i.element_id, "kind": kind, "role": i.kind, "label": label, "lesson_id": lesson_id,
                            "done": finished, "carried": not current,
-                           "progress": None if finished else round(part[i.id][0], 2), "to_go": None if finished else part[i.id][1]})
+                           "progress": None if finished else round(part[i.id][0], 2), "to_go": None if finished else part[i.id][1],
+                           "score": round(shown_scores.get(i.element_id, 0.0), 1), "level": level_for(shown_scores.get(i.element_id, 0.0))})
         pending = (goal.period != lock["period"]
                    or any(getattr(goal, TYPES[k][1]) != lock["n"][k] or getattr(goal, TYPES[k][2]) != lock["r"][k] for k in TYPES))
         return {"period": lock["period"], "active": goal.active, "cycle_start": start.isoformat(), "cycle_end": end.isoformat(),

@@ -60,9 +60,10 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
 }
 
 /** One segment per element on the menu, carried ones included: done solid, started filled by its progress, not started empty; done first, then the closest.
- *  The counts say the same in words, so no colour carries the meaning alone. A segment's tooltip names its element. */
+ *  The counts say the same in words, so no colour carries the meaning alone. Pointing at a segment opens a small tab with the element's name, score, level and what is left. */
 function Strip({ items, label, left }: { items: GoalItem[]; label: string; left: (i: GoalItem) => string }) {
     const t = useTranslations("study");
+    const tLevel = useTranslations("home.level");
     const share = (i: GoalItem) => (i.done ? 1 : i.progress ?? 0);
     const sorted = [...items].sort((a, b) => share(b) - share(a));
     const done = items.filter((i) => i.done).length;
@@ -71,12 +72,21 @@ function Strip({ items, label, left }: { items: GoalItem[]; label: string; left:
     return (
         <div className="flex flex-col gap-1">
             <div className="flex gap-[3px]" role="img" aria-label={`${label}: ${t("goalLegendDone", { n: done })}, ${t("goalLegendStarted", { n: started })}, ${t("goalLegendNone", { n: none })}`} data-testid="goal-strip">
-                {sorted.map((i) => (
-                    <span key={i.id} data-state={i.done ? "done" : share(i) > 0 ? "started" : "none"} title={`${i.label}${i.carried ? " ↺" : ""} · ${i.done ? t("goalDone") : left(i)}`}
-                        className="relative h-3.5 min-w-[3px] flex-1 overflow-hidden rounded-[4px] bg-border hover:brightness-125">
-                        <span className={`absolute inset-y-0 left-0 ${i.done ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round(share(i) * 100)}%` }} />
-                    </span>
-                ))}
+                {sorted.map((i, n) => {
+                    const edge = n < sorted.length / 3 ? "left-0" : n >= (2 * sorted.length) / 3 ? "right-0" : "left-1/2 -translate-x-1/2";      // the tab never leaves the card
+                    return (
+                        <span key={i.id} className="group relative flex-1 min-w-[3px]">
+                            <span data-state={i.done ? "done" : share(i) > 0 ? "started" : "none"} className="relative block h-3.5 overflow-hidden rounded-[4px] bg-border group-hover:brightness-125">
+                                <span className={`absolute inset-y-0 left-0 ${i.done ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round(share(i) * 100)}%` }} />
+                            </span>
+                            <span role="tooltip" data-testid="segment-tab" className={`pointer-events-none absolute bottom-full z-20 mb-1.5 hidden w-max max-w-[11rem] flex-col gap-0.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs shadow-lg group-hover:flex ${edge}`}>
+                                <b className="truncate text-ink">{i.label}{i.carried ? " ↺" : ""}</b>
+                                <span className="tabular-nums text-muted">{t("goalTabScore", { score: Math.round(i.score ?? 0) })} · {i.level ? tLevel(i.level) : ""}</span>
+                                <span className={i.done ? "text-success" : "text-muted"}>{i.done ? t("goalDone") : left(i)}</span>
+                            </span>
+                        </span>
+                    );
+                })}
             </div>
             <p className="flex flex-wrap gap-x-3 text-[11px] text-muted" aria-hidden>
                 <span>{t("goalLegendDone", { n: done })}</span><span>{t("goalLegendStarted", { n: started })}</span><span>{t("goalLegendNone", { n: none })}</span>

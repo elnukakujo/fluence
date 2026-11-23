@@ -82,9 +82,9 @@ def apply_answer(state: ScoreState, quality: float, evidence_weight: float, now:
     day_gain = state.day_gain if state.day_date == today else 0.0
     k = (quality - 0.5) * 2 * evidence_weight * GAIN_K        # signed share of the headroom / of the score
     delta = k * (100.0 - score) if k > 0 else k * score
-    if delta > 0:                                     # cap applies to gains only; losses are uncapped
+    if delta > 0:                                     # the cap limits the day's NET gain (SC-34); losses are never capped
         delta = min(delta, max(0.0, DAY_GAIN_CAP - day_gain))
-        day_gain += delta
+    day_gain = max(0.0, day_gain + delta)             # a loss gives allowance back, so a bad streak can be climbed out of the same day
     score = min(max(score + delta, 0.0), 100.0)
 
     correct = quality >= CORRECT_AT

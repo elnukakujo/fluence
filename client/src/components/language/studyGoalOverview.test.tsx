@@ -48,8 +48,8 @@ describe("study goal menu", () => {
         ] as never;
         render(<StudyGoalOverview state={st} settingsHref="/s" />);
         expect(screen.getByText("Closest to done: 茶 · 3 to Known")).toBeInTheDocument();       // the one a few points away is named without opening the list
-        expect(screen.getByText("48 to Known")).toBeInTheDocument();
-        expect(screen.getByText("1 side left")).toBeInTheDocument();
+        expect(screen.getByText("48 to Known", { ignore: "[role=tooltip] *" })).toBeInTheDocument();
+        expect(screen.getByText("1 side left", { ignore: "[role=tooltip] *" })).toBeInTheDocument();
         expect(screen.getByLabelText("+2 carried over, +0.9 in progress")).toBeInTheDocument();
         const names = screen.getAllByRole("link").map((a) => a.textContent).filter((x) => ["水", "茶"].some((c) => x?.includes(c)));
         expect(names.map((n) => n?.replace(" ↺", ""))).toEqual(["茶", "水"]);                    // closest first inside a group
@@ -66,25 +66,27 @@ describe("study goal menu", () => {
         const strips = screen.getAllByTestId("goal-strip");
         expect(strips).toHaveLength(2);                                                          // vocabulary and calligraphy (grammar has no slots in this state)
         const voc = strips[0];
-        expect(Array.from(voc.children).map((c) => c.getAttribute("data-state"))).toEqual(["done", "started", "none"]);   // done first, then the closest
+        expect(Array.from(voc.children).map((c) => c.firstElementChild?.getAttribute("data-state"))).toEqual(["done", "started", "none"]);   // done first, then the closest
         expect(voc).toHaveAttribute("aria-label", "Vocabulary: 1 done, 1 started, 1 not started");
         expect(screen.getAllByTestId("to-go").map((e) => e.textContent)).toEqual(["2 to go", "All done"]);
     });
-    it("a strip segment has a tooltip naming its element, and nothing else reacts to the pointer", () => {
+    it("each strip square has a hover tab with the element's name, score, level and what is left", () => {
         const st = state();
         st.progress.items = [
-            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "l", done: false, carried: true, progress: 0.95, to_go: 3 },
-            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "l", done: false, carried: false, progress: 0, to_go: 2 },
+            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "l", done: false, carried: true, progress: 0.95, to_go: 3, score: 57.2, level: "learning" },
+            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "l", done: true, carried: false, progress: null, to_go: null, score: 71, level: "known" },
         ] as never;
         render(<StudyGoalOverview state={st} settingsHref="/s" />);
-        const [first, second] = Array.from(screen.getAllByTestId("goal-strip")[0].children);
-        expect(first).toHaveAttribute("title", "茶 ↺ · 3 to Known");
-        expect(second).toHaveAttribute("title", "火 · 2 sides left");
+        const tabs = screen.getAllByTestId("segment-tab");
+        expect(tabs[0]).toHaveTextContent("火Score 71 · Knowndone");                                // done ones come first
+        expect(tabs[1]).toHaveTextContent("茶 ↺Score 57 · Learning3 to Known");
+        expect(tabs[0]).toHaveAttribute("role", "tooltip");
+        expect(tabs[0].className).toContain("pointer-events-none");                               // it never steals the pointer from the strip
     });
     it("lists the menu in a New group and a Review group, done ones checked", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);
         expect(screen.getByText("Show 3 elements")).toBeInTheDocument();
-        for (const w of ["水", "茶", "火"]) expect(screen.getByText(new RegExp(w))).toBeInTheDocument();
+        for (const w of ["水", "茶", "火"]) expect(screen.getAllByText(new RegExp(w), { ignore: "[role=tooltip] *" })[0]).toBeInTheDocument();
     });
     it("links each element to its own page", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);

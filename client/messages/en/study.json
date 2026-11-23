@@ -36,6 +36,7 @@
   "goalLegendDone": "{n} done",
   "goalLegendStarted": "{n} started",
   "goalLegendNone": "{n} not started",
+  "goalTabScore": "Score {score}",
   "goalToKnown": "{n} to Known",
   "goalSidesLeft": "{n, plural, one {# side left} other {# sides left}}",
   "goalToReview": "to review",

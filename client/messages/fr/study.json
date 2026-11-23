@@ -36,6 +36,7 @@
   "goalLegendDone": "{n} faits",
   "goalLegendStarted": "{n} commencés",
   "goalLegendNone": "{n} pas commencés",
+  "goalTabScore": "Score {score}",
   "goalToKnown": "{n} avant « Connu »",
   "goalSidesLeft": "{n, plural, one {# face restante} other {# faces restantes}}",
   "goalToReview": "à réviser",

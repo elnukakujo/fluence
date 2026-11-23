@@ -36,6 +36,7 @@
   "goalLegendDone": "已完成 {n}",
   "goalLegendStarted": "进行中 {n}",
   "goalLegendNone": "未开始 {n}",
+  "goalTabScore": "得分 {score}",
   "goalToKnown": "距「已知」还差 {n}",
   "goalSidesLeft": "还剩 {n} 面",
   "goalToReview": "待复习",
