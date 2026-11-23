@@ -326,3 +326,20 @@ def test_partial_progress_counts_unmet_items_as_fractions_of_the_known_bar(db):
     t = svc.progress("user_U1", "lang_L1", today=D0)["types"]["vocabulary"]
     assert t["mastered"] == 1 and t["partial"] == pytest.approx(0.5)
     assert t["review_done"] == 0 and t["review_partial"] == pytest.approx(0.5)
+
+
+def test_each_unmet_item_says_how_far_it_is_and_carried_ones_count(db):
+    """SG-13: the menu shows every element's distance: points left to Known (new) or sides left (review), carried items included."""
+    _seed(db, n=4)
+    svc = StudyGoalService()
+    _goal(svc, n_vocabulary=2, n_grammar=0, n_calligraphy=0)
+    svc.ensure_cycle("user_U1", "lang_L1", today=D0)
+    ScoreService().set("user_U1", "voc_V0", score=30.0, difficulty=0.5)
+    ScoreService().set("user_U1", "voc_V1", score=70.0, difficulty=0.5)
+    items = {i["id"]: i for i in svc.progress("user_U1", "lang_L1", today=D0)["items"]}
+    assert (items["voc_V0"]["progress"], items["voc_V0"]["to_go"]) == (0.5, 30)
+    assert items["voc_V1"]["progress"] is None and items["voc_V1"]["to_go"] is None          # done
+    later = svc.progress("user_U1", "lang_L1", today=D0 + timedelta(days=7))
+    carried = [i for i in later["items"] if i["carried"]]
+    assert [i["id"] for i in carried] == ["voc_V0"] and carried[0]["to_go"] == 30
+    assert later["types"]["vocabulary"]["carried_partial"] == pytest.approx(0.5)

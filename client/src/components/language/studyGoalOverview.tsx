@@ -26,22 +26,23 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
 
     // the element's own page, where its details, example sentences and performance are
     const href = (i: GoalItem) => i.lesson_id ? `/languages/${state.goal!.language_id}/lesson/${i.lesson_id}/${SEGMENT[i.kind]}/${i.id}` : null;
+    // how far an element is from done, in words: points left to Known (new), sides left (a vocabulary's review), or just "to review"
+    const left = (i: GoalItem) => i.to_go == null ? "" : i.role === "new" ? t("goalToKnown", { n: i.to_go }) : i.kind === "vocabulary" ? t("goalSidesLeft", { n: i.to_go }) : t("goalToReview");
     const group = (items: GoalItem[], title: string) => items.length > 0 && (
         <div className="flex flex-col gap-1">
             <p className="text-xs uppercase tracking-wide text-muted">{title}</p>
-            <ul className="flex flex-wrap gap-1.5 list-none pl-0">
-                {items.map((i) => (
-                    <li key={i.id}>
-                        {(() => {
-                            const content = <>{i.done && <Check size={12} aria-hidden />}{i.label}{i.carried && <span aria-hidden className="opacity-60"> ↺</span>}</>;
-                            const cls = `badge ${i.done ? "badge-ok" : ""}`;
-                            const to = href(i);
-                            return to
-                                ? <Link href={to} className={`${cls} min-h-8 hover:underline`} title={i.carried ? t("goalCarriedItem") : undefined}>{content}</Link>
-                                : <span className={cls}>{content}</span>;
-                        })()}
-                    </li>
-                ))}
+            <ul className="flex flex-col gap-1.5 list-none pl-0">
+                {[...items].sort((a, b) => (b.done ? 2 : b.progress ?? 0) - (a.done ? 2 : a.progress ?? 0)).map((i) => {      // closest to done first
+                    const to = href(i);
+                    const name = <>{i.done && <Check size={12} aria-hidden />}{i.label}{i.carried && <span aria-hidden className="opacity-60"> ↺</span>}</>;
+                    return (
+                        <li key={i.id} className="grid grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-2">
+                            {to ? <Link href={to} className="truncate hover:underline" title={i.carried ? t("goalCarriedItem") : undefined}>{name}</Link> : <span className="truncate">{name}</span>}
+                            <ProgressBar thin accent={i.role === "review"} current={i.done ? 1 : i.progress ?? 0} total={1} showLabel={false} showPercent={false} ariaLabel={`${i.label}: ${i.done ? t("goalDone") : left(i)}`} />
+                            <span className="text-xs tabular-nums text-muted">{i.done ? t("goalDone") : left(i)}</span>
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );
@@ -83,6 +84,14 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
                                             barLabel={`${t(label)}: ${t("goalColReview")}`} short={row.review_picked < row.r ? t("goalReviewShort", { picked: row.review_picked, n: row.r }) : undefined} hint={t("goalReviewShortHint")} />
                                     )}
                                 </div>
+                                {row.carried > 0 && (
+                                    <Meter title={t("goalCarriedTitle")} aria={t("goalCarried", { n: row.carried })} value={0} total={row.carried} partial={row.carried_partial}
+                                        barLabel={`${t(label)}: ${t("goalCarriedTitle")}`} hint="" />
+                                )}
+                                {(() => {
+                                    const next = mine.filter((i) => !i.done && i.progress != null).sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0))[0];
+                                    return next ? <p className="text-xs text-muted">{t("goalClosest", { label: next.label, left: left(next) })}</p> : null;
+                                })()}
                                 {mine.length > 0 && (
                                     <details className="text-xs">
                                         <summary className="cursor-pointer text-muted min-h-6 inline-flex items-center">{t("goalElements", { n: mine.length })}</summary>

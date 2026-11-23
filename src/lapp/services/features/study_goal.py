@@ -1,3 +1,4 @@
+import math
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
@@ -228,8 +229,8 @@ class StudyGoalService:
         items = session.query(StudyGoalItem).filter_by(goal_id=goal.id).all()
         done = self._done(items, user_id, session)
         types = {k: {"n": lock["n"][k], "picked": 0, "mastered": 0, "carried": 0,
-                     "r": lock["r"][k], "review_picked": 0, "review_done": 0, "partial": 0.0, "review_partial": 0.0} for k in TYPES}
-        part = self._partials(items, done, start, user_id, session)
+                     "r": lock["r"][k], "review_picked": 0, "review_done": 0, "partial": 0.0, "review_partial": 0.0, "carried_partial": 0.0} for k in TYPES}
+        part = self._partials(items, done, user_id, session)
         listed = []
         for i in items:
             kind = _type_of(i.element_id)
@@ -237,8 +238,11 @@ class StudyGoalService:
             current = i.cycle_start == start
             if not current and finished:
                 continue                                     # old periods only carry unfinished elements
-            if current and i.id in part:
-                row["partial" if i.kind == "new" else "review_partial"] += part[i.id]
+            if i.id in part:
+                if current:
+                    row["partial" if i.kind == "new" else "review_partial"] += part[i.id][0]
+                else:
+                    row["carried_partial"] += part[i.id][0]
             if current and i.kind == "new":
                 row["picked"] += 1
                 row["mastered"] += int(finished)
@@ -249,7 +253,8 @@ class StudyGoalService:
                 row["carried"] += 1
             label, lesson_id = self._describe(i.element_id, session)
             listed.append({"id": i.element_id, "kind": kind, "role": i.kind, "label": label, "lesson_id": lesson_id,
-                           "done": finished, "carried": not current})
+                           "done": finished, "carried": not current,
+                           "progress": None if finished else round(part[i.id][0], 2), "to_go": None if finished else part[i.id][1]})
         pending = (goal.period != lock["period"]
                    or any(getattr(goal, TYPES[k][1]) != lock["n"][k] or getattr(goal, TYPES[k][2]) != lock["r"][k] for k in TYPES))
         return {"period": lock["period"], "active": goal.active, "cycle_start": start.isoformat(), "cycle_end": end.isoformat(),
@@ -352,18 +357,19 @@ class StudyGoalService:
                 seen[element_id] = last
         return sides, seen
 
-    def _partials(self, items, done, start, user_id, session) -> dict[str, float]:
-        """RC-27 / SG-13: how far each unmet item of the running period is (0..1): a new one by its score over the Known bar,
-        a review one by the share of its sides answered since the period began. Uses no threshold but `KNOWN_FROM`."""
-        open_items = [i for i in items if i.cycle_start == start and i.id not in done]
+    def _partials(self, items, done, user_id, session) -> dict[str, tuple[float, int]]:
+        """RC-27 / SG-13: how far each unmet item is, as (share 0..1, what is left): a new one by its score over the Known bar (points left), a review one by
+        the share of its sides answered since its own period began (sides left). Carried items count too. Uses no threshold but `KNOWN_FROM`."""
+        open_items = [i for i in items if i.id not in done]
         news = [i for i in open_items if i.kind == "new"]
         scores = self._scores(user_id, [i.element_id for i in news], session)
-        out = {i.id: min(scores.get(i.element_id, 0.0) / KNOWN_FROM, 1.0) for i in news}
+        out = {i.id: (min(scores.get(i.element_id, 0.0) / KNOWN_FROM, 1.0), max(1, math.ceil(KNOWN_FROM - scores.get(i.element_id, 0.0)))) for i in news}
         reviews = [i for i in open_items if i.kind == "review"]
         sides, seen = self._sides_seen(reviews, user_id, session)
-        since = datetime.combine(start, time.min)
         for i in reviews:
-            out[i.id] = sum(1 for x in sides[i.id] if (seen.get(x) or datetime.min) >= since) / len(sides[i.id])
+            since = datetime.combine(i.cycle_start, time.min)
+            answered = sum(1 for x in sides[i.id] if (seen.get(x) or datetime.min) >= since)
+            out[i.id] = (answered / len(sides[i.id]), len(sides[i.id]) - answered)
         return out
 
     def _done(self, items, user_id, session) -> set[str]:

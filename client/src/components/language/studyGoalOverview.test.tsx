@@ -38,6 +38,22 @@ describe("study goal menu", () => {
         expect(screen.getByLabelText("5/20 mastered, +2.4 in progress")).toBeInTheDocument();
         expect(screen.getAllByTestId("progress-partial")).toHaveLength(1);                    // only the bar that has partial progress
     });
+    it("says how far every element is: points to Known, sides left, the closest one first, and the carried ones as a bar of their own", () => {
+        const st = state();
+        st.progress.types.vocabulary = { ...st.progress.types.vocabulary, carried: 2, carried_partial: 0.9 } as typeof st.progress.types.vocabulary;
+        st.progress.items = [
+            { id: "voc_1", kind: "vocabulary", role: "new", label: "水", lesson_id: "lesson_1", done: false, carried: true, progress: 0.2, to_go: 48 },
+            { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "lesson_1", done: false, carried: true, progress: 0.95, to_go: 3 },
+            { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "lesson_2", done: false, carried: false, progress: 0.5, to_go: 1 },
+        ] as never;
+        render(<StudyGoalOverview state={st} settingsHref="/s" />);
+        expect(screen.getByText("Closest to done: 茶 · 3 to Known")).toBeInTheDocument();       // the one a few points away is named without opening the list
+        expect(screen.getByText("48 to Known")).toBeInTheDocument();
+        expect(screen.getByText("1 side left")).toBeInTheDocument();
+        expect(screen.getByLabelText("+2 carried over, +0.9 in progress")).toBeInTheDocument();
+        const names = screen.getAllByRole("link").map((a) => a.textContent).filter((x) => ["水", "茶"].some((c) => x?.includes(c)));
+        expect(names.map((n) => n?.replace(" ↺", ""))).toEqual(["茶", "水"]);                    // closest first inside a group
+    });
     it("lists the menu in a New group and a Review group, done ones checked", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);
         expect(screen.getByText("Show 3 elements")).toBeInTheDocument();
