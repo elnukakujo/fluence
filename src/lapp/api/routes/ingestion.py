@@ -83,7 +83,7 @@ def _page_ranges(form):
     first, last = (form.get("page_from") or "").strip(), (form.get("page_to") or "").strip()
     if not first and not last:
         return None, None
-    if not (first.isdigit() and last.isdigit()):
+    if not (first.isdecimal() and last.isdecimal()):   # isdigit() lets "²" through and int() then raises
         return None, "Give both the first and the last page as whole numbers"
     return normalize_ranges([[int(first), int(last)]])
 

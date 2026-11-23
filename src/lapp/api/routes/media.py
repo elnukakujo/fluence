@@ -1,3 +1,4 @@
+from werkzeug.exceptions import RequestEntityTooLarge
 from flask import Blueprint, request, jsonify, send_from_directory, abort, current_app
 from werkzeug.exceptions import HTTPException
 
@@ -9,6 +10,7 @@ from ...services import MediaService
 
 bp = Blueprint('media', __name__)
 _PRIVATE_DIRS = {'ingestion', 'parse_cache'}
+_BODY_HEADROOM = 1024 * 1024   # multipart framing around the file
 
 def _is_private(path) -> bool:
     return str(path).lstrip("/\\").split("/", 1)[0] in _PRIVATE_DIRS
@@ -119,6 +121,7 @@ def upload_image():
         500:
             description: Internal Server Error
     """
+    request.max_content_length = current_app.config.get('MAX_IMAGE_SIZE', 5 * 1024 * 1024) + _BODY_HEADROOM   # refused before the body is spooled
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
@@ -136,6 +139,8 @@ def upload_image():
         
         return jsonify({'success': True, **result}), 201
             
+    except RequestEntityTooLarge:
+        return jsonify({'success': False, 'error': 'File too large'}), 413
     except Exception as e:
         logger.error(f"Image upload error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500
@@ -188,6 +193,7 @@ def upload_audio():
         500:
             description: Internal Server Error
     """
+    request.max_content_length = current_app.config.get('MAX_AUDIO_SIZE', 10 * 1024 * 1024) + _BODY_HEADROOM
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
@@ -205,6 +211,8 @@ def upload_audio():
         
         return jsonify({'success': True, **result}), 201
             
+    except RequestEntityTooLarge:
+        return jsonify({'success': False, 'error': 'File too large'}), 413
     except Exception as e:
         logger.error(f"Audio upload error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'An unexpected error occurred'}), 500

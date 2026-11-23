@@ -8,6 +8,7 @@ from ...services.data_collection.session_stats import SessionStats
 from ...services.data_collection.weekly_snapshot import WeeklySnapshotService
 from ...services.system_data.prefs_view import prefs_for, remember_timezone
 from ...core.auth import login_required, require_owns, require_write, current_user_id
+from ...utils.element_kinds import kind_of
 
 bp = Blueprint('review', __name__, url_prefix='/api/review')
 review_service = ReviewService()
@@ -96,6 +97,9 @@ def set_note(element_id: str):
         404: {description: unknown element}
     """
     require_write(element_id)
+    kind = kind_of(element_id)
+    if not (kind and kind.bulkable):    # only vocabulary, grammar, calligraphy and exercises are studied: components and containers are never scored
+        return jsonify({'error': 'notes go on vocabulary, grammar, calligraphy or exercises'}), 400
     note = (request.get_json(silent=True) or {}).get('note')
     if not isinstance(note, str) or len(note) > NOTE_MAX:
         return jsonify({'error': f'note must be text of at most {NOTE_MAX} characters'}), 400

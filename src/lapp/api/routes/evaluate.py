@@ -45,9 +45,9 @@ def evaluate_text():
         500:
             description: Evaluation failed
     """
+    data = request.json or {}
+    require_write(data.get('exercise_id', ''))   # outside the try: a 403/404 must not turn into a 200 "unavailable"
     try:
-        data = request.json or {}
-        require_write(data.get('exercise_id', ''))
         return evaluator_service.evaluate(
             ex_id=data.get('exercise_id', ''),
             user_input=data.get('user_text', ''),
@@ -93,9 +93,9 @@ def evaluate_speech():
         500:
             description: Evaluation failed
     """
+    data = request.json or {}
+    require_write(data.get('exercise_id', ''))
     try:
-        data = request.json or {}
-        require_write(data.get('exercise_id', ''))
         return evaluator_service.evaluate(
             ex_id=data.get('exercise_id', ''),
             user_input=data.get('user_audio_url', ''),
