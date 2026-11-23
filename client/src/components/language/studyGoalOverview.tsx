@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { BookOpen, Brush, Check, PenLine, Settings, Target, TriangleAlert } from "lucide-react";
@@ -63,30 +60,26 @@ export default function StudyGoalOverview({ state, settingsHref, today = new Dat
 }
 
 /** One segment per element on the menu, carried ones included: done solid, started filled by its progress, not started empty; done first, then the closest.
- *  The counts say the same in words, so no colour carries the meaning alone. Pointing at (or tapping) a segment names that element under the strip. */
-function Strip({ items, label, active, onActive, left }: { items: GoalItem[]; label: string; active: string | null; onActive: (id: string | null) => void; left: (i: GoalItem) => string }) {
+ *  The counts say the same in words, so no colour carries the meaning alone. A segment's tooltip names its element. */
+function Strip({ items, label, left }: { items: GoalItem[]; label: string; left: (i: GoalItem) => string }) {
     const t = useTranslations("study");
     const share = (i: GoalItem) => (i.done ? 1 : i.progress ?? 0);
     const sorted = [...items].sort((a, b) => share(b) - share(a));
     const done = items.filter((i) => i.done).length;
     const started = items.filter((i) => !i.done && share(i) > 0).length;
     const none = items.length - done - started;
-    const on = items.find((i) => i.id === active);
     return (
         <div className="flex flex-col gap-1">
             <div className="flex gap-[3px]" role="img" aria-label={`${label}: ${t("goalLegendDone", { n: done })}, ${t("goalLegendStarted", { n: started })}, ${t("goalLegendNone", { n: none })}`} data-testid="goal-strip">
                 {sorted.map((i) => (
-                    <span key={i.id} data-state={i.done ? "done" : share(i) > 0 ? "started" : "none"} data-active={active === i.id}
-                        onPointerEnter={() => onActive(i.id)} onPointerLeave={() => onActive(null)} onClick={() => onActive(active === i.id ? null : i.id)}
-                        className="relative h-3.5 min-w-[3px] flex-1 cursor-pointer overflow-hidden rounded-[4px] bg-border transition-transform duration-150 data-[active=true]:scale-y-150 data-[active=true]:ring-2 data-[active=true]:ring-ink">
+                    <span key={i.id} data-state={i.done ? "done" : share(i) > 0 ? "started" : "none"} title={`${i.label}${i.carried ? " ↺" : ""} · ${i.done ? t("goalDone") : left(i)}`}
+                        className="relative h-3.5 min-w-[3px] flex-1 overflow-hidden rounded-[4px] bg-border hover:brightness-125">
                         <span className={`absolute inset-y-0 left-0 ${i.done ? "bg-success" : "bg-accent"}`} style={{ width: `${Math.round(share(i) * 100)}%` }} />
                     </span>
                 ))}
             </div>
-            <p className="flex min-h-4 flex-wrap gap-x-3 text-[11px] text-muted" data-testid="strip-readout">
-                {on
-                    ? <span className="text-ink"><b>{on.label}</b>{on.carried ? " ↺" : ""} · {on.done ? t("goalDone") : left(on)}</span>
-                    : <span aria-hidden className="flex gap-x-3"><span>{t("goalLegendDone", { n: done })}</span><span>{t("goalLegendStarted", { n: started })}</span><span>{t("goalLegendNone", { n: none })}</span></span>}
+            <p className="flex flex-wrap gap-x-3 text-[11px] text-muted" aria-hidden>
+                <span>{t("goalLegendDone", { n: done })}</span><span>{t("goalLegendStarted", { n: started })}</span><span>{t("goalLegendNone", { n: none })}</span>
             </p>
         </div>
     );
@@ -95,16 +88,15 @@ function Strip({ items, label, active, onActive, left }: { items: GoalItem[]; la
 type Tr = ReturnType<typeof useTranslations>;
 type Shared = { href: (i: GoalItem) => string | null; left: (i: GoalItem) => string };
 
-/** One type's card. `active` is the element under the pointer, in the strip or in the list: both light it up and the readout names it. */
+/** One type's card. */
 function GoalTile({ t, label, Icon, row, mine, href, left }: { t: Tr; label: string; Icon: typeof BookOpen; row: StudyGoalProgress["types"][GoalKind]; mine: GoalItem[] } & Shared) {
-    const [active, setActive] = useState<string | null>(null);
     return (
         <li className="goal-tile">
             <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-2 text-sm font-medium text-ink"><Icon size={16} aria-hidden />{t(label)}</span>
                 {mine.length > 0 && <span className="font-serif text-xl font-semibold tabular-nums text-ink" data-testid="to-go">{mine.every((i) => i.done) ? t("goalAllDone") : <>{mine.filter((i) => !i.done).length} <span className="font-sans text-xs font-normal text-muted">{t("goalToGo")}</span></>}</span>}
             </div>
-            {mine.length > 0 && <Strip items={mine} label={t(label)} active={active} onActive={setActive} left={left} />}
+            {mine.length > 0 && <Strip items={mine} label={t(label)} left={left} />}
             <div className="grid grid-cols-2 gap-4">
                 {row.n > 0 && (
                     <Meter title={t("goalColNew")} aria={t("goalProgress", { mastered: row.mastered, picked: row.picked })} value={row.mastered} total={row.picked} partial={row.partial}
@@ -127,8 +119,8 @@ function GoalTile({ t, label, Icon, row, mine, href, left }: { t: Tr; label: str
                 <details className="text-xs">
                     <summary className="cursor-pointer text-muted min-h-6 inline-flex items-center">{t("goalElements", { n: mine.length })}</summary>
                     <div className="flex flex-col gap-3 pt-2">
-                        <Rows items={mine.filter((i) => i.role === "new")} title={t("goalColNew")} t={t} href={href} left={left} active={active} onActive={setActive} />
-                        <Rows items={mine.filter((i) => i.role === "review")} title={t("goalColReview")} t={t} href={href} left={left} active={active} onActive={setActive} />
+                        <Rows items={mine.filter((i) => i.role === "new")} title={t("goalColNew")} t={t} href={href} left={left} />
+                        <Rows items={mine.filter((i) => i.role === "review")} title={t("goalColReview")} t={t} href={href} left={left} />
                     </div>
                 </details>
             )}
@@ -136,8 +128,8 @@ function GoalTile({ t, label, Icon, row, mine, href, left }: { t: Tr; label: str
     );
 }
 
-/** The list of one role's elements: closest to done first; a row and its strip segment light up together. */
-function Rows({ items, title, t, href, left, active, onActive }: { items: GoalItem[]; title: string; t: Tr; active: string | null; onActive: (id: string | null) => void } & Shared) {
+/** The list of one role's elements: closest to done first. */
+function Rows({ items, title, t, href, left }: { items: GoalItem[]; title: string; t: Tr } & Shared) {
     if (items.length === 0) return null;
     const share = (i: GoalItem) => (i.done ? 2 : i.progress ?? 0);
     return (
@@ -148,8 +140,8 @@ function Rows({ items, title, t, href, left, active, onActive }: { items: GoalIt
                     const to = href(i);
                     const name = <>{i.label}{i.carried && <span aria-hidden className="opacity-60"> ↺</span>}</>;
                     return (
-                        <li key={i.id} data-active={active === i.id} onPointerEnter={() => onActive(i.id)} onPointerLeave={() => onActive(null)} onFocus={() => onActive(i.id)} onBlur={() => onActive(null)}
-                            className="grid min-h-9 grid-cols-[1rem_minmax(0,6rem)_1fr_auto] items-center gap-2 rounded-lg px-1.5 transition-colors data-[active=true]:bg-accent-soft">
+                        <li key={i.id}
+                            className="grid min-h-9 grid-cols-[1rem_minmax(0,6rem)_1fr_auto] items-center gap-2 px-1.5">
                             <span className="text-success" aria-hidden>{i.done ? <Check size={14} /> : null}</span>
                             {to ? <Link href={to} className="truncate hover:underline" title={i.carried ? t("goalCarriedItem") : undefined}>{name}</Link> : <span className="truncate">{name}</span>}
                             <ProgressBar thin accent={i.role === "review"} current={i.done ? 1 : i.progress ?? 0} total={1} showLabel={false} showPercent={false} ariaLabel={`${i.label}: ${i.done ? t("goalDone") : left(i)}`} />

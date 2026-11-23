@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import StudyGoalOverview from "./studyGoalOverview";
 
@@ -71,27 +70,16 @@ describe("study goal menu", () => {
         expect(voc).toHaveAttribute("aria-label", "Vocabulary: 1 done, 1 started, 1 not started");
         expect(screen.getAllByTestId("to-go").map((e) => e.textContent)).toEqual(["2 to go", "All done"]);
     });
-    it("pointing at a strip segment names the element under the strip and lights its row; pointing at a row lights its segment", async () => {
+    it("a strip segment has a tooltip naming its element, and nothing else reacts to the pointer", () => {
         const st = state();
         st.progress.items = [
             { id: "voc_2", kind: "vocabulary", role: "new", label: "茶", lesson_id: "l", done: false, carried: true, progress: 0.95, to_go: 3 },
             { id: "voc_3", kind: "vocabulary", role: "review", label: "火", lesson_id: "l", done: false, carried: false, progress: 0, to_go: 2 },
         ] as never;
         render(<StudyGoalOverview state={st} settingsHref="/s" />);
-        const vocStrip = screen.getAllByTestId("goal-strip")[0];
-        const [chaSeg] = Array.from(vocStrip.children) as HTMLElement[];                         // sorted closest first: 茶
-        expect(screen.getAllByTestId("strip-readout")[0]).toHaveTextContent("0 done");
-        await userEvent.hover(chaSeg);
-        expect(screen.getAllByTestId("strip-readout")[0]).toHaveTextContent("茶 ↺ · 3 to Known");
-        expect(chaSeg).toHaveAttribute("data-active", "true");
-        await userEvent.unhover(chaSeg);
-        expect(screen.getAllByTestId("strip-readout")[0]).toHaveTextContent("0 done");
-        await userEvent.click(screen.getAllByText(/Show 2 elements/)[0]);
-        const row = screen.getByRole("link", { name: /茶/ }).closest("li") as HTMLElement;
-        await userEvent.hover(row);
-        expect(row).toHaveAttribute("data-active", "true");
-        expect(chaSeg).toHaveAttribute("data-active", "true");
-        expect(within(row).getByText("3 to Known")).toBeInTheDocument();
+        const [first, second] = Array.from(screen.getAllByTestId("goal-strip")[0].children);
+        expect(first).toHaveAttribute("title", "茶 ↺ · 3 to Known");
+        expect(second).toHaveAttribute("title", "火 · 2 sides left");
     });
     it("lists the menu in a New group and a Review group, done ones checked", () => {
         render(<StudyGoalOverview state={state()} settingsHref="/s" />);
