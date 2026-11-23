@@ -21,6 +21,7 @@ import LeechPanel from "@/components/elements/leechPanel";
 import { pickReplacement } from "@/utils/replaceCard";
 import { suggestedGrade } from "@/utils/cardHints";
 import { isExercise, rendererFor } from "./renderers";
+import { preloadAhead } from "@/lib/review/lookAhead";
 import type { RendererCtx, SessionItem, SessionOptions, ShellState, TypedState } from "./types";
 import { Pencil } from "lucide-react";
 import EditElementDialog from "./EditElementDialog";
@@ -87,6 +88,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
+    useEffect(() => { preloadAhead(queue, queue.findIndex((c) => c === slot)); }, [slot]);       // the next two cards' strokes and audio load while this one is worked on
     const renderer = card ? rendererFor(card) : null;
     const autoDraw = !!card && !!renderer?.opensDrawing?.(card);
 
