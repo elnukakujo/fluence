@@ -6,7 +6,6 @@ import ExerciseFooter from "@/components/exercises/exerciseFooter";
 import ExerciseHint from "@/components/exercises/exerciseHint";
 import LinkedGrammarSheet from "@/components/exercises/linkedGrammarSheet";
 import { lastAttempt } from "@/components/exercises/creditExercise";
-import BackButton from "@/components/ui/buttons/backButton";
 import type { ItemRenderer, RendererCtx } from "../types";
 
 /** The linked grammar's sheet once the attempt is over (failed, given up, hint) or while the grammar is still hard (RC-22). */
@@ -27,7 +26,7 @@ function ExerciseBody({ c }: { c: RendererCtx<Exercise> }) {
             <GrammarSheet exercise={c.item} done={c.gaveUp || c.finished} gaveUp={c.gaveUp} />
             <ExerciseFooter exercise={c.item} finished={c.gaveUp || c.finished} isLast={c.isLast}
                 onGiveUp={c.onGiveUp} onSkip={c.onReplace} onNext={c.onNext}
-                last={<BackButton onBefore={c.onBackFinish}>{c.backLabel}</BackButton>} />
+                pinned last={null} />
         </>
     );
 }

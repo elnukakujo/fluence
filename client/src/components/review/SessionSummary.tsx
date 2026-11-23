@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowRight, RotateCcw, TrendingUp } from "lucide-react";
+import { RotateCcw, TrendingUp } from "lucide-react";
 import { getSessionStats, type SessionStats } from "@/api/review/sessionStats";
 import { reviewSessionIdle } from "@/api/apiFetch";
 import { queueHref } from "@/api/review";
 import ProgressBar from "@/components/ui/progressBar";
+import BackButton from "@/components/ui/buttons/backButton";
 
 /** "5m 12s" / "42s" */
 export function formatSessionTime(ms: number): string {
@@ -26,7 +27,15 @@ export default function SessionSummary({ sessionId, languageId, backHref, backLa
         reviewSessionIdle().then(() => getSessionStats(sessionId)).then((s) => { if (alive) setStats(s); }).catch(() => undefined);
         return () => { alive = false; };
     }, [sessionId]);
-    if (!stats || stats.cards === 0) return null;
+    const bar = (
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-border bg-surface px-4 py-3 md:bottom-0" data-testid="summary-bar">
+            <div className="mx-auto flex max-w-2xl gap-2">
+                <BackButton href={backHref}>{backLabel ?? t("sessionBack")}</BackButton>
+                {againHref && <a className="btn btn-primary min-h-11 inline-flex flex-1 items-center justify-center gap-2" href={againHref}><RotateCcw size={16} aria-hidden />{t("sessionAnotherRound")}</a>}
+            </div>
+        </div>
+    );
+    if (!stats || stats.cards === 0) return bar;       // the way out is there while the totals load
     const sign = (n: number, digits: number) => `${n > 0 ? "+" : ""}${n.toFixed(digits)}`;
     const missed = stats.to_revisit.length;
     const goal = stats.goal_progress;
@@ -73,10 +82,7 @@ export default function SessionSummary({ sessionId, languageId, backHref, backLa
                     <ProgressBar thin current={goal.met} total={goal.total} partial={goal.partial} showPercent={false} label={t("sessionGoalMet", { met: goal.met, total: goal.total })} ariaLabel={t("sessionGoal")} />
                 </div>
             )}
-            <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-10 flex gap-2 border-t border-border bg-surface px-4 py-3 md:bottom-0" data-testid="summary-bar">
-                {againHref && <a className="btn btn-secondary min-h-11 inline-flex flex-1 items-center justify-center gap-2" href={againHref}><RotateCcw size={16} aria-hidden />{t("sessionAnotherRound")}</a>}
-                {backHref && <a className="btn btn-primary min-h-11 inline-flex flex-1 items-center justify-center gap-2" href={backHref}>{backLabel ?? t("sessionBack")}<ArrowRight size={16} aria-hidden /></a>}
-            </div>
+            {bar}
         </section>
     );
 }

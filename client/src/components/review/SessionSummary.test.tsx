@@ -6,6 +6,7 @@ import SessionSummary, { formatSessionTime } from "./SessionSummary";
 import { getSessionStats } from "@/api/review/sessionStats";
 
 vi.mock("@/api/review/sessionStats", () => ({ getSessionStats: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/api/apiFetch", () => ({ reviewSessionIdle: () => Promise.resolve() }));
 
 const base = { cards: 70, correct: 52, duration_ms: 312000, avg_score_gain: 4.26, avg_difficulty_change: -0.031, by_type: { vocabulary: 50, exercise: 20 },
@@ -44,7 +45,7 @@ describe("SessionSummary", () => {
         show();
         await screen.findByText("52/70");
         expect(screen.getByRole("link", { name: "Another round" })).toHaveAttribute("href", "/x");
-        expect(screen.getByRole("link", { name: /Back to course/ })).toHaveAttribute("href", "/languages/lang_1");
+        expect(screen.getByRole("button", { name: /Back to course/ })).toBeInTheDocument();
         expect(getSessionStats).toHaveBeenCalledTimes(1);
     });
     it("formats short and long times", () => {

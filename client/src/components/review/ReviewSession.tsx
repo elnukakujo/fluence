@@ -11,6 +11,7 @@ import type Exercise from "@/interface/features/Exercise";
 import ElementTagsCard from "@/components/elements/elementTagsCard";
 import ElementSourcesCard from "@/components/elements/elementSourcesCard";
 import ElementPerformanceCard from "@/components/elements/elementPerformanceCard";
+import ActionBar, { type ActionResult } from "./ActionBar";
 import ReviewHeader from "@/components/elements/reviewHeader";
 import RecallGradeButtons from "@/components/ui/buttons/recallGradeButtons";
 import BackButton from "@/components/ui/buttons/backButton";
@@ -46,6 +47,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const [graded, setGraded] = useState<boolean>(false);
     const [finishedId, setFinishedId] = useState<string>();   // exercise whose answer is final (solved, out of attempts or given up); a replacing spare has another id
     const [gaveUpId, setGaveUpId] = useState<string>();
+    const [result, setResult] = useState<ActionResult | null>(null);       // what the answer did to the card: the strip over Next
+    const tUi = useTranslations("ui");
     const [typed, setTyped] = useState<TypedState>(null);
     const [typedPending, setTypedPending] = useState(false);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
@@ -73,14 +76,15 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     };
     const againHref = typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined;   // the same queue page, reloaded: a fresh queue
     const last = remaining.length === 1;
-    const ended = (last && graded) || (!slot && done.length > 0);      // the session is over: show its totals
-    useEffect(() => { if (ended && typeof window.scrollTo === "function") window.scrollTo({ top: 0 }); }, [ended]);
-    useEffect(() => { if (last && graded) finish(); });
-    useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [edited, setEdited] = useState<Record<string, ReviewCard>>({});   // element id -> its fresh data after an edit made during this session
     const [editing, setEditing] = useState(false);
     const shown = slot && isExercise(slot) && replaced[keyOf(slot)] ? replaced[keyOf(slot)] as ReviewCard : slot;
     const card = shown && edited[shown.id!] ? { ...shown, ...edited[shown.id!] } as ReviewCard : shown;
+    const cardDone = graded || (!!card && (finishedId === card.id || gaveUpId === card.id));      // graded, or an exercise whose answer is final
+    const ended = (last && cardDone) || (!slot && done.length > 0);      // the session is over: show its totals
+    useEffect(() => { if (ended && typeof window.scrollTo === "function") window.scrollTo({ top: 0 }); }, [ended]);
+    useEffect(() => { if (last && cardDone) finish(); });
+    useEffect(() => { if (!slot && done.length > 0) finish(); });      // the last card was deleted after others were answered: the session ends here, once
     const [cantHear, setCantHear] = useState<boolean>(false);   // a listen-first card falls back to showing its text
 
     const renderer = card ? rendererFor(card) : null;
@@ -99,6 +103,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
         setShowPractice(autoDraw);
         setPracticeResult(null);
         setCantHear(false);
+        setResult(null);
         if (autoDraw && card && renderer?.canOpenDrawing) {        // no stroke data for this character: flip it, never a blank canvas
             let stale = false;
             renderer.canOpenDrawing(card).then((ok) => { if (!ok && !stale) setShowPractice(false); });
@@ -119,7 +124,11 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const handleGrade = (score: number, evidence: Evidence = "self_grade") => {
         setGraded(true);
         const side = renderer.scoreSide?.(card);
-        updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side });
+        const gradeLabel = tUi(score >= 1 ? "easy" : score >= 0.75 ? "good" : score >= 0.5 ? "hard" : "again");
+        const shownId = card.id;
+        Promise.resolve(updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side }))
+            .then((r) => { if (r && typeof r.score_after === "number" && shownId === card.id) setResult({ gradeLabel, before: r.score_before ?? 0, after: r.score_after, levelUp: r.level_before !== r.level_after && ["known", "mastered"].includes(r.level_after) }); })
+            .catch(() => undefined);
     };
 
     const reveal = () => {
@@ -189,7 +198,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     );
 
     return (
-        <article className="flex flex-col space-y-6 max-w-2xl mx-auto">
+        <article className="flex flex-col space-y-6 max-w-2xl mx-auto pb-40">
             {ended && <SessionSummary sessionId={sessionId} languageId={languageId} backHref={backHref} backLabel={backLabel} againHref={againHref} />}      {/* once, on top: the result leads */}
             <ReviewHeader
                 kind={tStudy(renderer.kindKey)}
@@ -228,20 +237,14 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
                     {/* ── Grade buttons (hidden while drawing; "I can't draw" brings them back) ── */}
                     {!hiddenTranslation && !graded && !showPractice && (
-                        <RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} />
+                        <ActionBar phase="grade"><RecallGradeButtons onGrade={handleGrade} suggested={view.tier ? suggestedGrade(flipMs, effectiveLevel) : undefined} /></ActionBar>
                     )}
 
                     {/* ── Post-grade content ───────────────────────── */}
                     {graded && (
                         <>
-                            {/* next first: the details below can be long, the action must stay in view */}
-                            {remaining.length > 1 ? (
-                                <button className="btn btn-primary min-h-11 w-full" onClick={handleGoNext} autoFocus>
-                                    {t("nextButton")}
-                                </button>
-                            ) : (
-                                <BackButton onBefore={finish} href={backHref}>{backLabel}</BackButton>
-                            )}
+                            {/* the pinned bar keeps Next in view however long the details below are; the last card's way out is the end screen's bar */}
+                            {remaining.length > 1 && <ActionBar phase="next" onNext={handleGoNext} result={result} />}
                             {editButton}
                             {renderer.post?.(ctx)}
                             <ElementTagsCard element={card} />
