@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import jsonify, request
 
@@ -7,6 +7,7 @@ from ..schemas.answer import parse_answer
 from ..services.system_data import ScoreService
 from ..services.system_data.prefs_view import remember_timezone
 from ..services.system_data.score import side_id
+from ..utils.learner_clock import learner_today
 from ..utils.scoring import DAY_GAIN_CAP, effective_score, level_for
 
 
@@ -31,6 +32,5 @@ def answered(element_id: str, data, record):
     score_after, after = _state(row_id, payload.skill)
     row = ScoreService().get(current_user_id(), row_id, payload.skill)
     # nothing gained because the card already earned DAY_GAIN_CAP today: the result strip says so instead of "7 -> 7"
-    # ponytail: the server's date, not the learner's zone; a late-night answer may read one day off
-    capped = bool(row and row.day_date == date.today() and row.day_gain >= DAY_GAIN_CAP and score_after <= score_before)
+    capped = bool(row and row.day_date == learner_today(request.headers.get('X-Timezone')) and row.day_gain >= DAY_GAIN_CAP and score_after <= score_before)
     return jsonify({'success': True, 'level_before': before, 'level_after': after, 'score_before': score_before, 'score_after': score_after, 'capped': capped})
