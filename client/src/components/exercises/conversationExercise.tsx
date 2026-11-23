@@ -1,5 +1,6 @@
 "use client";
 
+import FeedbackNote from "./feedbackNote";
 import { useFinished, type ExerciseRunnerProps } from "./exerciseFinish";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -395,24 +396,11 @@ export default function ConversationExercise({ exercise, onFinished }: Omit<Exer
                                 </span>
                             )}
                             {speaker.isUser && (lineStates[idx]?.isCorrect || (lineStates[idx]?.attempts ?? 0) > 0) && lineStates[idx]?.level && lineStates[idx]?.similarityScore !== null && (
-                                <section className={`card max-w-sm text-sm ${lineStates[idx].isCorrect ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'}`}>
-                                    <p className="font-semibold">
-                                        {lineStates[idx].isCorrect ? t("goodPronunciation") : t("needsImprovement")}
-                                    </p>
-                                    <p>
-                                        {t("similarity", { score: (lineStates[idx].similarityScore * 100).toFixed(1) })}
-                                    </p>
-                                    <p>
-                                        {t("level")}{lineStates[idx].level.label}
-                                    </p>
+                                <FeedbackNote verdict={lineStates[idx].isCorrect ? "correct" : "wrong"} headline={lineStates[idx].isCorrect ? t("goodPronunciation") : t("needsImprovement")}
+                                    message={lineStates[idx].feedbackMessage} level={lineStates[idx].level}>
+                                    <p>{t("similarity", { score: (lineStates[idx].similarityScore * 100).toFixed(1) })}</p>
                                     <p className="opacity-90">{lineStates[idx].level.description}</p>
-                                    <p>
-                                        {lineStates[idx].feedbackMessage && (
-                                            <span className="font-medium">{t("feedback")} </span>
-                                        )}
-                                        {lineStates[idx].feedbackMessage}
-                                    </p>
-                                </section>
+                                </FeedbackNote>
                             )}
                         </section>
                     );

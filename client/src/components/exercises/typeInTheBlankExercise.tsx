@@ -13,7 +13,8 @@ import AutoWidthInput from "@/components/ui/input/autoWidthInput";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
-import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
+import { CheckButton } from "./evaluatedFrame";
+import FeedbackNote from "./feedbackNote";
 
 export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -121,32 +122,8 @@ export default function TypeInTheBlankExercise({ exercise, onFinished }: Omit<Ex
             )}
 
             {hasFeedback && (
-                <FeedbackPanel correct={correct}>
-                    {correct ? (
-                        <>
-                            <p>{t("wellDone")}</p>
-                        </>
-                    ) : (
-                        <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>
-                    )}
-                    <p>
-                        {feedbackMessage && (
-                            <span className="font-medium">{t("feedback")} </span>
-                        )}
-                        {feedbackMessage}
-                    </p>
-                    {currentLevel && <p>{t("level")}{currentLevel.label} ({currentLevel.stars})</p>}
-                    {attempts >= 3 && !correct && (
-                        <div className="mt-2">
-                            <p className="font-medium">{t("correctAnswersLabel")}</p>
-                            <div className="flex gap-2 mt-1">
-                                {correctAnswers.map((ans, i) => (
-                                <span key={i} className="badge">{ans}</span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </FeedbackPanel>
+                <FeedbackNote verdict={correct ? "correct" : "wrong"} headline={correct ? t("wellDone") : t("someAnswersIncorrect", { attempt: attempts })} message={feedbackMessage} level={currentLevel}
+                    reveal={attempts >= 3 && !correct ? { label: t("correctAnswersLabel"), value: <span className="flex gap-2 mt-1">{correctAnswers.map((ans, i) => <span key={i} className="badge">{ans}</span>)}</span> } : null} />
             )}
         </form>
     );

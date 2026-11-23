@@ -11,7 +11,8 @@ import { evaluateText } from "@/api/process";
 import AutoSizeTextArea from "@/components/ui/textArea/autoSizeTextArea";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
-import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
+import { CheckButton } from "./evaluatedFrame";
+import FeedbackNote from "./feedbackNote";
 
 export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -80,33 +81,8 @@ export default function EssayExercise({ exercise, onFinished }: Omit<ExerciseRun
             )}
 
             {(correct || attempts > 0) && (
-                <FeedbackPanel correct={correct}>
-                    {correct ? (
-                        <>
-                            <p>
-                                {t("correct")}
-                            </p>
-                            {answer && <p>
-                                {t("correctAnswer")}{answer}
-                            </p>}
-                        </>
-                    ) : <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>}
-                    <p>
-                        {feedbackMessage && (
-                            <span className="font-medium">{t("feedback")} </span>
-                        )}
-                        {feedbackMessage}
-                    </p>
-                    <p>
-
-                        {t("level")}{currentLevel!.label} ({currentLevel!.stars})
-                    </p>
-                    {attempts >= 3 && !correct && answer && (
-                        <div className="mt-2">
-                            <p className="font-medium">{t("providedExampleAnswer")} {answer}</p>
-                        </div>
-                    )}
-                </FeedbackPanel>
+                <FeedbackNote verdict={correct ? "correct" : "wrong"} headline={correct ? t("correct") : t("someAnswersIncorrect", { attempt: attempts })} message={feedbackMessage} level={currentLevel}
+                    reveal={answer && (correct || attempts >= 3) ? { label: correct ? t("correctAnswer") : t("providedExampleAnswer"), value: answer } : null} />
             )}
         </form>
     );

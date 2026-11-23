@@ -13,7 +13,8 @@ import { evaluateText } from "@/api/process";
 import { getExerciseLevel } from "@/utils/speech_levels";
 import ElementMediaCard from "@/components/elements/elementMediaCard";
 import MissingContentNotice from "./missingContentNotice";
-import { CheckButton, FeedbackPanel } from "./evaluatedFrame";
+import { CheckButton } from "./evaluatedFrame";
+import FeedbackNote from "./feedbackNote";
 
 export default function OrganizeExercise({ exercise, onFinished }: Omit<ExerciseRunnerProps, "gaveUp">) {
     const t = useTranslations("exercises");
@@ -121,29 +122,8 @@ export default function OrganizeExercise({ exercise, onFinished }: Omit<Exercise
                 </>
             )}
             {hasFeedback && currentLevel && (
-                <FeedbackPanel correct={correct}>
-                    {correct ? (
-                        <>
-                            <p>
-                                {t("correct")}
-                            </p>
-                        </>
-                    ) : <p>{t("someAnswersIncorrect", { attempt: attempts })}</p>}
-                    <p>
-                        {feedbackMessage && (
-                            <span className="font-medium">{t("feedback")} </span>
-                        )}
-                        {feedbackMessage}
-                    </p>
-                    <p>
-                        {t("level")}{currentLevel!.label} ({currentLevel!.stars})
-                    </p>
-                    {attempts >= 3 && !correct && (
-                        <div className="mt-2">
-                            <p className="font-medium">{t("correctAnswer")} {answer}</p>
-                        </div>
-                    )}
-                </FeedbackPanel>
+                <FeedbackNote verdict={correct ? "correct" : "wrong"} headline={correct ? t("correct") : t("someAnswersIncorrect", { attempt: attempts })} message={feedbackMessage} level={currentLevel}
+                    reveal={attempts >= 3 && !correct ? { label: t("correctAnswer"), value: answer } : null} />
             )}
         </form>
     );
