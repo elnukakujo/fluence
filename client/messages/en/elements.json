@@ -103,6 +103,7 @@
   "typeWrong": "Not quite. The word is {word}",
   "typeClose": "Almost! The word is",
   "typeDiffLabel": "different: {chars}",
+  "leechChip": "Keeps slipping · {count}",
   "leechBanner": "This one keeps slipping ({count} misses)",
   "leechParts": "What it is made of",
   "leechNote": "Your memory trick",

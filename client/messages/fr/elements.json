@@ -103,6 +103,7 @@
   "typeWrong": "Pas tout à fait. Le mot est {word}",
   "typeClose": "Presque ! Le mot est",
   "typeDiffLabel": "différent : {chars}",
+  "leechChip": "Revient souvent · {count}",
   "leechBanner": "Celle-ci vous échappe sans cesse ({count} échecs)",
   "leechParts": "De quoi c'est fait",
   "leechNote": "Votre astuce mnémotechnique",

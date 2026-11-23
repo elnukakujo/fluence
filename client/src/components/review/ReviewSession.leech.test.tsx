@@ -30,12 +30,14 @@ beforeEach(() => vi.clearAllMocks());
 describe("review card: leech", () => {
     it("a normal card has no leech panel", () => {
         render(<ReviewFlashCard cards={[{ ...leechy("front"), leech: undefined } as unknown as ReviewCard]} />);
-        expect(screen.queryByText(/keeps slipping/)).toBeNull();
+        expect(screen.queryByText(/slipping/i)).toBeNull();
     });
 
-    it("shows the banner and the personal note, and asks to choose between the word and its look-alike first", () => {
+    it("shows a chip that opens the banner and the personal note in a dialog, and asks to choose between the word and its look-alike first", async () => {
         render(<ReviewFlashCard cards={[leechy("front")]} />);
-        expect(screen.getByText(/keeps slipping \(6 misses\)/)).toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: /Keeps slipping · 6/ }));
+        expect(screen.getByRole("dialog", { name: /keeps slipping \(6 misses\)/ })).toBeInTheDocument();
         expect(screen.getByLabelText("Your memory trick")).toHaveValue("furry");
         expect(screen.getByText("Which meaning goes with 猫?")).toBeInTheDocument();
         expect(screen.queryByText("Click to reveal")).toBeNull();

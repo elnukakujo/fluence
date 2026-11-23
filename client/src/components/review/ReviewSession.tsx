@@ -232,7 +232,7 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
                     card.last_seen_at ? `${t("lastSeen")}: ${new Date(card.last_seen_at).toLocaleDateString()}` : "",
                 ].filter(Boolean)}
                 progressLabel={t("reviewProgress")}
-                badges={view.tier ? <TierBadge tier={view.tier} /> : undefined}
+                badges={<>{view.tier && <TierBadge tier={view.tier} />}{card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}</>}
             />
 
             {!hintShown && !renderer.whole && <div className="flex justify-end">{deleteButton}</div>}
@@ -240,7 +240,6 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
             {renderer.whole ? <>{renderer.whole(ctx)}{editButton}</> : (
                 <>
                     {renderer.pre?.(ctx)}
-                    {card.leech && <LeechPanel key={card.id} id={card.id!} leech={card.leech} note={card.note} />}
                     <div className="flex flex-col gap-2">
                         {hintShown && (
                             <HintLadder card={card as Vocabulary | Calligraphy} level={hintLevel} shown={{ detail: view.showDetail, example: !!view.example }}
