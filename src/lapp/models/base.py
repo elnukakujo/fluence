@@ -48,22 +48,22 @@ calligraphy_example_sentence_link = Table(
 exercise_vocabulary_link = Table(
     "exercise_vocabulary_link",
     Base.metadata,
-    Column("exercise_id", String, ForeignKey("exercise.id"), primary_key=True),
-    Column("vocabulary_id", String, ForeignKey("vocabulary.id"), primary_key=True),
+    Column("exercise_id", String, ForeignKey("exercise.id", ondelete="CASCADE"), primary_key=True),
+    Column("vocabulary_id", String, ForeignKey("vocabulary.id", ondelete="CASCADE"), primary_key=True),
 )
 
 exercise_grammar_link = Table(
     "exercise_grammar_link",
     Base.metadata,
-    Column("exercise_id", String, ForeignKey("exercise.id"), primary_key=True),
-    Column("grammar_id", String, ForeignKey("grammar.id"), primary_key=True),
+    Column("exercise_id", String, ForeignKey("exercise.id", ondelete="CASCADE"), primary_key=True),
+    Column("grammar_id", String, ForeignKey("grammar.id", ondelete="CASCADE"), primary_key=True),
 )
 
 exercise_calligraphy_link = Table(
     "exercise_calligraphy_link",
     Base.metadata,
-    Column("exercise_id", String, ForeignKey("exercise.id"), primary_key=True),
-    Column("calligraphy_id", String, ForeignKey("calligraphy.id"), primary_key=True),
+    Column("exercise_id", String, ForeignKey("exercise.id", ondelete="CASCADE"), primary_key=True),
+    Column("calligraphy_id", String, ForeignKey("calligraphy.id", ondelete="CASCADE"), primary_key=True),
 )
 
 # --- Association tables for between components ---
