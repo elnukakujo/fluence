@@ -169,8 +169,8 @@ class LanguageService:
             description=data.description,
             source_iso639_2t=data.source_iso639_2t,
             target_iso639_2t=data.target_iso639_2t,
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data)
         )
 
         result = db_manager.insert(obj=language, session=session, commit=False)
@@ -280,6 +280,9 @@ class LanguageService:
         if not existing:
             logger.warning(f"Language not found: {language_id}")
             return False
+
+        from ..system_data import ScoreService   # local: services/system_data imports this package
+        ScoreService().delete_for_lessons(existing.lessons, session=session)    # the scores of its lessons' elements go with it (SC-17, EM-2)
 
         # ponytail: delete dependent rows (FK to language, no DB cascade)
         from ...models.data_collection import CommitmentLog, DailyStats, ProgressTracking

@@ -309,6 +309,13 @@ class ScoreService:
         session.query(Score).filter(Score.element_id.in_(ids)).delete(synchronize_session=False)
 
     @transactional
+    def delete_for_lessons(self, lessons, session: Optional[Session] = None) -> None:
+        """Drop the Score rows of everything studied in these lessons (deleting a lesson or a language cascades past `score`: no FK)."""
+        ids = [x.id for l in lessons for rel in (l.vocabulary, l.grammar, l.calligraphy, l.exercise) for x in rel]
+        if ids:
+            self.delete_for(ids, session=session)
+
+    @transactional
     def merge(self, user_id: str, elements: list[dict],
               session: Optional[Session] = None) -> list[dict]:
         """Inject score/difficulty/score_level/weak/skills/last_seen_at into serialized element dicts."""
