@@ -183,8 +183,8 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
 
     const answered = renderer.whole ? finishedId === card.id || gaveUpId === card.id : graded;   // an element is only edited once its card is done
     const editButton = answered && (
-        <button type="button" className="btn btn-secondary min-h-11 inline-flex items-center justify-center gap-2" onClick={() => setEditing(true)}>
-            <Pencil size={16} aria-hidden />{t("editButton")}
+        <button type="button" className="btn btn-secondary !p-2 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label={t("editButton")} title={t("editButton")} onClick={() => setEditing(true)}>
+            <Pencil size={18} aria-hidden />
         </button>
     );
 
