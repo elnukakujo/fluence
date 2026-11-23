@@ -5,16 +5,16 @@ import { useTranslations } from "next-intl";
 import { loadStrokeData, type Stroke } from "@/lib/calligraphy/strokeData";
 import type { ReactNode } from "react";
 import type { Tier } from "@/utils/cardTier";
-import { matchStrokes, findClosestStroke } from "@/lib/calligraphy/strokeMatch";
+import { matchStrokes, isExpectedStroke } from "@/lib/calligraphy/strokeMatch";
 import EmptyState from "@/components/ui/emptyState";
 
 const LOGICAL_SIZE = 1024; // hanzi-writer-data medians live in a ~1024 box
-const STROKE_MATCH_THRESHOLD = 150; // max centroid distance (1024-space) for a stroke to count as correct
+const STROKE_MATCH_THRESHOLD = 180; // max mean gap (1024-space) between the drawn stroke and the expected one, both resampled, for it to count as correct
 
 type Guidance = "none" | "guide" | "order";
 
 export function guidanceFor(tier: Tier): Guidance {
-  // Fade the scaffold as the character gets known: numbered order → outline → nothing.
+  // Fade the scaffold as the character gets known: numbered order with the next stroke lit → plain outline → nothing.
   return tier === "learning" ? "order" : tier === "practising" ? "guide" : "none";
 }
 
@@ -79,8 +79,8 @@ export default function CalligraphyPracticeCanvas({
       for (const stroke of referenceStrokes) {
         drawPolyline(ctx, stroke, scale);
       }
-      const next = referenceStrokes[userStrokes.length]; // the stroke to draw now stands out from the rest
-      if (next) {
+      const next = referenceStrokes[userStrokes.length]; // learning only: the stroke to draw now stands out from the rest; a known character gets the outline alone
+      if (next && guidance === "order") {
         ctx.strokeStyle = "rgba(37,99,235,0.6)";
         ctx.lineWidth = 22;
         drawPolyline(ctx, next, scale);
@@ -153,8 +153,7 @@ export default function CalligraphyPracticeCanvas({
     // The stroke is already in the canvas's 0-1024 space (via toLogical), matching
     // the normalized reference — do NOT re-normalize a single stroke (it would
     // scale it up to fill the whole box and misalign it).
-    const { index, distance } = findClosestStroke(stroke, referenceStrokes);
-    const correct = index === correctCountRef.current && distance < STROKE_MATCH_THRESHOLD;
+    const correct = isExpectedStroke(stroke, referenceStrokes, correctCountRef.current, STROKE_MATCH_THRESHOLD);
 
     if (correct) {
       correctCountRef.current += 1;
@@ -175,7 +174,7 @@ export default function CalligraphyPracticeCanvas({
   if (referenceStrokes === undefined) {
     return (      // the same layout as the canvas, with a 300 px placeholder: the card shows at once and nothing jumps when the strokes arrive
       <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center">
-        {info && <div className="order-2 w-full md:order-1 md:w-80 md:shrink-0">{info}</div>}
+        {info && <div className="order-2 w-full empty:hidden md:order-1 md:w-80 md:shrink-0">{info}</div>}
         <div className="order-1 h-[300px] w-[300px] animate-pulse rounded border border-border bg-border/40 md:order-2" data-testid="stroke-skeleton" role="status" aria-busy="true" aria-label={t("loadingStrokeData")} />
       </div>
     );
@@ -187,7 +186,7 @@ export default function CalligraphyPracticeCanvas({
   return (
     // wide: card and drawing side by side; narrow: the drawing first (on screen at once), the card under it
     <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center">
-      {info && <div className="order-2 w-full md:order-1 md:w-80 md:shrink-0">{info}</div>}
+      {info && <div className="order-2 w-full empty:hidden md:order-1 md:w-80 md:shrink-0">{info}</div>}
       <div className="order-1 flex flex-col items-center gap-3 md:order-2">
       <canvas
         ref={canvasRef}
