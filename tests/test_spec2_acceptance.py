@@ -36,7 +36,7 @@ def test_front_answer_gives_28_14_and_two_side_rows_no_parent_row(app, db):
     assert _answer(c, "front", similarity=1.0).status_code == 200
     p = _page(c)
     assert p["front_score"] == pytest.approx(28) and p["back_score"] == 0 and p["score"] == pytest.approx(14)
-    assert p["score_level"] == "learning" and p["stability"] == pytest.approx(4.0) and p["is_leech"] is False
+    assert p["score_level"] == "learning" and p["stability"] == pytest.approx(10.0) and p["is_leech"] is False
     assert "status" not in p and set(p["skills"]) >= {"recognition"}
     with db.session_scope() as s:
         assert sorted((r.element_id, r.skill) for r in s.query(Score).filter(Score.element_id.like("voc_V1%"))) == [("voc_V1#front", "recognition")]

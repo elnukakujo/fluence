@@ -22,11 +22,11 @@ def _age(db, element_id, days):
 def test_first_answer_creates_the_row_with_stability(db):
     _seed_users(db)
     s = ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
-    assert s.score == pytest.approx(28) and s.stability == 4 and s.skill == "recall"
+    assert s.score == pytest.approx(28) and s.stability == 10 and s.skill == "recall"
     created_at = s.created_at
     s2 = ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
     assert s2.id == s.id and s2.created_at == created_at     # same row, created_at set once
-    assert s2.score == s.score and s2.stability == 4        # same day: the day's gain is capped and the stability does not double twice (SC-31)
+    assert s2.score == s.score and s2.stability == 10       # same day: the day's gain is capped and the stability does not double twice (SC-31)
 
 
 def test_a_second_skill_gets_its_own_row(db):
@@ -40,7 +40,7 @@ def test_a_second_skill_gets_its_own_row(db):
 def test_difficulty_follows_stability(db):
     _seed_users(db)
     s = ScoreService().record("user_U1", "voc_V1", "recall", 1.0, "typed")
-    assert s.difficulty == pytest.approx(1 - 4 / 180, abs=1e-3)
+    assert s.difficulty == pytest.approx(1 - 10 / 180, abs=1e-3)
 
 
 def test_unknown_evidence_is_rejected(db):
@@ -68,8 +68,8 @@ def test_get_many(db):
 
 def test_reads_decay_without_writing(db):
     _seed_users(db)
-    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")        # 28, stability 4
-    _age(db, "gram_G1", 4)
+    ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")        # 28, stability 10
+    _age(db, "gram_G1", 10)
     assert ScoreService().get("user_U1", "gram_G1").score == pytest.approx(14, abs=0.05)
     assert ScoreService().get("user_U1", "gram_G1", skill="recognition").score == pytest.approx(28)   # stored value untouched
 

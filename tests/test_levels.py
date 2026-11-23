@@ -35,7 +35,7 @@ def test_merge_exposes_the_stability_that_sets_the_fading_estimate(db):
         db.insert(User(id="user_U1", username="a", email="a@x.com"), session=s, commit=False)
     ScoreService().record("user_U1", "gram_G1", "recognition", 1.0, "typed")
     out = ScoreService().merge("user_U1", [{"id": "gram_G1"}, {"id": "gram_G9"}])
-    assert out[0]["stability"] == 4 and out[1]["stability"] is None
+    assert out[0]["stability"] == 10 and out[1]["stability"] is None
 
 
 def test_aggregates_send_no_stability(db):

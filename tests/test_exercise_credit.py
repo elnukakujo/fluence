@@ -67,7 +67,7 @@ def test_one_right_one_wrong_credits_each_its_own_element(app, db):
 def test_two_blanks_on_one_element_make_one_update_from_the_average(app, db):
     c = _client(app, db)
     c.post("/api/exercise/score", json=_body([_result("voc_V1", 1.0), _result("voc_V1", 0.0)]))
-    assert _stability(db, "voc_V1#front") == 4 and _score("voc_V1") == 0.0     # one answer of quality 0.5: a pass worth no points; two updates would not give 4
+    assert _stability(db, "voc_V1#front") == 10 and _score("voc_V1") == 0.0     # one answer of quality 0.5: a pass worth no points; two updates would give 20
     assert _score("voc_V2") == 0.0
 
 
@@ -81,7 +81,7 @@ def test_final_posts_once_and_returns_no_score(app, db):
     c = _client(app, db)
     r = c.post("/api/exercise/score", json=_body([_result("voc_V1", 1.0), _result("voc_V2", 1.0)]))
     assert "score" not in r.json and (r.json["correct"], r.json["total"]) == (2, 2)
-    assert _stability(db, "voc_V1#front") == 4
+    assert _stability(db, "voc_V1#front") == 10
 
 
 @pytest.mark.parametrize("results", [

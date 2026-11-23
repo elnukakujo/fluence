@@ -2,6 +2,7 @@ from sqlalchemy import Boolean, Column, Date, String, Float, DateTime, ForeignKe
 from datetime import datetime
 
 from ...core.database import Base
+from ...utils.scoring import INITIAL_STABILITY_DAYS   # the shared constant, so the stored default and the engine cannot drift
 
 
 class Score(Base):
@@ -22,7 +23,7 @@ class Score(Base):
     element_id = Column(String, nullable=False)  # polymorphic, no FK (resolve_element_model)
     skill = Column(String, nullable=False, default="recall", server_default="recall")
     score = Column(Float, default=0.0, nullable=False)
-    stability = Column(Float, nullable=False, default=2.0, server_default="2.0")  # days for the score to halve
+    stability = Column(Float, nullable=False, default=INITIAL_STABILITY_DAYS, server_default=str(float(INITIAL_STABILITY_DAYS)))  # days for the score to halve
     is_leech = Column(Boolean, nullable=False, default=False, server_default="false")
     recent = Column(String, nullable=False, default="", server_default="")  # last 8 outcomes "0"/"1", newest last
     day_date = Column(Date, nullable=True)  # learner-local day of day_gain
