@@ -136,7 +136,6 @@
   "deleteCardConfirm": "Supprimer cet élément définitivement ? Ses scores partent avec lui.",
   "deleteFailed": "Suppression impossible. Vous n'avez peut-être pas le droit de modifier cet élément.",
   "hintLength": "La réponse fait {n} caractère",
-  "hintLesson": "Cela vient de la leçon : {lesson}",
   "hintWordType": "C'est un mot de type : {type}",
   "hintThink": "Prenez votre temps : revoyez où vous l'avez rencontré",
   "hintStepOf": "Prendre l'indice {n} sur {total}",

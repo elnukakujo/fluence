@@ -10,12 +10,10 @@ import type Calligraphy from "@/interface/features/Calligraphy";
 /** What the card's front already shows at this tier: a hint must never repeat it. */
 export interface Shown { detail: boolean; example: boolean }
 
-/** The hint steps of a card, in the order they are given (RC-25). A hint the front already shows is left out, and a card with little to give still gets steps
- *  (the lesson it comes from), so the button never vanishes. */
+/** The hint steps of a card, in the order they are given (RC-25). A hint the card already shows is left out: what the tier shows on the front (`shown`), the key-radical
+ *  tile, and the lesson (the header has it). The closing "think about it" step keeps the button from vanishing on a card with little to give. */
 function useHintLines(card: Vocabulary | Calligraphy, shown: Shown): string[] {
     const t = useTranslations("elements");
-    const lesson = (card as { lesson_title?: string }).lesson_title;
-    const fromLesson = lesson ? [t("hintLesson", { lesson })] : [];
     let lines: string[];
     if ("word" in card) {
         const w = card.word;
@@ -27,19 +25,19 @@ function useHintLines(card: Vocabulary | Calligraphy, shown: Shown): string[] {
             shapeHint(answer) ? t("hintShape", { shape: shapeHint(answer) }) : length === 1 ? t("hintLength", { n: 1 }) : "",
             answerIs === "word" && w.phonetic && !shown.detail ? t("hintPhonetic", { phonetic: w.phonetic }) : "",
             context ? t("hintContext", { sentence: context }) : "",
-            w.word_type ? t("hintWordType", { type: w.word_type }) : "",
+            w.word_type && !(shown.detail && card.side !== "back") ? t("hintWordType", { type: w.word_type }) : "",     // the front's chips already say the type when detail is shown
         ];
     } else {
         const c = card.character;
         const meaning = c.meaning ?? "";
-        const parts = shown.detail ? [] : [c.strokes ? t("strokeCount", { n: c.strokes }) : "", c.radical ? t("hintRadical", { radical: c.radical }) : ""].filter(Boolean);
+        const parts = shown.detail ? [] : [c.strokes ? t("strokeCount", { n: c.strokes }) : "", c.radical && !c.key_radical ? t("hintRadical", { radical: c.radical }) : ""].filter(Boolean);
         lines = [
             parts.join(" · "),
-            c.phonetic ? t("hintPhonetic", { phonetic: c.phonetic }) : "",
+            c.phonetic && !shown.detail ? t("hintPhonetic", { phonetic: c.phonetic }) : "",
             shapeHint(meaning) ? t("hintShape", { shape: shapeHint(meaning) }) : "",
         ];
     }
-    return [...lines.filter(Boolean), ...fromLesson, t("hintThink")];
+    return [...lines.filter(Boolean), t("hintThink")];
 }
 
 /** The Hint row above a flashcard (RC-25): the Hint button, then what the hints taken so far say, with `children` (Practice) beside the button and `trailing` (Delete)

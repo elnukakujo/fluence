@@ -136,7 +136,6 @@
   "deleteCardConfirm": "Delete this element for good? Its scores go with it.",
   "deleteFailed": "Could not delete it. You may not be allowed to change this element.",
   "hintLength": "The answer is {n} character long",
-  "hintLesson": "It comes from the lesson: {lesson}",
   "hintWordType": "It is a {type}",
   "hintThink": "Take your time: picture where you met it",
   "hintStepOf": "Take hint {n} of {total}",
