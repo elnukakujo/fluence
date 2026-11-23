@@ -793,7 +793,7 @@ def content_owner(anchor, session: Session):
     """The user who owns the content `anchor` belongs to: a container, a feature (via its lesson) or a component (via its
     language). `anchor` is an ORM row or anything with a `lesson_id` / `language_id`. None when it cannot be told."""
     from ..models.containers import Language, Lesson   # local: the models import this module
-    for attr, model in (("user_id", None), ("lesson_id", Lesson), ("language_id", Language)):
+    for attr, model in (("lesson_id", Lesson), ("language_id", Language), ("user_id", None)):   # parents first: a request body may carry any user_id
         value = getattr(anchor, attr, None)
         if not value:
             continue

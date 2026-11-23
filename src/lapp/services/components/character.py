@@ -211,8 +211,8 @@ class CharacterService:
             phonetic=data.phonetic if (data.phonetic is not None and data.phonetic != "") else enriched_data["phonetic"],
             radical=data.radical if (data.radical is not None and data.radical != "") else enriched_data["radical"],
             meaning=data.meaning if (data.meaning is not None and data.meaning != "") else enriched_data["meaning"],
-            tags = session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources = session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else [],
+            tags = resolve_related(data.tags, Tag, session, anchor=data),
+            sources = resolve_related(data.sources, Source, session, anchor=data),
             components=list(comp_ids if comp_ids is not None else (data.components or [])),
             key_radical_id=key_id or data.key_radical_id,
         )

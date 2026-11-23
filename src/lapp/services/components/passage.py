@@ -169,8 +169,8 @@ class PassageService:
             id=db_manager.generate_new_id(model_class=Passage, session=session),
             **{k: v for k, v in data.model_dump(exclude={'id','status', 'difficulty', 'score', 'created_at', 'last_seen_at', 'translation', 'tags', 'sources'}, exclude_none=True).items()},
             translation=data.translation if (data.translation is not None and data.translation != "") else enriched_data["translation"],
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else [],
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data),
             characters=list(characters.values()),
             words=list(words.values())
         )

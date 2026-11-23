@@ -188,8 +188,8 @@ class ExerciseService:
             draft=bool(exercise_data.get("draft")),
             image_files=data.image_files or [],
             audio_files=data.audio_files or [],
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else []
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data)
         )
         exercise.related_calligraphy, exercise.related_vocabulary, exercise.related_grammar = self._resolve_associations(
             calligraphy=related_calligraphy,

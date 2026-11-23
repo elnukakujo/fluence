@@ -130,8 +130,8 @@ class WordService:
             translation=data.translation if (data.translation is not None and data.translation != "") else enriched_data["translation"],
             word_type=data.word_type if (data.word_type is not None and data.word_type != "") else enriched_data["word_type"],
             word_gender=data.word_gender if (data.word_gender is not None and data.word_gender != "") else enriched_data["word_gender"],
-            tags=session.query(Tag).filter(Tag.id.in_([t.id for t in data.tags])).all() if data.tags else [],
-            sources=session.query(Source).filter(Source.id.in_([s.id for s in data.sources])).all() if data.sources else [],
+            tags=resolve_related(data.tags, Tag, session, anchor=data),
+            sources=resolve_related(data.sources, Source, session, anchor=data),
             characters=list(characters.values())
         )
         return db_manager.insert(obj=word, session=session, commit=False)
