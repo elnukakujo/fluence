@@ -61,12 +61,10 @@ describe("review card: hint ladder", () => {
         expect(hint.compareDocumentPosition(screen.getByText("Click to reveal")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
-    it("a card with little to say still has hints: there is always a second step (RC-25)", async () => {
-        render(<ReviewFlashCard cards={[voc({ example_sentences: [] })]} />);
-        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
-        expect(screen.getByRole("button", { name: /^Hint/ })).toBeEnabled();
-        await userEvent.click(screen.getByRole("button", { name: /^Hint/ }));
-        expect(screen.getByText("Take your time: picture where you met it")).toBeInTheDocument();
+    it("a hint costs points, so a card with nothing new to say has no Hint button and no filler step", async () => {
+        render(<ReviewFlashCard cards={[voc({ example_sentences: [], word: { word: "好", translation: "", phonetic: "hǎo" } })]} />);
+        expect(screen.queryByRole("button", { name: /^Hint/ })).toBeNull();
+        expect(screen.queryByText(/Take your time/)).toBeNull();
     });
 
     it("the button shows how many hints are taken and the best grade that is left", async () => {

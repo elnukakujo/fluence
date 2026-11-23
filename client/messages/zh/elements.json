@@ -137,7 +137,6 @@
   "deleteFailed": "无法删除。你可能没有修改此内容的权限。",
   "hintLength": "答案只有 {n} 个字",
   "hintWordType": "词性：{type}",
-  "hintThink": "别着急：想想在哪里见过它",
   "hintStepOf": "第 {n} 个提示（共 {total} 个）",
   "hintNoMore": "没有更多提示",
   "hintBest": "现在最高评分：{grade}",

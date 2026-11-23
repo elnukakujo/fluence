@@ -6,7 +6,7 @@ import HintLadder from "./hintLadder";
 
 const voc = (side: "front" | "back") => ({ id: "voc_1", side, lesson_title: "Unit 3", example_sentences: [], word: { word: "旅游", translation: "to travel", phonetic: "lǚyóu", word_type: "verb" } }) as never;
 const call = { id: "call_1", lesson_title: "Unit 3", character: { character: "游", meaning: "swim", phonetic: "yóu", strokes: 12, radical: "氵", key_radical: { id: "char_9", character: "氵" } } } as never;
-const lines = () => screen.getAllByRole("listitem").map((li) => li.textContent);
+const lines = () => screen.queryAllByRole("listitem").map((li) => li.textContent);
 const ladder = (card: never, shown: { detail: boolean; example: boolean }) => render(<HintLadder card={card} level={9} onHint={() => {}} shown={shown} />);
 
 describe("hints never repeat what the card already shows", () => {
@@ -31,5 +31,14 @@ describe("hints never repeat what the card already shows", () => {
         expect(text).toMatch(/yóu/);
         expect(text).toMatch(/12/);
         expect(text).not.toMatch(/氵/);
+    });
+
+    it("has no filler step: a card with nothing new to say has no Hint button, and a hint never says to take your time", () => {
+        const bare = { id: "voc_2", side: "front", example_sentences: [], word: { word: "好", translation: "" } } as never;
+        const { unmount } = ladder(bare, { detail: false, example: false });
+        expect(screen.queryByRole("button", { name: /Hint/ })).toBeNull();
+        unmount();
+        ladder(voc("front"), { detail: false, example: false });
+        expect(screen.getAllByRole("listitem").map((li) => li.textContent).join(" ")).not.toMatch(/Take your time/);
     });
 });

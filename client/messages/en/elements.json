@@ -137,7 +137,6 @@
   "deleteFailed": "Could not delete it. You may not be allowed to change this element.",
   "hintLength": "The answer is {n} character long",
   "hintWordType": "It is a {type}",
-  "hintThink": "Take your time: picture where you met it",
   "hintStepOf": "Take hint {n} of {total}",
   "hintNoMore": "No more hints",
   "hintBest": "Best grade now: {grade}",
