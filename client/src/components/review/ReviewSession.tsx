@@ -50,7 +50,6 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const [finishedId, setFinishedId] = useState<string>();   // exercise whose answer is final (solved, out of attempts or given up); a replacing spare has another id
     const [gaveUpId, setGaveUpId] = useState<string>();
     const [result, setResult] = useState<ActionResult | null>(null);       // what the answer did to the card: the strip over Next
-    const tUi = useTranslations("ui");
     const [typed, setTyped] = useState<TypedState>(null);
     const [typedPending, setTypedPending] = useState(false);        // the result of a typed answer
     const [flipInstead, setFlipInstead] = useState<boolean>(false);
@@ -140,10 +139,9 @@ export default function ReviewSession({ items, options }: { items: SessionItem[]
     const handleGrade = (score: number, evidence: Evidence = "self_grade") => {
         setGraded(true);
         const side = renderer.scoreSide?.(card);
-        const gradeLabel = tUi(score >= 1 ? "easy" : score >= 0.75 ? "good" : score >= 0.5 ? "hard" : "again");
         const shownId = card.id;
         Promise.resolve(updateScoreById(card.id, { similarity: score, skill: skillFor(card.id, side), evidence, durationMs: Math.round(performance.now() - startTimeRef.current), hintUsed, side }))
-            .then((r) => { if (r && typeof r.score_after === "number" && shownId === card.id) setResult({ gradeLabel, before: r.score_before ?? 0, after: r.score_after, levelUp: r.level_before !== r.level_after && ["known", "mastered"].includes(r.level_after), capped: !!r.capped }); })
+            .then((r) => { if (r && typeof r.score_after === "number" && shownId === card.id) setResult({ before: r.score_before ?? 0, after: r.score_after, level: r.level_after ?? "learning", levelUp: r.level_before !== r.level_after && ["known", "mastered"].includes(r.level_after), capped: !!r.capped }); })
             .catch(() => undefined);
     };
 

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from flask import jsonify, request
 
@@ -7,13 +7,13 @@ from ..schemas.answer import parse_answer
 from ..services.system_data import ScoreService
 from ..services.system_data.prefs_view import remember_timezone
 from ..services.system_data.score import side_id
-from ..utils.scoring import DAY_GAIN_CAP, level_for
+from ..utils.scoring import DAY_GAIN_CAP, effective_score, level_for
 
 
-def _state(element_id: str) -> tuple[float, str]:
-    """(effective score, level): a vocabulary's is computed from its sides, so it is read like the review does."""
-    row = ScoreService().get_many(current_user_id(), [element_id]).get(element_id)
-    score = row.score if row else 0.0
+def _state(row_id: str, skill: str) -> tuple[float, str]:
+    """(score as of now, level) of the one card the learner answered: the side's own row for a vocabulary, not the mean over its sides."""
+    row = ScoreService().get(current_user_id(), row_id, skill)
+    score = effective_score(row.score, row.stability, row.last_seen_at, datetime.now()) if row else 0.0
     return round(score, 1), level_for(score)
 
 
@@ -24,11 +24,12 @@ def answered(element_id: str, data, record):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     remember_timezone(current_user_id(), request.headers.get('X-Timezone'))     # the answer lands on the learner's own day
-    score_before, before = _state(element_id)
+    row_id = side_id(element_id, payload.side) if payload.side else element_id
+    score_before, before = _state(row_id, payload.skill)
     if not record(payload):
         return jsonify({'error': 'not found'}), 404
-    score_after, after = _state(element_id)
-    row = ScoreService().get(current_user_id(), side_id(element_id, payload.side) if payload.side else element_id, payload.skill)
+    score_after, after = _state(row_id, payload.skill)
+    row = ScoreService().get(current_user_id(), row_id, payload.skill)
     # nothing gained because the card already earned DAY_GAIN_CAP today: the result strip says so instead of "7 -> 7"
     # ponytail: the server's date, not the learner's zone; a late-night answer may read one day off
     capped = bool(row and row.day_date == date.today() and row.day_gain >= DAY_GAIN_CAP and score_after <= score_before)

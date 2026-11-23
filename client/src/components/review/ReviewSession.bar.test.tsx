@@ -24,7 +24,7 @@ describe("the pinned bar in a review", () => {
         await userEvent.click(screen.getByText("Click to reveal"));
         expect(screen.getByTestId("action-bar")).toContainElement(screen.getByText(/good/i));
         await userEvent.click(screen.getByText(/good/i));
-        expect(await screen.findByTestId("result-strip")).toHaveTextContent("Good55 → 64");
+        expect(await screen.findByTestId("result-strip")).toHaveTextContent("+9 points");
         expect(screen.getByTestId("level-up")).toBeInTheDocument();
         expect(screen.getByTestId("action-bar")).toContainElement(screen.getByRole("button", { name: /^Next$/ }));
     });

@@ -14,20 +14,26 @@ describe("ActionBar", () => {
     });
     it("after grading shows the result strip over a Next button; the strip is polite", async () => {
         const onNext = vi.fn();
-        render(<ActionBar phase="next" onNext={onNext} result={{ gradeLabel: "Good", before: 40, after: 58, levelUp: false }} />);
-        expect(screen.getByTestId("result-strip")).toHaveTextContent("Good40 → 58");
+        render(<ActionBar phase="next" onNext={onNext} result={{ before: 40, after: 58, level: "learning", levelUp: false }} />);
+        expect(screen.getByTestId("result-strip")).toHaveTextContent("+18 pointsCard score 40 → 58 · Learning");
         expect(screen.getByTestId("result-strip")).toHaveAttribute("aria-live", "polite");
         expect(screen.queryByTestId("level-up")).toBeNull();
         await userEvent.click(screen.getByRole("button", { name: "Next" }));
         expect(onNext).toHaveBeenCalledTimes(1);
     });
     it("says so when the day's limit was reached, instead of a number that did not move", () => {
-        render(<ActionBar phase="next" onNext={() => {}} result={{ gradeLabel: "Easy", before: 7, after: 7, levelUp: false, capped: true }} />);
-        expect(screen.getByTestId("result-strip")).toHaveTextContent("EasyDaily limit reached for this card");
-        expect(screen.getByTestId("result-strip")).not.toHaveTextContent("7 → 7");
+        render(<ActionBar phase="next" onNext={() => {}} result={{ before: 7, after: 7, level: "learning", levelUp: false, capped: true }} />);
+        expect(screen.getByTestId("result-strip")).toHaveTextContent("Daily limit reached for this card");
+        expect(screen.getByTestId("result-strip")).not.toHaveTextContent("Easy");
+    });
+    it("says a loss and 'no change' in words, not as a bare number pair", () => {
+        const { rerender } = render(<ActionBar phase="next" onNext={() => {}} result={{ before: 30, after: 22, level: "learning", levelUp: false }} />);
+        expect(screen.getByTestId("result-strip")).toHaveTextContent("−8 points");
+        rerender(<ActionBar phase="next" onNext={() => {}} result={{ before: 30, after: 30, level: "learning", levelUp: false }} />);
+        expect(screen.getByTestId("result-strip")).toHaveTextContent("No change");
     });
     it("marks a level up only when the card crossed a level", () => {
-        render(<ActionBar phase="next" onNext={() => {}} result={{ gradeLabel: "Easy", before: 55, after: 64, levelUp: true }} />);
+        render(<ActionBar phase="next" onNext={() => {}} result={{ before: 55, after: 64, level: "known", levelUp: true }} />);
         expect(screen.getByTestId("level-up")).toHaveTextContent("Level up");
     });
     it("Enter and Space move on, but not while typing in a field", async () => {
