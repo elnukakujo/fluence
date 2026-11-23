@@ -69,7 +69,7 @@ def is_weak(score: float) -> bool:
 
 
 def _local_day(now: datetime, tz: tzinfo | None) -> date:
-    return (now.astimezone(tz) if tz and now.tzinfo else now).date()
+    return (now.astimezone(tz) if tz else now).date()   # a naive `now` is server local time: astimezone converts it too
 
 
 def apply_answer(state: ScoreState, quality: float, evidence_weight: float, now: datetime,

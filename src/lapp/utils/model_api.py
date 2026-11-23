@@ -89,6 +89,8 @@ class ModelAPIError(Exception):
     @classmethod
     def from_connection(cls, exc: Exception, url: str = "") -> "ModelAPIError":
         msg = str(exc)
+        if isinstance(exc, httpx.TimeoutException):   # str() of a read timeout is empty
+            return cls(cls.KIND_CONNECT, None, "Connection timed out — check the host and port", url)
         if "No route to host" in msg:
             return cls(cls.KIND_CONNECT, None,
                        "Cannot reach server — proxy or VPN may be blocking LAN addresses (try disabling HTTP_PROXY)", url)
@@ -151,7 +153,6 @@ def _synthesize_speech_openai(
     body: dict = {"input": text, "voice": voice}
     if model:
         body["model"] = model
-    if model:
         body["response_format"] = "wav"
     url, headers = auth_headers(base_url, api_key, auth_type)
     with _client(url, headers) as client:
