@@ -107,7 +107,7 @@ def set_note(element_id: str):
 @bp.route('/session/<session_id>', methods=['GET'])
 @login_required
 def session_summary(session_id: str):
-    """What one review session came to: cards, correct, time, average score gained, average difficulty change, per type (ST-9).
+    """What one review session came to: cards, correct, time, average score gained, average difficulty change, per type (ST-9), plus levels_crossed, to_revisit, hints_used, avg_seconds_per_card, goal_progress (RC-27).
 
     ---
     tags:
@@ -116,7 +116,7 @@ def session_summary(session_id: str):
         - {name: session_id, in: path, type: string, required: true}
     responses:
         200:
-            description: "{cards, correct, duration_ms, avg_score_gain, avg_difficulty_change, by_type}; zeros for an unknown session"
+            description: "{cards, correct, duration_ms, avg_score_gain, avg_difficulty_change, by_type, levels_crossed, to_revisit, hints_used, avg_seconds_per_card, goal_progress}; zeros for an unknown session"
     """
     return jsonify(SessionStats().get(current_user_id(), session_id))
 
